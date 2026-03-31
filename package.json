@@ -1,0 +1,67 @@
+{
+  "name": "pentip",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist-electron/index.js",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "build": "vue-tsc && vite build",
+    "start": "electron .",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "prod": "vite build && electron-builder",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+    "typecheck": "vue-tsc --noEmit",
+    "clean": "del /Q /S dist-renderer dist-electron release node_modules\\.vite"
+  },
+  "dependencies": {
+    "pinia": "^2.1.7",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.3.1",
+    "@typescript-eslint/parser": "^7.3.1",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/eslint-config-typescript": "^13.0.0",
+    "electron": "^39.8.5",
+    "electron-builder": "^26.0.6",
+    "eslint": "^9.9.0",
+    "eslint-plugin-vue": "^9.26.0",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.3",
+    "vite-plugin-electron": "^0.28.5",
+    "vue-tsc": "^2.0.27"
+  },
+  "build": {
+    "appId": "com.pentip.app",
+    "productName": "PenTip",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-renderer/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "pkg"
+      ]
+    },
+    "linux": {
+      "target": [
+        "deb",
+        "rpm",
+        "AppImage"
+      ]
+    }
+  }
+}

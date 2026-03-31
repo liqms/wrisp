@@ -118,7 +118,6 @@ PenTip/
 │   ├── images/            # 图片资源
 │   ├── fonts/             # 字体文件
 │   └── icons/             # 应用图标
-├── public/                # 公共资源目录
 ├── dist/                  # 构建输出目录
 └── release/               # 打包输出目录
 ```
