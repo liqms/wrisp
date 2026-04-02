@@ -22,6 +22,6 @@
     },
     "ignoreDeprecations": "6.0",
   },
-  "include": ["src/main/**/*.ts"],
+  "include": ["src/main/**/*.ts", "src/shared/types/config.types.ts"],
   "exclude": ["node_modules", "dist"]
 }

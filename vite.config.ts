@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import electron from 'vite-plugin-electron'
+import { VueMcp } from 'vite-plugin-vue-mcp'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    VueMcp(),
     vue(),
     electron({
       entry: 'src/main/index.ts',

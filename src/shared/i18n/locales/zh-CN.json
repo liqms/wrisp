@@ -1,0 +1,31 @@
+{
+  "APP": {
+    "TITLE": "笔触AI",
+    "WELCOME": "欢迎使用笔触AI"
+  },
+  "COMMON": {
+    "SAVE": "保存",
+    "CANCEL": "取消",
+    "CONFIRM": "确认"
+  },
+  "EDITOR": {
+    "placeholder": "开始写作...",
+    "wordCount": "字数：{count}"
+  },
+  "AGENT": {
+    "CREATING": "正在创作...",
+    "COMPLETED": "创作完成"
+  },
+  "CONFIG": {
+    "LOCALE": "语言"
+  },
+  "ERROR": {
+    "SUCCESS": "操作成功",
+    "UNKNOWN_ERROR": "未知错误",
+    "INVALID_PARAMETER": "无效参数",
+    "CONFIG_GET_FAILED": "获取配置失败",
+    "CONFIG_UPDATE_FAILED": "更新配置失败",
+    "CONFIG_RESET_FAILED": "重置配置失败",
+    "CONFIG_KEY_PATH_INVALID": "配置键路径无效"
+  }
+}

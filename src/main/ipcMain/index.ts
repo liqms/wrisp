@@ -1,0 +1,6 @@
+export { registerWindowHandlers } from './window.ipc'
+export { registerSystemHandlers } from './system.ipc'
+export { registerNotificationHandlers } from './notification.ipc'
+export { registerLoggerHandlers } from './logger.ipc'
+export { registerConfigHandlers } from './config.ipc'
+export { registerWebViewHandlers } from './webview.ipc'

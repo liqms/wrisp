@@ -1,0 +1,31 @@
+{
+  "APP": {
+    "TITLE": "PenTip",
+    "WELCOME": "Welcome to PenTip"
+  },
+  "COMMON": {
+    "SAVE": "Save",
+    "CANCEL": "Cancel",
+    "CONFIRM": "Confirm"
+  },
+  "EDITOR": {
+    "PLACEHOLDER": "Start writing...",
+    "WORD_COUNT": "Words: {count}"
+  },
+  "AGENT": {
+    "CREATING": "Creating...",
+    "COMPLETED": "Creation completed"
+  },
+  "CONFIG": {
+    "LOCALE": "Locale"
+  },
+  "ERROR": {
+    "SUCCESS": "Operation successful",
+    "UNKNOWN_ERROR": "Unknown error",
+    "INVALID_PARAMETER": "Invalid parameter",
+    "CONFIG_GET_FAILED": "Failed to get configuration",
+    "CONFIG_UPDATE_FAILED": "Failed to update configuration",
+    "CONFIG_RESET_FAILED": "Failed to reset configuration",
+    "CONFIG_KEY_PATH_INVALID": "Invalid configuration key path"
+  }
+}
