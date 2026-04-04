@@ -1,5 +1,5 @@
-import { spawn, exec } from 'child_process';
-import net from 'net';
+const { spawn, exec } = require('child_process');
+const net = require('net');
 
 const port = 5173;
 
@@ -129,11 +129,20 @@ async function releasePort(port) {
 }
 
 /**
- * 启动 Vite 开发服务器
+ * 启动 Vite 开发服务器（包含 Electron）
  */
 async function startVite() {
   console.log('========================================');
-  console.log('启动 Vite 开发服务器...');
+  console.log('启动 Vite 开发服务器（包含 Electron）...');
+
+  // 在 Windows 上设置控制台编码为 UTF-8
+  if (process.platform === 'win32') {
+    try {
+      require('child_process').execSync('chcp 65001', { stdio: 'inherit' });
+    } catch (error) {
+      console.warn('设置控制台编码失败，但继续启动...');
+    }
+  }
 
   // 释放端口
   const released = await releasePort(port);
@@ -153,6 +162,7 @@ async function startVite() {
     env.CHCP = '65001';
   }
 
+  // 使用 vite 命令启动，vite-plugin-electron 会自动处理 Electron 启动
   const vite = spawn('vite', [], {
     shell: true,
     stdio: 'inherit',

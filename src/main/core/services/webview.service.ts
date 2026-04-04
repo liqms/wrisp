@@ -268,4 +268,3 @@ class WebViewService {
 }
 
 export default WebViewService
-export const webViewService = WebViewService.getInstance()

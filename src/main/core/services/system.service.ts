@@ -1,4 +1,4 @@
-import { app, Notification, dialog, OpenDialogOptions, OpenDialogReturnValue } from 'electron'
+import { app, Notification, OpenDialogOptions, OpenDialogReturnValue, dialog } from 'electron'
 import os from 'os'
 import { Logger } from '@/main/utils/logger'
 import { SystemInfo } from '@/shared/types'
@@ -11,7 +11,7 @@ import { SystemInfo } from '@/shared/types'
 class SystemService {
   private static instance: SystemService
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SystemService {
     if (!SystemService.instance) {

@@ -39,7 +39,7 @@
 #### 环境要求
 
 - Node.js 22+
-- npm
+- pnpm (推荐) 或 npm
 - Git
 
 #### 安装依赖
@@ -49,38 +49,57 @@
 git clone https://github.com/liqms/PenTip.git
 cd PenTip
 
-# 安装依赖
-npm install
+# 安装依赖（使用 pnpm）
+pnpm install
+
+# 或者使用 npm
+# npm install
 ```
 
 #### 开发环境
 
 ```bash
 # 启动开发服务器（同时启动 Electron 和 Vite 开发服务器）
-npm run dev
+pnpm dev
+
+# 或者使用 npm
+# npm run dev
 ```
 
 #### 构建应用
 
 ```bash
 # 构建应用
-npm run build
+pnpm build
 
 # 启动应用（先构建后启动）
-npm start
+pnpm start
 
-# 打包应用（生成可执行文件）
-npm run dist
+# 生产构建（生成可执行文件）
+pnpm prod
+
+# 或者使用 npm
+# npm run build
+# npm start
+# npm run prod
 ```
 
 #### 代码检查
 
 ```bash
 # 运行 ESLint 检查
-npm run lint
+pnpm lint
 
 # 运行 TypeScript 类型检查
-npm run typecheck
+pnpm typecheck
+
+# 清理构建文件
+pnpm clean
+
+# 或者使用 npm
+# npm run lint
+# npm run typecheck
+# npm run clean
 ```
 
 ### 🤝 如何贡献代码

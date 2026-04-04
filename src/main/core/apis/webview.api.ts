@@ -1,10 +1,11 @@
-import { webViewService } from "../services/webview.service";
-import { response } from "../../utils/response";
-import { ErrorCode } from "../../../shared/enums";
-import type { ApiResponse } from "../../../shared/types";
+import WebViewService from "@/main/core/services/webview.service";
+import { response } from "@/main/utils/response";
+import { ErrorCode } from "@/shared/enums";
+import type { ApiResponse } from "@/shared/types";
 
-async function createWebView(url: string): Promise<ApiResponse<void>> {
+async function createWebView(url: string, window: Electron.BrowserWindow): Promise<ApiResponse<void>> {
     try {
+        const webViewService = WebViewService.getInstance(window);
         await webViewService.create(url);
         return response.empty();
     } catch (error) {
@@ -12,8 +13,9 @@ async function createWebView(url: string): Promise<ApiResponse<void>> {
     }
 }
 
-async function reloadWebView(): Promise<ApiResponse<void>> {
+async function reloadWebView(window: Electron.BrowserWindow): Promise<ApiResponse<void>> {
     try {
+        const webViewService = WebViewService.getInstance(window);
         await webViewService.reload();
         return response.empty();
     } catch (error) {
@@ -21,8 +23,9 @@ async function reloadWebView(): Promise<ApiResponse<void>> {
     }
 }
 
-async function destroyWebView(): Promise<ApiResponse<void>> {
+async function destroyWebView(window: Electron.BrowserWindow): Promise<ApiResponse<void>> {
     try {
+        const webViewService = WebViewService.getInstance(window);
         await webViewService.destroy();
         return response.empty();
     } catch (error) {
@@ -30,8 +33,9 @@ async function destroyWebView(): Promise<ApiResponse<void>> {
     }
 }
 
-async function goBack(): Promise<ApiResponse<void>> {
+async function goBack(window: Electron.BrowserWindow): Promise<ApiResponse<void>> {
     try {
+        const webViewService = WebViewService.getInstance(window);
         await webViewService.goBack();
         return response.empty();
     } catch (error) {
@@ -39,8 +43,9 @@ async function goBack(): Promise<ApiResponse<void>> {
     }
 }
 
-async function goForward(): Promise<ApiResponse<void>> {
+async function goForward(window: Electron.BrowserWindow): Promise<ApiResponse<void>> {
     try {
+        const webViewService = WebViewService.getInstance(window);
         await webViewService.goForward();
         return response.empty();
     } catch (error) {

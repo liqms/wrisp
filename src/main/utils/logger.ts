@@ -1,7 +1,8 @@
+import { app } from 'electron'
 import * as winston from 'winston'
 import * as path from 'path'
 import * as fs from 'fs'
-import { LogLevelEnum, LogFormatEnum, LOG_LEVELS, LOG_FORMATS } from '../../shared/enums/log.enums'
+import { LogLevelEnum, LogFormatEnum, LOG_LEVELS, LOG_FORMATS } from '@/shared/enums/log.enums'
 
 // 常量定义
 const TIMESTAMP_FORMAT = 'YYYY-MM-DD HH:mm:ss'
@@ -53,6 +54,7 @@ export type LogContext = Record<string, unknown>
 export class Logger {
   private static instance: winston.Logger | null = null
   private static logDir: string = ''
+  private static currtenEncoding: string = 'utf8';
 
   private static config: Required<LoggerConfig> = {
     level: DEFAULT_LOG_LEVEL,
@@ -67,6 +69,7 @@ export class Logger {
     dateFormat: DATE_FORMAT,
     keepDays: DEFAULT_KEEP_DAYS
   }
+
 
   static initialize(config?: Partial<LoggerConfig>): void {
     if (this.instance) {
@@ -85,22 +88,26 @@ export class Logger {
       // 控制台传输
       if (this.config.console) {
         const consoleFormats: winston.Logform.Format[] = []
-        
+
         if (this.config.timestamp) {
           consoleFormats.push(winston.format.timestamp({ format: TIMESTAMP_FORMAT }))
         }
-        
+
         if (this.config.colorize) {
           consoleFormats.push(winston.format.colorize())
         }
-        
+
         consoleFormats.push(baseFormat)
-        
+
         transports.push(
           new winston.transports.Console({
             format: winston.format.combine(...consoleFormats),
             handleExceptions: true,
-            handleRejections: true
+            handleRejections: true,
+            stderrLevels: ['error'],
+            consoleWarnLevels: ['warn'],
+            // 确保控制台输出使用正确的编码
+            level: this.config.level
           })
         )
       }
@@ -108,12 +115,12 @@ export class Logger {
       // 文件传输
       if (this.config.file) {
         const maxSize = this.parseSize(this.config.maxSize)
-        
+
         // 按日期分割或按级别分文件
         if (this.config.splitByDate) {
           // 按日期分割：每个级别一个文件，按日期滚动
           const levels = [LOG_LEVELS.ERROR, LOG_LEVELS.WARN, LOG_LEVELS.INFO, LOG_LEVELS.DEBUG]
-          
+
           levels.forEach(level => {
             const filename = this.getDateBasedFilename(level)
             transports.push(
@@ -122,6 +129,7 @@ export class Logger {
                 level: level,
                 maxsize: maxSize,
                 maxFiles: this.config.keepDays,
+                options: { encoding: this.currtenEncoding },
                 format: winston.format.combine(
                   winston.format.timestamp({ format: TIMESTAMP_FORMAT }),
                   winston.format.errors({ stack: true }),
@@ -133,7 +141,7 @@ export class Logger {
         } else {
           // 按级别分文件：每个级别一个固定文件
           const levels = [LOG_LEVELS.ERROR, LOG_LEVELS.WARN, LOG_LEVELS.INFO, LOG_LEVELS.DEBUG]
-          
+
           levels.forEach(level => {
             const prefix = LOG_FILE_PREFIXES[level as keyof typeof LOG_FILE_PREFIXES] || 'app'
             const filename = `${prefix}.log`
@@ -143,14 +151,12 @@ export class Logger {
                 level: level,
                 maxsize: maxSize,
                 maxFiles: this.config.maxFiles,
+                options: { encoding: this.currtenEncoding },
                 format: winston.format.combine(
                   winston.format.timestamp({ format: TIMESTAMP_FORMAT }),
                   winston.format.errors({ stack: true }),
                   baseFormat
-                ),
-                options: {
-                  encoding: 'utf8'
-                }
+                )
               })
             )
           })
@@ -190,7 +196,7 @@ export class Logger {
     // 默认按日期分割文件
     const maxSize = this.parseSize('10m')
     const levels = [LOG_LEVELS.ERROR, LOG_LEVELS.WARN, LOG_LEVELS.INFO, LOG_LEVELS.DEBUG]
-    
+
     levels.forEach(level => {
       const filename = this.getDateBasedFilename(level)
       transports.push(
@@ -199,7 +205,7 @@ export class Logger {
           level: level,
           maxsize: maxSize,
           maxFiles: DEFAULT_KEEP_DAYS,
-          options: { encoding: 'utf8' },
+          options: { encoding: this.currtenEncoding },
           format: winston.format.combine(
             winston.format.timestamp({ format: TIMESTAMP_FORMAT }),
             winston.format.errors({ stack: true }),
@@ -225,14 +231,14 @@ export class Logger {
     this.config.console = process.env.LOG_CONSOLE !== 'false'
     this.config.file = process.env.LOG_FILE !== 'false'
     this.config.maxSize = process.env.LOG_MAX_SIZE || '10m'
-    
+
     const maxFiles = parseInt(process.env.LOG_MAX_FILES || '5')
     this.config.maxFiles = maxFiles > 0 ? maxFiles : 5
-    
+
     this.config.timestamp = process.env.LOG_TIMESTAMP !== 'false'
     this.config.colorize = process.env.LOG_COLORIZE !== 'false'
     this.config.splitByDate = process.env.LOG_SPLIT_BY_DATE !== 'false'
-    
+
     const keepDays = parseInt(process.env.LOG_KEEP_DAYS || DEFAULT_KEEP_DAYS.toString())
     this.config.keepDays = keepDays > 0 ? keepDays : DEFAULT_KEEP_DAYS
   }
@@ -251,9 +257,9 @@ export class Logger {
     return this.config.format === 'json'
       ? winston.format.json()
       : winston.format.printf(({ timestamp, level, message, ...meta }) => {
-          const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : ''
-          return `${timestamp} [${level}]: ${message}${metaStr}`
-        })
+        const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : ''
+        return `${timestamp} [${level}]: ${message}${metaStr}`
+      })
   }
 
   private static getLogDir(): string {
@@ -263,19 +269,18 @@ export class Logger {
 
     let logDir: string
     try {
-      const { app } = require('electron')
       logDir = app.getPath(DEFAULT_LOG_DIR)
     } catch {
       logDir = process.env.LOG_DIR || path.join(process.cwd(), DEFAULT_LOG_DIR)
     }
-    
+
     try {
       fs.mkdirSync(logDir, { recursive: true })
     } catch {
       logDir = path.join(process.cwd(), DEFAULT_LOG_DIR)
       fs.mkdirSync(logDir, { recursive: true })
     }
-    
+
     this.logDir = logDir
     return logDir
   }
@@ -429,9 +434,9 @@ export class Logger {
     )
   }
 
-  static getLogStats(): { 
-    totalFiles: number; 
-    totalSize: number; 
+  static getLogStats(): {
+    totalFiles: number;
+    totalSize: number;
     files: Array<{ name: string; size: number; modified: Date }>;
   } {
     const logDir = this.getLogDir()
@@ -443,10 +448,10 @@ export class Logger {
     const fileStats = files.map(file => {
       const filePath = path.join(logDir, file)
       const stats = fs.statSync(filePath)
-      
-      return { 
-        name: file, 
-        size: stats.size, 
+
+      return {
+        name: file,
+        size: stats.size,
         modified: stats.mtime
       }
     })
@@ -478,7 +483,7 @@ export class Logger {
     files.forEach(file => {
       const filePath = path.join(logDir, file)
       const stats = fs.statSync(filePath)
-      
+
       if (stats.mtime < cutoffDate) {
         try {
           fs.unlinkSync(filePath)
@@ -516,7 +521,7 @@ export class Logger {
       logFiles.map(async (file) => {
         const filePath = path.join(logDir, file)
         const stats = await fs.promises.stat(filePath)
-        
+
         if (stats.mtime < cutoffDate) {
           try {
             await fs.promises.unlink(filePath)

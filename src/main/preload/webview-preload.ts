@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+import { contextBridge, ipcRenderer } from 'electron'
 
 // 通过 contextBridge 暴露安全的 API 给嵌入的网页
 contextBridge.exposeInMainWorld('electronAPI', {

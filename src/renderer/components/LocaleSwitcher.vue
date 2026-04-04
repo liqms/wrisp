@@ -1,63 +1,37 @@
 <template>
-  <div class="locale-switcher">
-    <select v-model="currentLocale" @change="handleLocaleChange" class="locale-select">
-      <option v-for="locale in SUPPORTED_LOCALES" :key="locale" :value="locale">
-        {{ getLocaleDisplayName(locale) }}
-      </option>
-    </select>
-  </div>
+  <n-select
+    v-model:value="currentLocale"
+    :options="localeOptions"
+    size="small"
+    style="width: 120px"
+    @update:value="handleLocaleChange"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useLocale, SUPPORTED_LOCALES, type SupportedLocale } from '../../shared/local'
+import { ref } from 'vue'
+import { NSelect } from 'naive-ui'
 
-const { locale, setLocale } = useLocale()
-const currentLocale = ref<SupportedLocale>(locale.value)
-
-// 获取语言显示名称
-function getLocaleDisplayName(locale: SupportedLocale): string {
-  const names: Record<SupportedLocale, string> = {
-    'zh-CN': '中文',
-    'en-US': 'English'
-  }
-  return names[locale]
+type LocaleOption = {
+  label: string
+  value: string
 }
 
-// 处理语言切换
-function handleLocaleChange(event: Event) {
-  const target = event.target as HTMLSelectElement
-  const newLocale = target.value as SupportedLocale
-  setLocale(newLocale)
-}
+const localeOptions: LocaleOption[] = [
+  { label: '中文', value: 'zh-CN' },
+  { label: 'English', value: 'en-US' },
+  { label: '日本語', value: 'ja-JP' }
+]
 
-// 监听语言变化
-onMounted(() => {
-  currentLocale.value = locale.value
-})
+const currentLocale = ref('zh-CN')
+
+const handleLocaleChange = (value: string) => {
+  console.log('Locale changed to:', value)
+  // 这里可以添加切换语言的逻辑
+  // 例如：i18n.global.locale = value
+}
 </script>
 
 <style scoped>
-.locale-switcher {
-  display: inline-block;
-}
-
-.locale-select {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 14px;
-  cursor: pointer;
-  outline: none;
-}
-
-.locale-select:focus {
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-}
-
-.locale-select:hover {
-  border-color: #ccc;
-}
+/* 语言选择器样式 */
 </style>

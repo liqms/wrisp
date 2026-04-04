@@ -12,11 +12,6 @@ const router = createRouter({
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue')
-    },
-    {
-      path: '/locale-demo',
-      name: 'locale-demo',
-      component: () => import('../views/LocaleDemo.vue')
     }
   ]
 })
