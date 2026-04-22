@@ -1,0 +1,620 @@
+import Database from 'better-sqlite3'
+import { getDatabase } from './connection'
+import { Logger } from '@/main/utils/logger'
+import { PaginationResult } from '@/shared/utils/pagination'
+
+/**
+ * 时间戳配置接口
+ */
+interface TimestampConfig {
+  /** 是否启用自动时间戳 */
+  enabled: boolean
+  /** 创建时间字段名 */
+  createdAtField?: string
+  /** 更新时间字段名 */
+  updatedAtField?: string
+  /** 访问时间字段名 */
+  accessedField?: string
+}
+
+/**
+ * 数据访问对象基类
+ * 提供通用的 CRUD 操作和数据库查询方法
+ * @template T - 实体类型
+ * @template C - 创建数据类型
+ * @template U - 更新数据类型
+ */
+export abstract class BaseDao<T, C extends object, U extends object> {
+  /** 数据库表名 */
+  protected tableName: string
+  
+  /** 时间戳配置 */
+  protected timestampConfig: TimestampConfig
+
+  /**
+   * 构造函数
+   * @param tableName - 数据库表名
+   * @param timestampConfig - 时间戳配置，可选
+   */
+  constructor(tableName: string, timestampConfig: TimestampConfig = { enabled: true }) {
+    this.tableName = tableName
+    this.timestampConfig = {
+      enabled: timestampConfig.enabled,
+      createdAtField: timestampConfig.createdAtField || 'created_at',
+      updatedAtField: timestampConfig.updatedAtField || 'updated_at',
+      accessedField: timestampConfig.accessedField || 'accessed_at'
+    }
+    this.validateTableName(tableName)
+  }
+
+  /**
+   * 验证表名是否合法
+   * @param tableName - 待验证的表名
+   * @throws {Error} 当表名不符合命名规范时抛出错误
+   */
+  private validateTableName(tableName: string): void {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
+      throw new Error(`表名无效，只能包含字母、数字和下划线: ${tableName}`)
+    }
+  }
+
+  /**
+   * 获取数据库连接实例
+   * @returns Database.Database 数据库实例
+   */
+  protected get db(): Database.Database {
+    return getDatabase()
+  }
+
+  /**
+   * 获取当前时间戳
+   * @returns ISO 8601 格式的时间戳字符串
+   */
+  protected getCurrentTimestamp(): string {
+    return new Date().toISOString()
+  }
+
+  /**
+   * 增强数据对象，自动添加时间戳字段
+   * @param data - 原始数据对象
+   * @param isCreate - 是否为创建操作（true: 创建，false: 更新）
+   * @returns 增强后的数据对象
+   */
+  protected enhanceDataWithTimestamps(data: C | U, isCreate: boolean = true): C | U {
+    if (!this.timestampConfig.enabled) {
+      return data
+    }
+
+    const timestamp = this.getCurrentTimestamp()
+    const enhancedData = { ...data }
+
+    if (isCreate) {
+      // 创建操作：添加 created_at 和 updated_at
+      if (this.timestampConfig.createdAtField) {
+        Object.assign(enhancedData, { [this.timestampConfig.createdAtField]: timestamp })
+      }
+      if (this.timestampConfig.updatedAtField) {
+        Object.assign(enhancedData, { [this.timestampConfig.updatedAtField]: timestamp })
+      }
+      if (this.timestampConfig.accessedField) {
+        Object.assign(enhancedData, { [this.timestampConfig.accessedField]: timestamp })
+      }
+    } else {
+      // 更新操作：只更新 updated_at
+      if (this.timestampConfig.updatedAtField) {
+        Object.assign(enhancedData, { [this.timestampConfig.updatedAtField]: timestamp })
+      }
+    }
+
+    return enhancedData
+  }
+
+  /**
+   * 创建单条记录
+   * @param data - 创建数据对象
+   * @returns 新创建记录的 ID
+   * @throws {Error} 当数据为空或数据库操作失败时抛出错误
+   */
+  create(data: C): number {
+    try {
+      // 自动添加时间戳字段
+      const enhancedData = this.enhanceDataWithTimestamps(data, true) as C
+      
+      const keys = Object.keys(enhancedData) as (keyof C)[]
+      if (keys.length === 0) {
+        throw new Error('创建操作需要提供数据')
+      }
+
+      const placeholders = keys.map(() => '?').join(', ')
+      const values: unknown[] = keys.map(key => enhancedData[key])
+      const columnNames = keys.map(key => String(key)).join(', ')
+      
+      const sql = `INSERT INTO ${this.tableName} (${columnNames}) VALUES (${placeholders})`
+      Logger.debug(`执行 SQL: ${sql}`, { values: values.length })
+      
+      const stmt = this.db.prepare(sql)
+      const result = stmt.run(values)
+      
+      Logger.debug(`创建记录，ID: ${result.lastInsertRowid}`, { id: result.lastInsertRowid })
+      
+      return result.lastInsertRowid as number
+    } catch (error) {
+      Logger.error(`创建记录失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 批量创建记录
+   * 在事务中执行多个创建操作，确保原子性
+   * @param dataList - 创建数据对象数组
+   * @returns 新创建记录的 ID 数组
+   */
+  createBatch(dataList: C[]): number[] {
+    if (dataList.length === 0) {
+      return []
+    }
+
+    return this.transaction(() => {
+      const ids: number[] = []
+      for (const data of dataList) {
+        ids.push(this.create(data))
+      }
+      return ids
+    })
+  }
+
+  /**
+   * 根据 ID 查询单条记录
+   * @param id - 记录 ID
+   * @returns 查询到的记录对象，未找到时返回 null
+   */
+  findById(id: number): T | null {
+    try {
+      if (id <= 0) {
+        return null
+      }
+
+      const sql = `SELECT * FROM ${this.tableName} WHERE id = ?`
+      Logger.debug(`执行 SQL: ${sql}`, { id })
+      
+      const stmt = this.db.prepare(sql)
+      const result = stmt.get(id) as T | null
+      
+      Logger.debug(`找到记录: ${result ? 'yes' : 'no'}`)
+      return result
+    } catch (error) {
+      Logger.error(`根据ID查询记录失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 查询所有记录
+   * @returns 所有记录数组
+   */
+  findAll(): T[] {
+    try {
+      const sql = `SELECT * FROM ${this.tableName}`
+      Logger.debug(`执行 SQL: ${sql}`)
+      
+      const stmt = this.db.prepare(sql)
+      const result = stmt.all() as T[]
+      
+      Logger.debug(`找到 ${result.length} 条记录`)
+      return result
+    } catch (error) {
+      Logger.error(`查询所有记录失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 根据 ID 数组批量查询记录
+   * @param ids - 记录 ID 数组
+   * @returns 查询到的记录数组
+   */
+  findByIds(ids: number[]): T[] {
+    if (ids.length === 0) {
+      return []
+    }
+
+    try {
+      const placeholders = ids.map(() => '?').join(', ')
+      const sql = `SELECT * FROM ${this.tableName} WHERE id IN (${placeholders})`
+      Logger.debug(`执行 SQL: ${sql}`, { ids: ids.length })
+      
+      const stmt = this.db.prepare(sql)
+      const result = stmt.all(ids) as T[]
+      
+      Logger.debug(`找到 ${result.length} 条记录`)
+      return result
+    } catch (error) {
+      Logger.error(`根据ID查询记录失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 更新单条记录
+   * @param id - 记录 ID
+   * @param data - 更新数据对象
+   * @returns 受影响的行数
+   */
+  update(id: number, data: U): number {
+    try {
+      if (id <= 0) {
+        return 0
+      }
+
+      // 自动更新时间戳字段
+      const enhancedData = this.enhanceDataWithTimestamps(data, false) as U
+      
+      const keys = Object.keys(enhancedData) as (keyof U)[]
+      if (keys.length === 0) {
+        return 0
+      }
+
+      const updates = keys.map(key => `${String(key)} = ?`).join(', ')
+      const values: unknown[] = keys.map(key => enhancedData[key])
+      values.push(id)
+      
+      const sql = `UPDATE ${this.tableName} SET ${updates} WHERE id = ?`
+      Logger.debug(`执行 SQL: ${sql}`, { id, values: values.length - 1 })
+      
+      const stmt = this.db.prepare(sql)
+      const result = stmt.run(values)
+      
+      Logger.debug(`更新 ${result.changes} 条记录`)
+      return result.changes
+    } catch (error) {
+      Logger.error(`更新记录失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 删除单条记录
+   * @param id - 记录 ID
+   * @returns 受影响的行数
+   */
+  delete(id: number): number {
+    try {
+      if (id <= 0) {
+        return 0
+      }
+
+      const sql = `DELETE FROM ${this.tableName} WHERE id = ?`
+      Logger.debug(`执行 SQL: ${sql}`, { id })
+      
+      const stmt = this.db.prepare(sql)
+      const result = stmt.run(id)
+      
+      Logger.debug(`删除 ${result.changes} 条记录`)
+      return result.changes
+    } catch (error) {
+      Logger.error(`删除记录失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 根据 ID 数组批量删除记录
+   * @param ids - 记录 ID 数组
+   * @returns 受影响的行数
+   */
+  deleteByIds(ids: number[]): number {
+    if (ids.length === 0) {
+      return 0
+    }
+
+    try {
+      const placeholders = ids.map(() => '?').join(', ')
+      const sql = `DELETE FROM ${this.tableName} WHERE id IN (${placeholders})`
+      Logger.debug(`执行 SQL: ${sql}`, { ids: ids.length })
+      
+      const stmt = this.db.prepare(sql)
+      const result = stmt.run(ids)
+      
+      Logger.debug(`删除 ${result.changes} 条记录`)
+      return result.changes
+    } catch (error) {
+      Logger.error(`删除记录失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 执行原生 SQL 语句（INSERT/UPDATE/DELETE）
+   * @param sql - SQL 语句
+   * @param params - SQL 参数数组
+   * @returns 执行结果
+   */
+  execute(sql: string, params?: unknown[]): Database.RunResult {
+    try {
+      Logger.debug(`执行 SQL: ${sql}`, { params: params?.length || 0 })
+      
+      const stmt = this.db.prepare(sql)
+      const result = params ? stmt.run(params) : stmt.run()
+      
+      Logger.debug(`执行完成，影响 ${result.changes} 条记录`)
+      return result
+    } catch (error) {
+      Logger.error(`执行 SQL ${sql} 失败`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 执行查询 SQL 并返回多条记录
+   * @param sql - SQL 查询语句
+   * @param params - SQL 参数数组
+   * @returns 查询结果数组
+   */
+  query(sql: string, params?: unknown[]): T[] {
+    try {
+      Logger.debug(`查询: ${sql}`, { params: params?.length || 0 })
+      
+      const stmt = this.db.prepare(sql)
+      const result = params ? stmt.all(params) as T[] : stmt.all() as T[]
+      
+      Logger.debug(`查询完成，找到 ${result.length} 条记录`)
+      return result
+    } catch (error) {
+      Logger.error(`查询失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 执行查询 SQL 并返回单条记录
+   * @param sql - SQL 查询语句
+   * @param params - SQL 参数数组
+   * @returns 查询结果对象，未找到时返回 null
+   */
+  queryOne(sql: string, params?: unknown[]): T | null {
+    try {
+      Logger.debug(`查询: ${sql}`, { params: params?.length || 0 })
+      
+      const stmt = this.db.prepare(sql)
+      const result = params ? stmt.get(params) as T | null : stmt.get() as T | null
+      
+      Logger.debug(`查询完成，找到 ${result ? '记录' : '无记录'}`)
+      return result
+    } catch (error) {
+      Logger.error(`查询失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 统计记录数量
+   * @param sql - 可选的 SQL 子查询语句
+   * @param params - SQL 参数数组
+   * @returns 记录数量
+   */
+  count(sql?: string, params?: unknown[]): number {
+    try {
+      let countSql: string
+      let countParams: unknown[] = params || []
+
+      if (sql) {
+        countSql = `SELECT COUNT(*) as count FROM (${sql}) as subquery`
+      } else {
+        countSql = `SELECT COUNT(*) as count FROM ${this.tableName}`
+      }
+
+      Logger.debug(`查询: ${countSql}`, { params: countParams.length })
+      
+      const stmt = this.db.prepare(countSql)
+      const result = stmt.get(countParams) as { count: number }
+      
+      return result?.count || 0
+    } catch (error) {
+      Logger.error(`查询失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 检查记录是否存在
+   * @param id - 记录 ID
+   * @returns 记录存在返回 true，否则返回 false
+   */
+  exists(id: number): boolean {
+    try {
+      if (id <= 0) {
+        return false
+      }
+
+      const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE id = ?) as exists`
+      const stmt = this.db.prepare(sql)
+      const result = stmt.get(id) as { exists: number }
+      
+      return result?.exists === 1
+    } catch (error) {
+      Logger.error(`查询失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 在事务中执行回调函数
+   * @param callback - 事务回调函数
+   * @returns 回调函数的返回值
+   */
+  transaction<Result>(callback: () => Result): Result {
+    try {
+      Logger.debug(`开始事务: ${this.tableName}`)
+      const result = this.db.transaction(callback)()
+      Logger.debug(`事务完成，表名: ${this.tableName}`)
+      return result
+    } catch (error) {
+      Logger.error(`事务失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+
+  /**
+   * 分页查询记录
+   * @param params - 查询参数对象，支持通用分页参数和条件参数
+   * @param params.page - 页码（从 1 开始），默认 1
+   * @param params.pageSize - 每页记录数（最大 100），默认 20
+   * @param params.orderBy - 排序字段，默认为 'id'
+   * @param params.orderDir - 排序方向，默认为 'ASC'
+   * @param params.conditions - 查询条件对象（由子类实现）
+   * @returns 分页结果对象，包含数据、总数、页码和分页信息
+   */
+  paginate(params: {
+    page?: number
+    pageSize?: number
+    orderBy?: string
+    orderDir?: 'ASC' | 'DESC'
+    conditions?: Record<string, unknown>
+  } = {}): PaginationResult<T> {
+    try {
+      // 参数验证和默认值
+      const page = Math.max(1, params.page || 1)
+      const pageSize = Math.min(Math.max(1, params.pageSize || 20), 100)
+      const orderBy = params.orderBy || 'id'
+      const orderDir = params.orderDir || 'ASC'
+
+      const offset = (page - 1) * pageSize
+      const safeOrderBy = this.sanitizeOrderBy(orderBy)
+      const safeOrderDir = orderDir.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+
+      // 构建查询 SQL
+      let sql = `SELECT * FROM ${this.tableName}`
+      const values: unknown[] = []
+
+      // 如果有查询条件，构建 WHERE 子句
+      if (params.conditions && Object.keys(params.conditions).length > 0) {
+        const whereClause = this.buildWhereClause(params.conditions)
+        sql += ` WHERE ${whereClause.sql}`
+        values.push(...whereClause.values)
+      }
+
+      sql += ` ORDER BY ${safeOrderBy} ${safeOrderDir} LIMIT ? OFFSET ?`
+      values.push(pageSize, offset)
+
+      Logger.debug(`分页查询: ${sql}`, { params, page, pageSize, offset })
+      
+      const stmt = this.db.prepare(sql)
+      const data = stmt.all(...values) as T[]
+
+      // 获取总数（考虑查询条件）
+      const total = this.countWithConditions(params.conditions)
+
+      // 计算完整的分页信息
+      const totalPages = Math.ceil(total / pageSize)
+      const hasNext = page < totalPages
+      const hasPrev = page > 1
+      const startIndex = (page - 1) * pageSize
+      const endIndex = Math.min(startIndex + pageSize, total)
+
+      Logger.debug(`分页查询完成`, { 
+        table: this.tableName, 
+        dataCount: data.length, 
+        total, 
+        page, 
+        pageSize,
+        totalPages
+      })
+
+      return {
+        data,
+        total,
+        page,
+        pageSize,
+        totalPages,
+        hasNext,
+        hasPrev,
+        startIndex,
+        endIndex
+      }
+    } catch (error) {
+      Logger.error(`分页查询失败，表名: ${this.tableName}:`, { 
+        error: String(error), 
+        params 
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 构建 WHERE 子句（由子类实现具体逻辑）
+   * @param conditions - 查询条件对象
+   * @returns 包含 SQL 和参数的 WHERE 子句对象
+   */
+  protected buildWhereClause(conditions: Record<string, unknown>): { sql: string; values: unknown[] } {
+    // 默认实现：子类需要重写此方法来实现具体的条件构建逻辑
+    const conditionsArray: string[] = []
+    const values: unknown[] = []
+
+    for (const [key, value] of Object.entries(conditions)) {
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'string' && value.includes('%')) {
+          // 模糊查询
+          conditionsArray.push(`${key} LIKE ?`)
+          values.push(value)
+        } else {
+          // 精确匹配
+          conditionsArray.push(`${key} = ?`)
+          values.push(value)
+        }
+      }
+    }
+
+    const sql = conditionsArray.length > 0 ? conditionsArray.join(' AND ') : '1=1'
+    return { sql, values }
+  }
+
+  /**
+   * 根据条件统计记录数量
+   * @param conditions - 查询条件对象
+   * @returns 符合条件的记录总数
+   */
+  protected countWithConditions(conditions?: Record<string, unknown>): number {
+    let sql = `SELECT COUNT(*) as count FROM ${this.tableName}`
+    const values: unknown[] = []
+
+    if (conditions && Object.keys(conditions).length > 0) {
+      const whereClause = this.buildWhereClause(conditions)
+      sql += ` WHERE ${whereClause.sql}`
+      values.push(...whereClause.values)
+    }
+
+    const result = this.query(sql, values)
+    return result.length > 0 ? (result[0] as { count: number }).count : 0
+  }
+
+  /**
+   * 清理排序字段名称，防止 SQL 注入
+   * @param orderBy - 待清理的排序字段
+   * @returns 清理后的安全字段名
+   */
+  protected sanitizeOrderBy(orderBy: string): string {
+    const safeColumn = orderBy.replace(/[^a-zA-Z0-9_]/g, '')
+    if (!safeColumn) {
+      return 'id'
+    }
+    return safeColumn
+  }
+
+  /**
+   * 执行原生 SQL 查询并返回原始结果
+   * @param sql - SQL 查询语句
+   * @param params - SQL 参数数组
+   * @returns 原始查询结果
+   */
+  raw(sql: string, params?: unknown[]): unknown {
+    try {
+      Logger.debug(`查询: ${sql}`, { params: params?.length || 0 })
+      const result = this.db.prepare(sql)
+      return params ? result.all(params) : result.all()
+    } catch (error) {
+      Logger.error(`查询失败，表名: ${this.tableName}:`, { error: String(error) })
+      throw error
+    }
+  }
+}

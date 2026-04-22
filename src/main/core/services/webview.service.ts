@@ -1,24 +1,42 @@
 import { BrowserWindow, WebContentsView, WebContents } from 'electron';
 import { Logger } from '@/main/utils/logger';
+import { WebContentViewOptions } from '@/shared/types';
 
-interface WebViewConfig {
-  webPreferences?: Electron.WebPreferences;
-  bounds?: Electron.Rectangle;
-}
-
+/**
+ * WebView 服务
+ * 提供内嵌 WebView 的管理功能，包括创建、显示、隐藏、销毁和导航控制
+ * 支持加载外部 URL、导航历史管理和窗口大小自适应
+ */
 class WebViewService {
   private static instance: WebViewService | null = null
   private mainWindow: BrowserWindow
   private webView: WebContentsView | null = null
+  private webContentViewOptions: WebContentViewOptions = {
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0
+  }
   private isVisible: boolean = false
   private resizeHandler: ((event: Electron.Event) => void) | null = null
   private navigationHistory: string[] = []
   private currentHistoryIndex: number = -1
 
+  /**
+   * 私有构造函数
+   * 初始化 WebView 服务实例
+   * @param window - 主窗口实例
+   */
   private constructor(window: BrowserWindow) {
     this.mainWindow = window
   }
 
+  /**
+   * 获取 WebViewService 的单例实例
+   * @param window - 主窗口实例，首次调用时必须提供
+   * @returns WebViewService 单例实例
+   * @throws {Error} 当未初始化时抛出错误
+   */
   public static getInstance(window?: BrowserWindow): WebViewService {
     if (!WebViewService.instance && window) {
       WebViewService.instance = new WebViewService(window)
@@ -31,16 +49,20 @@ class WebViewService {
 
   /**
    * 创建 WebView
-   * @param url 要加载的 URL
-   * @param config 配置选项
+   * 异步创建 WebContentsView 实例并加载指定 URL
+   * @param url - 要加载的 URL
+   * @param options - 配置选项，可选
    * @returns Promise<void>
+   * @throws {Error} 当 WebView 创建失败时抛出错误
    */
-  async create(url: string, config: WebViewConfig = {}): Promise<void> {
+  async create(url: string, options?: WebContentViewOptions): Promise<void> {
     try {
       // 销毁已存在的 WebView
       if (this.webView) {
         await this.destroy()
       }
+
+      Logger.debug('后端 WebView 创建', { url, options })
 
       // 创建 WebContentsView 实例
       this.webView = new WebContentsView({
@@ -48,18 +70,29 @@ class WebViewService {
           contextIsolation: true,
           nodeIntegration: false,
           sandbox: true,
-          ...config.webPreferences
-        }
+          // 支持扫码登录和页面跳转的关键配置
+          webSecurity: true,
+          allowRunningInsecureContent: false,
+          images: true,
+          javascript: true,
+          webgl: true,
+          plugins: true,
+          // 支持现代 Web 功能
+          enableWebSQL: false,
+          enableBlinkFeatures: '',
+          // Cookie 和存储支持
+          partition: 'persist:webview',
+          // 开发者工具支持（便于调试）
+          devTools: true
+        } 
       })
 
-      // 设置视图的初始位置和大小
-      const bounds = config.bounds || this.mainWindow.getBounds()
-      this.webView.setBounds({
-        x: 0,
-        y: 0,
-        width: bounds.width,
-        height: bounds.height
-      })
+      // 设置内容视图的初始位置和大小
+      this.calculateInitialBounds(options)
+      
+      this.webView.setBounds(this.webContentViewOptions)
+
+      Logger.debug('后端 WebView 设置初始位置和大小', { webContentViewOptions: this.webContentViewOptions })
 
       // 将视图添加到主窗口的内容视图中
       this.mainWindow.contentView.addChildView(this.webView)
@@ -71,59 +104,103 @@ class WebViewService {
 
       // 加载外部 URL
       await this.webView.webContents.loadURL(url)
-      Logger.info('WebView 创建成功', { url })
+      Logger.info('后端 WebView 创建成功', { url })
 
       // 监听导航事件
       this.setupNavigationControl()
 
     } catch (error) {
-      Logger.error('WebView 创建失败', { error: error instanceof Error ? error.message : String(error) })
+      Logger.error('后端 WebView 创建失败', { error: error instanceof Error ? error.message : String(error) })
       throw error
     }
   }
 
   /**
+   * 计算内容视图的初始位置和大小
+   * 根据配置选项和主窗口大小计算 WebView 的边界
+   * @param options - 配置选项，可选
+   */
+  private calculateInitialBounds(options?: WebContentViewOptions): void {
+    const contentViewBounds = this.mainWindow.getContentSize()
+    this.webContentViewOptions = {
+      x: options?.x || 0,
+      y: options?.y || 0,
+      width: options?.width || contentViewBounds[0],
+      height: options?.height || contentViewBounds[1]
+    }
+  }
+
+  /**
    * 处理窗口大小变化
+   * 当主窗口大小改变时，自动调整 WebView 的大小
    */
   private handleResize(): void {
     if (this.webView && this.isVisible) {
-      const bounds = this.mainWindow.getBounds()
+      const contentViewBounds = this.mainWindow.getContentSize()
       this.webView.setBounds({
-        x: 0,
-        y: 0,
-        width: bounds.width,
-        height: bounds.height
+        x: this.webContentViewOptions.x,
+        y: this.webContentViewOptions.y,
+        width: contentViewBounds[0],
+        height: contentViewBounds[1] - this.webContentViewOptions.y
       })
     }
   }
 
   /**
    * 设置导航控制
+   * 监听 WebView 的导航事件，记录导航历史并处理新窗口打开请求
    */
   private setupNavigationControl(): void {
     if (!this.webView) return
 
     this.webView.webContents.on('will-navigate', (event, navigationUrl) => {
-      Logger.debug('尝试导航到', { url: navigationUrl })
-      // 可以在这里添加导航策略，例如：
-      // - 限制只能访问特定域名
-      // - 阻止恶意 URL
-      // - 记录用户浏览历史
+      Logger.debug('后端WebView尝试导航到', { url: navigationUrl })
+      // 记录用户导航历史
       this.recordNavigation(navigationUrl)
-      // 继续导航
-      event.preventDefault()
+      // 允许导航继续（不要调用 event.preventDefault()）
+      // 这样可以支持扫码登录后的页面跳转
     })
     // 监听页面加载完成
     this.webView.webContents.on('did-finish-load', () => {
-      Logger.debug('页面加载完成', {
+      const canGoBack = this.webView?.webContents.navigationHistory.canGoBack() || false
+      const canGoForward = this.webView?.webContents.navigationHistory.canGoForward() || false
+      
+      Logger.debug('后端WebView页面加载完成', {
         url: this.webView?.webContents.getURL(),
-        canGoBack: this.webView?.webContents.navigationHistory.canGoBack(),
-        canGoForward: this.webView?.webContents.navigationHistory.canGoForward()
+        canGoBack,
+        canGoForward
       })
+      
+      // 更新导航状态
+      this.updateNavigationState(canGoBack, canGoForward)
+    })
+
+    // 监听新窗口打开请求（支持扫码登录等场景）
+    this.webView.webContents.setWindowOpenHandler(({ url }) => {
+      Logger.debug('新窗口打开请求', { url })
+      // 在当前 WebView 中加载新 URL，而不是打开新窗口
+      if (url) {
+        this.webView?.webContents.loadURL(url)
+      }
+      return { action: 'deny' } // 阻止默认的新窗口行为
     })
   }
   /**
+   * 更新导航状态
+   * 将导航状态（是否可后退、前进）传递给渲染进程
+   * @param canGoBack - 是否可以后退
+   * @param canGoForward - 是否可以前进
+   */
+  private updateNavigationState(canGoBack: boolean, canGoForward: boolean): void {
+    // 这里可以添加 IPC 通信，将导航状态传递给渲染进程
+    Logger.debug('更新导航状态', { canGoBack, canGoForward })
+    // 在实际实现中，这里应该通过 IPC 将状态发送给前端
+  }
+
+  /**
    * 记录导航历史
+   * 将新 URL 添加到导航历史记录中
+   * @param url - 导航到的 URL
    */
   private recordNavigation(url: string): void {
     // 如果当前不是历史记录中的最新页面，清除后面的历史
@@ -137,12 +214,15 @@ class WebViewService {
 
   /**
    * 获取导航历史
+   * 返回导航历史记录的副本
+   * @returns 导航历史 URL 数组
    */
   public getNavigationHistory(): string[] {
     return [...this.navigationHistory]
   }
   /**
    * 隐藏视图
+   * 从主窗口中移除 WebView，但不销毁实例
    */
   hide(): void {
     if (this.webView && this.isVisible) {
@@ -158,6 +238,7 @@ class WebViewService {
 
   /**
    * 显示视图
+   * 将 WebView 添加到主窗口中，并调整大小
    */
   show(): void {
     if (this.webView && !this.isVisible) {
@@ -174,7 +255,10 @@ class WebViewService {
   }
 
   /**
-   * 销毁视图，释放资源
+   * 销毁视图
+   * 异步销毁 WebView 实例，释放所有资源
+   * @returns Promise<void>
+   * @throws {Error} 当销毁失败时抛出错误
    */
   async destroy(): Promise<void> {
     if (this.webView) {
@@ -195,15 +279,13 @@ class WebViewService {
           this.webView.webContents.close()
         }
 
-        // 销毁 WebView 实例
-        // @ts-ignore - 类型定义可能没有 destroy 方法，但实际存在
-        this.webView.destroy();
-
+        // 正确销毁 WebView 实例
+        // 只需要设置 webView 为 null，垃圾回收器会自动处理
         this.webView = null
         this.isVisible = false
-        Logger.info('WebView 销毁成功')
+        Logger.info('后端 WebView 销毁成功')
       } catch (error) {
-        Logger.error('WebView 销毁失败', { error: error instanceof Error ? error.message : String(error) })
+        Logger.error('后端 WebView 销毁失败', { error: error instanceof Error ? error.message : String(error) })
         throw error
       }
     }
@@ -211,14 +293,17 @@ class WebViewService {
 
   /**
    * 刷新视图
+   * 异步重新加载当前页面
+   * @returns Promise<void>
+   * @throws {Error} 当重新加载失败时抛出错误
    */
   async reload(): Promise<void> {
     if (this.webView) {
       try {
         await this.webView.webContents.reload()
-        Logger.debug('WebView 重新加载成功')
+        Logger.debug('后端 WebView 重新加载成功')
       } catch (error) {
-        Logger.error('WebView 重新加载失败', { error: error instanceof Error ? error.message : String(error) })
+        Logger.error('后端 WebView 重新加载失败', { error: error instanceof Error ? error.message : String(error) })
         throw error
       }
     }
@@ -226,7 +311,7 @@ class WebViewService {
 
   /**
    * 获取 WebContents 实例
-   * @returns WebContents 实例或 null
+   * @returns WebContents 实例，WebView 未创建时返回 null
    */
   getWebContents(): WebContents | null {
     return this.webView?.webContents || null
@@ -234,7 +319,7 @@ class WebViewService {
 
   /**
    * 检查 WebView 是否已创建
-   * @returns 是否已创建
+   * @returns 已创建返回 true，否则返回 false
    */
   isCreated(): boolean {
     return this.webView !== null
@@ -242,15 +327,16 @@ class WebViewService {
 
   /**
    * 检查 WebView 是否可见
-   * @returns 是否可见
+   * @returns 可见返回 true，否则返回 false
    */
   getVisibility(): boolean {
     return this.isVisible
   }
 
   /**
- * 返回上一页
- */
+   * 返回上一页
+   * 如果可以后退，则导航到上一页
+   */
   goBack(): void {
     if (this.webView?.webContents.navigationHistory.canGoBack()) {
       this.webView.webContents.navigationHistory.goBack()
@@ -258,12 +344,25 @@ class WebViewService {
   }
 
   /**
- * 前进下一页
- */
+   * 前进下一页
+   * 如果可以前进，则导航到下一页
+   */
   goForward(): void {
     if (this.webView?.webContents.navigationHistory.canGoForward()) {
       this.webView.webContents.navigationHistory.goForward()
     }
+  }
+
+  /**
+   * 获取导航状态
+   * 返回当前是否可以后退和前进的状态
+   * @returns 包含 canGoBack 和 canGoForward 的状态对象
+   */
+  getNavigationState(): { canGoBack: boolean; canGoForward: boolean } {
+    const canGoBack = this.webView?.webContents.navigationHistory.canGoBack() || false
+    const canGoForward = this.webView?.webContents.navigationHistory.canGoForward() || false
+    
+    return { canGoBack, canGoForward }
   }
 }
 

@@ -2,6 +2,28 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import electron from 'vite-plugin-electron'
 import path from 'path'
+import fs from 'fs'
+
+function copySchemas() {
+  const srcPath = path.resolve(__dirname, 'src/main/schemas')
+  const destPath = path.resolve(__dirname, 'dist-electron/schemas')
+  
+  if (fs.existsSync(srcPath)) {
+    if (!fs.existsSync(destPath)) {
+      fs.mkdirSync(destPath, { recursive: true })
+    }
+    
+    const files = fs.readdirSync(srcPath)
+    files.forEach(file => {
+      const srcFile = path.join(srcPath, file)
+      const destFile = path.join(destPath, file)
+      fs.copyFileSync(srcFile, destFile)
+      console.log(`Copied: ${srcFile} -> ${destFile}`)
+    })
+  }
+}
+
+copySchemas()
 
 // https://vitejs.dev/config/
 export default defineConfig({

@@ -9,7 +9,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         autoSaveInterval: 10,
         updateChannel: UpdateChannelEnum.STABLE,
         autoStart: true,
-        messageNotify: true,        
+        messageNotify: true,
     },
     miniPrograms: [
         {
@@ -19,8 +19,32 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
             icon: 'https://chat.deepseek.com/favicon.ico',
             area: 'china',
             isHidden: false,
+        },
+        {
+            id: 'doubao',
+            name: 'Doubao',
+            url: 'https://www.doubao.com/chat/',
+            icon: 'https:////lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/chat/favicon.png',
+            area: 'china',
+            isHidden: false
         }
     ],
+    defaultMiniProgramId: 'deepseek',
+    userInfo: {
+        nickname: '用户',
+        avatar: '',
+        token: '',
+        refreshToken: '',
+        registrationDate: new Date().toISOString(),
+        lastLoginDate: new Date().toISOString(),
+        email: '',
+        bio: '',
+        preferences: {
+            country: '中国',
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            notification: true
+        }
+    },
     version: '0.0.0',
     workspace: '',
     updatedAt: '',

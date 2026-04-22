@@ -1,4 +1,3 @@
-
 export interface SystemInfo {
   platform: string
   arch: string
@@ -9,4 +8,5 @@ export interface SystemInfo {
   totalMemory: number
   freeMemory: number
   cpus: number
+  viewSize: number[]
 }

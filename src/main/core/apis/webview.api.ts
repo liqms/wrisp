@@ -1,7 +1,7 @@
 import WebViewService from "@/main/core/services/webview.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
-import type { ApiResponse } from "@/shared/types";
+import type { ApiResponse, NavigationState } from "@/shared/types";
 
 async function createWebView(url: string, window: Electron.BrowserWindow): Promise<ApiResponse<void>> {
     try {
@@ -53,5 +53,15 @@ async function goForward(window: Electron.BrowserWindow): Promise<ApiResponse<vo
     }
 }
 
+async function getNavigationState(window: Electron.BrowserWindow): Promise<ApiResponse<NavigationState>> {
+    try {
+        const webViewService = WebViewService.getInstance(window);
+        const navigationState = webViewService.getNavigationState();
+        return response.success(navigationState);
+    } catch (error) {
+        return response.error(ErrorCode.WEBVIEW_GET_NAVIGATION_STATE_FAILED, error as Error);
+    }
+}
 
-export { createWebView, reloadWebView, destroyWebView, goBack, goForward }
+
+export { createWebView, reloadWebView, destroyWebView, goBack, goForward, getNavigationState }

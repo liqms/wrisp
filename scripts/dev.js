@@ -1,4 +1,4 @@
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const net = require('net');
 
 const port = 5173;
@@ -129,11 +129,43 @@ async function releasePort(port) {
 }
 
 /**
+ * 执行构建
+ */
+async function buildProject() {
+  console.log('========================================');
+  console.log('开始构建项目...');
+  
+  try {
+    console.log('执行 vite build 命令...');
+    execSync('vite build', { 
+      stdio: 'inherit',
+      shell: true,
+      env: {
+        ...process.env,
+        NODE_ENV: 'production'
+      }
+    });
+    console.log('✅ 构建完成');
+    return true;
+  } catch (error) {
+    console.error('❌ 构建失败:', error.message);
+    return false;
+  }
+}
+
+/**
  * 启动 Vite 开发服务器（包含 Electron）
  */
 async function startVite() {
   console.log('========================================');
   console.log('启动 Vite 开发服务器（包含 Electron）...');
+
+  // 先执行构建
+  const buildSuccess = await buildProject();
+  if (!buildSuccess) {
+    console.error('构建失败，无法启动开发服务器');
+    process.exit(1);
+  }
 
   // 在 Windows 上设置控制台编码为 UTF-8
   if (process.platform === 'win32') {

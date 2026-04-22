@@ -1,27 +1,70 @@
 <template>
-  <BaseLayout />
+  <n-config-provider :theme="globalTheme">
+    <n-message-provider>
+      <n-dialog-provider>
+        <n-modal-provider>
+          <n-notification-provider>
+            <router-view />
+            <notification-handler />
+          </n-notification-provider>
+        </n-modal-provider>
+      </n-dialog-provider>
+    </n-message-provider>
+  </n-config-provider>
 </template>
 
 <script setup lang="ts">
-import BaseLayout from './components/BaseLayout.vue'
+// App.vue 现在只负责渲染路由视图
+// 布局和内容由路由组件处理
+import { computed, watch, onMounted } from 'vue'
+import { useConfig } from './composables';
+import { ThemeEnum } from '@/shared/enums';
+import { darkTheme } from 'naive-ui';
+import type { GlobalTheme } from 'naive-ui';
+import NotificationHandler from '@/renderer/components/NotificationHandler.vue';
+import { initI18n } from '@/renderer/plugins/i18n';
+import { useSystem } from '@/renderer/composables';
+
+const { theme } = useConfig();
+
+// 全局主题配置
+const globalTheme = computed<GlobalTheme | null>(() => {
+  return theme.value == ThemeEnum.DARK ? darkTheme : null
+})
+
+// 更新 html 的 data-theme 属性
+const updateHtmlTheme = (themeValue: string) => {
+  const html = document.documentElement;
+  if (themeValue == ThemeEnum.DARK) {
+    html.setAttribute('data-theme', 'dark');
+  } else {
+    html.removeAttribute('data-theme');
+  }
+}
+
+onMounted(async () => {
+  // 初始化 i18n
+  await initI18n();
+  // 初始化系统信息
+  await useSystem().init();
+  
+  // 其他初始化逻辑
+  if (theme.value) {
+    updateHtmlTheme(theme.value);
+  }
+});
+
+watch(theme, (newTheme) => {
+  if (newTheme) {
+    updateHtmlTheme(newTheme);
+  }
+})
+
 </script>
 
 <style>
-/* 全局样式 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  line-height: 1.6;
-  color: #333;
-  background-color: #f8f9fa;
-}
-
-#app {
-  min-height: 100vh;
+/* 全局样式已在 main.ts 中导入 */
+.n-config-provider {
+  height: 100vh;
 }
 </style>

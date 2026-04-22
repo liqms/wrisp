@@ -4,11 +4,15 @@ import Store from 'electron-store'
 import path from 'path'
 import { AppConfig } from '@/shared/types'
 import { TimeUtil, ObjectUtil } from '@/shared/utils'
-import { Logger } from '@/main/utils/logger'
+import { Logger, getAppVersion, needsMigration } from '@/main/utils'
 import { DEFAULT_APP_CONFIG } from '@/main/constants'
-import { migrationService } from '@/main/core/services/migration.service'
+import { configMigration } from '@/main/core/migration'
 
-
+/**
+ * 配置服务
+ * 提供应用配置的管理功能，包括配置的加载、保存、读取、更新和重置
+ * 使用 electron-store 进行配置持久化，支持配置迁移和版本管理
+ */
 class ConfigService {
   private static instance: ConfigService | null = null
   private store: Store<AppConfig>
@@ -19,6 +23,10 @@ class ConfigService {
   private documentPath: string = ''
   private defaultConfig: AppConfig | null = null
 
+  /**
+   * 私有构造函数
+   * 初始化配置服务，设置应用路径、加载默认配置和用户配置
+   */
   private constructor() {
     this.appPath = app.getAppPath()
     this.userDataPath = app.getPath('userData')
@@ -57,7 +65,7 @@ class ConfigService {
   private getDefaultConfig(): AppConfig {
     const now = TimeUtil.toISOString(new Date())
     const workspaceDir = path.join(this.documentPath, 'PenTip')
-    const appVersion = migrationService.getAppVersion()
+    const appVersion = getAppVersion()
 
     fs.mkdirSync(workspaceDir, { recursive: true })
 
@@ -87,16 +95,16 @@ class ConfigService {
       }
 
       // 检查版本并执行迁移
-      const appVersion = migrationService.getAppVersion()
+      const appVersion = getAppVersion()
       const configVersion = mergedConfig.version || '0.0.0'
 
-      if (migrationService.needsMigration(configVersion, appVersion)) {
+      if (needsMigration(configVersion, appVersion)) {
         Logger.info('检测到版本升级，执行配置迁移', {
           configVersion,
           appVersion
         })
 
-        mergedConfig = migrationService.migrateConfig(mergedConfig, configVersion, appVersion)
+        mergedConfig = configMigration.migrateConfig(mergedConfig, configVersion, appVersion)
       }
 
       this.config = mergedConfig

@@ -11,7 +11,8 @@ if (process.platform === 'win32') {
 // 加载环境变量，指定 UTF-8 编码，禁用提示
 dotenv.config({ encoding: 'utf8', override: true })
 
-import { registerWindowHandlers, registerConfigHandlers, registerSystemHandlers, registerNotificationHandlers, registerLoggerHandlers, registerWebViewHandlers } from './ipcMain'
+import { registerWindowHandlers, registerConfigHandlers, registerSystemHandlers, registerLoggerHandlers, registerWebViewHandlers, registerFolderHandlers, registerFileHandlers, registerNovelHandlers } from './ipcMain'
+import { databaseMigration } from './core/migration'
 
 // 使用传统的 Node.js 路径处理方式
 const __dirname = path.dirname(__filename || process.argv[1] || '.')
@@ -20,14 +21,33 @@ const __dirname = path.dirname(__filename || process.argv[1] || '.')
 Logger.initialize()
 // 清理过期日志文件
 Logger.cleanupOldLogsAsync()
+// 初始化数据库和数据库迁移
+async function initializeDatabase(): Promise<void> {
+  try {
+    Logger.info('开始初始化数据库')
+    
+    const isInitialized = databaseMigration.isDatabaseInitialized()
+    
+    if (!isInitialized) {
+      Logger.info('数据库未初始化，执行初始化')
+      await databaseMigration.executeDatabaseMigration()
+    } else {
+      Logger.info('数据库已初始化，检查版本迁移')
+      await databaseMigration.executeDatabaseMigration('1.0.0')
+    }
+    
+    Logger.info('数据库初始化完成')
+  } catch (error) {
+    Logger.error('数据库初始化失败:', { error: String(error) })
+    throw error
+  }
+}
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize
 
-  // 在开发模式下使用源文件路径，生产模式下使用编译后路径
-  const preloadPath = process.env.NODE_ENV === 'development'
-    ? path.join(__dirname, '..', 'main', 'preload.ts')
-    : path.join(__dirname, 'preload.js')
+  // 在开发模式下使用编译后的文件路径，生产模式下使用编译后路径
+  const preloadPath = path.join(__dirname, 'preload.js')
 
   const mainWindow = new BrowserWindow({
     width: width * 0.8,
@@ -36,8 +56,8 @@ function createWindow() {
     minHeight: 600,
     webPreferences: {
       preload: preloadPath,
-      nodeIntegration: true,
-      contextIsolation: false
+      nodeIntegration: false,
+      contextIsolation: true
     }
   })
 
@@ -52,14 +72,17 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await initializeDatabase()
   createWindow()
   registerWindowHandlers()
   registerConfigHandlers()
   registerSystemHandlers()
-  registerNotificationHandlers()
   registerLoggerHandlers()
   registerWebViewHandlers()
+  registerFolderHandlers()
+  registerFileHandlers()
+  registerNovelHandlers()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

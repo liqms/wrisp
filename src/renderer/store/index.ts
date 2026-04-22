@@ -1,5 +1,6 @@
-import { createPinia } from 'pinia'
-
-const pinia = createPinia()
-
-export default pinia
+export * from './config.store'
+export * from './notification.store'
+export * from './webview.store'
+export * from './system.store'
+export * from './folder.store'
+export * from './file.store'

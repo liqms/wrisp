@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import { createWebView, reloadWebView, destroyWebView, goBack, goForward } from '@/main/core/apis/webview.api'
-import type { ApiResponse } from '@/shared/types'
+import { createWebView, reloadWebView, destroyWebView, goBack, goForward, getNavigationState } from '@/main/core/apis/webview.api'
+import type { ApiResponse, NavigationState } from '@/shared/types'
 
 // 注册 WebView 相关相关的 IPC 处理函数
 export function registerWebViewHandlers(): void {
@@ -28,4 +28,10 @@ export function registerWebViewHandlers(): void {
     const window = BrowserWindow.fromWebContents(event.sender)!
     return await goForward(window)
   })
+
+  ipcMain.handle('webview:getNavigationState', async (event): Promise<ApiResponse<NavigationState>> => {
+    const window = BrowserWindow.fromWebContents(event.sender)!
+    return await getNavigationState(window)
+  })
+
 }

@@ -77,7 +77,14 @@ export class Logger {
     }
 
     try {
+      // 调试：输出原始环境变量
+      console.log(`[Logger] 原始 LOG_LEVEL 环境变量: '${process.env.LOG_LEVEL}'`)
+      
       this.loadConfigFromEnv()
+      
+      // 调试：输出加载后的配置
+      console.log(`[Logger] 加载配置后日志级别: '${this.config.level}'`)
+      
       this.config = { ...this.config, ...config }
       this.validateConfig()
       this.logDir = this.getLogDir()
@@ -178,6 +185,9 @@ export class Logger {
       return
     }
 
+    // 确保加载环境变量配置
+    this.loadConfigFromEnv()
+
     this.logDir = this.getLogDir()
     const baseFormat = this.createBaseFormat()
 
@@ -189,12 +199,13 @@ export class Logger {
           baseFormat
         ),
         handleExceptions: true,
-        handleRejections: true
+        handleRejections: true,
+        level: this.config.level
       })
     ]
 
     // 默认按日期分割文件
-    const maxSize = this.parseSize('10m')
+    const maxSize = this.parseSize(this.config.maxSize)
     const levels = [LOG_LEVELS.ERROR, LOG_LEVELS.WARN, LOG_LEVELS.INFO, LOG_LEVELS.DEBUG]
 
     levels.forEach(level => {
@@ -204,7 +215,7 @@ export class Logger {
           filename: path.join(this.logDir, filename),
           level: level,
           maxsize: maxSize,
-          maxFiles: DEFAULT_KEEP_DAYS,
+          maxFiles: this.config.keepDays,
           options: { encoding: this.currtenEncoding },
           format: winston.format.combine(
             winston.format.timestamp({ format: TIMESTAMP_FORMAT }),
@@ -216,15 +227,26 @@ export class Logger {
     })
 
     this.instance = winston.createLogger({
-      level: LogLevelEnum.INFO,
+      level: this.config.level,
       transports
     })
   }
 
   private static loadConfigFromEnv(): void {
-    // 简化配置读取
-    const logLevel = (process.env.LOG_LEVEL as LogLevelEnum)
-    if (logLevel && Object.values(LogLevelEnum).some(level => level === logLevel)) {
+    // 如果环境变量还没加载，尝试重新加载 dotenv
+    if (!process.env.LOG_LEVEL) {
+      try {
+        const dotenv = require('dotenv')
+        dotenv.config({ encoding: 'utf8', override: true })
+      } catch (e) {
+        console.warn('[Logger] 无法加载 dotenv:', e)
+      }
+    }
+
+    // 简化配置读取，支持大小写不敏感
+    const rawLogLevel = process.env.LOG_LEVEL
+    const logLevel = rawLogLevel ? (rawLogLevel.toLowerCase() as LogLevelEnum) : undefined
+    if (logLevel && Object.values(LogLevelEnum).includes(logLevel)) {
       this.config.level = logLevel
     }
 

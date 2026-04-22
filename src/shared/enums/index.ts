@@ -1,3 +1,5 @@
 export * from './log.enums'
 export * from './config.enums'
 export * from './errorCode.enums'
+export * from './user.enums'
+export * from './novel.enums'

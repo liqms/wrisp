@@ -1,9 +1,9 @@
 import { LocaleEnum } from '../enums';
 
-export type Locale = keyof typeof LocaleEnum;
+export type LocaleValue = typeof LocaleEnum[keyof typeof LocaleEnum];
 
 export interface SupportedLocale {
-  code: Locale;
+  code: LocaleValue;
   name: string;
   flag: string;
 }
