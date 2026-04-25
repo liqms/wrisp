@@ -9,7 +9,6 @@ export interface ElectronAPI {
   // 配置管理
   config: {
     get(): Promise<ApiResponse<AppConfig>>
-    set(config: AppConfig): Promise<ApiResponse<void>>
     getValue(keyPath: string): Promise<ApiResponse<any>>
     setValue(keyPath: string, value: any): Promise<ApiResponse<void>>
     getStaticPath(type?: string): Promise<ApiResponse<string>>

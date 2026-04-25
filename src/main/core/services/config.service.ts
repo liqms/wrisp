@@ -157,7 +157,7 @@ class ConfigService {
    * @param config - 要更新的配置对象（部分更新）
    * @returns 操作结果错误码
    */
-  public setConfig(config: AppConfig): void {
+  public setConfig(config: Partial<AppConfig>): void {
     try {
       this.config = ObjectUtil.deepMerge(this.config!, config)
       this.saveConfig()

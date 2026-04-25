@@ -19,21 +19,6 @@ async function getConfig(): Promise<ApiResponse<AppConfig>> {
 }
 
 /**
- * 更新配置
- * @param config 部分配置对象
- * @returns 更新结果
- */
-async function setConfig(config: AppConfig): Promise<ApiResponse<void>> {
-  try {
-    Logger.debug('更新配置API', { config: JSON.stringify(config.general?.theme) })
-    configService.setConfig(config);
-    return response.empty();
-  } catch (error) {
-    return response.error(ErrorCode.CONFIG_UPDATE_FAILED, error as Error);
-  }
-}
-
-/**
  * 根据键路径获取配置值
  * @param keyPath 配置键路径
  * @returns 配置值
@@ -94,7 +79,6 @@ async function resetConfig(): Promise<ApiResponse<void>> {
 
 export {
   getConfig,
-  setConfig,
   getValue,
   setValue,
   getStaticPath,

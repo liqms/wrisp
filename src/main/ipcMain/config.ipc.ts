@@ -1,15 +1,11 @@
 import { ipcMain } from "electron"
-import { getConfig, setConfig, getValue, setValue, getStaticPath, resetConfig } from '@/main/core/apis/config.api'
+import { getConfig, getValue, setValue, getStaticPath, resetConfig } from '@/main/core/apis/config.api'
 import type { ApiResponse } from '@/shared/types'
 import type { AppConfig } from '@/main/types'
 
 export function registerConfigHandlers() {
   ipcMain.handle('config:get', async (): Promise<ApiResponse<AppConfig>> => {
     return getConfig()
-  })
-
-  ipcMain.handle('config:set', async (_, config: AppConfig): Promise<ApiResponse<void>> => {
-    return setConfig(config)
   })
 
   ipcMain.handle('config:getValue', async (_, keyPath: string): Promise<ApiResponse<any>> => {
