@@ -1,7 +1,7 @@
 import { WorkDao, FileDao, FolderDao, WorkTagDao, CompositeDao } from '../db'
 import { Logger } from '@/main/utils/logger'
-import { Work, WorkCreate, WorkUpdate, WorkStatus, WorkQuery } from '@/main/types/db'
-import { CreateChapterRequest, NovelChapterInfo, FolderAndFileList, CreateNovelRequest, NovelBaseInfo, NovelDetail, NovelQueryRequest, UpdateNovelRequest, CreateFileRequest, UpdateFileRequest, UpdateChapterRequest, ChapterQueryRequest } from '@/shared/types'
+import { WorkCreate, WorkUpdate, WorkQuery } from '@/main/types/db'
+import { CreateFileRequest, NovelFileInfo, FoldersAndFilesList, CreateNovelRequest, NovelBaseInfo, NovelDetail, QueryNovelRequest, UpdateNovelRequest, UpdateFileRequest, QueryNovelFileRequest, FolderBasicInfo, UpdateNovelFileRequest, CreateNovelFileRequest, FileBasicInfo } from '@/shared/types'
 import { folderService } from './folder.service'
 import { fileService } from './file.service'
 import { PaginationResult } from '@/shared/utils/pagination'
@@ -131,7 +131,7 @@ class NovelService {
 
     const result: NovelDetail = {
       novel: {
-        ...work,
+        ...work as NovelBaseInfo,
       },
       tags: tags,
       stats: {
@@ -144,6 +144,9 @@ class NovelService {
       },
       recently_updated_file: {
         id: files[0].id,
+        folder_id: files[0].folder_id,
+        work_id: id,
+        primary_type: files[0].primary_type,
         name: files[0].name,
         word_count: files[0].word_count,
         size: files[0].size,
@@ -159,7 +162,7 @@ class NovelService {
    * @param request - 查询参数对象
    * @returns 符合条件的小说作品列表
    */
-  public queryNovels(request: NovelQueryRequest): PaginationResult<NovelBaseInfo> {
+  public queryNovels(request: QueryNovelRequest): PaginationResult<NovelBaseInfo> {
     const queryParams: WorkQuery = {
       work_type: 'novel',
       status: request.status,
@@ -265,50 +268,52 @@ class NovelService {
   }
 
   /**
-   * 创建小说章节
+   * 创建小说章节/知识库文件
+   * 支持创建小说章节/知识库文件，文件内容为Markdown格式
    * @param request - 创建请求对象
-   * @returns 新创建的章节 ID
+   * @returns 新创建的章节/知识库文件信息
    * @throws {Error} 当小说作品不存在时抛出错误
    */
-  public createChapter(request: CreateChapterRequest): NovelChapterInfo {
-    const { work_id, folder_id, name, content } = request
+  public createNovelFile(request: CreateNovelFileRequest): NovelFileInfo {
+    const { work_id, folder_id, name, primary_type, content } = request
     const existingWork = this.workDao.findById(work_id)
     if (!existingWork) {
       throw new Error('小说作品不存在')
     }
-    const chapter: CreateFileRequest = {
+    const novelFile: CreateFileRequest = {
       work_id,
       folder_id,
       name,
-      content,
+      primary_type,
+      content: content,
       extension: '.md',
     }
 
-    const file = fileService.create(chapter)
-    this.updateNovelStats(work_id)    
-    return file 
-    
+    const file = fileService.create(novelFile)
+    this.updateNovelStats(work_id)
+    return file as NovelFileInfo
+
   }
   /**
-   * 查询小说章节列表
+   * 查询小说章节/知识库文件列表
    * @param request - 查询请求对象
-   * @returns 符合条件的小说章节列表
+   * @returns 符合条件的小说章节/知识库文件列表
    */
-  public queryChapters(request: ChapterQueryRequest): FolderAndFileList {
+  public queryNovelFiles(request: QueryNovelFileRequest): FoldersAndFilesList {
     const folderContents = this.compositeDao.getFolderContentsBatch([request.folder_id])[0]
     return {
-      folders: folderContents.folders || [],
-      files: folderContents.files || [],
+      folders: folderContents.folders || [] as FolderBasicInfo[],
+      files: folderContents.files || [] as FileBasicInfo[],
     }
   }
 
   /**
-   * 查询小说章节内容
+   * 获取小说章节/知识库文件内容
    * @param id - 小说章节 ID
-   * @returns 小说章节内容
+   * @returns 小说章节/知识库文件内容
    * @throws {Error} 当小说章节不存在时抛出错误
    */
-  public queryChapterContent(id: number): NovelChapterInfo {
+  public getNovelFileContent(id: number): NovelFileInfo {
     const file = fileService.getContent(id)
     if (!file) {
       throw new Error('小说章节不存在')
@@ -321,32 +326,42 @@ class NovelService {
   }
 
   /**
-   * 更新小说章节内容
-   * @param id - 小说章节 ID
-   * @param content - 新的章节内容
+   * 更新小说章节/知识库文件内容
+   * @param id - 小说章节/知识库文件 ID
+   * @param content - 新的章节/知识库文件内容
    * @returns 是否更新成功
    * @throws {Error} 当小说章节不存在时抛出错误
    */
-  public updateChapterContent(id: number, request: UpdateChapterRequest): boolean {
+  public updateNovelFileContent(id: number, request: UpdateNovelFileRequest): NovelFileInfo {
     const fileParams: UpdateFileRequest = {
       name: request.name,
       content: request.content,
     }
-    fileService.update(id, fileParams)
-    return true
+    const updatedFile = fileService.update(id, fileParams)
+    return updatedFile as NovelFileInfo
   }
 
   /**
-   * 删除小说章节
-   * @param id - 小说章节 ID
+   * 删除小说章节/知识库文件
+   * @param id - 小说章节/知识库文件 ID
    * @returns 是否删除成功
    * @throws {Error} 当小说章节不存在时抛出错误
    */
-  public deleteChapter(id: number): boolean {
+  public deleteNovelFile(id: number): boolean {
     fileService.delete(id)
     return true
   }
 
+  /**
+   * 移动小说章节/知识库文件
+   * @param ids - 要移动的小说章节/知识库文件 ID 列表
+   * @param parentId - 目标文件夹 ID
+   * @returns 移动影响的行数
+   * @throws {Error} 当小说章节/知识库文件不存在时抛出错误
+   */
+  public moveFiles(ids: number[], parentId: number): number {
+    return fileService.batchMove(ids, parentId)
+  }
 
 }
 

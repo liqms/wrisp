@@ -1,4 +1,4 @@
-import type { AppConfig, ApiResponse, SystemInfo, NotificationLevel, NavigationState, WebContentViewOptions, CreateFolderRequest, UpdateFolderRequest, FolderQueryRequest, FolderTreeWithStats, CreateFileRequest, UpdateFileRequest, FileQueryRequest, NotificationMessage, FileAggregate, CreateNovelRequest, UpdateNovelRequest, NovelQueryRequest, NovelBaseInfo, NovelDetail, CreateChapterRequest, NovelChapterInfo, UpdateChapterRequest, ChapterQueryRequest, FolderAndFileList } from '@/shared/types'
+import type { AppConfig, ApiResponse, SystemInfo, NotificationLevel, NavigationState, WebContentViewOptions, CreateFolderRequest, UpdateFolderRequest, FolderQueryRequest, FolderTreeWithStats, CreateFileRequest, UpdateFileRequest, FileQueryRequest, NotificationMessage, FileAggregate, CreateNovelRequest, UpdateNovelRequest, QueryNovelRequest, NovelBaseInfo, NovelDetail, CreateNovelFileRequest, NovelFileInfo, UpdateNovelFileRequest, QueryNovelFileRequest, FoldersAndFilesList } from '@/shared/types'
 import type { LogLevelEnum } from '@/shared/enums'
 import type { LogContext } from '@/main/utils/logger'
 import type { OpenDialogOptions, OpenDialogReturnValue } from 'electron'
@@ -9,10 +9,10 @@ export interface ElectronAPI {
   // 配置管理
   config: {
     get(): Promise<ApiResponse<AppConfig>>
-    set(config: Partial<AppConfig>): Promise<ApiResponse<void>>
+    set(config: AppConfig): Promise<ApiResponse<void>>
     getValue(keyPath: string): Promise<ApiResponse<any>>
     setValue(keyPath: string, value: any): Promise<ApiResponse<void>>
-    getStaticPath(): Promise<ApiResponse<string>>
+    getStaticPath(type?: string): Promise<ApiResponse<string>>
     reset(): Promise<ApiResponse<void>>
   }
 
@@ -55,22 +55,18 @@ export interface ElectronAPI {
     create(request: CreateFolderRequest): Promise<ApiResponse<Folder>>
     getInfoById(id: number): Promise<ApiResponse<Folder>>
     query(request: FolderQueryRequest): Promise<ApiResponse<Folder[]>>
-    getTreeWithStats(parentId: number | null): Promise<ApiResponse<FolderTreeWithStats[]>>
+    getTreeWithStats(parentId: number): Promise<ApiResponse<FolderTreeWithStats>>
+    getSubFoldersAndFiles(parentId: number): Promise<ApiResponse<FoldersAndFilesList>>
     update(id: number, request: UpdateFolderRequest): Promise<ApiResponse<number>>
     delete(id: number): Promise<ApiResponse<number>>
-    batchUpdateParentId(oldParentId: number, newParentId: number | null): Promise<ApiResponse<number>>
-  }
-
-  // 文件管理
-  file: {
-    create(request: CreateFileRequest): Promise<ApiResponse<File>>
+    batchMove(ids: number[], parentId: number): Promise<ApiResponse<number>>
   }
 
   // 小说管理
   novel: {
     create(request: CreateNovelRequest): Promise<ApiResponse<NovelBaseInfo>>
     getInfo(id: number): Promise<ApiResponse<NovelDetail>>
-    query(request: NovelQueryRequest): Promise<ApiResponse<NovelBaseInfo[]>>
+    query(request: QueryNovelRequest): Promise<ApiResponse<NovelBaseInfo[]>>
     update(id: number, request: UpdateNovelRequest): Promise<ApiResponse<boolean>>
     delete(id: number): Promise<ApiResponse<{
       worksDeleted: number
@@ -79,11 +75,12 @@ export interface ElectronAPI {
       worksTagsDeleted: number
       fileVersionsDeleted: number
     }>>
-    createChapter(request: CreateChapterRequest): Promise<ApiResponse<NovelChapterInfo>>
-    queryChapters(request: ChapterQueryRequest): Promise<ApiResponse<FolderAndFileList>>
-    getChapterContent(id: number): Promise<ApiResponse<NovelChapterInfo>>
-    updateChapterContent(id: number, request: UpdateChapterRequest): Promise<ApiResponse<boolean>>
-    deleteChapter(id: number): Promise<ApiResponse<boolean>>
+    createFile(request: CreateNovelFileRequest): Promise<ApiResponse<NovelFileInfo>>
+    queryFiles(request: QueryNovelFileRequest): Promise<ApiResponse<FolderAndFileList>>
+    getFileContent(id: number): Promise<ApiResponse<NovelFileInfo>>
+    updateFileContent(id: number, request: UpdateNovelFileRequest): Promise<ApiResponse<NovelFileInfo>>
+    deleteFile(id: number): Promise<ApiResponse<boolean>>
+    moveFiles(ids: number[], parentId: number): Promise<ApiResponse<number>>
   }
 
   // 通用 IPC 方法（保持向后兼容）

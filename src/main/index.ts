@@ -11,8 +11,9 @@ if (process.platform === 'win32') {
 // 加载环境变量，指定 UTF-8 编码，禁用提示
 dotenv.config({ encoding: 'utf8', override: true })
 
-import { registerWindowHandlers, registerConfigHandlers, registerSystemHandlers, registerLoggerHandlers, registerWebViewHandlers, registerFolderHandlers, registerFileHandlers, registerNovelHandlers } from './ipcMain'
+import { registerWindowHandlers, registerConfigHandlers, registerSystemHandlers, registerLoggerHandlers, registerWebViewHandlers, registerFolderHandlers, registerNovelHandlers } from './ipcMain'
 import { databaseMigration } from './core/migration'
+import { registerProtocolHandler } from './protocol'
 
 // 使用传统的 Node.js 路径处理方式
 const __dirname = path.dirname(__filename || process.argv[1] || '.')
@@ -21,6 +22,7 @@ const __dirname = path.dirname(__filename || process.argv[1] || '.')
 Logger.initialize()
 // 清理过期日志文件
 Logger.cleanupOldLogsAsync()
+
 // 初始化数据库和数据库迁移
 async function initializeDatabase(): Promise<void> {
   try {
@@ -74,6 +76,7 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   await initializeDatabase()
+  registerProtocolHandler()
   createWindow()
   registerWindowHandlers()
   registerConfigHandlers()
@@ -81,7 +84,6 @@ app.whenReady().then(async () => {
   registerLoggerHandlers()
   registerWebViewHandlers()
   registerFolderHandlers()
-  registerFileHandlers()
   registerNovelHandlers()
 
   app.on('activate', () => {

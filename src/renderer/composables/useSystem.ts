@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import { useSystemStore } from '@/renderer/store/system.store'
 import type { SystemInfo } from '@/shared/types'
+import { LocaleEnum } from '@/shared/enums'
 import { logger } from '@/renderer/utils/logger.utils'
 
 interface UseSystemOptions {
@@ -36,6 +37,7 @@ export function useSystem(options: UseSystemOptions = {}) {
   const freeMemory = computed(() => systemInfo.value?.freeMemory ?? 0)
   const cpus = computed(() => systemInfo.value?.cpus ?? 0)
   const viewSize = computed(() => systemInfo.value?.viewSize ?? [0, 0])
+  const locale = computed(() => systemInfo.value?.locale ?? LocaleEnum.EN)
 
   /**
    * 计算可用内存百分比
@@ -180,6 +182,7 @@ export function useSystem(options: UseSystemOptions = {}) {
     cpus,
     viewSize,
     memoryUsagePercent,
+    locale,
     
     // 核心方法
     init,

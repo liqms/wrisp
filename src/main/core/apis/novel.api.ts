@@ -5,14 +5,14 @@ import type { ApiResponse } from '@/shared/types'
 import {
   CreateNovelRequest,
   UpdateNovelRequest,
-  NovelQueryRequest,
+  QueryNovelRequest,
   NovelBaseInfo,
   NovelDetail,
-  CreateChapterRequest,
-  NovelChapterInfo,
-  UpdateChapterRequest,
-  ChapterQueryRequest,
-  FolderAndFileList
+  CreateNovelFileRequest,
+  NovelFileInfo,
+  UpdateNovelFileRequest,
+  QueryNovelFileRequest,
+  FoldersAndFilesList
 } from '@/shared/types'
 
 async function createNovel(request: CreateNovelRequest): Promise<ApiResponse<NovelBaseInfo>> {
@@ -42,7 +42,7 @@ async function getNovelInfo(id: number): Promise<ApiResponse<NovelDetail>> {
   }
 }
 
-async function queryNovels(request: NovelQueryRequest): Promise<ApiResponse<NovelBaseInfo[]>> {
+async function queryNovels(request: QueryNovelRequest): Promise<ApiResponse<NovelBaseInfo[]>> {
   try {
     const novels = novelService.queryNovels(request)
     return response.paginated(novels.data, novels.page, novels.pageSize, novels.total)
@@ -84,60 +84,69 @@ async function deleteNovel(id: number): Promise<ApiResponse<{
   }
 }
 
-async function createChapter(request: CreateChapterRequest): Promise<ApiResponse<NovelChapterInfo>> {
+async function createNovelFile(request: CreateNovelFileRequest): Promise<ApiResponse<NovelFileInfo>> {
   try {
     if (!request.name || !request.name.trim()) {
       return response.error(ErrorCode.COMMON_INVALID_PARAMETER)
     }
-    const chapter = novelService.createChapter(request)
-    return response.success(chapter)
+    const file = novelService.createNovelFile(request)
+    return response.success(file)
   } catch (error) {
-    return response.error(ErrorCode.CHAPTER_CREATE_FAILED, error as Error)
+    return response.error(ErrorCode.FILE_CREATE_FAILED, error as Error)
   }
 }
 
-async function queryChapters(request: ChapterQueryRequest): Promise<ApiResponse<FolderAndFileList>> {
+async function queryNovelFiles(request: QueryNovelFileRequest): Promise<ApiResponse<FoldersAndFilesList>> {
   try {
-    const chapters = novelService.queryChapters(request)
-    return response.success(chapters)
+    const files = novelService.queryNovelFiles(request)
+    return response.success(files)
   } catch (error) {
-    return response.error(ErrorCode.CHAPTER_GET_FAILED, error as Error)
+    return response.error(ErrorCode.FILE_GET_FAILED, error as Error)
   }
 }
 
-async function getChapterContent(id: number): Promise<ApiResponse<NovelChapterInfo>> {
-  try {
-    if (id <= 0) {
-      return response.error(ErrorCode.COMMON_INVALID_PARAMETER)
-    }
-    const chapter = novelService.queryChapterContent(id)
-    return response.success(chapter)
-  } catch (error) {
-    return response.error(ErrorCode.CHAPTER_GET_FAILED, error as Error)
-  }
-}
-
-async function updateChapterContent(id: number, request: UpdateChapterRequest): Promise<ApiResponse<boolean>> {
+async function getNovelFileContent(id: number): Promise<ApiResponse<NovelFileInfo>> {
   try {
     if (id <= 0) {
       return response.error(ErrorCode.COMMON_INVALID_PARAMETER)
     }
-    const success = novelService.updateChapterContent(id, request)
+    const file = novelService.getNovelFileContent(id)
+    return response.success(file)
+  } catch (error) {
+    return response.error(ErrorCode.FILE_GET_FAILED, error as Error)
+  }
+}
+
+async function updateNovelFileContent(id: number, request: UpdateNovelFileRequest): Promise<ApiResponse<NovelFileInfo>> {
+  try {
+    if (id <= 0) {
+      return response.error(ErrorCode.COMMON_INVALID_PARAMETER)
+    }
+    const file = novelService.updateNovelFileContent(id, request)
+    return response.success(file)
+  } catch (error) {
+    return response.error(ErrorCode.FILE_UPDATE_FAILED, error as Error)
+  }
+}
+
+async function deleteNovelFile(id: number): Promise<ApiResponse<boolean>> {
+  try {
+    if (id <= 0) {
+      return response.error(ErrorCode.COMMON_INVALID_PARAMETER)
+    }
+    const success = novelService.deleteNovelFile(id)
     return response.success(success)
   } catch (error) {
-    return response.error(ErrorCode.CHAPTER_UPDATE_FAILED, error as Error)
+    return response.error(ErrorCode.FILE_DELETE_FAILED, error as Error)
   }
 }
 
-async function deleteChapter(id: number): Promise<ApiResponse<boolean>> {
+async function moveFiles(ids: number[], parentId: number): Promise<ApiResponse<number>> {
   try {
-    if (id <= 0) {
-      return response.error(ErrorCode.COMMON_INVALID_PARAMETER)
-    }
-    const success = novelService.deleteChapter(id)
+    const success = novelService.moveFiles(ids, parentId)
     return response.success(success)
   } catch (error) {
-    return response.error(ErrorCode.CHAPTER_DELETE_FAILED, error as Error)
+    return response.error(ErrorCode.FILE_MOVE_FAILED, error as Error)
   }
 }
 
@@ -147,9 +156,10 @@ export {
   queryNovels,
   updateNovel,
   deleteNovel,
-  createChapter,
-  queryChapters,
-  getChapterContent,
-  updateChapterContent,
-  deleteChapter
+  createNovelFile,
+  queryNovelFiles,
+  getNovelFileContent,
+  updateNovelFileContent,
+  deleteNovelFile,
+  moveFiles
 }

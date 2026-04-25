@@ -7,7 +7,7 @@ export type FilePath = string
 export type FileExtension = string
 export type FileSize = number
 export type HashValue = string
-export type PrimaryType = string | null
+export type PrimaryType = string
 
 // 高级类型验证工具
 export type NonEmptyString<T extends string> = T extends '' ? never : T
@@ -26,12 +26,13 @@ export type ValidFilePathType = ValidFilePath<string>
 export interface File {
   id: FileId
   folder_id: FolderId
-  work_id: WorkId | null
+  work_id: WorkId
   name: string
   primary_type: PrimaryType
+  content?: string
   path: FilePath
   full_path: FilePath
-  extension: FileExtension | null
+  extension: FileExtension
   size: FileSize
   type: FileType
   word_count: number
@@ -42,7 +43,7 @@ export interface File {
   hash_md5: HashValue | null
   hash_sha256: HashValue | null
   is_symlink: IsSymlink
-  version_number: number | null
+  version_number: number
 }
 // 是否为符号链接（0-否，1-是）
 export type IsSymlink = 0 | 1
@@ -61,8 +62,8 @@ type FileRequiredFields = {
 
 // 可选但有默认值的字段
 type FileOptionalFields = {
-  folder_id?: FolderId | null
-  work_id?: WorkId | null
+  folder_id?: FolderId
+  work_id?: WorkId
   extension?: FileExtension | null
   size?: FileSize
   type?: FileType

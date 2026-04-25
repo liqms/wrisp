@@ -2,20 +2,20 @@ import type { ApiResponse } from '@/shared/types'
 import {
   CreateNovelRequest,
   UpdateNovelRequest,
-  NovelQueryRequest,
+  QueryNovelRequest,
   NovelBaseInfo,
   NovelDetail,
-  CreateChapterRequest,
-  NovelChapterInfo,
-  UpdateChapterRequest,
-  ChapterQueryRequest,
+  CreateNovelFileRequest,
+  NovelFileInfo,
+  UpdateNovelFileRequest,
+  QueryNovelFileRequest,
   FolderAndFileList
 } from '@/shared/types'
 
 export interface NovelAPI {
   create(request: CreateNovelRequest): Promise<ApiResponse<NovelBaseInfo>>
   getInfo(id: number): Promise<ApiResponse<NovelDetail>>
-  query(request: NovelQueryRequest): Promise<ApiResponse<NovelBaseInfo[]>>
+  query(request: QueryNovelRequest): Promise<ApiResponse<NovelBaseInfo[]>>
   update(id: number, request: UpdateNovelRequest): Promise<ApiResponse<boolean>>
   delete(id: number): Promise<ApiResponse<{
     worksDeleted: number
@@ -24,9 +24,10 @@ export interface NovelAPI {
     worksTagsDeleted: number
     fileVersionsDeleted: number
   }>>
-  createChapter(request: CreateChapterRequest): Promise<ApiResponse<NovelChapterInfo>>
-  queryChapters(request: ChapterQueryRequest): Promise<ApiResponse<FolderAndFileList>>
-  getChapterContent(id: number): Promise<ApiResponse<NovelChapterInfo>>
-  updateChapterContent(id: number, request: UpdateChapterRequest): Promise<ApiResponse<boolean>>
-  deleteChapter(id: number): Promise<ApiResponse<boolean>>
+  createFile(request: CreateNovelFileRequest): Promise<ApiResponse<NovelFileInfo>>
+  queryFiles(request: QueryNovelFileRequest): Promise<ApiResponse<FolderAndFileList>>
+  getFileContent(id: number): Promise<ApiResponse<NovelFileInfo>>
+  updateFileContent(id: number, request: UpdateNovelFileRequest): Promise<ApiResponse<NovelFileInfo>>
+  deleteFile(id: number): Promise<ApiResponse<boolean>>
+  moveFiles(ids: number[], parentId: number): Promise<ApiResponse<number>>
 }

@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { SystemInfo, ApiResponse } from '@/shared/types'
 import { ErrorCode } from '@/shared/enums'
-import { handleApiError } from '@/renderer/utils/error.utils'
 
 export const useSystemStore = defineStore('system', () => {
   // 状态
@@ -34,11 +33,9 @@ export const useSystemStore = defineStore('system', () => {
         systemInfo.value = response.data as SystemInfo
       } else {
         errorCode.value = response.code
-        errorMessage.value = handleApiError(response)
       }
     } catch (error) {
       errorCode.value = ErrorCode.SYSTEM_INFO_ERROR
-      errorMessage.value = handleApiError({ success: false, code: errorCode.value })
     } finally {
       loading.value = false
     }

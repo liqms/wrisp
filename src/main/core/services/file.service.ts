@@ -219,7 +219,7 @@ class FileService {
    * @throws {Error} 当文件夹不存在时抛出错误
    * @throws {Error} 当物理文件操作失败时抛出错误
    */
-  public update(id: number, request: UpdateFileRequest): number {
+  public update(id: number, request: UpdateFileRequest): File {
     const existingFile = this.fileDao.findById(id)
     if (!existingFile) {
       throw new Error('文件不存在')
@@ -269,8 +269,9 @@ class FileService {
 
       Logger.info('数据库更新文件成功', { fileId: id, changes })
     }
+    const updatedFile = this.fileDao.findById(id) as File
 
-    return changes
+    return {...updatedFile, content: request.content || ''}
   }
 
   /**

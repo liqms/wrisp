@@ -6,8 +6,8 @@ export const ThemeEnum = {
 export type Theme = keyof typeof ThemeEnum;
 
 export const LocaleEnum = {
-  EN: 'en-US',
-  ZH: 'zh-CN'
+  EN: 'enUS',
+  ZH: 'zhCN'
 }
 
 export type Locale = keyof typeof LocaleEnum;

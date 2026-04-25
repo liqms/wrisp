@@ -2,6 +2,7 @@ import { configService } from "@/main/core/services/config.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { AppConfig, ApiResponse } from "@/shared/types";
+import { Logger } from "@/main/utils/logger";
 
 /**
  * 获取完整配置
@@ -10,6 +11,7 @@ import type { AppConfig, ApiResponse } from "@/shared/types";
 async function getConfig(): Promise<ApiResponse<AppConfig>> {
   try {
     const config = configService.getConfig();
+    // Logger.debug('获取配置', { config: JSON.stringify(config) })
     return response.success(config);
   } catch (error) {
     return response.error(ErrorCode.CONFIG_GET_FAILED, error as Error);
@@ -21,8 +23,9 @@ async function getConfig(): Promise<ApiResponse<AppConfig>> {
  * @param config 部分配置对象
  * @returns 更新结果
  */
-async function setConfig(config: Partial<AppConfig>): Promise<ApiResponse<void>> {
+async function setConfig(config: AppConfig): Promise<ApiResponse<void>> {
   try {
+    Logger.debug('更新配置API', { config: JSON.stringify(config.general?.theme) })
     configService.setConfig(config);
     return response.empty();
   } catch (error) {
@@ -67,9 +70,9 @@ async function setValue(keyPath: string, value: any): Promise<ApiResponse<void>>
  * 获取资源基础路径
  * @returns 资源基础路径
  */
-async function getStaticPath(): Promise<ApiResponse<string>> {
+async function getStaticPath(type?: string): Promise<ApiResponse<string>> {
   try {
-    const path = configService.getStaticPath();
+    const path = configService.getStaticPath(type);
     return response.success(path);
   } catch (error) {
     return response.error(ErrorCode.CONFIG_GET_FAILED, error as Error);

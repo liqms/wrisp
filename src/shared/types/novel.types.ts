@@ -2,7 +2,7 @@
  * 小说服务层类型定义
  */
 
-import { WorkStatus, WorkTag } from '@/main/types/db'
+import { FileStatus, WorkStatus, WorkTag } from '@/main/types/db'
 import { FolderBasicInfo } from './folder.types'
 /**
  * 小说基础信息
@@ -55,7 +55,7 @@ export interface UpdateNovelRequest {
 /**
  * 小说查询请求参数
  */
-export interface NovelQueryRequest {
+export interface QueryNovelRequest {
     status?: WorkStatus
     target_audience?: string
     category?: string
@@ -79,7 +79,7 @@ export interface NovelDetail {
         total_size: number
         average_chapter_word_count: number
     }
-    recently_updated_file: NovelChapterInfo
+    recently_updated_file: NovelFileInfo
 }
 
 /**
@@ -87,45 +87,7 @@ export interface NovelDetail {
  */
 export interface FolderAndFileList {
     folders: FolderBasicInfo[]
-    files: NovelChapterInfo[]
-}
-
-/**
- * 小说操作请求
- */
-export interface NovelOperationRequest {
-    novel_id: number
-    operation: 'delete' | 'archive' | 'restore' | 'update_status'
-    status?: WorkStatus
-}
-
-/**
- * 小说导入请求
- */
-export interface ImportNovelRequest {
-    source_path: string
-    target_path: string
-    import_options?: {
-        copy_files?: boolean
-        preserve_structure?: boolean
-        overwrite_existing?: boolean
-        import_metadata?: boolean
-    }
-}
-
-/**
- * 小说导出请求
- */
-export interface ExportNovelRequest {
-    novel_id: number
-    export_format: 'txt' | 'epub' | 'pdf' | 'docx'
-    export_options?: {
-        include_metadata?: boolean
-        include_images?: boolean
-        split_by_chapter?: boolean
-        custom_styles?: Record<string, any>
-    }
-    output_path: string
+    files: NovelFileInfo[]
 }
 
 /**
@@ -154,39 +116,46 @@ export interface SearchNovelResult {
 }
 
 /**
- * 小说章节信息
+ * 小说章节\知识库等文件信息
  */
-export interface NovelChapterInfo {
+export interface NovelFileInfo {
     id: number
+    folder_id: number
+    work_id: number
     name: string
+    primary_type?: string
     word_count: number
     content?: string
     size: number
 }
 
 /**
- * 小说章节创建请求参数
+ * 小说章节\知识库等文件创建请求参数
  */
-export interface CreateChapterRequest {
+export interface CreateNovelFileRequest {
     work_id: number
     folder_id: number
     name: string
+    primary_type: string
     content?: string
 }
 /**
- * 小说章节更新请求参数
+ * 小说章节\知识库等文件更新请求参数
  */
-export interface UpdateChapterRequest {
+export interface UpdateNovelFileRequest {
     name?: string
     content?: string
 }
 
 /**
- * 小说章节查询请求参数
+ * 小说章节\知识库等文件查询请求参数
  */
-export interface ChapterQueryRequest {
+export interface QueryNovelFileRequest {
     work_id: number
     folder_id: number
+    name?: string
+    primary_type?: string
+    status?: FileStatus
     page?: number
     page_size?: number
     order_by?: string

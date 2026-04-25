@@ -2,7 +2,8 @@
  * 文件夹服务层类型定义
  */
 
-import { Folder, FolderStatus } from '@/main/types/db'
+import { FolderStatus } from '@/main/types/db'
+import { FileBasicInfo } from './file.types'
 
 /**
  * 文件夹基本信息
@@ -20,8 +21,8 @@ export interface FolderBasicInfo {
  * 创建文件夹请求参数
  */
 export interface CreateFolderRequest {
-  parent_id?: number | null
-  work_id?: number | null
+  parent_id?: number
+  work_id?: number
   work_type: string
   name: string
   description?: string
@@ -31,8 +32,8 @@ export interface CreateFolderRequest {
  * 更新文件夹请求参数
  */
 export interface UpdateFolderRequest {
-  parent_id?: number | null
-  work_id?: number | null
+  parent_id?: number
+  work_id?: number
   name?: string
   description?: string
 }
@@ -41,8 +42,8 @@ export interface UpdateFolderRequest {
  * 文件夹查询请求参数
  */
 export interface FolderQueryRequest {
-  parent_id?: number | null
-  work_id?: number | null
+  parent_id?: number
+  work_id?: number
   name?: string
   path?: string
   status?: FolderStatus
@@ -55,7 +56,7 @@ export interface FolderQueryRequest {
 /**
  * 文件夹树节点（包含层级信息）
  */
-export interface FolderTreeNode extends Folder {
+export interface FolderTreeNode extends FolderBasicInfo {
   level: number
   children: FolderTreeNode[]
 }
@@ -63,7 +64,7 @@ export interface FolderTreeNode extends Folder {
 /**
  * 文件夹树节点（包含统计信息）
  */
-export interface FolderTreeWithStats extends Folder {
+export interface FolderTreeWithStats extends FolderBasicInfo {
   level: number
   children: FolderTreeWithStats[]
   total_file_count: number
@@ -71,3 +72,10 @@ export interface FolderTreeWithStats extends Folder {
   total_size: number
 }
 
+/**
+ * 文件夹列表和文件列表
+ */
+export interface FoldersAndFilesList {
+  folders: FolderBasicInfo[]
+  files: FileBasicInfo[]
+}

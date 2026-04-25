@@ -30,14 +30,17 @@ class ConfigService {
   private constructor() {
     this.appPath = app.getAppPath()
     this.userDataPath = app.getPath('userData')
-    this.configFileName = 'config'
+    this.configFileName = 'appConfig'
     this.documentPath = app.getPath('documents')
+
+    const configDir = path.join(this.userDataPath, 'config')
+    fs.mkdirSync(configDir, { recursive: true })
 
     this.defaultConfig = this.getDefaultConfig()
 
     this.store = new Store<AppConfig>({
       name: this.configFileName,
-      cwd: this.userDataPath,
+      cwd: configDir,
       fileExtension: 'json',
       clearInvalidConfig: true,
       defaults: this.defaultConfig
@@ -154,7 +157,7 @@ class ConfigService {
    * @param config - 要更新的配置对象（部分更新）
    * @returns 操作结果错误码
    */
-  public setConfig(config: Partial<AppConfig>): void {
+  public setConfig(config: AppConfig): void {
     try {
       this.config = ObjectUtil.deepMerge(this.config!, config)
       this.saveConfig()
@@ -252,7 +255,10 @@ class ConfigService {
    * 获取应用资源路径 staticPath
    * @returns 应用资源路径staticPath
    */
-  public getStaticPath(): string {
+  public getStaticPath(type?: string): string {
+    if (type === 'userData') {
+      return path.join(this.userDataPath, 'Cache', 'static')
+    }
     return path.join(this.appPath, 'static')
   }
 

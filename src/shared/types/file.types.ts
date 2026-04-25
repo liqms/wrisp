@@ -2,8 +2,25 @@
  * 文件服务层类型定义
  */
 
-import { BaseResponse, ListResponse } from './apis/base.types'
-import { File, FileStatus, FileType } from '@/main/types/db'
+import { FileStatus, FileType } from '@/main/types/db'
+
+/**
+ * 文件基本信息
+ */
+export interface FileBasicInfo {
+  id: number
+  work_id: number
+  folder_id: number
+  name: string
+  content?: string
+  type: FileType
+  primary_type?: string
+  extension?: string
+  duration?: number
+  status: FileStatus
+  size: number
+  word_count: number
+}
 
 /**
  * 创建文件请求参数
@@ -12,6 +29,7 @@ export interface CreateFileRequest {
   work_id: number
   folder_id: number
   name: string
+  primary_type: string
   content?: string
   extension?: string
 }
@@ -28,8 +46,8 @@ export interface UpdateFileRequest {
  * 文件查询请求参数
  */
 export interface FileQueryRequest {
-  work_id?: number
-  folder_id?: number
+  work_id: number
+  folder_id: number
   name?: string
   primary_type?: string
   extension?: string
@@ -51,32 +69,3 @@ export interface FileAggregate {
   types: { type: string; count: number }[]
 }
 
-/**
- * 创建文件响应
- */
-export type CreateFileResponse = BaseResponse<File>
-
-/**
- * 获取文件响应
- */
-export type GetFileResponse = BaseResponse<File | null>
-
-/**
- * 获取文件列表响应
- */
-export type GetFileListResponse = ListResponse<File>
-
-/**
- * 更新文件响应
- */
-export type UpdateFileResponse = BaseResponse<number>
-
-/**
- * 删除文件响应
- */
-export type DeleteFileResponse = BaseResponse<number>
-
-/**
- * 文件统计响应
- */
-export type GetFileAggregateResponse = BaseResponse<FileAggregate>

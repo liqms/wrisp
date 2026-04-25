@@ -4,9 +4,9 @@ import type { AppConfig } from '@/shared/types'
 
 export const configModule: ConfigAPI = {
   get: () => ipcRenderer.invoke('config:get'),
-  set: (config: Partial<AppConfig>) => ipcRenderer.invoke('config:set', config),
+  set: (config: AppConfig) => ipcRenderer.invoke('config:set', config),
   getValue: (keyPath: string) => ipcRenderer.invoke('config:getValue', keyPath),
   setValue: (keyPath: string, value: any) => ipcRenderer.invoke('config:setValue', keyPath, value),
-  getStaticPath: () => ipcRenderer.invoke('config:getStaticPath'),
+  getStaticPath: (type?: string) => ipcRenderer.invoke('config:getStaticPath', type),
   reset: () => ipcRenderer.invoke('config:reset')
 }

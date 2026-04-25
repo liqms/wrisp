@@ -8,7 +8,7 @@ export function registerConfigHandlers() {
     return getConfig()
   })
 
-  ipcMain.handle('config:set', async (_, config: Partial<AppConfig>): Promise<ApiResponse<void>> => {
+  ipcMain.handle('config:set', async (_, config: AppConfig): Promise<ApiResponse<void>> => {
     return setConfig(config)
   })
 
@@ -20,8 +20,8 @@ export function registerConfigHandlers() {
     return setValue(keyPath, value)
   })
 
-  ipcMain.handle('config:getStaticPath', async (): Promise<ApiResponse<string>> => {
-    return getStaticPath()
+  ipcMain.handle('config:getStaticPath', async (_, type?: string): Promise<ApiResponse<string>> => {
+    return getStaticPath(type)
   })
 
   ipcMain.handle('config:reset', async (): Promise<ApiResponse<void>> => {

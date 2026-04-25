@@ -10,10 +10,10 @@ const systemService = SystemService.getInstance()
 async function getSystemInfo(): Promise<ApiResponse<SystemInfo>> {
   try {
     const systemInfo = systemService.getSystemInfo()
-    Logger.debug('系统信息 API 调用成功', { systemInfo })
+    Logger.debug('系统信息 API 调用成功', { systemInfo: JSON.stringify(systemInfo) })
     return response.success(systemInfo)
   } catch (error) {
-    Logger.error('系统信息 API 调用失败', { error })
+    Logger.error('系统信息 API 调用失败', { error: JSON.stringify(error) })
     return response.error(ErrorCode.SYSTEM_INFO_ERROR, error as Error)
   }
 }

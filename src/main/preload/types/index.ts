@@ -4,8 +4,6 @@ import type { SystemAPI } from './system'
 import type { LoggerAPI } from './logger'
 import type { WebviewAPI } from './webview'
 import type { FolderAPI } from './folder'
-import type { FileAPI } from './file'
-import type { WorksAPI } from './works'
 import type { NovelAPI } from './novel'
 
 export interface ElectronAPI {
@@ -15,7 +13,6 @@ export interface ElectronAPI {
   logger: LoggerAPI
   webview: WebviewAPI
   folder: FolderAPI
-  file: FileAPI
   novel: NovelAPI
   
   // 通用 IPC 方法（保持向后兼容）
@@ -27,4 +24,4 @@ export interface ElectronAPI {
   removeNotificationListener: () => void
 }
 
-export type { ConfigAPI, WindowAPI, SystemAPI, LoggerAPI, WebviewAPI, FolderAPI, FileAPI, WorksAPI, NovelAPI }
+export type { ConfigAPI, WindowAPI, SystemAPI, LoggerAPI, WebviewAPI, FolderAPI, NovelAPI }

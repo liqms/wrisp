@@ -1,92 +1,106 @@
 import { createI18n, type I18n } from 'vue-i18n';
+import { unref, type WritableComputedRef } from 'vue';
 import { type LocaleValue } from '@/shared/i18n/types';
 import { LocaleEnum } from '@/shared/enums';
 import { logger } from '@/renderer/utils/logger.utils';
+import { useConfig } from '@/renderer/composables';
 
-// 语言代码映射：将各种格式映射为统一的查找键值
-const localeMapping: Record<string, string> = {
-  // 标准格式映射到统一格式
-  'zh-CN': 'zhCN',
-  'en-US': 'enUS',
-  // 统一格式（主要查找键值）
-  'zhCN': 'zhCN',
-  'enUS': 'enUS'
+// 静态导入语言文件
+import zhCNMessages from '@/shared/i18n/locales/zhCN';
+import enUSMessages from '@/shared/i18n/locales/enUS';
+import { ApiResponse } from '@/shared/types';
+import { SystemInfo } from '@/shared/types';
+
+// 支持的语言列表（统一使用 zhCN/enUS 格式）
+const supportedLocales = [LocaleEnum.ZH, LocaleEnum.EN];
+
+// 语言消息映射
+const localeMessages: Record<string, Record<string, any>> = {
+  [LocaleEnum.ZH]: zhCNMessages,
+  [LocaleEnum.EN]: enUSMessages
 };
-
-// 获取统一的查找键值（避免 vue-i18n 语言代码规范化）
-const getLookupKey = (locale: string): string => {
-  return localeMapping[locale] || 'zhCN';
-};
-
-// 获取文件使用的语言代码（用于加载语言文件）
-const getFileLocale = (locale: string): LocaleValue => {
-  const lookupKey = getLookupKey(locale);
-  // 将 zhCN 转换为 zh-CN，enUS 转换为 en-US
-  if (lookupKey === 'zhCN') return LocaleEnum.ZH;
-  if (lookupKey === 'enUS') return LocaleEnum.EN;
-  return LocaleEnum.ZH;
-};
-
-// 动态导入语言文件，支持按需加载
-const loadLocaleMessages = async (locale: LocaleValue): Promise<Record<string, any>> => {
-  try {
-    const fileLocale = getFileLocale(locale);
-    const messages = await import(`@/shared/i18n/locales/${fileLocale}.json`);
-    return messages.default || messages;
-  } catch (error) {
-    logger.warn(`无法加载语言文件 ${locale}，使用默认语言`, { error });
-    // 回退到默认语言
-    const fallback = await import(`@/shared/i18n/locales/${LocaleEnum.ZH}.json`);
-    return fallback.default || fallback;
-  }
-};
-
-// 创建 i18n 实例
-export const i18n: I18n = createI18n({
-  legacy: false,
-  locale: 'zhCN',
-  fallbackLocale: 'zhCN',
-  messages: {},
-  // 禁用语言代码规范化，确保使用完整的语言代码
-  allowComposition: true,
-  missingWarn: false,
-  fallbackWarn: false
-});
-
-
-// 语言文件缓存
-const loadedLocales = new Set<LocaleValue>();
 
 /**
- * 设置语言并加载对应的语言文件
+ * 获取统一的查找键值
+ * @param locale 语言代码（zhCN/enUS 格式）
+ * @returns 有效的语言键值，无效时返回默认值 zhCN
+ */
+const getLookupKey = (locale: string): string => {
+  return supportedLocales.includes(locale) ? locale : LocaleEnum.EN;
+};
+
+/**
+ * 获取默认语言，调用后端接口获取系统语言和配置中的语言设置
+ * @returns 默认语言键值（zhCN）
+ */
+const getDefaultLocale = async (): Promise<string> => {
+  let systemLocale = LocaleEnum.EN
+  let configLocale = LocaleEnum.EN
+  // 从系统设置中获取语言
+  try {
+    const systemInfoRes = await window.electronAPI.system.getSystemInfo() as ApiResponse<SystemInfo>
+    const systemInfo = systemInfoRes.data as SystemInfo
+    systemLocale = systemInfo?.locale;
+  } catch (error) {
+    logger.error('获取系统语言失败', {error})
+  }
+  // 从配置文件中获取语言
+  try {
+    const configRes = await window.electronAPI.config.getValue('general.locale') as ApiResponse<string>
+    configLocale = configRes.data as string || LocaleEnum.EN;
+  } catch (error) {
+    logger.error('获取配置语言失败', {error})
+  }
+  // 返回默认语言（优先使用配置语言, 系统语言次之，最后使用默认值 zhCN）
+  return configLocale || systemLocale || LocaleEnum.EN;
+};
+
+// 创建 i18n 实例（使用默认语言，避免在 Pinia 初始化前调用 store）
+export const i18n: I18n = createI18n({
+  // 组合式 API
+  legacy: false,
+  // 初始化默认语言（使用静态默认值，避免在 Pinia 初始化前调用 store）
+  locale: LocaleEnum.EN,
+  // 回退语言
+  fallbackLocale: LocaleEnum.EN,
+  // 语言消息映射
+  messages: localeMessages,
+  // 支持的语言列表
+  availableLocales: supportedLocales,
+  // 启用全局注入，使 useI18n() 返回响应式的 t 函数
+  globalInjection: true,
+  // 禁用语言代码规范化，确保使用完整的语言代码
+  allowComposition: true,
+  // 禁用缺失语言警告
+  missingWarn: true,
+  // 禁用回退语言警告
+  fallbackWarn: true
+});
+
+/**
+ * 设置语言，并保存到配置文件
+ * @param locale 目标语言（zhCN/enUS 格式）
  */
 export const setLocale = async (locale: LocaleValue): Promise<void> => {
   try {
-    // 获取统一的查找键值（避免 vue-i18n 语言代码规范化）
+    // 获取统一的查找键值
     const lookupKey = getLookupKey(locale);
-    const currentLocale = i18n.global.locale as LocaleValue;
+    // i18n.global.locale 返回的是响应式对象，需要用 unref 获取实际值
+    const currentLocale = unref(i18n.global.locale) as string;
 
-    // 如果当前语言与目标语言相同，无需加载
-    if (currentLocale === locale) {
-      logger.info(`当前语言与目标语言相同，无需加载语言文件: ${locale}`);
+    // 如果当前语言与目标语言相同，无需切换
+    if (currentLocale === lookupKey) {
+      logger.info(`当前语言与目标语言相同，无需切换: ${locale}`);
       return;
     }
 
-    const fileLocale = getFileLocale(locale);
-    
-    // 如果语言文件未加载，先加载
-    if (!loadedLocales.has(lookupKey)) {
-      const messages = await loadLocaleMessages(fileLocale);
-      
-      // 注册到统一的查找键值，确保 vue-i18n 能正确查找
-      i18n.global.setLocaleMessage(lookupKey, messages);
-      
-      loadedLocales.add(lookupKey);
-    }
-
     // 设置当前语言（使用统一的查找键值）
-    i18n.global.locale = lookupKey;
-
+    (i18n.global.locale as WritableComputedRef<string>).value = lookupKey;
+    logger.info(`切换语言: ${currentLocale} -> ${lookupKey}`);
+    // 保存到配置文件（等待保存完成）
+    const config = useConfig();
+    await config.updateLocale(lookupKey);
+    logger.info('语言配置已保存');
   } catch (error) {
     logger.error('设置语言失败:', { error });
   }
@@ -94,35 +108,39 @@ export const setLocale = async (locale: LocaleValue): Promise<void> => {
 
 /**
  * 初始化 i18n（应用启动时调用）
+ * @param initialLocale 初始语言（可选，默认为中文）
  */
-export const initI18n = async (): Promise<void> => {
+export const initI18n = async (initialLocale?: string): Promise<void> => {
   try {
-    // 加载中文语言文件，设置为默认语言
-    const zhLookupKey = getLookupKey(LocaleEnum.ZH);
-    if (!loadedLocales.has(zhLookupKey)) {
-      const messages = await loadLocaleMessages(LocaleEnum.ZH);
-      
-      // 注册到统一的查找键值
-      i18n.global.setLocaleMessage(zhLookupKey, messages);
-      
-      loadedLocales.add(zhLookupKey);
-    }
-    
-    // 设置当前语言为中文（默认语言）
-    i18n.global.locale = zhLookupKey;
+    // 获取默认语言
+    const defaultLocale = await getDefaultLocale();
+    // 使用传入的初始语言或默认语言
+    const targetLocale = initialLocale || defaultLocale;
+    const lookupKey = getLookupKey(targetLocale);
+
+    // 设置当前语言（i18n.global.locale 是 WritableComputedRef，需要使用 .value 来赋值）
+    (i18n.global.locale as WritableComputedRef<string>).value = lookupKey;
+    logger.info(`i18n 初始化完成，当前语言: ${lookupKey}`);
 
   } catch (error) {
     logger.warn('i18n 初始化失败，使用默认语言:', { error });
+    (i18n.global.locale as WritableComputedRef<string>).value = LocaleEnum.EN;
+  }
+};
 
-    // 确保至少加载默认语言
-    const zhLookupKey = getLookupKey(LocaleEnum.ZH);
-    if (!loadedLocales.has(zhLookupKey)) {
-      const messages = await loadLocaleMessages(LocaleEnum.ZH);
-      
-      i18n.global.setLocaleMessage(zhLookupKey, messages);
-      loadedLocales.add(zhLookupKey);
-    }
-
-    i18n.global.locale = zhLookupKey;
+/**
+ * 非组件环境下的翻译函数
+ * @param key 翻译键
+ * @param params 叿换参数
+ * @returns 翻译后的字符串
+ */
+export const t = (key: string, params?: Record<string, any>): string => {
+  try {
+    // 使用类型断言避免 TypeScript 类型错误
+    const translateFn = i18n.global.t as unknown as (key: string, params?: Record<string, any>) => string;
+    return translateFn(key, params);
+  } catch (error) {
+    logger.error('翻译失败:', { error });
+    return key;
   }
 };

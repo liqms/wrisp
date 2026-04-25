@@ -1,5 +1,6 @@
 <template>
-  <n-layout has-sider>
+  <AppHeader />
+  <n-layout class="layout-container" has-sider>
     <n-layout-sider
       bordered
       :width="200"
@@ -9,8 +10,8 @@
       align="center"
       class="sidebar"
     >
-      <n-flex justify="center" align="center" class="logo-container">
-        <n-avatar :src="logoPath" round size="medium" object-fit="cover" />
+      <n-flex justify="center" align="center" class="user-container">
+        <n-avatar :src="userAvatarPath" round size="medium" object-fit="cover" />
       </n-flex>
       <n-flex vertical class="menu-container-main">
         <n-menu
@@ -37,30 +38,7 @@
     </n-layout-sider>
 
     <n-layout class="content-container">
-      <n-layout-header class="content-header">
-        <n-flex class="title-container">
-          <n-text class="title">{{ selectedLabel }}</n-text>
-        </n-flex>
-        <n-flex class="button-container">
-          <n-button quaternary class="window-button minimize-button" @click="handleMinimize">
-            <template #icon>
-              <RemoveOutline />
-            </template>
-          </n-button>
-          <n-button quaternary class="window-button maximize-button" @click="handleMaximize">
-            <template #icon>
-              <component :is="maximizeIcon" />
-            </template>
-          </n-button>
-          <n-button quaternary class="window-button close-button" @click="handleClose">
-            <template #icon>
-              <CloseOutline />
-            </template>
-          </n-button>
-        </n-flex>
-      </n-layout-header>
-
-      <n-layout-content>
+      <n-layout-content class="main-content">
         <router-view />
       </n-layout-content>
     </n-layout>
@@ -70,80 +48,67 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, h, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import type { MenuOption } from 'naive-ui'
 import type { Component } from 'vue'
 import { NIcon } from 'naive-ui'
 import { useConfig } from '../composables'
+import AppHeader from '../components/AppHeader.vue'
 import {
-  HomeOutline,
-  SettingsOutline,
-  TimerOutline,
-  CreateOutline,
-  CloseOutline,
-  RemoveOutline,
-  ResizeOutline,
-  ContractOutline
+  Home,
+  Settings,
+  Albums,
+  Bookmarks
 } from '@vicons/ionicons5'
+
+// 使用 useI18n 获取响应式的翻译函数
+const { t } = useI18n()
 
 const router = useRouter()
 const configStore = useConfig()
 
 const isCollapsed = ref(true)
-const isMaximized = ref(false)
-const logoPath = ref('')
+const userAvatarPath = ref('')
 const selectedKey = ref('home')
-
-interface RouteConfig {
-  key: string
-  label: string
-  path: string
-}
-
-const routeConfigMap: Record<string, RouteConfig> = {
-  chat: { key: 'chat', label: 'AI对话', path: '/chat' },
-  create: { key: 'create', label: '创作', path: '/create' },
-  history: { key: 'history', label: '历史记录', path: '/history' },
-  settings: { key: 'settings', label: '设置', path: '/settings' }
-}
-
-const selectedLabel = computed(() => {
-  const route = Object.values(routeConfigMap).find(r => r.key === selectedKey.value)
-  return route?.label || 'AI对话'
-})
-
-const maximizeIcon = computed((): Component => {
-  return isMaximized.value ? ContractOutline : ResizeOutline
-})
 
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) })
 }
 
-const menuOptions: MenuOption[] = [
+// 使用 computed 确保菜单选项响应语言变化
+const menuOptions = computed<MenuOption[]>(() => [
   {
-    label: 'AI对话',
-    key: 'chat',
-    icon: renderIcon(HomeOutline)
+    label: t('APP.HOME'),
+    key: 'home',
+    icon: renderIcon(Home)
   },
   {
-    label: '创作',
-    key: 'create',
-    icon: renderIcon(CreateOutline)
+    label: t('APP.KNOWLEDGE'),
+    key: 'knowledge',
+    icon: renderIcon(Bookmarks)
+  },
+  {
+    label: t('APP.CREATION'),
+    key: 'creation',
+    icon: renderIcon(Albums)
   }
-]
+])
 
-const menuOptionsSec: MenuOption[] = [
+const menuOptionsSec = computed<MenuOption[]>(() => [
   {
-    label: '历史记录',
-    key: 'history',
-    icon: renderIcon(TimerOutline)
-  },
-  {
-    label: '设置',
+    label: t('APP.SETTINGS'),
     key: 'settings',
-    icon: renderIcon(SettingsOutline)
+    icon: renderIcon(Settings)
   }
-]
+])
+
+// 路由配置映射
+const routeConfigMap: Record<string, { key: string; path: string }> = {
+  home: { key: 'home', path: '/home' },
+  knowledge: { key: 'knowledge', path: '/knowledge' },
+  creation: { key: 'creation', path: '/creation' },
+  settings: { key: 'settings', path: '/settings' }
+}
 
 const handleMenuClick = (key: string) => {
   const route = routeConfigMap[key]
@@ -159,45 +124,27 @@ watch(() => router.currentRoute.value.path, (newPath) => {
   }
 })
 
-const handleMinimize = async () => {
-  try {
-    await window.electronAPI.window.minimize()
-  } catch (error) {
-    console.error('最小化窗口失败:', error)
-  }
-}
-
-const handleMaximize = async () => {
-  try {
-    await window.electronAPI.window.maximize()
-    isMaximized.value = await window.electronAPI.window.isMaximized()
-  } catch (error) {
-    console.error('最大化/还原窗口失败:', error)
-  }
-}
-
-const handleClose = async () => {
-  try {
-    await window.electronAPI.window.close()
-  } catch (error) {
-    console.error('关闭窗口失败:', error)
-  }
-}
-
+// 动态获取头像路径
 onMounted(async () => {
-  const basePath = await configStore.getStaticPath();
-  logoPath.value = basePath + 'logos/pentip.png'; 
-
-  try {
-    isMaximized.value = await window.electronAPI.window.isMaximized()
-  } catch (error) {
-    console.error('获取窗口状态失败:', error)
+  const userAvatar = await configStore.getValue('userInfo.avatar')
+  // 使用 app://cache/ 协议访问用户缓存资源
+  if (userAvatar) {
+    userAvatarPath.value = `app://cache/${userAvatar}`
+  } else {
+    userAvatarPath.value = 'app://avatar/default.png'
   }
 })
+
 </script>
 
 <style scoped lang="scss">
 @use '../styles/_variables' as *;
+
+.layout-container {
+  height: calc(100vh - 30px);
+}
+
+
 
 .sidebar {
   display: flex;
@@ -205,7 +152,7 @@ onMounted(async () => {
   height: 100vh;
 }
 
-.logo-container {
+.user-container {
   display: flex;
   height: 64px;
   padding: 15px;

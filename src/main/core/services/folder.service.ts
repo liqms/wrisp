@@ -1,13 +1,16 @@
 import fs from 'fs'
 import path from 'path'
-import { FolderDao, CompositeDao } from '../db'
+import { FolderDao, CompositeDao, FileDao } from '../db'
 import { Logger } from '@/main/utils/logger'
 import { Folder, FolderCreate, FolderUpdate, File } from '@/main/types/db'
 import {
   CreateFolderRequest,
   UpdateFolderRequest,
   FolderQueryRequest,
-  FolderTreeWithStats
+  FolderTreeWithStats,
+  FolderAndFilesList,
+  FolderBasicInfo,
+  FileBasicInfo
 } from '@/shared/types'
 import { configService } from './config.service'
 import { PaginationResult } from '@/shared/utils/pagination'
@@ -21,6 +24,7 @@ class FolderService {
   private static instance: FolderService | null = null
   private folderDao: FolderDao
   private compositeDao: CompositeDao
+  private fileDao: FileDao
   private workspaceDir: string
 
 
@@ -31,6 +35,7 @@ class FolderService {
   private constructor() {
     this.folderDao = new FolderDao()
     this.compositeDao = new CompositeDao()
+    this.fileDao = new FileDao()
     this.workspaceDir = this.getWorkspaceDir()
     Logger.info('FolderService 初始化完成')
   }
@@ -177,6 +182,20 @@ class FolderService {
     }
     const tree = this.folderDao.getTreeWithStats(parentId)
     return tree as FolderTreeWithStats[]
+  }
+
+  /**
+   * 获取子文件夹列表和文件列表
+   * 查询文件夹下的所有子文件夹和文件，支持通过文件夹 ID 或文件夹路径查询
+   * @param parentId - 文件夹 ID 或文件夹路径
+   * @returns 子文件夹和文件列表
+   */
+  public getSubFoldersAndFiles(parentId: number): FolderAndFilesList {
+    const folders = this.folderDao.findByParams({ page: 1, page_size: 1000, parent_id: parentId }).data || []
+    const files = this.fileDao.findByParams({ page: 1, page_size: 1000, folder_id: parentId }).data || []
+
+    return { folders: folders as FolderBasicInfo[], files: files as FileBasicInfo[] }
+
   }
 
   /**

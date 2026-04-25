@@ -19,7 +19,7 @@ export const useConfigStore = defineStore('config', () => {
   const getError = computed(() => errorMessage.value)
 
   // 方法
-  
+
   /**
    * 从主进程获取配置
    */
@@ -30,10 +30,10 @@ export const useConfigStore = defineStore('config', () => {
 
     try {
       const response = await window.electronAPI.config.get() as ApiResponse<AppConfig>
-      
+
       if (response.success && response.data) {
         config.value = response.data as AppConfig
-        
+
         // 配置获取成功后，根据配置更新语言
         await setLocale(config.value.general.locale)
       } else {
@@ -49,43 +49,12 @@ export const useConfigStore = defineStore('config', () => {
   }
 
   /**
-   * 更新配置
-   */
-  const updateConfig = async (newConfig: Partial<AppConfig>): Promise<boolean> => {
-    loading.value = true
-    errorCode.value = null
-    errorMessage.value = null
-
-    try {
-      const response = await window.electronAPI.config.set(newConfig) as ApiResponse<void>
-      
-      if (response.success) {
-        // 更新本地配置状态
-        if (config.value) {
-          config.value = { ...config.value, ...newConfig }
-        }
-        return true
-      } else {
-        errorCode.value = response.code
-        errorMessage.value = handleApiError(response)
-        return false
-      }
-    } catch (error) {
-      errorCode.value = ErrorCode.CONFIG_UPDATE_FAILED
-      errorMessage.value = handleApiError({ success: false, code: errorCode.value })
-      return false
-    } finally {
-      loading.value = false
-    }
-  }
-
-  /**
    * 获取特定配置项的值
    */
   const getConfigValue = async (keyPath: string): Promise<any> => {
     try {
       const response = await window.electronAPI.config.getValue(keyPath) as ApiResponse<any>
-      
+
       if (response.success) {
         return response.data
       } else {
@@ -106,7 +75,7 @@ export const useConfigStore = defineStore('config', () => {
   const setConfigValue = async (keyPath: string, value: any): Promise<boolean> => {
     try {
       const response = await window.electronAPI.config.setValue(keyPath, value) as ApiResponse<void>
-      
+
       if (response.success) {
         // 更新本地配置状态
         if (config.value) {
@@ -114,7 +83,7 @@ export const useConfigStore = defineStore('config', () => {
           const updateNestedValue = (obj: any, path: string, val: any): any => {
             const keys = path.split('.')
             const currentKey = keys[0]
-            
+
             if (keys.length === 1) {
               return { ...obj, [currentKey]: val }
             } else {
@@ -124,7 +93,7 @@ export const useConfigStore = defineStore('config', () => {
               }
             }
           }
-          
+
           config.value = updateNestedValue(config.value, keyPath, value)
         }
         return true
@@ -143,10 +112,10 @@ export const useConfigStore = defineStore('config', () => {
   /**
    * 获取静态文件路径
    */
-  const getStaticPath = async (): Promise<string> => {
+  const getStaticPath = async (type?: string): Promise<string> => {
     try {
-      const response = await window.electronAPI.config.getStaticPath() as ApiResponse<string>
-      
+      const response = await window.electronAPI.config.getStaticPath(type) as ApiResponse<string>
+
       if (response.success && response.data) {
         return response.data as string
       } else {
@@ -171,7 +140,7 @@ export const useConfigStore = defineStore('config', () => {
 
     try {
       const response = await window.electronAPI.config.reset() as ApiResponse<void>
-      
+
       if (response.success) {
         // 清空本地配置状态，下次访问时会重新获取
         config.value = null
@@ -214,16 +183,15 @@ export const useConfigStore = defineStore('config', () => {
     loading,
     errorCode,
     errorMessage,
-    
+
     // 计算属性
     getConfig,
     isLoaded,
     isLoading,
     getError,
-    
+
     // 方法
     fetchConfig,
-    updateConfig,
     getConfigValue,
     setConfigValue,
     getStaticPath,

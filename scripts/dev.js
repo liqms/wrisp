@@ -160,13 +160,6 @@ async function startVite() {
   console.log('========================================');
   console.log('启动 Vite 开发服务器（包含 Electron）...');
 
-  // 先执行构建
-  const buildSuccess = await buildProject();
-  if (!buildSuccess) {
-    console.error('构建失败，无法启动开发服务器');
-    process.exit(1);
-  }
-
   // 在 Windows 上设置控制台编码为 UTF-8
   if (process.platform === 'win32') {
     try {

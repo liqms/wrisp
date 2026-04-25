@@ -32,7 +32,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     defaultMiniProgramId: 'deepseek',
     userInfo: {
         nickname: '用户',
-        avatar: '',
+        avatar: 'avatar/01.png',
         token: '',
         refreshToken: '',
         registrationDate: new Date().toISOString(),

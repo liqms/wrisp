@@ -17,13 +17,12 @@
 // App.vue 现在只负责渲染路由视图
 // 布局和内容由路由组件处理
 import { computed, watch, onMounted } from 'vue'
-import { useConfig } from './composables';
-import { ThemeEnum } from '@/shared/enums';
+import { LocaleEnum, ThemeEnum } from '@/shared/enums';
 import { darkTheme } from 'naive-ui';
 import type { GlobalTheme } from 'naive-ui';
 import NotificationHandler from '@/renderer/components/NotificationHandler.vue';
 import { initI18n } from '@/renderer/plugins/i18n';
-import { useSystem } from '@/renderer/composables';
+import { useSystem,useConfig } from '@/renderer/composables';
 
 const { theme } = useConfig();
 
@@ -42,11 +41,13 @@ const updateHtmlTheme = (themeValue: string) => {
   }
 }
 
+
 onMounted(async () => {
-  // 初始化 i18n
-  await initI18n();
-  // 初始化系统信息
+  // 初始化系统信息（确保配置已加载）
   await useSystem().init();
+  
+  // 初始化 i18n，传入配置的语言
+  await initI18n();
   
   // 其他初始化逻辑
   if (theme.value) {

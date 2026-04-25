@@ -5,6 +5,7 @@ import {
   getFolderInfo,
   queryFolders,
   getTreeWithStats,
+  getSubFoldersAndFiles,
   updateFolder,
   deleteFolder,
   batchMoveFolders,
@@ -14,6 +15,7 @@ import {
   UpdateFolderRequest,
   FolderQueryRequest,
   FolderTreeWithStats,
+  FoldersAndFilesList,
 } from '@/shared/types'
 import { Folder } from '@/main/types/db'
 
@@ -32,6 +34,10 @@ export function registerFolderHandlers(): void {
 
   ipcMain.handle('folder:getTreeWithStats', async (_, parentId: number): Promise<ApiResponse<FolderTreeWithStats[]>> => {
     return await getTreeWithStats(parentId)
+  })
+
+  ipcMain.handle('folder:getSubFoldersAndFiles', async (_, parentId: number): Promise<ApiResponse<FoldersAndFilesList>> => {
+    return await getSubFoldersAndFiles(parentId)
   })
 
   ipcMain.handle('folder:update', async (_, id: number, request: UpdateFolderRequest): Promise<ApiResponse<number>> => {

@@ -4,6 +4,7 @@ import {
   UpdateFolderRequest,
   FolderQueryRequest,
   FolderTreeWithStats,
+  FoldersAndFilesList,
 } from '@/shared/types'
 import { Folder } from '@/main/types/db'
 
@@ -11,7 +12,8 @@ export interface FolderAPI {
   create(request: CreateFolderRequest): Promise<ApiResponse<Folder>>
   getInfo(id: number): Promise<ApiResponse<Folder>>
   query(request: FolderQueryRequest): Promise<ApiResponse<Folder[]>>
-  getTreeWithStats(parentId: number): Promise<ApiResponse<FolderTreeWithStats[]>>
+  getTreeWithStats(parentId: number): Promise<ApiResponse<FolderTreeWithStats>>
+  getSubFoldersAndFiles(parentId: number): Promise<ApiResponse<FoldersAndFilesList>>
   update(id: number, request: UpdateFolderRequest): Promise<ApiResponse<number>>
   delete(id: number): Promise<ApiResponse<number>>
   batchMove(ids: number[], newParentId: number | null): Promise<ApiResponse<number>>

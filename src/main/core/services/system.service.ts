@@ -35,6 +35,9 @@ class SystemService {
    */
   public getSystemInfo(): SystemInfo {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize
+    // locale 去掉中间连字符 -
+    const locale = app.getLocale().replace('-', '') || 'zhCN'
+
     try {
       const systemInfo: SystemInfo = {
         platform: os.platform(),
@@ -49,7 +52,8 @@ class SystemService {
         viewSize: [
           width,
           height
-        ]
+        ],
+        locale
       }
       return systemInfo
     } catch (error) {
@@ -64,7 +68,8 @@ class SystemService {
         totalMemory: 0,
         freeMemory: 0,
         cpus: 0,
-        viewSize: [0, 0]
+        viewSize: [0, 0],
+        locale
       }
     }
   }

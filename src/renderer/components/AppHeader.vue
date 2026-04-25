@@ -4,16 +4,16 @@
     <n-text class="title">{{ title }}</n-text>
 
     <!-- 窗口控制按钮 -->
-    <n-flex v-if="showWindowControls" class="window-controls">
-      <n-button @click="handleMinimize" class="control-btn" :title="$t('ACTION.MINIMIZE')">
-        <Remove />
+    <n-flex class="window-controls">
+      <n-button @click="handleMinimize" class="control-btn" text :title="$t('ACTION.MINIMIZE')">
+        <n-icon><Remove /></n-icon>
       </n-button>
-      <n-button @click="handleMaximize" class="control-btn"
-        :title="isMaximized ? $t('ACTION.RESTORE') : $t('ACTION.MAXIMIZE')">
-        <component :is="isMaximized ? Contract : Expand" />
+      <n-button @click="handleMaximize" class="control-btn" text :title="isMaximized ? $t('ACTION.RESTORE') : $t('ACTION.MAXIMIZE')">
+        <n-icon v-if="isMaximized"><Contract /></n-icon>
+        <n-icon v-else><Expand /></n-icon>
       </n-button>
-      <n-button @click="handleClose" class="control-btn close-btn" :title="$t('ACTION.CLOSE')">
-        <Close />
+      <n-button @click="handleClose" class="control-btn" text :title="$t('ACTION.CLOSE')">
+        <n-icon><Close /></n-icon>
       </n-button>
     </n-flex>
   </n-flex>
@@ -24,24 +24,14 @@ import { ref, computed, onMounted } from 'vue'
 import { Remove, Expand, Contract, Close } from '@vicons/ionicons5'
 import { i18n } from '@/renderer/plugins/i18n'
 
-// Props 定义
-interface Props {
-  /** 页面标题 */
-  title?: string
-  /** 是否显示窗口控制按钮 */
-  showWindowControls?: boolean
-}
-
 // 使用类型断言解决 i18n 实例的类型问题
 const t = i18n.global.t as (key: string) => string | string[]
 
 const appName = computed(() => t('APP.NAME') as string)
 const welcome = computed(() => t('APP.WELCOME') as string)
 
-const props = withDefaults(defineProps<Props>(), {
-  title: appName.value + ' - ' + welcome.value,
-  showWindowControls: true
-})
+// 使用 computed 实现响应式标题，当语言切换时自动更新
+const title = computed(() => `${appName.value} - ${welcome.value}`)
 
 // 响应式数据
 const isMaximized = ref(false)
@@ -80,21 +70,18 @@ onMounted(async () => {
 <style scoped>
 .page-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between !important;
   align-items: center;
   width: 100%;
-  height: 40px;
+  height: 30px;
   padding: 0 12px;
-  background: #fff;
-  border-bottom: 1px solid #e8e8e8;
   user-select: none;
   -webkit-app-region: drag;
 }
 
 .title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f1f1f;
+  font-size: 12px;
+  /* font-weight: 600; */
 }
 
 .window-controls {
@@ -104,25 +91,7 @@ onMounted(async () => {
 }
 
 .control-btn {
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  transition: background-color 0.2s;
+  font-size: 16px;
 }
 
-.control-btn:hover {
-  background-color: #f5f5f5;
-}
-
-.close-btn:hover {
-  background-color: #ff4d4f;
-  color: #fff;
-}
 </style>

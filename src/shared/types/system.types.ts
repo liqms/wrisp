@@ -9,4 +9,5 @@ export interface SystemInfo {
   freeMemory: number
   cpus: number
   viewSize: number[]
+  locale: string
 }

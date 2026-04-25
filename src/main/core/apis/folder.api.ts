@@ -6,7 +6,8 @@ import {
   CreateFolderRequest,
   UpdateFolderRequest,
   FolderQueryRequest,
-  FolderTreeWithStats
+  FolderTreeWithStats,
+  FoldersAndFilesList
 } from '@/shared/types'
 import { Folder } from '@/main/types/db'
 
@@ -56,6 +57,15 @@ async function getTreeWithStats(parentId: number): Promise<ApiResponse<FolderTre
   }
 }
 
+async function getSubFoldersAndFiles(parentId: number): Promise<ApiResponse<FoldersAndFilesList>> {
+  try {
+    const foldersAndFiles = folderService.getSubFoldersAndFiles(parentId)
+    return response.success(foldersAndFiles)
+  } catch (error) {
+    return response.error(ErrorCode.FOLDER_GET_FAILED, error as Error)
+  }
+}
+
 async function updateFolder(id: number, request: UpdateFolderRequest): Promise<ApiResponse<number>> {
   try {
     if (id <= 0) {
@@ -98,11 +108,13 @@ async function batchMoveFolders(folderIds: number[], newParentId: number | null)
   }
 }
 
+
 export {
   createFolder,
   getFolderInfo,
   queryFolders,
   getTreeWithStats,
+  getSubFoldersAndFiles,
   updateFolder,
   deleteFolder,
   batchMoveFolders

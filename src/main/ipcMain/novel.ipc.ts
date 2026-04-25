@@ -6,23 +6,24 @@ import {
   queryNovels,
   updateNovel,
   deleteNovel,
-  createChapter,
-  queryChapters,
-  getChapterContent,
-  updateChapterContent,
-  deleteChapter
+  createNovelFile,
+  queryNovelFiles,
+  getNovelFileContent,
+  updateNovelFileContent,
+  deleteNovelFile,
+  moveFiles
 } from '@/main/core/apis/novel.api'
 import {
   CreateNovelRequest,
   UpdateNovelRequest,
-  NovelQueryRequest,
+  QueryNovelRequest,
   NovelBaseInfo,
   NovelDetail,
-  CreateChapterRequest,
-  NovelChapterInfo,
-  UpdateChapterRequest,
-  ChapterQueryRequest,
-  FolderAndFileList
+  CreateNovelFileRequest,
+  NovelFileInfo,
+  UpdateNovelFileRequest,
+  QueryNovelFileRequest,
+  FoldersAndFilesList
 } from '@/shared/types'
 
 export function registerNovelHandlers(): void {
@@ -34,7 +35,7 @@ export function registerNovelHandlers(): void {
     return await getNovelInfo(id)
   })
 
-  ipcMain.handle('novel:query', async (_, request: NovelQueryRequest): Promise<ApiResponse<NovelBaseInfo[]>> => {
+  ipcMain.handle('novel:query', async (_, request: QueryNovelRequest): Promise<ApiResponse<NovelBaseInfo[]>> => {
     return await queryNovels(request)
   })
 
@@ -52,23 +53,27 @@ export function registerNovelHandlers(): void {
     return await deleteNovel(id)
   })
 
-  ipcMain.handle('novel:createChapter', async (_, request: CreateChapterRequest): Promise<ApiResponse<NovelChapterInfo>> => {
-    return await createChapter(request)
+  ipcMain.handle('novel:createFile', async (_, request: CreateNovelFileRequest): Promise<ApiResponse<NovelFileInfo>> => {
+    return await createNovelFile(request)
   })
 
-  ipcMain.handle('novel:queryChapters', async (_, request: ChapterQueryRequest): Promise<ApiResponse<FolderAndFileList>> => {
-    return await queryChapters(request)
+  ipcMain.handle('novel:queryFiles', async (_, request: QueryNovelFileRequest): Promise<ApiResponse<FoldersAndFilesList>> => {
+    return await queryNovelFiles(request)
   })
 
-  ipcMain.handle('novel:getChapterContent', async (_, id: number): Promise<ApiResponse<NovelChapterInfo>> => {
-    return await getChapterContent(id)
+  ipcMain.handle('novel:getFileContent', async (_, id: number): Promise<ApiResponse<NovelFileInfo>> => {
+    return await getNovelFileContent(id)
   })
 
-  ipcMain.handle('novel:updateChapterContent', async (_, id: number, request: UpdateChapterRequest): Promise<ApiResponse<boolean>> => {
-    return await updateChapterContent(id, request)
+  ipcMain.handle('novel:updateFileContent', async (_, id: number, request: UpdateNovelFileRequest): Promise<ApiResponse<NovelFileInfo>> => {
+    return await updateNovelFileContent(id, request)
   })
 
-  ipcMain.handle('novel:deleteChapter', async (_, id: number): Promise<ApiResponse<boolean>> => {
-    return await deleteChapter(id)
+  ipcMain.handle('novel:deleteFile', async (_, id: number): Promise<ApiResponse<boolean>> => {
+    return await deleteNovelFile(id)
+  })
+
+  ipcMain.handle('novel:moveFiles', async (_, ids: number[], parentId: number): Promise<ApiResponse<number>> => {
+    return await moveFiles(ids, parentId)
   })
 }
