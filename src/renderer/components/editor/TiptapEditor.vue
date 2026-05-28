@@ -155,8 +155,8 @@ const editor = useEditor({
         }
       }
 
-      // Enter 提交，Shift+Enter 换行
-      if (event.key === "Enter" && !event.shiftKey) {
+      // Shift+Enter 提交，Enter 换行
+      if (event.key === "Enter" && event.shiftKey) {
         event.preventDefault();
         emit("enter");
         return true;
