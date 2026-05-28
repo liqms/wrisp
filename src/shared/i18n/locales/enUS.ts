@@ -141,7 +141,7 @@ export default {
       SEND: "Quick Capture",
       INPUT_CAPTURE_TIP:
         "Quickly capture your thoughts, ideas or notes. PenTip will automatically help you associate, organize and precipitate them into a knowledge system.",
-      SEND_TIP: "Press Enter to capture, Shift + Enter for a new line",
+      SEND_TIP: "Press Enter for a new line, Shift + Enter to capture",
     },
   },
   SETTINGS: {

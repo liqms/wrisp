@@ -139,7 +139,7 @@ export default {
       SEND: "快速记录",
       INPUT_CAPTURE_TIP:
         "快速记录思考、想法或笔记。PenTip 将自动帮您关联、整理并沉淀为知识体系。",
-      SEND_TIP: "按 Enter 记录，Shift + Enter 换行",
+      SEND_TIP: "按 Enter 换行，Shift + Enter 记录",
     },
   },
   SETTINGS: {
