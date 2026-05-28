@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useWebViewStore } from '@/renderer/store/webview.store'
 import { logger } from '@/renderer/utils/logger.utils'
 import type { WebContentViewOptions } from '@/shared/types'
@@ -8,10 +8,6 @@ import { handleApiError, getErrorMessage } from '@/renderer/utils/error.utils'
 interface UseWebViewOptions {
   /** 初始 URL */
   initialUrl?: string
-  /** 是否自动加载 */
-  autoLoad?: boolean
-  /** 是否显示工具栏 */
-  showToolbar?: boolean
   /** WebView 内容视图选项 */
   webContentViewOptions?: WebContentViewOptions | undefined
 }
@@ -20,7 +16,7 @@ interface UseWebViewOptions {
  * WebView 组合函数
  */
 export function useWebView(options: UseWebViewOptions = {}) {
-  const { initialUrl = '', autoLoad = true, showToolbar = true, webContentViewOptions = undefined } = options
+  const { initialUrl = '', webContentViewOptions = undefined } = options
 
   // 依赖注入
   const store = useWebViewStore()
@@ -53,13 +49,13 @@ export function useWebView(options: UseWebViewOptions = {}) {
 
       const viewOptions = options || webContentViewOptions
       // 创建纯对象副本，避免 IPC 序列化问题
-      const viewOptionsCopy = viewOptions ? { ...viewOptions } : undefined
+      const viewOptionsCopy = viewOptions ? JSON.parse(JSON.stringify(viewOptions)) : undefined
       logger.info('前端 正在加载 WebView', { url, viewOptions: viewOptionsCopy })
 
       let response: any = {}
 
-      if (viewOptions) {
-        response = await window.electronAPI.webview.create(url, viewOptions)
+      if (viewOptionsCopy) {
+        response = await window.electronAPI.webview.create(url, viewOptionsCopy)
       } else {
         response = await window.electronAPI.webview.create(url)
       }
@@ -85,28 +81,71 @@ export function useWebView(options: UseWebViewOptions = {}) {
       store.setLoading(false)
     }
   }
+  /**
+   * 重设 WebView 大小
+   * @param options 内容视图选项
+   */
+  const resize = async (options: WebContentViewOptions) => {
+    if (!isElectron.value) return
+
+    try {
+      const optionsCopy = JSON.parse(JSON.stringify(options))
+      const response = await window.electronAPI.webview.resize(optionsCopy)
+
+      if (response.success) {
+        logger.info('前端 WebView 重设成功', { optionsCopy })
+
+      } else {
+        store.setError(response.code, handleApiError(response))
+      }
+    } catch (err) {
+      store.setError(ErrorCode.WEBVIEW_RESIZE_FAILED, getErrorMessage(ErrorCode.WEBVIEW_RESIZE_FAILED))
+      logger.error('前端 WebView 重设失败', { error: String(err) })
+    }
+  }
+  /**
+   * 销毁 WebView
+   */
+  const destroy = async (): Promise<void> => {
+    if (!isElectron.value) return
+
+    try {
+      const response = await window.electronAPI.webview.destroy()
+
+      if (response.success) {
+        logger.info('前端 WebView 销毁成功')
+
+      } else {
+        store.setError(response.code, handleApiError(response))
+      }
+    } catch (err) {
+      store.setError(ErrorCode.WEBVIEW_DESTROY_FAILED, getErrorMessage(ErrorCode.WEBVIEW_DESTROY_FAILED))
+      logger.error('前端 WebView 销毁失败', { error: String(err) })
+    }
+  }
 
   /**
-   * 重新加载当前页面
+   * 隐藏 WebView
+   * @param options 内容视图选项
    */
-  const reload = async (): Promise<void> => {
+  const hide = async (): Promise<void> => {
     if (!isElectron.value) return
 
     try {
       store.setLoading(true)
-      const response = await window.electronAPI.webview.reload()
+      const response = await window.electronAPI.webview.hide()
 
       if (response.success) {
-        logger.info('前端 WebView 刷新成功')
+        logger.info('前端 WebView 隐藏成功')
 
-        // 刷新后更新导航状态
+        // 隐藏后更新导航状态
         setTimeout(() => updateNavigationState(), 500)
       } else {
         store.setError(response.code, handleApiError(response))
       }
     } catch (err) {
-      store.setError(ErrorCode.WEBVIEW_RELOAD_FAILED, getErrorMessage(ErrorCode.WEBVIEW_RELOAD_FAILED))
-      logger.error('前端 WebView 刷新失败', { error: String(err) })
+      store.setError(ErrorCode.WEBVIEW_HIDE_FAILED, getErrorMessage(ErrorCode.WEBVIEW_HIDE_FAILED))
+      logger.error('前端 WebView 隐藏失败', { error: String(err) })
     } finally {
       // 确保 loading 状态被正确重置
       store.setLoading(false)
@@ -230,7 +269,7 @@ export function useWebView(options: UseWebViewOptions = {}) {
    * 初始化
    */
   const init = (): void => {
-    if (initialUrl && autoLoad) {
+    if (initialUrl) {
       // 创建纯对象副本，避免 IPC 序列化问题
       const optionsCopy = webContentViewOptions ? { ...webContentViewOptions } : undefined
       logger.info('WebView 初始化', { url: initialUrl, viewOptions: optionsCopy })
@@ -252,12 +291,11 @@ export function useWebView(options: UseWebViewOptions = {}) {
     hasError: store.hasError,
     isReady: store.isReady,
 
-    // 选项状态
-    showToolbar: ref(showToolbar),
-
     // 方法
     loadWebView,
-    reload,
+    resize,
+    destroy,
+    hide,
     goBack,
     goForward,
     handleUrlChange,

@@ -23,6 +23,7 @@ $font-md: 18px;
 $font-lg: 20px;
 $font-xl: 24px;
 $font-2xl: 32px;
+$font-3xl: 40px;
 
 // 字体粗细
 $font-normal: 400;
@@ -36,6 +37,7 @@ $transition-base: 250ms;
 $transition-slow: 350ms;
 
 // 断点
+$breakpoint-xs: 480px;
 $breakpoint-sm: 640px;
 $breakpoint-md: 768px;
 $breakpoint-lg: 1024px;

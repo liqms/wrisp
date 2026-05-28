@@ -11,9 +11,10 @@ import { Logger } from "@/main/utils/logger";
 async function getConfig(): Promise<ApiResponse<AppConfig>> {
   try {
     const config = configService.getConfig();
-    // Logger.debug('获取配置', { config: JSON.stringify(config) })
+    // Logger.debug("获取配置", { config: JSON.stringify(config) });
     return response.success(config);
   } catch (error) {
+    Logger.error("获取配置失败", { error: JSON.stringify(error) });
     return response.error(ErrorCode.CONFIG_GET_FAILED, error as Error);
   }
 }
@@ -32,6 +33,7 @@ async function getValue(keyPath: string): Promise<ApiResponse<any>> {
       return response.error(ErrorCode.CONFIG_KEY_PATH_INVALID);
     }
   } catch (error) {
+    Logger.error("获取配置值失败", { error: JSON.stringify(error) });
     return response.error(ErrorCode.CONFIG_GET_FAILED, error as Error);
   }
 }
@@ -42,25 +44,16 @@ async function getValue(keyPath: string): Promise<ApiResponse<any>> {
  * @param value 配置值
  * @returns 设置结果
  */
-async function setValue(keyPath: string, value: any): Promise<ApiResponse<void>> {
+async function setValue(
+  keyPath: string,
+  value: any,
+): Promise<ApiResponse<void>> {
   try {
     configService.setValue(keyPath, value);
     return response.empty();
   } catch (error) {
+    Logger.error("设置配置值失败", { error: JSON.stringify(error) });
     return response.error(ErrorCode.CONFIG_UPDATE_FAILED, error as Error);
-  }
-}
-
-/**
- * 获取资源基础路径
- * @returns 资源基础路径
- */
-async function getStaticPath(type?: string): Promise<ApiResponse<string>> {
-  try {
-    const path = configService.getStaticPath(type);
-    return response.success(path);
-  } catch (error) {
-    return response.error(ErrorCode.CONFIG_GET_FAILED, error as Error);
   }
 }
 
@@ -73,15 +66,24 @@ async function resetConfig(): Promise<ApiResponse<void>> {
     configService.resetConfig();
     return response.empty();
   } catch (error) {
+    Logger.error("重置配置失败", { error: JSON.stringify(error) });
     return response.error(ErrorCode.CONFIG_RESET_FAILED, error as Error);
   }
 }
 
-export {
-  getConfig,
-  getValue,
-  setValue,
-  getStaticPath,
-  resetConfig
+/**
+ * 设置工作空间路径
+ * @param workspacePath 工作空间路径
+ * @returns 设置结果
+ */
+async function setWorkspace(workspacePath: string): Promise<ApiResponse<void>> {
+  try {
+    configService.setWorkspace(workspacePath);
+    return response.empty();
+  } catch (error) {
+    Logger.error("设置工作空间路径失败", { error: JSON.stringify(error) });
+    return response.error(ErrorCode.CONFIG_UPDATE_FAILED, error as Error);
+  }
 }
 
+export { getConfig, getValue, setValue, resetConfig, setWorkspace };

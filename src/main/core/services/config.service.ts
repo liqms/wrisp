@@ -1,12 +1,15 @@
-import { app } from 'electron'
-import fs from 'fs'
-import Store from 'electron-store'
-import path from 'path'
-import { AppConfig } from '@/shared/types'
-import { TimeUtil, ObjectUtil } from '@/shared/utils'
-import { Logger, getAppVersion, needsMigration } from '@/main/utils'
-import { DEFAULT_APP_CONFIG } from '@/main/constants'
-import { configMigration } from '@/main/core/migration'
+import { app } from "electron";
+import fs from "fs";
+import Store from "electron-store";
+import path from "path";
+import { AppConfig } from "@/shared/types";
+import { TimeUtil, ObjectUtil } from "@/shared/utils";
+import { Logger, getAppVersion, needsMigration } from "@/main/utils";
+import { DEFAULT_APP_CONFIG } from "@/main/constants";
+import { configMigration } from "@/main/core/migration";
+import { closeDatabase, setWorkspacePath } from "@/main/core/db/connection";
+import { BrowserWindow } from "electron";
+import { databaseMigration } from "@/main/core/migration/database.migration";
 
 /**
  * 配置服务
@@ -14,39 +17,46 @@ import { configMigration } from '@/main/core/migration'
  * 使用 electron-store 进行配置持久化，支持配置迁移和版本管理
  */
 class ConfigService {
-  private static instance: ConfigService | null = null
-  private store: Store<AppConfig>
-  private config: AppConfig | null = null
-  private appPath: string
-  private userDataPath: string
-  private configFileName: string
-  private documentPath: string = ''
-  private defaultConfig: AppConfig | null = null
+  private static instance: ConfigService | null = null;
+  private store: Store<AppConfig>;
+  private config: AppConfig | null = null;
+  private appPath: string;
+  private userDataPath: string;
+  private configFileName: string;
+  private documentPath: string = "";
+  private defaultConfig: AppConfig | null = null;
 
   /**
    * 私有构造函数
    * 初始化配置服务，设置应用路径、加载默认配置和用户配置
    */
-  private constructor() {
-    this.appPath = app.getAppPath()
-    this.userDataPath = app.getPath('userData')
-    this.configFileName = 'appConfig'
-    this.documentPath = app.getPath('documents')
+  private constructor () {
+    this.appPath = app.getAppPath();
+    this.userDataPath = app.getPath("userData");
+    this.configFileName = "app";
+    this.documentPath = app.getPath("documents");
 
-    const configDir = path.join(this.userDataPath, 'config')
-    fs.mkdirSync(configDir, { recursive: true })
+    const configDir = path.join(this.userDataPath, "config");
+    fs.mkdirSync(configDir, { recursive: true });
 
-    this.defaultConfig = this.getDefaultConfig()
+    this.defaultConfig = this.getDefaultConfig();
 
     this.store = new Store<AppConfig>({
       name: this.configFileName,
       cwd: configDir,
-      fileExtension: 'json',
+      fileExtension: "json",
       clearInvalidConfig: true,
-      defaults: this.defaultConfig
-    })
+      defaults: this.defaultConfig,
+    });
 
-    this.loadConfig()
+    const workspaceDir = this.config?.workspace;
+
+    this.loadConfig();
+
+    // 加载配置后同步设置工作空间路径到数据库连接模块
+    if (workspaceDir && workspaceDir.trim() !== "") {
+      setWorkspacePath(workspaceDir);
+    }
   }
 
   /**
@@ -55,10 +65,10 @@ class ConfigService {
    */
   public static getInstance(): ConfigService {
     if (!ConfigService.instance) {
-      ConfigService.instance = new ConfigService()
+      ConfigService.instance = new ConfigService();
     }
-    Logger.info('获取 ConfigService 单例实例')
-    return ConfigService.instance
+    Logger.info("获取 ConfigService 单例实例");
+    return ConfigService.instance;
   }
 
   /**
@@ -66,20 +76,14 @@ class ConfigService {
    * @returns 默认的 AppConfig 对象
    */
   private getDefaultConfig(): AppConfig {
-    const now = TimeUtil.toISOString(new Date())
-    const workspaceDir = path.join(this.documentPath, 'PenTip')
-    const appVersion = getAppVersion()
-
-    fs.mkdirSync(workspaceDir, { recursive: true })
-
-    Logger.debug(`使用 AppConfig 默认配置, 默认工作目录: ${workspaceDir}, 版本: ${appVersion}`)
+    const now = TimeUtil.toISOString(new Date());
+    const appVersion = getAppVersion();
 
     return {
       ...DEFAULT_APP_CONFIG,
-      workspace: workspaceDir,
       version: appVersion,
       updatedAt: now,
-    }
+    };
   }
 
   /**
@@ -87,40 +91,48 @@ class ConfigService {
    */
   private loadConfig(): void {
     try {
-      const storeData = this.store.store
-      const defaultConfig = this.defaultConfig || this.getDefaultConfig()
+      const storeData = this.store.store;
+      const defaultConfig = this.defaultConfig || this.getDefaultConfig();
 
-      let mergedConfig = ObjectUtil.deepMerge(defaultConfig, storeData as Partial<AppConfig>)
+      let mergedConfig = ObjectUtil.deepMerge(
+        defaultConfig,
+        storeData as Partial<AppConfig>,
+      );
 
-      if (!mergedConfig.workspace || mergedConfig.workspace.trim() === '') {
-        mergedConfig.workspace = defaultConfig.workspace
-        Logger.debug('工作目录为空, 使用默认值', { 工作目录: mergedConfig.workspace })
+      if (!mergedConfig.workspace || mergedConfig.workspace.trim() === "") {
+        mergedConfig.workspace = defaultConfig.workspace;
+        Logger.debug("工作目录为空, 使用默认值", {
+          工作目录: mergedConfig.workspace,
+        });
       }
 
       // 检查版本并执行迁移
-      const appVersion = getAppVersion()
-      const configVersion = mergedConfig.version || '0.0.0'
+      const appVersion = getAppVersion();
+      const configVersion = mergedConfig.version || "0.0.0";
 
       if (needsMigration(configVersion, appVersion)) {
-        Logger.info('检测到版本升级，执行配置迁移', {
+        Logger.info("检测到版本升级，执行配置迁移", {
           configVersion,
-          appVersion
-        })
+          appVersion,
+        });
 
-        mergedConfig = configMigration.migrateConfig(mergedConfig, configVersion, appVersion)
+        mergedConfig = configMigration.migrateConfig(
+          mergedConfig,
+          configVersion,
+          appVersion,
+        );
       }
 
-      this.config = mergedConfig
+      this.config = mergedConfig;
 
-      Logger.debug('AppConfig 加载配置成功')
-
+      Logger.debug("AppConfig 加载配置成功");
     } catch (error) {
-      Logger.error('加载配置失败, 使用默认配置', {
+      Logger.error("加载配置失败, 使用默认配置", {
         error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      })
-      this.config = this.defaultConfig || this.getDefaultConfig()
-      this.saveConfig()
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      this.config = this.defaultConfig || this.getDefaultConfig();
+      this.saveConfig();
     }
   }
 
@@ -130,14 +142,14 @@ class ConfigService {
   private saveConfig(): void {
     try {
       if (this.config) {
-        this.store.set(this.config)
+        this.store.set(this.config);
       }
     } catch (error) {
-      Logger.error('保存配置到存储失败', {
+      Logger.error("保存配置到存储失败", {
         error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      })
-      throw error
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
     }
   }
 
@@ -147,9 +159,9 @@ class ConfigService {
    */
   public getConfig(): AppConfig {
     if (!this.config) {
-      this.loadConfig()
+      this.loadConfig();
     }
-    return this.config!
+    return this.config!;
   }
 
   /**
@@ -159,14 +171,14 @@ class ConfigService {
    */
   public setConfig(config: Partial<AppConfig>): void {
     try {
-      this.config = ObjectUtil.deepMerge(this.config!, config)
-      this.saveConfig()
+      this.config = ObjectUtil.deepMerge(this.config!, config);
+      this.saveConfig();
     } catch (error) {
-      Logger.error('AppConfig 更新配置失败', {
+      Logger.error("AppConfig 更新配置失败", {
         error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      })
-      throw error
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
     }
   }
 
@@ -178,24 +190,24 @@ class ConfigService {
    */
   public getValue<T>(keyPath: string): T | undefined {
     try {
-      const keys = keyPath.split('.')
-      let result: any = this.config!
+      const keys = keyPath.split(".");
+      let result: any = this.config!;
 
       for (const key of keys) {
-        if (result && typeof result === 'object' && key in result) {
-          result = result[key]
+        if (result && typeof result === "object" && key in result) {
+          result = result[key];
         } else {
-          return undefined
+          return undefined;
         }
       }
 
-      return result as T
+      return result as T;
     } catch (error) {
-      Logger.error('获取配置值失败', {
+      Logger.error("获取配置值失败", {
         error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      })
-      return undefined
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return undefined;
     }
   }
 
@@ -207,30 +219,30 @@ class ConfigService {
    */
   public setValue<T>(keyPath: string, value: T): void {
     try {
-      const keys = keyPath.split('.')
-      const lastKey = keys.pop()!
-      let target: any = this.config!
+      const keys = keyPath.split(".");
+      const lastKey = keys.pop()!;
+      let target: any = this.config!;
 
       for (const key of keys) {
-        if (target && typeof target === 'object' && key in target) {
-          target = target[key]
+        if (target && typeof target === "object" && key in target) {
+          target = target[key];
         } else {
-          Logger.error(`AppConfig 配置键路径不存在: ${keyPath}`)
+          Logger.error(`AppConfig 配置键路径不存在: ${keyPath}`);
         }
       }
 
-      if (target && typeof target === 'object' && lastKey in target) {
-        target[lastKey] = value
-        this.saveConfig()
+      if (target && typeof target === "object" && lastKey in target) {
+        target[lastKey] = value;
+        this.saveConfig();
       } else {
-        Logger.error(`AppConfig 配置键路径不存在: ${keyPath}`)
+        Logger.error(`AppConfig 配置键路径不存在: ${keyPath}`);
       }
     } catch (error) {
-      Logger.error('AppConfig 设置配置值失败', {
+      Logger.error("AppConfig 设置配置值失败", {
         error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      })
-      throw error
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
     }
   }
 
@@ -240,30 +252,87 @@ class ConfigService {
    */
   public resetConfig(): void {
     try {
-      this.config = this.defaultConfig || this.getDefaultConfig()
-      this.saveConfig()
-      Logger.info('AppConfig 重置为默认值')
+      this.config = this.defaultConfig || this.getDefaultConfig();
+      this.saveConfig();
+      Logger.info("AppConfig 重置为默认值");
     } catch (error) {
-      Logger.error('AppConfig 重置配置失败', {
+      Logger.error("AppConfig 重置配置失败", {
         error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      })
-      throw error
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
     }
   }
+  /**
+   * 设置工作空间路径并完成初始化
+   * 关闭旧数据库连接 → 更新配置 → 创建目录 → 初始化新数据库
+   * @param workspacePath - 新的工作空间路径
+   */
+  public setWorkspace(workspacePath: string): void {
+    try {
+      if (!workspacePath || workspacePath.trim() === "") {
+        throw new Error("工作空间路径不能为空");
+      }
+      const newWorkspace = path.join(workspacePath.trim(), "PenTip");
+      const normalizedPath = path.resolve(newWorkspace);
+      if (!fs.existsSync(normalizedPath)) {
+        fs.mkdirSync(normalizedPath, { recursive: true });
+      }
+
+      Logger.info("开始设置工作空间", {
+        oldPath: this.config?.workspace,
+        newPath: normalizedPath,
+      });
+
+      try {
+        closeDatabase();
+      } catch (e) {
+        Logger.warn("关闭旧数据库连接时出现警告", {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+
+      this.setValue("workspace", normalizedPath);
+      setWorkspacePath(normalizedPath);
+
+      databaseMigration.executeDatabaseMigration();
+
+      Logger.info("工作空间设置完成", { path: normalizedPath });
+
+      // 广播工作区变更事件，通知所有渲染进程刷新配置或重载相关资源
+      try {
+        BrowserWindow.getAllWindows().forEach((win) => {
+          try {
+            win.webContents.send("workspace:changed", normalizedPath);
+          } catch (e) {
+            Logger.warn("向窗口发送 workspace:changed 事件失败", { error: e });
+          }
+        });
+      } catch (e) {
+        Logger.warn("广播 workspace:changed 事件失败", { error: e });
+      }
+    } catch (error) {
+      Logger.error("设置工作空间失败", {
+        path: workspacePath,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
+  }
+
   /**
    * 获取应用资源路径 staticPath
    * @returns 应用资源路径staticPath
    */
   public getStaticPath(type?: string): string {
-    if (type === 'userData') {
-      return path.join(this.userDataPath, 'Cache', 'static')
+    if (type === "userData") {
+      return path.join(this.userDataPath, "Cache", "static");
     }
-    return path.join(this.appPath, 'static')
+    return path.join(this.appPath, "static");
   }
-
 }
 
-export default ConfigService
+export default ConfigService;
 
-export const configService = ConfigService.getInstance()
+export const configService = ConfigService.getInstance();

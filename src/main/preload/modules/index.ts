@@ -1,10 +1,9 @@
-import { configModule } from './config'
-import { windowModule } from './window'
-import { systemModule } from './system'
-import { loggerModule } from './logger'
-import { webviewModule } from './webview'
-import { folderModule } from './folder'
-import { novelModule } from './novel'
+import { configModule } from "./config";
+import { windowModule } from "./window";
+import { systemModule } from "./system";
+import { loggerModule } from "./logger";
+import { webviewModule } from "./webview";
+import { captureModule } from "./capture";
 
 export const modules = {
   config: configModule,
@@ -12,6 +11,5 @@ export const modules = {
   system: systemModule,
   logger: loggerModule,
   webview: webviewModule,
-  folder: folderModule,
-  novel: novelModule
-}
+  capture: captureModule,
+};

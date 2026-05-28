@@ -1,90 +1,61 @@
 export enum ErrorCode {
+  // ============ 成功 ============
+  SUCCESS = "ERROR.SUCCESS",
   // ============ 通用错误============
-  SUCCESS = 'SUCCESS',
-  COMMON_UNKNOWN_ERROR = 'COMMON_UNKNOWN_ERROR',
-  COMMON_INVALID_PARAMETER = 'COMMON_INVALID_PARAMETER',
-  COMMON_ACTION_ERROR = 'COMMON_ACTION_ERROR',
+  COMMON_UNKNOWN = "ERROR.COMMON.UNKNOWN",
+  COMMON_INVALID_PARAMETER = "ERROR.COMMON.INVALID_PARAMETER",
+  COMMON_ACTION_ERROR = "ERROR.COMMON.ACTION_ERROR",
   // ============ 配置错误 ============
-  CONFIG_GET_FAILED = 'CONFIG_GET_FAILED',
-  CONFIG_UPDATE_FAILED = 'CONFIG_UPDATE_FAILED',
-  CONFIG_RESET_FAILED = 'CONFIG_RESET_FAILED',
-  CONFIG_KEY_PATH_INVALID = 'CONFIG_KEY_PATH_INVALID',
+  CONFIG_GET_FAILED = "ERROR.CONFIG.GET_FAILED",
+  CONFIG_UPDATE_FAILED = "ERROR.CONFIG.UPDATE_FAILED",
+  CONFIG_RESET_FAILED = "ERROR.CONFIG.RESET_FAILED",
+  CONFIG_KEY_PATH_INVALID = "ERROR.CONFIG.KEY_PATH_INVALID",
   // ============ Webview 错误 ============
-  WEBVIEW_CREATE_FAILED = 'WEBVIEW_CREATE_FAILED',
-  WEBVIEW_LOAD_FAILED = 'WEBVIEW_LOAD_FAILED',
-  WEBVIEW_RELOAD_FAILED = 'WEBVIEW_RELOAD_FAILED',
-  WEBVIEW_DESTROY_FAILED = 'WEBVIEW_DESTROY_FAILED',
-  WEBVIEW_GO_BACK_FAILED = 'WEBVIEW_GO_BACK_FAILED',
-  WEBVIEW_GO_FORWARD_FAILED = 'WEBVIEW_GO_FORWARD_FAILED',
-  WEBVIEW_GET_NAVIGATION_STATE_FAILED = 'WEBVIEW_GET_NAVIGATION_STATE_FAILED',
-  WEBVIEW_URL_EMPTY = 'WEBVIEW_URL_EMPTY',
-  WEBVIEW_FUNCTION_NOT_AVAILABLE = 'WEBVIEW_FUNCTION_NOT_AVAILABLE',
+  WEBVIEW_CREATE_FAILED = "ERROR.WEBVIEW.CREATE_FAILED",
+  WEBVIEW_LOAD_FAILED = "ERROR.WEBVIEW.LOAD_FAILED",
+  WEBVIEW_RELOAD_FAILED = "ERROR.WEBVIEW.RELOAD_FAILED",
+  WEBVIEW_DESTROY_FAILED = "ERROR.WEBVIEW.DESTROY_FAILED",
+  WEBVIEW_GO_BACK_FAILED = "ERROR.WEBVIEW.GO_BACK_FAILED",
+  WEBVIEW_GO_FORWARD_FAILED = "ERROR.WEBVIEW.GO_FORWARD_FAILED",
+  WEBVIEW_GET_NAVIGATION_STATE_FAILED = "ERROR.WEBVIEW.GET_NAVIGATION_STATE_FAILED",
+  WEBVIEW_URL_EMPTY = "ERROR.WEBVIEW.URL_EMPTY",
+  WEBVIEW_FUNCTION_NOT_AVAILABLE = "ERROR.WEBVIEW.FUNCTION_NOT_AVAILABLE",
+  WEBVIEW_RESIZE_FAILED = "ERROR.WEBVIEW.RESIZE_FAILED",
+  WEBVIEW_HIDE_FAILED = "ERROR.WEBVIEW.HIDE_FAILED",
 
-  // ============ 作品错误 ===========
-  WORK_CREATE_FAILED = 'WORK_CREATE_FAILED',
-  WORK_GET_FAILED = 'WORK_GET_FAILED',
-  WORK_UPDATE_FAILED = 'WORK_UPDATE_FAILED',
-  WORK_DELETE_FAILED = 'WORK_DELETE_FAILED',
-  WORK_DESTROY_FAILED = 'WORK_DESTROY_FAILED',
-  WORK_QUERY_FAILED = 'WORK_QUERY_FAILED',
-  WORK_NOT_FOUND = 'WORK_NOT_FOUND',
-  WORK_PATH_INVALID = 'WORK_PATH_INVALID',
-  WORK_COUNT_FAILED = 'WORK_COUNT_FAILED',
+  // ============ 记录错误 ===========
+  CAPTURE_CREATE_FAILED = "ERROR.CAPTURE.CREATE_FAILED",
+  CAPTURE_GET_FAILED = "ERROR.CAPTURE.GET_FAILED",
+  CAPTURE_UPDATE_FAILED = "ERROR.CAPTURE.UPDATE_FAILED",
+  CAPTURE_DELETE_FAILED = "ERROR.CAPTURE.DELETE_FAILED",
+  CAPTURE_QUERY_FAILED = "ERROR.CAPTURE.QUERY_FAILED",
+  CAPTURE_NOT_FOUND = "ERROR.CAPTURE.NOT_FOUND",
+  CAPTURE_COUNT_FAILED = "ERROR.CAPTURE.COUNT_FAILED",
 
-  // ============ 文件夹错误 ===========
-  FOLDER_CREATE_FAILED = 'FOLDER_CREATE_FAILED',
-  FOLDER_GET_FAILED = 'FOLDER_GET_FAILED',
-  FOLDER_UPDATE_FAILED = 'FOLDER_UPDATE_FAILED',
-  FOLDER_DELETE_FAILED = 'FOLDER_DELETE_FAILED',
-  FOLDER_DESTROY_FAILED = 'FOLDER_DESTROY_FAILED',
-  FOLDER_QUERY_FAILED = 'FOLDER_QUERY_FAILED',
-  FOLDER_GET_TREE_FAILED = 'FOLDER_GET_TREE_FAILED',
-  FOLDER_BATCH_UPDATE_FAILED = 'FOLDER_BATCH_UPDATE_FAILED',
-  FOLDER_NOT_FOUND = 'FOLDER_NOT_FOUND',
-  FOLDER_PATH_INVALID = 'FOLDER_PATH_INVALID',
-  FOLDER_COUNT_FAILED = 'FOLDER_COUNT_FAILED',
+  // ============ 日志错误 ============
+  LOG_CREATE_FAILED = "ERROR.LOG.CREATE_FAILED",
 
-  // ============ 文件错误 ============
-  FILE_CREATE_FAILED = 'FILE_CREATE_FAILED',
-  FILE_GET_FAILED = 'FILE_GET_FAILED',
-  FILE_UPDATE_FAILED = 'FILE_UPDATE_FAILED',
-  FILE_DELETE_FAILED = 'FILE_DELETE_FAILED',
-  FILE_DESTROY_FAILED = 'FILE_DESTROY_FAILED',
-  FILE_QUERY_FAILED = 'FILE_QUERY_FAILED',
-  FILE_NOT_FOUND = 'FILE_NOT_FOUND',
-  FILE_ADD_TAG_FAILED = 'FILE_ADD_TAG_FAILED',
-  FILE_REMOVE_TAG_FAILED = 'FILE_REMOVE_TAG_FAILED',
-  FILE_MOVE_FAILED = 'FILE_MOVE_FAILED',
-  // ============ 小说错误 ============
-  NOVEL_CREATE_FAILED = 'NOVEL_CREATE_FAILED',
-  NOVEL_GET_FAILED = 'NOVEL_GET_FAILED',
-  NOVEL_UPDATE_FAILED = 'NOVEL_UPDATE_FAILED',
-  NOVEL_DELETE_FAILED = 'NOVEL_DELETE_FAILED',
-  NOVEL_DESTROY_FAILED = 'NOVEL_DESTROY_FAILED',
-  NOVEL_QUERY_FAILED = 'NOVEL_QUERY_FAILED',
-  NOVEL_NOT_FOUND = 'NOVEL_NOT_FOUND',
-  NOVEL_PATH_INVALID = 'NOVEL_PATH_INVALID',
-  NOVEL_COUNT_FAILED = 'NOVEL_COUNT_FAILED',
-  // ============ 其他错误 ============
-  LOG_OPERATION_FAILED = 'LOG_OPERATION_FAILED',
-  NOTIFICATION_ERROR = 'NOTIFICATION_ERROR',
-  SYSTEM_INFO_ERROR = 'SYSTEM_INFO_ERROR',
-  SYSTEM_OPEN_DIALOG_ERROR = 'SYSTEM_OPEN_DIALOG_ERROR',
+  // ============ 通知错误 ============
+  NOTIFICATION_ADD_ERROR = "ERROR.NOTIFICATION.ADD_ERROR",
+  // ============ 系统错误 ============
+  SYSTEM_GET_INFO_FAILED = "ERROR.SYSTEM.GET_INFO_FAILED",
+  SYSTEM_OPEN_DIALOG_ERROR = "ERROR.SYSTEM.OPEN_DIALOG_ERROR",
 }
 
 /**
  * 错误分类类型
  */
-export type ErrorCategory = 
-  | 'COMMON'     // 通用错误
-  | 'CONFIG'     // 配置错误
-  | 'WEBVIEW'    // Webview 错误
-  | 'FOLDER'     // 文件夹错误
-  | 'FILE'       // 文件错误
-  | 'LOG'        // 日志错误
-  | 'NOTIFICATION' // 通知错误
-  | 'SYSTEM'     // 系统错误
-  | 'UNKNOWN'    // 未知分类
+export type ErrorCategory =
+  | "COMMON" // 通用错误
+  | "CONFIG" // 配置错误
+  | "WEBVIEW" // Webview 错误
+  | "CAPTURE" // 记录错误
+  | "LOG" // 日志错误
+  | "NOTIFICATION" // 通知错误
+  | "AGENT" // 智能体错误
+  | "SYSTEM" // 系统错误
+  | "UNKNOWN" // 未知分类
+  | "SUCCESS"; // 成功分类
 
 /**
  * 根据错误代码获取错误分类
@@ -93,30 +64,30 @@ export type ErrorCategory =
  */
 export function getErrorCategory(errorCode: ErrorCode): ErrorCategory {
   // 提取首个下划线前的字符串
-  const category = errorCode.split('_')[0]
-  
+  const category = errorCode.split("_")[0];
+
   // 根据分类字符串返回对应的错误分类
   switch (category) {
-    case 'COMMON':
-      return 'COMMON'
-    case 'CONFIG':
-      return 'CONFIG'
-    case 'WEBVIEW':
-      return 'WEBVIEW'
-    case 'FOLDER':
-      return 'FOLDER'
-    case 'FILE':
-      return 'FILE'
-    case 'LOG':
-      return 'LOG'
-    case 'NOTIFICATION':
-      return 'NOTIFICATION'
-    case 'SYSTEM':
-      return 'SYSTEM'
-    case 'SUCCESS':
-      return 'COMMON' // SUCCESS 归类为通用错误
+    case "COMMON":
+      return "COMMON";
+    case "CONFIG":
+      return "CONFIG";
+    case "WEBVIEW":
+      return "WEBVIEW";
+    case "CAPTURE":
+      return "CAPTURE";
+    case "LOG":
+      return "LOG";
+    case "NOTIFICATION":
+      return "NOTIFICATION";
+    case "SYSTEM":
+      return "SYSTEM";
+    case "AGENT":
+      return "AGENT";
+    case "SUCCESS":
+      return "SUCCESS";
     default:
-      return 'UNKNOWN'
+      return "UNKNOWN";
   }
 }
 
@@ -129,21 +100,22 @@ export function getErrorCategoryMap(): Record<ErrorCategory, ErrorCode[]> {
     COMMON: [],
     CONFIG: [],
     WEBVIEW: [],
-    FOLDER: [],
-    FILE: [],
+    CAPTURE: [],
     LOG: [],
     NOTIFICATION: [],
+    AGENT: [],
     SYSTEM: [],
-    UNKNOWN: []
-  }
-  
+    UNKNOWN: [],
+    SUCCESS: [],
+  };
+
   // 遍历所有错误代码，按分类分组
-  Object.values(ErrorCode).forEach(errorCode => {
-    const category = getErrorCategory(errorCode)
-    categoryMap[category].push(errorCode)
-  })
-  
-  return categoryMap
+  Object.values(ErrorCode).forEach((errorCode) => {
+    const category = getErrorCategory(errorCode);
+    categoryMap[category].push(errorCode);
+  });
+
+  return categoryMap;
 }
 
 /**
@@ -152,8 +124,8 @@ export function getErrorCategoryMap(): Record<ErrorCategory, ErrorCode[]> {
  * @returns 该分类下的所有错误代码
  */
 export function getErrorCodesByCategory(category: ErrorCategory): ErrorCode[] {
-  const categoryMap = getErrorCategoryMap()
-  return categoryMap[category] || []
+  const categoryMap = getErrorCategoryMap();
+  return categoryMap[category] || [];
 }
 
 /**
@@ -162,6 +134,9 @@ export function getErrorCodesByCategory(category: ErrorCategory): ErrorCode[] {
  * @param category - 错误分类
  * @returns 是否属于该分类
  */
-export function isErrorCodeInCategory(errorCode: ErrorCode, category: ErrorCategory): boolean {
-  return getErrorCategory(errorCode) === category
+export function isErrorCodeInCategory(
+  errorCode: ErrorCode,
+  category: ErrorCategory,
+): boolean {
+  return getErrorCategory(errorCode) === category;
 }

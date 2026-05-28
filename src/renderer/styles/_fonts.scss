@@ -1,0 +1,65 @@
+// ============================================
+// 自定义字体族 — @font-face 声明
+// 字体文件位于 static/fonts/ （Vite 以 /fonts/ 路径提供）
+// ============================================
+
+// ----- Inter (拉丁主字体) -----
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-VariableFont_opsz,wght.ttf')
+    format('truetype-variations');
+  font-weight: 100 900;
+  font-stretch: 100% 900%;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Italic-VariableFont_opsz,wght.ttf')
+    format('truetype-variations');
+  font-weight: 100 900;
+  font-stretch: 100% 900%;
+  font-style: italic;
+  font-display: swap;
+}
+
+// ----- Source Sans 3 (拉丁后备字体) -----
+@font-face {
+  font-family: 'Source Sans 3';
+  src: url('/fonts/SourceSans3-VariableFont_wght.ttf')
+    format('truetype-variations');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Source Sans 3';
+  src: url('/fonts/SourceSans3-Italic-VariableFont_wght.ttf')
+    format('truetype-variations');
+  font-weight: 200 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+// ----- Noto Sans SC (中文/简体中文字体) -----
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: url('/fonts/NotoSansSC-VariableFont_wght.ttf')
+    format('truetype-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+// ============================================
+// 字体族变量（供全局引用）
+// ============================================
+$font-family-latin: 'Inter', 'Source Sans 3', system-ui, -apple-system,
+  BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+$font-family-cn: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei',
+  'Noto Sans SC', sans-serif;
+
+$font-family-base: $font-family-latin, $font-family-cn;

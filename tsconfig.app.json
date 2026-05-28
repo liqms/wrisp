@@ -15,10 +15,9 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "outDir": "./dist",
     "paths": {
       "@/*": ["./src/*"]
-    },
+    }
   },
   "include": ["src/main/**/*.ts", "src/shared/**/*.ts", "src/renderer/**/*.ts", "src/renderer/**/*.vue"],
   "exclude": ["node_modules", "dist"]

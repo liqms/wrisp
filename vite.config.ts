@@ -7,12 +7,12 @@ import fs from 'fs'
 function copySchemas() {
   const srcPath = path.resolve(__dirname, 'src/main/schemas')
   const destPath = path.resolve(__dirname, 'dist-electron/schemas')
-  
+
   if (fs.existsSync(srcPath)) {
     if (!fs.existsSync(destPath)) {
       fs.mkdirSync(destPath, { recursive: true })
     }
-    
+
     const files = fs.readdirSync(srcPath)
     files.forEach(file => {
       const srcFile = path.join(srcPath, file)
@@ -28,7 +28,13 @@ copySchemas()
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    vue(),
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag === 'webview',
+        },
+      },
+    }),
     electron([
       {
         entry: 'src/main/index.ts',
@@ -81,6 +87,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true // 如果端口被占用，直接报错而不是自动切换到其他端口
   },
+  publicDir: 'static',
   build: {
     outDir: 'dist-renderer'
   }

@@ -1,3 +1,7 @@
+/**
+ * 通知接口层类型定义
+ */
+
 export type NotificationLevel = 'info' | 'success' | 'warning' | 'error';
 
 export interface BaseNotification {

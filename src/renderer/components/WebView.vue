@@ -1,71 +1,12 @@
 <template>
   <n-flex class="webview-container">
-    <!-- 工具栏 -->
-    <n-flex v-if="showToolbar" class="webview-toolbar">
-      <n-flex class="toolbar-left">
-        <n-button quaternary size="small" :disabled="!canGoBack" @click="goBack" :title="$t('ACTION.BACK')">
-          <template #icon>
-            <n-icon size="20">
-              <ArrowBack />
-            </n-icon>
-          </template>
-        </n-button>
-        <n-button quaternary size="small" :disabled="!canGoForward" @click="goForward" :title="$t('ACTION.FORWARD')">
-          <template #icon>
-            <n-icon size="20">
-              <ArrowForward />
-            </n-icon>
-          </template>
-        </n-button>
-        <n-button quaternary size="small" @click="reload" :title="$t('ACTION.REFRESH')">
-          <template #icon>
-            <n-icon size="20">
-              <Refresh />
-            </n-icon>
-          </template>
-        </n-button>
-      </n-flex>
-
-      <n-flex class="toolbar-center">
-        <n-input v-model:value="currentUrl" size="small" :placeholder="$t('PLACEHOLDER.INPUT_URL')" clearable>
-          <template #suffix>
-            <n-button size="small" type="primary" @click="handleUrlChange(currentUrl)" :loading="loading">
-              {{ $t('ACTION.GO') }}
-            </n-button>
-          </template>
-        </n-input>
-      </n-flex>
-
-      <n-flex class="toolbar-right">
-        <n-button quaternary size="small" @click="openExternal" :title="$t('ACTION.OPEN_EXTERNAL')">
-          <template #icon>
-            <n-icon size="20">
-              <Open />
-            </n-icon>
-          </template>
-        </n-button>
-      </n-flex>
-    </n-flex>
-
-    <!-- 加载状态 -->
-    <n-flex v-if="loading" class="webview-loading">
-      <n-spin size="small">
-        <template #description>
-          {{ $t('TIPS.WEBVIEW_LOADING') }}
-        </template>
-      </n-spin>
-    </n-flex>
-
     <!-- 错误状态 -->
-    <n-flex v-else-if="error" class="webview-error">
-      <n-result status="error" :title="$t('TIPS.WEBVIEW_ERROR')" :description="error" size="small">
+    <n-flex v-if="hasError" class="webview-error">
+      <n-result status="error" :title="$t('TIPS.WEBVIEW_ERROR')" :description="errorMessage || ''" size="small">
         <template #footer>
           <n-space justify="center">
             <n-button @click="retry">
               {{ $t('ACTION.RETRY') }}
-            </n-button>
-            <n-button @click="openExternal">
-              {{ $t('ACTION.OPEN_EXTERNAL') }}
             </n-button>
           </n-space>
         </template>
@@ -73,25 +14,18 @@
     </n-flex>
 
     <!-- WebView 容器 -->
-    <n-flex v-else-if="isReady" ref="webviewContainer" class="webview-content" :class="{ 'with-toolbar': showToolbar }">
+    <n-flex v-else-if="isReady" ref="webviewContainerRef" class="webview-content">
       <!-- WebView 将通过 Electron API 渲染在这里 -->
-      <n-flex v-if="!isElectron" class="webview-fallback">
-        <n-result status="warning" :title="$t('TIPS.WEBVIEW_UNAVAILABLE')" size="small">
-          <template #footer>
-            <n-button @click="openExternal">
-              {{ $t('ACTION.OPEN_EXTERNAL') }}
-            </n-button>
-          </template>
-        </n-result>
-      </n-flex>
     </n-flex>
+    <!-- WebView 标签 -->
+    <webview ref="webviewRef" :src="props.url" class="webview" />
   </n-flex>
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted, ref } from 'vue'
-import { NButton, NIcon, NInput, NSpin, NResult, NSpace } from 'naive-ui'
-import { ArrowBack, ArrowForward, Refresh, Open } from '@vicons/ionicons5'
+import { watch, onMounted, ref, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { NButton, NResult, NSpace } from 'naive-ui'
 import { useWebView } from '@/renderer/composables/useWebView'
 import { logger } from '@/renderer/utils/logger.utils'
 import { WebContentViewOptions } from '@/shared/types'
@@ -100,11 +34,8 @@ import { WebContentViewOptions } from '@/shared/types'
 interface Props {
   /** 要加载的 URL */
   url: string
-  /** 是否显示工具栏 */
-  showToolbar?: boolean
-  /** 是否自动加载 */
-  autoLoad?: boolean
-  /** WebView 内容视图 X 坐标 */
+  /** 是否自动调整位置和大小 */
+  autoAdjustBounds?: boolean
   x?: number
   /** WebView 内容视图 Y 坐标 */
   y?: number
@@ -115,135 +46,128 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  showToolbar: true,
-  autoLoad: true,
+  autoAdjustBounds: true,
   x: 0,
   y: 0,
-  width: 800,
-  height: 600
+  width: 0,
+  height: 0,
 })
 
-// Emits 定义
-const emit = defineEmits<{
-  /** WebView 加载完成 */
-  loaded: [url: string]
-  /** WebView 加载失败 */
-  error: [error: string, url: string]
-  /** URL 发生变化 */
-  urlChange: [newUrl: string, oldUrl: string]
-  /** 导航状态变化 */
-  navigationChange: [canGoBack: boolean, canGoForward: boolean]
-}>()
-
-// 计算 WebView 内容视图选项（根据 props 计算，不使用响应式）
-const getWebContentViewOptions = (): WebContentViewOptions => ({
+const webviewBounds = ref<WebContentViewOptions>({
   x: props.x,
-  y: props.showToolbar ? props.y + 40 : props.y,
+  y: props.y,
   width: props.width,
-  height: props.showToolbar ? props.height - 40 : props.height
+  height: props.height
 })
+
+// 路由实例
+const router = useRouter()
 
 // 使用组合函数
 const {
-  loading,
-  error,
-  currentUrl,
-  canGoBack,
-  canGoForward,
-  isElectron,
+  hasError,
+  errorMessage,
   isReady,
   loadWebView,
-  reload,
-  goBack,
-  goForward,
-  handleUrlChange,
+  resize,
+  destroy,
   retry,
-  openExternal,
   init
 } = useWebView({
   initialUrl: props.url,
-  autoLoad: props.autoLoad,
-  showToolbar: props.showToolbar,
-  webContentViewOptions: getWebContentViewOptions()
+  webContentViewOptions: webviewBounds.value
 })
+// 更新 webview 位置和大小
+const webviewContainerRef = ref(null)
+const webviewRef = ref(null)
+let resizeObserver: ResizeObserver | null = null
+function updateWebviewBounds() {
+  const el = webviewContainerRef.value
+  const webview = webviewRef.value
+  if (!el || !webview) return
 
-// 事件监听
-watch(() => error, (newError) => {
-  if (newError) {
-    emit('error', newError, currentUrl)
+  // 获取原生 DOM 元素（处理 Vue 组件引用的情况）
+  const domEl = (el as any).$el || el
+  if (!(domEl instanceof HTMLElement)) return
+
+  // 获取区域在视口中的坐标
+  const rect = domEl.getBoundingClientRect()
+  logger.debug('更新 WebView 位置和大小', { x: rect.left, y: rect.top, width: rect.width, height: rect.height })
+  if (props.autoAdjustBounds) {
+    webviewBounds.value = {
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height
+    }
   }
-})
-
-watch(() => currentUrl, (newUrl, oldUrl) => {
-  if (newUrl !== oldUrl) {
-    emit('urlChange', newUrl, oldUrl)
-  }
-})
-
-watch([() => canGoBack, () => canGoForward], ([newCanGoBack, newCanGoForward]) => {
-  emit('navigationChange', newCanGoBack, newCanGoForward)
-})
+}
 
 // 监听 props.url 变化
 watch(
   () => props.url,
   (newUrl, oldUrl) => {
-    if (newUrl !== oldUrl && props.autoLoad) {
-      loadWebView(newUrl, getWebContentViewOptions())
+    if (newUrl !== oldUrl) {
+      loadWebView(newUrl, webviewBounds.value)
+    }
+  }
+)
+
+// 监听 内容视图变化
+watch(
+  () => webviewBounds.value,
+  (newBounds, oldBounds) => {
+    if (newBounds !== oldBounds) {
+      resize(newBounds)
     }
   }
 )
 
 // 生命周期
 onMounted(() => {
-  // 创建纯对象副本，避免 IPC 序列化问题
-  const optionsCopy = { ...getWebContentViewOptions() }
-  logger.info('前端 WebView 初始化完成', { url: props.url, showToolbar: props.showToolbar, webContentViewOptions: optionsCopy })
   init()
+  // 初始定位
+  updateWebviewBounds()
+
+  // 用 ResizeObserver 监听容器大小/位置变化（侧边栏展开收起等布局变动）
+  const containerEl = (webviewContainerRef.value as any)?.$el || webviewContainerRef.value
+  resizeObserver = new ResizeObserver(() => {
+    updateWebviewBounds()
+  })
+  if (containerEl instanceof HTMLElement) {
+    resizeObserver.observe(containerEl)
+  }
+  // 窗口大小变化时重新计算（后备）
+  window.addEventListener('resize', updateWebviewBounds)
+})
+
+// 使用 onUnmounted 确保离开页面时隐藏 WebView
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  window.removeEventListener('resize', updateWebviewBounds)
+  // 确保隐藏 WebView
+  destroy()
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@use '@/renderer/styles/_variables.scss' as *;
+
 .webview-container {
   width: 100%;
-  height: 100%;
+  height: calc(100% - 50px);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: $radius-sm;
   overflow: hidden;
   flex-direction: column !important;
 }
 
-.webview-toolbar {
-  align-items: center;
-  padding: 2px;
-  border-bottom: 1px solid var(--border-color);
-  width: 100%;
-  height: fit-content;
-
-  .n-icon {
-    color: var(--text-primary);
-  }
-}
-
-.toolbar-left,
-.toolbar-right {
-  gap: 2px !important;
-  align-items: center;
-}
-
-.toolbar-center {
-  flex: 1;
-  margin: 0 8px !important;
-}
-
-.webview-loading,
-.webview-error,
-.webview-fallback {
+.webview-error {
   align-items: center;
   justify-content: center;
   min-height: 200px;
   margin: auto;
-
 }
 
 .webview-content {
@@ -251,7 +175,10 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.webview-content.with-toolbar {
-  height: calc(100% - 48px);
+.webview {
+  /* 初始占位，实际由 bounds 控制 */
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 </style>

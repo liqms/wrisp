@@ -11,15 +11,13 @@
  */
 export function validateId(id: number | undefined, name: string = 'ID'): boolean {
   if (id === undefined || id === null) {
-    console.warn(`${name} 参数为空`)
     return false
   }
-  
+
   if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) {
-    console.warn(`${name} 参数无效: ${id}`)
     return false
   }
-  
+
   return true
 }
 
@@ -32,33 +30,29 @@ export function validateId(id: number | undefined, name: string = 'ID'): boolean
  * @returns 字符串有效返回 true，否则返回 false
  */
 export function validateString(
-  value: string | undefined, 
+  value: string | undefined,
   name: string = '字符串',
   minLength: number = 1,
   maxLength: number = 1000
 ): boolean {
   if (value === undefined || value === null) {
-    console.warn(`${name} 参数为空`)
     return false
   }
-  
+
   if (typeof value !== 'string') {
-    console.warn(`${name} 参数类型无效: ${typeof value}`)
     return false
   }
-  
+
   const trimmedValue = value.trim()
-  
+
   if (trimmedValue.length < minLength) {
-    console.warn(`${name} 参数长度过短: ${trimmedValue.length} (最小要求: ${minLength})`)
     return false
   }
-  
+
   if (trimmedValue.length > maxLength) {
-    console.warn(`${name} 参数长度过长: ${trimmedValue.length} (最大限制: ${maxLength})`)
     return false
   }
-  
+
   return true
 }
 
@@ -72,22 +66,20 @@ export function validateFilePath(path: string | undefined, name: string = '文�
   if (!validateString(path, name, 1, 4096)) {
     return false
   }
-  
+
   const trimmedPath = path!.trim()
-  
+
   // 检查路径是否包含非法字符
   const invalidChars = /[<>:"|?*]/
   if (invalidChars.test(trimmedPath)) {
-    console.warn(`${name} 包含非法字符: ${trimmedPath}`)
     return false
   }
-  
+
   // 检查路径是否为空或只有空格
   if (trimmedPath === '' || /^\s+$/.test(trimmedPath)) {
-    console.warn(`${name} 为空或只有空格`)
     return false
   }
-  
+
   return true
 }
 
@@ -101,16 +93,15 @@ export function validateFileExtension(extension: string | undefined, name: strin
   if (!validateString(extension, name, 1, 20)) {
     return false
   }
-  
+
   const trimmedExtension = extension!.trim().toLowerCase()
-  
+
   // 检查扩展名格式（字母、数字、点，但点不能在最前面）
   const extensionRegex = /^[a-z0-9]+(\.[a-z0-9]+)*$/
   if (!extensionRegex.test(trimmedExtension)) {
-    console.warn(`${name} 格式无效: ${trimmedExtension}`)
     return false
   }
-  
+
   return true
 }
 
@@ -123,31 +114,27 @@ export function validateFileExtension(extension: string | undefined, name: strin
  * @returns 数字在有效范围内返回 true，否则返回 false
  */
 export function validateNumberRange(
-  value: number | undefined, 
+  value: number | undefined,
   name: string = '数字',
   min: number = 0,
   max: number = Number.MAX_SAFE_INTEGER
 ): boolean {
   if (value === undefined || value === null) {
-    console.warn(`${name} 参数为空`)
     return false
   }
-  
+
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    console.warn(`${name} 参数类型无效: ${typeof value}`)
     return false
   }
-  
+
   if (value < min) {
-    console.warn(`${name} 参数值过小: ${value} (最小要求: ${min})`)
     return false
   }
-  
+
   if (value > max) {
-    console.warn(`${name} 参数值过大: ${value} (最大限制: ${max})`)
     return false
   }
-  
+
   return true
 }
 
@@ -159,15 +146,13 @@ export function validateNumberRange(
  */
 export function validateBoolean(value: boolean | undefined, name: string = '布尔值'): boolean {
   if (value === undefined || value === null) {
-    console.warn(`${name} 参数为空`)
     return false
   }
-  
+
   if (typeof value !== 'boolean') {
-    console.warn(`${name} 参数类型无效: ${typeof value}`)
     return false
   }
-  
+
   return true
 }
 
@@ -180,31 +165,26 @@ export function validateBoolean(value: boolean | undefined, name: string = '布�
  * @returns 数组有效返回 true，否则返回 false
  */
 export function validateArray<T>(
-  array: T[] | undefined, 
-  name: string = '数组',
+  array: T[] | undefined,
   minLength: number = 0,
   maxLength: number = 10000
 ): boolean {
   if (array === undefined || array === null) {
-    console.warn(`${name} 参数为空`)
     return false
   }
-  
+
   if (!Array.isArray(array)) {
-    console.warn(`${name} 参数类型无效: ${typeof array}`)
     return false
   }
-  
+
   if (array.length < minLength) {
-    console.warn(`${name} 长度过短: ${array.length} (最小要求: ${minLength})`)
     return false
   }
-  
+
   if (array.length > maxLength) {
-    console.warn(`${name} 长度过长: ${array.length} (最大限制: ${maxLength})`)
     return false
   }
-  
+
   return true
 }
 
@@ -216,14 +196,14 @@ export function validateArray<T>(
  * @returns 清理后的安全字段名
  */
 export function sanitizeOrderBy(
-  orderBy: string | undefined, 
+  orderBy: string | undefined,
   allowedColumns: string[] = ['id', 'name', 'created_at', 'updated_at'],
   defaultColumn: string = 'id'
 ): string {
   if (!validateString(orderBy, '排序字段')) {
     return defaultColumn
   }
-  
+
   const safeColumn = orderBy!.replace(/[^a-zA-Z0-9_]/g, '')
   return allowedColumns.includes(safeColumn) ? safeColumn : defaultColumn
 }
@@ -238,13 +218,12 @@ export function validateEmail(email: string | undefined, name: string = '电子�
   if (!validateString(email, name, 5, 254)) {
     return false
   }
-  
+
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
   if (!emailRegex.test(email!)) {
-    console.warn(`${name} 格式无效: ${email}`)
     return false
   }
-  
+
   return true
 }
 
@@ -258,12 +237,11 @@ export function validateUrl(url: string | undefined, name: string = 'URL'): bool
   if (!validateString(url, name, 1, 2048)) {
     return false
   }
-  
+
   try {
     new URL(url!)
     return true
   } catch {
-    console.warn(`${name} 格式无效: ${url}`)
     return false
   }
 }
@@ -278,13 +256,12 @@ export function validateDateString(dateString: string | undefined, name: string 
   if (!validateString(dateString, name, 8, 30)) {
     return false
   }
-  
+
   const date = new Date(dateString!)
   if (isNaN(date.getTime())) {
-    console.warn(`${name} 格式无效: ${dateString}`)
     return false
   }
-  
+
   return true
 }
 
@@ -294,16 +271,16 @@ export function validateDateString(dateString: string | undefined, name: string 
  * @returns 所有条件都通过返回 true，否则返回 false
  */
 export function validateAll(validations: (() => boolean)[]): boolean {
-  if (!validateArray(validations, '验证条件数组')) {
+  if (!validateArray(validations)) {
     return false
   }
-  
+
   for (const validation of validations) {
     if (!validation()) {
       return false
     }
   }
-  
+
   return true
 }
 
@@ -312,22 +289,22 @@ export function validateAll(validations: (() => boolean)[]): boolean {
  * @param validations - 验证条件数组，每个条件是一个返回 { valid: boolean, message?: string } 的对象
  * @returns 包含所有失败原因的对象
  */
-export function validateWithMessages(validations: Array<() => { valid: boolean; message?: string }>): { 
-  valid: boolean; 
-  errors: string[] 
+export function validateWithMessages(validations: Array<() => { valid: boolean; message?: string }>): {
+  valid: boolean;
+  errors: string[]
 } {
   const errors: string[] = []
-  
-  if (!validateArray(validations, '验证条件数组')) {
+
+  if (!validateArray(validations)) {
     return { valid: false, errors: ['验证条件数组无效'] }
   }
-  
+
   for (const validation of validations) {
     const result = validation()
     if (!result.valid && result.message) {
       errors.push(result.message)
     }
   }
-  
+
   return { valid: errors.length === 0, errors }
 }

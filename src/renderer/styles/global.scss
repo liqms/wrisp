@@ -1,4 +1,5 @@
 @use './variables' as *;
+@use './fonts' as *;
 @use './themes' as *;
 @use './markdown' as *;
 
@@ -15,7 +16,7 @@ html, body, #app {
 }
 
 body {
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: $font-family-base;
   font-size: $font-base;
   line-height: 1.6;
   color: var(--text-primary);
@@ -64,8 +65,8 @@ body {
   color: var(--text-secondary);
 }
 
-.text-tertiary {
-  color: var(--text-tertiary);
+.text-third {
+  color: var(--text-third);
 }
 
 .text-success {
@@ -125,7 +126,7 @@ body {
   justify-content: space-between;
 }
 
-// 响应式
+// 响应式布局
 @media (max-width: $breakpoint-md) {
   body {
     font-size: $font-sm;

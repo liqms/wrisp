@@ -1,6 +1,7 @@
 import { Migration } from '@/main/types/migration.types'
 import { Logger } from '@/main/utils/logger'
 import { compareVersions, needsMigration, VersionComparison } from '@/main/utils/version'
+import { TimeUtil } from '@/shared/utils'
 
 export class ConfigMigration {
   private migrations: Migration[] = []
@@ -27,7 +28,7 @@ export class ConfigMigration {
           config.workspace = ''
         }
         if (!config.updatedAt) {
-          config.updatedAt = new Date().toISOString()
+          config.updatedAt = TimeUtil.toISOString(Date.now())
         }
         return config
       }
@@ -89,7 +90,7 @@ export class ConfigMigration {
     }
 
     migratedConfig.version = targetVersion
-    migratedConfig.updatedAt = new Date().toISOString()
+    migratedConfig.updatedAt = TimeUtil.toISOString(Date.now())
 
     Logger.info('配置迁移完成', { 
       originalVersion: currentVersion, 

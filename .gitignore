@@ -15,6 +15,7 @@ dist
 dist-ssr
 dist-renderer
 dist-electron
+build
 
 # Release outputs
 release

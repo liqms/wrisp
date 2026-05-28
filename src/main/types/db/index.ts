@@ -1,42 +1,183 @@
-// 数据库类型定义导出文件
-// 此文件导出所有数据库相关的类型定义
+export * from "./block.types";
+export * from "./tag.types";
+export * from "./taggedItem.types";
+export * from "./semanticLink.types";
+export * from "./concept.types";
+export * from "./conceptBlock.types";
+export * from "./topic.types";
+export * from "./topicBlock.types";
+export * from "./topicConcept.types";
+export * from "./temporalEvent.types";
+export * from "./reflection.types";
+export * from "./reflectionBlock.types";
+export * from "./project.types";
+export * from "./projectBlock.types";
+export * from "./page.types";
+export * from "./migrationDb.types";
 
-// 基础类型导出
-export * from './file.types'
-export * from './fileVersion.types'
-export * from './folder.types'
-export * from './work.types'
-export * from './workTag.types'
-export * from './migrationDb.types'
-
-// 通用类型工具（从file.types.ts中导出）
 export type {
-  FileId,
-  FolderId,
-  WorkId,
-  Timestamp,
-  FilePath,
-  FileExtension,
-  FileSize,
-  HashValue,
-  NonEmptyString,
-  PositiveNumber,
-  ValidFilePath,
-  Assert,
-  Ensure
-} from './file.types'
+  BlockId,
+  ContentType,
+  CaptureSource,
+  Language,
+  Block,
+  BlockCreate,
+  BlockUpdate,
+  StrictBlockCreate,
+  BlockQuery,
+  BlockFts,
+} from "./block.types";
 
+export type {
+  TagId,
+  Tag,
+  TagCreate,
+  TagUpdate,
+  StrictTagCreate,
+  TagQuery,
+  TagWithCount,
+} from "./tag.types";
 
-// 统计信息类型别名（从各自文件中导出）
-export type { FileStatus } from './file.types'
-export type { FolderStatus } from './folder.types'
-export type { WorkStatus } from './work.types'
-export type { MigrationStatus } from './migrationDb.types'
+export type {
+  TaggedItemId,
+  EntityType,
+  TaggedItem,
+  TaggedItemCreate,
+  TaggedItemUpdate,
+  StrictTaggedItemCreate,
+  TaggedItemQuery,
+  TaggedBlock,
+  TaggedProject,
+} from "./taggedItem.types";
 
-// 严格验证类型别名（从各自文件中导出）
-export type { StrictFileCreate } from './file.types'
-export type { StrictFileVersionCreate } from './fileVersion.types'
-export type { StrictFolderCreate } from './folder.types'
-export type { StrictWorkCreate } from './work.types'
-export type { StrictWorkTagCreate } from './workTag.types'
-export type { StrictMigrationDbCreate } from './migrationDb.types'
+export type {
+  SemanticLinkId,
+  LinkType,
+  SemanticLink,
+  SemanticLinkCreate,
+  SemanticLinkUpdate,
+  StrictSemanticLinkCreate,
+  SemanticLinkQuery,
+  SemanticLinkWithBlocks,
+} from "./semanticLink.types";
+
+export type {
+  ConceptId,
+  Concept,
+  ConceptCreate,
+  ConceptUpdate,
+  StrictConceptCreate,
+  ConceptQuery,
+  ConceptWithBlocks,
+} from "./concept.types";
+
+export type {
+  ConceptBlock,
+  ConceptBlockCreate,
+  ConceptBlockUpdate,
+  StrictConceptBlockCreate,
+  ConceptBlockQuery,
+} from "./conceptBlock.types";
+
+export type {
+  TopicId,
+  TopicStatus,
+  Topic,
+  TopicCreate,
+  TopicUpdate,
+  StrictTopicCreate,
+  TopicQuery,
+  TopicWithDetails,
+} from "./topic.types";
+
+export type {
+  TopicBlock,
+  TopicBlockCreate,
+  TopicBlockUpdate,
+  StrictTopicBlockCreate,
+  TopicBlockQuery,
+} from "./topicBlock.types";
+
+export type {
+  TopicConcept,
+  TopicConceptCreate,
+  TopicConceptUpdate,
+  StrictTopicConceptCreate,
+  TopicConceptQuery,
+} from "./topicConcept.types";
+
+export type {
+  TemporalEventId,
+  EventType,
+  TemporalEvent,
+  TemporalEventCreate,
+  TemporalEventUpdate,
+  StrictTemporalEventCreate,
+  TemporalEventQuery,
+  TemporalEventWithBlock,
+} from "./temporalEvent.types";
+
+export type {
+  ReflectionId,
+  ReflectionType,
+  ReflectionStatus,
+  Reflection,
+  ReflectionCreate,
+  ReflectionUpdate,
+  StrictReflectionCreate,
+  ReflectionQuery,
+  ReflectionWithBlocks,
+} from "./reflection.types";
+
+export type {
+  ReflectionBlock,
+  ReflectionBlockCreate,
+  ReflectionBlockUpdate,
+  StrictReflectionBlockCreate,
+  ReflectionBlockQuery,
+} from "./reflectionBlock.types";
+
+export type {
+  ProjectId,
+  ProjectType,
+  Project,
+  ProjectCreate,
+  ProjectUpdate,
+  StrictProjectCreate,
+  ProjectQuery,
+  ProjectWithStats,
+} from "./project.types";
+
+export type {
+  ProjectBlock,
+  ProjectBlockCreate,
+  ProjectBlockUpdate,
+  StrictProjectBlockCreate,
+  ProjectBlockQuery,
+  ProjectBlockWithDetails,
+} from "./projectBlock.types";
+
+export type {
+  PageId,
+  PageStatus,
+  Page,
+  PageCreate,
+  PageUpdate,
+  StrictPageCreate,
+  PageQuery,
+  PageWithChildren,
+  PageTree,
+} from "./page.types";
+
+export type {
+  MigrationId,
+  MigrationStatus,
+  MigrationDb,
+  MigrationDbCreate,
+  MigrationDbUpdate,
+  StrictMigrationDbCreate,
+  MigrationDbQuery,
+  MigrationHistory,
+} from "./migrationDb.types";
+
+export type { Name, Timestamp, Id, Description } from "@/shared/types";

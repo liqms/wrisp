@@ -1,3 +1,5 @@
+import { VersionString, Description } from "@/shared/types"
+
 /**
  * 配置迁移函数类型
  */
@@ -7,8 +9,8 @@ export type MigrationFunction = (config: any) => any
  * 迁移描述接口
  */
 export interface Migration {
-  version: string
-  description: string
+  version: VersionString
+  description: Description
   migrate: MigrationFunction
 }
 

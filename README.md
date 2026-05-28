@@ -1,78 +1,93 @@
-# Pentip 笔触
+# PenTip
 
-"笔触"是一款跨平台桌面应用，为作者提供自动化和智能化创作辅助软件，致力于成为作者最懂作品的AI创作伙伴。支持小说、文章、剧本、图文、视频、音频等多种创作形式。
+> Capture Freely. Crystallize Automatically.  
+> 自由记录，自动结晶
 
-## 🚀 项目特性
+PenTip 是一个让思维自动结晶为长期知识系统的 **AI-native Cognitive OS（认知操作系统）**，基于 Electron + Vue3 + TypeScript 构建，专注于 **Local-first** 理念，让你的文档、Prompt、模板完全保存在本地，隐私安全无忧。
 
-- **创作智能体** - 根据作品动态生成创作智能体，深度理解作品世界观和角色关系
-- **语义搜索** - 基于LanceDB向量数据库的智能内容检索
-- **本地存储** - 作品数据本地存储，数据安全可控
-- **多系统支持** - 支持Windows、macOS、Linux等多个操作系统
+## ✨ 核心卖点
 
-## ✨ 核心功能
+| 特性 | 描述 |
+|------|------|
+| **Block First** | 最小单位不是文档，而是 Block（块），一切都是 Block |
+| **AI Native** | AI 不是插件，而是工作流本身，语义理解、自动关联、聚类、提炼 |
+| **Local-first** | 用户数据完全保存在本地，隐私安全，信任、离线能力、数据可迁移 |
+| **Temporal Knowledge** | 知识在时间流中演化，追踪观点变化、兴趣变化、思维轨迹 |
+| **语义链接** | AI 自动建立知识关联，无需手动双链 |
+| **自动结晶** | 思维流自动结晶为结构化主题和知识体系 |
 
-- **智能创作** - 基于AI的创作智能体，提供创作辅助功能
-- **知识库RAG** - 基于向量数据库的知识库，存储和检索作品知识，深度理解角色、世界观、情节线
+## 🎯 目标用户
 
-## 创作类型
+- **创作者**：内容生产者、自媒体作者
+- **产品经理**：需求分析、产品规划
+- **AI 从业者**：研究员、开发者、Prompt 工程师
+- **研究者**：学者、学生、知识工作者
+- **写作者**：作家、专栏作者
+- **创业者**：Founder、决策者
 
-- 文本创作：支持小说、文章、剧本等网文创作，提供智能创作辅助功能
-- 图文创作：支持小红书图文、公众号图文等形式的创作，提供输入主题自动创作功能
-- 视频创作：支持视频创作，根据主题自动生成视频脚本，自动生成视频素材
-- 音频创作：支持音频创作，根据主题自动生成口播稿和真人语音
+## 🚀 MVP 核心功能
 
-## 版本计划
+### Block Capture（块捕获）
+- 灵感、想法、Todo、语音、长文的快速捕获
+- 无限流、Block First、零组织压力
 
-- **v1.0.0** 核心功能
-    - 集成主流AI大模型，提供免费智能对话功能
-    - 知识库RAG，存储和检索作品知识
-    - 多系统支持，包括Windows、macOS、Linux等
-    - 本地存储，作品数据本地存储，数据安全可控
-    - 多语言支持，包括中文、英文等常用语言
-    - 支持公众号文章创作，根据主题自动生成文章内容
+### Semantic Linking（语义链接）
+- AI 自动生成 Embedding 和概念提取
+- 语义层面的自动知识连接
+- 相似性搜索
 
-## 🛠️ 如何使用
+### Topic Generation（主题生成）
+- AI 自动检测高频主题、重复概念、长期兴趣
+- 生成 Topic（主题）、Summary（摘要）、Timeline（时间线）
+- Concept Page（概念页）
 
-### 📦 如何使用软件
+### Reflection Feed（反思流）
+- 系统自动发现模式、矛盾、重复、长期变化
+- 具备元认知能力的思考伙伴
 
-1. **下载安装**：从 [项目主页](https://github.com/liqms/PenTip) 下载对应平台的安装包并安装
-2. **配置AI服务商**：在设置页面配置AI服务商的API密钥
-3. **创建作品**：点击「新建作品」按钮，建立你的项目
-4. **开始创作**：使用AI辅助功能进行创作，享受智能创作体验
+### 数据存储
+- 本地 SQLite 数据库 + Vector Index（向量索引）
+- Blocks、Concepts、Topics 本地保存
 
-### 🚀 快速开始
+## 🛠️ 技术栈
 
-#### 环境要求
+- **前端框架**: Vue 3 + TypeScript + Composition API
+- **构建工具**: Vite
+- **桌面框架**: Electron
+- **状态管理**: Pinia
+- **路由**: Vue Router
+- **UI 组件**: Naive UI
+- **代码规范**: ESLint + TypeScript
+- **打包工具**: electron-builder
+- **数据库**: SQLite + LanceDB
+
+## � 快速开始
+
+### 环境要求
 
 - Node.js 24+
-- pnpm (推荐) 或 npm
+- pnpm
 - Git
 
-#### 安装依赖
+### 安装依赖
 
 ```bash
 # 克隆项目
 git clone https://github.com/liqms/PenTip.git
 cd PenTip
 
-# 安装依赖（使用 pnpm）
+# 安装依赖
 pnpm install
-
-# 或者使用 npm
-# npm install
 ```
 
-#### 开发环境
+### 开发环境
 
 ```bash
-# 启动开发服务器（同时启动 Electron 和 Vite 开发服务器）
+# 启动开发服务器（Electron + Vite）
 pnpm dev
-
-# 或者使用 npm
-# npm run dev
 ```
 
-#### 构建应用
+### 构建应用
 
 ```bash
 # 构建应用
@@ -83,96 +98,67 @@ pnpm start
 
 # 生产构建（生成可执行文件）
 pnpm prod
-
-# 或者使用 npm
-# npm run build
-# npm start
-# npm run prod
 ```
 
-#### 代码检查
+### 代码检查
 
 ```bash
-# 运行 ESLint 检查
+# ESLint 检查
 pnpm lint
 
-# 运行 TypeScript 类型检查
+# TypeScript 类型检查
 pnpm typecheck
 
 # 清理构建文件
 pnpm clean
-
-# 或者使用 npm
-# npm run lint
-# npm run typecheck
-# npm run clean
 ```
 
-### 🤝 如何贡献代码
-
-如果这个项目对你有帮助,欢迎给个 Star ⭐
-
-欢迎贡献代码！请遵循以下步骤：
-
-1. **Fork 仓库**：Fork 并克隆到您的本地机器
-2. **创建分支**：为您的更改创建分支
-3. **提交更改**：提交并推送您的更改
-4. **打开 Pull Request**：描述您的更改和原因
-
-### 📁 项目结构
+## 📁 项目结构
 
 ```
 PenTip/
-├── src/                    # 源代码目录
-│   ├── main/              # Electron 主进程代码
-│   │   ├── types/         # 类型定义
+├── src/
+│   ├── main/              # Electron 主进程
 │   │   ├── core/          # 核心业务逻辑
-│   │   ├── constants/     # 常量定义
-│   │   ├── ipcMain/       # IPC 主进程定义
-│   │   ├── schema/        # 数据库模式定义
+│   │   ├── ipcMain/       # IPC 主进程处理
+│   │   ├── preload/       # 预加载脚本
 │   │   ├── utils/         # 工具函数
-│   │   ├── preload/       # 预加载脚本目录
-│   │   ├── index.ts       # 主进程入口
-│   │   └── preload.ts     # 预加载脚本
-│   ├── renderer/          # 渲染进程代码（Vue 3）
-│   │   ├── components/    # Vue 组件
-│   │   ├── composposables/ # Vue 组件可组合函数
-│   │   ├── layouts/       # 布局组件
-│   │   ├── plugins        # 插件目录
+│   │   └── index.ts       # 主进程入口
+│   ├── renderer/          # Vue 3 渲染进程
 │   │   ├── views/         # 页面视图
-│   │   ├── router/        # 路由配置
+│   │   ├── components/    # 组件
 │   │   ├── store/         # Pinia 状态管理
-│   │   ├── utils/         # 工具函数
-│   │   ├── styles/        # 样式文件
-│   │   ├── main.ts        # 应用入口
-│   │   └── app.vue        # 应用入口组件
+│   │   ├── router/        # 路由配置
+│   │   └── main.ts        # 应用入口
 │   └── shared/            # 共享代码
-│       ├── types/         # TypeScript 类型定义
-│       ├── enums/         # 枚举定义
-│       ├── helper/        # 辅助函数
-│       ├── i18n/         # 本地化配置
-│       └── utils/         # 工具函数
-├── static/                # 静态资源目录
-│   ├── images/            # 图片资源
-│   ├── fonts/             # 字体文件
-│   ├── logos/             # 应用图标
-│   └── icons/             # 应用图标
-├── dist/                  # 构建输出目录
-├── release/               # 打包输出目录
-└── script/                # 脚本目录
+│       ├── types/         # 类型定义
+│       ├── enums/         # 枚举
+│       └── i18n/          # 国际化
+├── .env                   # 环境变量
+└── package.json
 ```
 
-### 🔧 技术栈
+## 🔧 命令参考
 
-- **前端框架**: Vue 3 + TypeScript + Composition API
-- **构建工具**: Vite
-- **桌面框架**: Electron
-- **状态管理**: Pinia
-- **路由**: Vue Router
-- **UI 组件**: Native UI
-- **代码规范**: ESLint + TypeScript
-- **打包工具**: electron-builder
-- **数据库**: LanceDB + SQLite
+| 命令 | 描述 |
+|------|------|
+| `pnpm dev` | 启动开发服务器 |
+| `pnpm build` | 构建应用 |
+| `pnpm prod` | 生产构建（生成安装包） |
+| `pnpm start` | 启动已构建的应用 |
+| `pnpm lint` | ESLint 检查 |
+| `pnpm typecheck` | TypeScript 类型检查 |
+| `pnpm clean` | 清理构建文件 |
+| `pnpm rebuild` | 重建 native 依赖（better-sqlite3） |
+
+## 🤝 贡献指南
+
+欢迎贡献代码！请遵循以下步骤：
+
+1. **Fork 仓库**：Fork 并克隆到本地
+2. **创建分支**：为你的更改创建分支
+3. **提交更改**：提交并推送你的更改
+4. **打开 Pull Request**：描述你的更改和原因
 
 ## 📄 许可证
 
@@ -201,27 +187,18 @@ PenTip/
 - 其他盈利性用途
 - 请联系作者获取商业授权：
 
-- 📧 Email: liqms@msn.cn
-- 💬 微信: iclassink（微信添加好友后请备注：Pentip商业授权）
-
-默子会根据你的具体使用场景提供灵活的商业授权方案。
-
 ### 免责声明
 
 本软件按"原样"提供，不提供任何形式的明示或暗示担保，包括但不限于适销性、特定用途的适用性和非侵权性的担保。在任何情况下，作者或版权持有人均不对任何索赔、损害或其他责任负责。
 
 ## 📞 作者
 
-果果（iclassink） - AI创业者
+## 📞 联系方式
 
-- 位置: 中国上海
-- 邮箱: liqms@msn.cn
-- 微信: iclassink（私人微信不解答任何技术问题）
 - 项目主页: https://github.com/liqms/PenTip
 - 问题反馈: https://github.com/liqms/PenTip/issues
+- 邮箱: liqms@msn.cn
 
-## 🙏 致谢
+---
 
-感谢所有为本项目做出贡献的开发者！
-
-**如果这个项目帮到了你,欢迎分享给更多人!**
+**Made with ❤️ for writers everywhere**

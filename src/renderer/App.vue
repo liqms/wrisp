@@ -1,5 +1,10 @@
 <template>
-  <n-config-provider :theme="globalTheme">
+  <n-config-provider
+    :theme="currentTheme"
+    :theme-overrides="naiveThemeOverrides"
+    :locale="currentLocale"
+    :date-locale="currentDateLocale"
+  >
     <n-message-provider>
       <n-dialog-provider>
         <n-modal-provider>
@@ -16,51 +21,45 @@
 <script setup lang="ts">
 // App.vue 现在只负责渲染路由视图
 // 布局和内容由路由组件处理
-import { computed, watch, onMounted } from 'vue'
-import { LocaleEnum, ThemeEnum } from '@/shared/enums';
-import { darkTheme } from 'naive-ui';
-import type { GlobalTheme } from 'naive-ui';
-import NotificationHandler from '@/renderer/components/NotificationHandler.vue';
-import { initI18n } from '@/renderer/plugins/i18n';
-import { useSystem,useConfig } from '@/renderer/composables';
+import { computed, onMounted } from "vue";
+import {
+  darkTheme,
+  zhCN,
+  dateZhCN,
+  enUS,
+  dateEnUS,
+  GlobalTheme,
+} from "naive-ui";
+import NotificationHandler from "@/renderer/components/NotificationHandler.vue";
+import { initI18n } from "@/renderer/plugins/i18n";
+import { useSystem, useConfig, useTheme } from "@/renderer/composables";
 
-const { theme } = useConfig();
+const { activeMode, naiveThemeOverrides } = useTheme();
+
+const { locale } = useConfig();
 
 // 全局主题配置
-const globalTheme = computed<GlobalTheme | null>(() => {
-  return theme.value == ThemeEnum.DARK ? darkTheme : null
-})
+// Naive UI 主题对象
+const currentTheme = computed<GlobalTheme | null>(() =>
+  activeMode.value === "dark" ? darkTheme : null,
+);
 
-// 更新 html 的 data-theme 属性
-const updateHtmlTheme = (themeValue: string) => {
-  const html = document.documentElement;
-  if (themeValue == ThemeEnum.DARK) {
-    html.setAttribute('data-theme', 'dark');
-  } else {
-    html.removeAttribute('data-theme');
-  }
-}
+// 全局语言配置
+const currentLocale = computed(() => {
+  return locale.value === "zhCN" ? zhCN : enUS;
+});
 
+const currentDateLocale = computed(() => {
+  return locale.value === "zhCN" ? dateZhCN : dateEnUS;
+});
 
 onMounted(async () => {
   // 初始化系统信息（确保配置已加载）
   await useSystem().init();
-  
+
   // 初始化 i18n，传入配置的语言
   await initI18n();
-  
-  // 其他初始化逻辑
-  if (theme.value) {
-    updateHtmlTheme(theme.value);
-  }
 });
-
-watch(theme, (newTheme) => {
-  if (newTheme) {
-    updateHtmlTheme(newTheme);
-  }
-})
-
 </script>
 
 <style>

@@ -32,7 +32,7 @@ export interface PaginationOptions {
  * @param data - 要分页的数据数组
  * @param options - 分页选项
  * @param options.page - 页码（从 1 开始），默认 1
- * @param options.pageSize - 每页记录数，默认 20，最大 100
+ * @param options.pageSize - 每页记录数，默认 50，最大 100
  * @returns 分页结果对象
  */
 export function paginate<T>(
@@ -41,7 +41,7 @@ export function paginate<T>(
 ): PaginationResult<T> {
   // 参数验证和默认值
   const page = Math.max(1, options.page || 1)
-  const pageSize = Math.min(Math.max(1, options.pageSize || 20), 100)
+  const pageSize = Math.min(Math.max(1, options.pageSize || 50), 100)
   
   const total = data.length
   const totalPages = Math.ceil(total / pageSize)

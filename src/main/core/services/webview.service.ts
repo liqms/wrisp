@@ -83,7 +83,9 @@ class WebViewService {
           // Cookie 和存储支持
           partition: 'persist:webview',
           // 开发者工具支持（便于调试）
-          devTools: true
+          devTools: true,
+          // 开启 Webview 标签，支持嵌套 WebView
+          webviewTag: true
         } 
       })
 
@@ -286,6 +288,32 @@ class WebViewService {
         Logger.info('后端 WebView 销毁成功')
       } catch (error) {
         Logger.error('后端 WebView 销毁失败', { error: error instanceof Error ? error.message : String(error) })
+        throw error
+      }
+    }
+  }
+
+  /**
+   * 重设视图大小和位置
+   * 手动设置 WebView 的位置和尺寸
+   * @param options - 配置选项，包含 x, y, width, height
+   */
+  resize(options: WebContentViewOptions): void {
+    if (this.webView) {
+      try {
+        // 更新内部配置
+        this.webContentViewOptions = {
+          x: options.x ?? this.webContentViewOptions.x,
+          y: options.y ?? this.webContentViewOptions.y,
+          width: options.width ?? this.webContentViewOptions.width,
+          height: options.height ?? this.webContentViewOptions.height
+        }
+
+        // 设置新的边界
+        this.webView.setBounds(this.webContentViewOptions)
+        Logger.debug('WebView 尺寸和位置已更新', { webContentViewOptions: this.webContentViewOptions })
+      } catch (error) {
+        Logger.error('WebView 重设大小失败', { error: error instanceof Error ? error.message : String(error) })
         throw error
       }
     }
