@@ -1,0 +1,27 @@
+{
+  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "id": "grammar",
+  "name": "语法修正",
+  "description": "检查并修正文本中的语法、标点、用词和句式错误，确保文本规范正确",
+  "icon": "📝",
+  "version": "1.0.0",
+  "author": "PenTip Team",
+  "category": ["editing", "polish"],
+  "tags": ["grammar", "correction", "proofread", "spelling"],
+  "enabled": true,
+  "promptTemplate": "请检查并修正以下文本中的语法、标点、用词和句式错误：\n\n{{text}}\n\n要求：\n1. 只输出修正后的结果，不要添加任何解释\n2. 保持原文的风格和语气不变\n3. 如果原文没有错误，请原样输出",
+  "systemPrompt": "你是一个专业的文本校对助手，擅长发现和修正中文语法、标点、用词和句式错误。",
+  "parameters": [],
+  "inputMapping": {
+    "text": "selectedText"
+  },
+  "postProcess": {
+    "type": "trim"
+  },
+  "example": {
+    "input": {
+      "text": "他很快的跑到了学校，但是已经迟到了。"
+    },
+    "output": "他很快地跑到了学校，但是已经迟到了。"
+  }
+}

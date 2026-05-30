@@ -5,6 +5,7 @@ import {
   UPDATE_CHANNEL,
   MODEL_TYPE,
   THEME_COLOR,
+  AI_MODE,
 } from "@/shared/enums";
 import { DEFAULT_PROVIDER } from "./aiProvider.constant";
 import { TimeUtil } from "@/shared/utils";
@@ -73,4 +74,17 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   isFirstLaunch: true,
   isUpdateLaunch: false,
   updatedAt: "",
+  providerPriority: ["deepseek", "volcengine"],
+  failoverConfig: {
+    maxRetries: 2,
+    retryDelayMs: 1000,
+    circuitBreakerThreshold: 3,
+    cooldownMs: 30000,
+  },
+  skillsConfig: {
+    remoteUpdateEnabled: true,
+    remoteUpdateUrl: "",
+  },
+  shortcuts: [],
+  aiMode: AI_MODE.BASE,
 };

@@ -7,6 +7,8 @@ export enum CONTENT_TYPE {
   INSIGHT = "insight",
   /** 待办事项 */
   TODO = "todo",
+  /** 日记 */
+  DAILY = "daily",
   /** 笔记 */
   NOTE = "note",
 }

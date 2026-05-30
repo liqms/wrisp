@@ -1,0 +1,176 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://pentip.app/schemas/skill.schema.json",
+  "title": "Skill",
+  "description": "PenTip Skill 定义规范",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "description",
+    "icon",
+    "version",
+    "category",
+    "promptTemplate"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Skill 唯一标识符，只能包含小写字母、数字、下划线和连字符"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Skill 显示名称"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Skill 功能描述"
+    },
+    "icon": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8,
+      "description": "Skill 图标（emoji）"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "语义化版本号，格式为 x.y.z"
+    },
+    "author": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "category": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "minItems": 1,
+      "maxItems": 4,
+      "description": "分类路径，支持多级分类，如 [\"editing\", \"polish\"]"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 32
+      },
+      "maxItems": 16
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "promptTemplate": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192,
+      "description": "Prompt 模板，使用 {{变量名}} 进行参数插值"
+    },
+    "systemPrompt": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SkillParameter"
+      },
+      "maxItems": 16
+    },
+    "inputMapping": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "输入参数与上下文的映射关系，如 { \"text\": \"selectedText\" }"
+    },
+    "postProcess": {
+      "$ref": "#/definitions/SkillPostProcess"
+    },
+    "example": {
+      "$ref": "#/definitions/SkillExample"
+    }
+  },
+  "definitions": {
+    "SkillParameter": {
+      "type": "object",
+      "required": ["name", "type", "default", "label", "description", "ui"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "boolean"]
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "default": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" }
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "ui": {
+          "type": "string",
+          "enum": ["dropdown", "input", "textarea", "toggle", "slider"]
+        }
+      }
+    },
+    "SkillPostProcess": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["trim"]
+        }
+      }
+    },
+    "SkillExample": {
+      "type": "object",
+      "required": ["input", "output"],
+      "properties": {
+        "input": {
+          "type": "object"
+        },
+        "output": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

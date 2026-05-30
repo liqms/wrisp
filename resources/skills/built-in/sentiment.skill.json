@@ -1,0 +1,27 @@
+{
+  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "id": "sentiment",
+  "name": "情感分析",
+  "description": "分析文本的情感倾向和情绪色彩，识别作者的态度、情绪和立场",
+  "icon": "💭",
+  "version": "1.0.0",
+  "author": "PenTip Team",
+  "category": ["analysis", "sentiment"],
+  "tags": ["sentiment", "emotion", "analysis", "tone"],
+  "enabled": true,
+  "promptTemplate": "请分析以下文本的情感倾向和情绪色彩：\n\n{{text}}\n\n要求：\n1. 识别文本的整体情感倾向（积极/消极/中性）\n2. 分析具体的情绪色彩（如喜悦、愤怒、悲伤、惊讶等）\n3. 指出体现情感的关键词或句子\n4. 只输出分析结果，简洁明了",
+  "systemPrompt": "你是一个专业的情感分析助手，擅长识别和分析文本中的情感倾向和情绪色彩。",
+  "parameters": [],
+  "inputMapping": {
+    "text": "selectedText"
+  },
+  "postProcess": {
+    "type": "trim"
+  },
+  "example": {
+    "input": {
+      "text": "今天天气真好，阳光明媚，心情格外舒畅！"
+    },
+    "output": "情感倾向：积极\n情绪色彩：喜悦、愉悦\n关键词：真好、阳光明媚、心情格外舒畅"
+  }
+}

@@ -158,10 +158,10 @@ export class BlockDao extends BaseDao<Block, BlockCreate, BlockUpdate> {
     const params: unknown[] = [startDate, endDate];
 
     if (status !== undefined) {
-      sql = `SELECT * FROM ${this.tableName} WHERE created_at >= ? AND created_at <= ? AND status = ? ORDER BY created_at ASC`;
+      sql = `SELECT * FROM ${this.tableName} WHERE created_at >= ? AND created_at <= ? AND status = ? ORDER BY created_at DESC`;
       params.push(status);
     } else {
-      sql = `SELECT * FROM ${this.tableName} WHERE created_at >= ? AND created_at <= ? ORDER BY created_at ASC`;
+      sql = `SELECT * FROM ${this.tableName} WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC`;
     }
 
 

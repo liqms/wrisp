@@ -6,6 +6,7 @@ import {
   QueryParams,
   JsonMetadata,
   Content,
+  BooleanFlag,
 } from "@/shared/types";
 import {
   type ContentType,
@@ -27,6 +28,7 @@ export interface Block {
   metadata: JsonMetadata;
   parent_block_id: BlockId | null;
   split_index: number;
+  is_memo: BooleanFlag;
   ai_summary: Content | null;
   temporal_score: number;
   word_count: number;
@@ -45,6 +47,7 @@ export interface BlockCreate {
   parent_block_id?: BlockId | null;
   split_index?: number;
   ai_summary?: Content | null;
+  is_memo?: BooleanFlag;
   temporal_score?: number;
   word_count?: number;
   status?: BlockStatus;
@@ -60,6 +63,7 @@ export interface BlockUpdate {
   metadata?: JsonMetadata;
   parent_block_id?: BlockId | null;
   split_index?: number;
+  is_memo?: BooleanFlag;
   ai_summary?: Content | null;
   temporal_score?: number;
   word_count?: number;
@@ -77,6 +81,8 @@ export type StrictBlockCreate = Ensure<
 
 export interface BlockQuery extends QueryParams {
   source?: CaptureSource;
+  status?: BlockStatus;
+  is_memo?: BooleanFlag;
   content_type?: ContentType;
   language?: Language;
   parent_block_id?: BlockId | null;

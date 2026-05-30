@@ -18,6 +18,7 @@ export default {
       THINK: "思考",
       CREATE: "创造",
       COLOR: "颜色",
+      NONE: "无",
     },
     CREATION_TYPE: {
       NOVEL: "小说",
@@ -31,9 +32,12 @@ export default {
       CHARACTER: "角色",
       WORLDVIEW: "世界观",
       DRAFT: "草稿",
-      NOTE: "笔记",
       KNOWLEDGE: "知识",
       FLASHCARD: "闪卡",
+      TODO: "待办事项",
+      DAILY: "日记",
+      NOTE: "笔记",
+      INSIGHT: "灵感",
     },
   },
   ACTION: {
@@ -143,13 +147,17 @@ export default {
     },
   },
   SETTINGS: {
-    GENERAL: "基础设置",
+    GENERAL: "常规",
     EDITOR: "编辑器",
     DATA_MANAGER: "数据管理",
     AI: "AI设置",
     KEYMAP: "快捷键",
     ABOUT: "关于",
     ACCENT_COLOR: "主题色",
+    MODEL_MANAGEMENT: "模型管理",
+    PROVIDER_MODELS: "模型服务商",
+    DEFAULT_MODEL: "默认模型",
+    SHORTCUTS: "快捷键",
     GENERAL_SETTINGS: {
       LOCALE: "语言",
       THEME: "主题",
@@ -172,6 +180,32 @@ export default {
       DEFAULT_WEB_CHAT: "默认网页聊天",
       DEFAULT_PROVIDER: "默认提供商",
       DEFAULT_MODEL: "默认模型",
+      INTELLIGENT: "智能",
+      AI_MODE: "智能模式",
+      AI_MODE_BASE: "基础模式",
+      AI_MODE_CORE: "核心模式",
+      AI_MODE_PRO: "专业模式",
+      AI_MODE_BASE_DESC: "自由记录，完全掌控",
+      AI_MODE_CORE_DESC: "本地智能，自动沉淀",
+      AI_MODE_PRO_DESC: "云端增强，专业创作",
+      AI_MODE_BASE_TIP:
+        "您手动记录、手动整理，无 AI 辅助，适合低配置设备的用户。",
+      AI_MODE_CORE_TIP:
+        "无需将数据上传云端，即可享受 AI 带来的智能体验。系统自动为您的每条记录建立语义关联，推荐相关内容，并主动提示将碎片想法结晶为主题。",
+      AI_MODE_PRO_TIP:
+        "在本地智能基础上，订阅解锁云端大模型能力，提供专业创作功能。",
+    },
+    MODEL_TYPE_LABELS: {
+      TEXT: "文本生成模型",
+      IMAGE: "图片生成模型",
+      AUDIO: "音频生成模型",
+      VIDEO: "视频生成模型",
+    },
+    SHORTCUT_SETTINGS: {
+      RECORDING_HINT: "按下组合键...",
+      CONFLICT_WARNING: "快捷键冲突，请重新设置",
+      PRESS_KEY: "点击修改",
+      CANCEL_RECORD: "取消",
     },
     COLOR: {
       RED: "红色",

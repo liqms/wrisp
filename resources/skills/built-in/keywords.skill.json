@@ -1,0 +1,27 @@
+{
+  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "id": "keywords",
+  "name": "关键词提取",
+  "description": "从文本中提取核心关键词和关键短语，识别文本的主要主题和重点内容",
+  "icon": "🔑",
+  "version": "1.0.0",
+  "author": "PenTip Team",
+  "category": ["analysis", "keyword"],
+  "tags": ["keywords", "extraction", "analysis", "topic"],
+  "enabled": true,
+  "promptTemplate": "请从以下文本中提取核心关键词和关键短语：\n\n{{text}}\n\n要求：\n1. 提取 5-10 个最能代表文本核心内容的关键词或短语\n2. 按重要性从高到低排列\n3. 每个关键词用逗号分隔\n4. 只输出关键词列表，不要添加任何解释",
+  "systemPrompt": "你是一个专业的关键词提取助手，擅长从文本中准确识别和提取核心关键词。",
+  "parameters": [],
+  "inputMapping": {
+    "text": "selectedText"
+  },
+  "postProcess": {
+    "type": "trim"
+  },
+  "example": {
+    "input": {
+      "text": "深度学习是机器学习的一个子集，它使用多层神经网络来模拟人脑的学习过程。通过大量数据的训练，深度学习模型能够自动提取特征，在图像识别、语音识别和自然语言处理等领域取得了显著成果。"
+    },
+    "output": "深度学习, 神经网络, 机器学习, 图像识别, 自然语言处理, 语音识别, 特征提取, 模型训练"
+  }
+}

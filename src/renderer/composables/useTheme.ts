@@ -1,7 +1,7 @@
 // src/renderer/composables/useTheme.ts
 
-import { computed, watch, onMounted } from "vue";
-import { useConfigStore } from "@/renderer/store/config.store";
+import { computed, watch, onMounted, ref } from "vue";
+import { useConfig } from "@/renderer/composables";
 import {
   THEME_MODE,
   ThemeMode,
@@ -12,12 +12,14 @@ import {
 } from "@/shared/enums";
 
 export function useTheme() {
-  const configStore = useConfigStore();
+  const { config, isLoaded, watchLoaded } = useConfig({ autoInit: true });
+
+  const themeApplied = ref(false);
 
   // 当前实际显示模式（'light' 或 'dark'）
   const activeMode = computed<ThemeMode>(() => {
     const themeMode =
-      configStore.config?.general?.themeMode || THEME_MODE.SYSTEM;
+      config.value?.general?.themeMode || THEME_MODE.SYSTEM;
     if (themeMode === THEME_MODE.SYSTEM) {
       return window.matchMedia("(prefers-color-scheme: dark)").matches
         ? THEME_MODE.DARK
@@ -28,7 +30,7 @@ export function useTheme() {
 
   // 当前主题色
   const themeColor = computed<ThemeColor>(() => {
-    return configStore.config?.general?.themeColor || THEME_COLOR.GREEN;
+    return config.value?.general?.themeColor || THEME_COLOR.GREEN;
   });
 
   // 获取当前模式下的主题色值（用于 Naive UI）
@@ -69,26 +71,36 @@ export function useTheme() {
     root.style.setProperty("--bg-primary", colors.backgroundColor);
   };
 
-  // 监听变化并应用
-  watch([activeMode, themeColor], () => {
-    const colors = currentThemeColors.value;
-    applyCssVariables(activeMode.value, colors);
-  });
+  // 监听变化并应用（仅在配置加载后）
+  watch(
+    [activeMode, themeColor, isLoaded],
+    () => {
+      if (!isLoaded.value || !themeApplied.value) return;
+      const colors = currentThemeColors.value;
+      applyCssVariables(activeMode.value, colors);
+    },
+    { immediate: false }
+  );
 
   // 监听系统主题变化（仅在 themeMode === 'system' 时）
   let systemThemeMedia: MediaQueryList | null = null;
   const handleSystemChange = (e: MediaQueryListEvent) => {
-    if (configStore.config?.general?.themeMode === THEME_MODE.SYSTEM) {
+    if (config.value?.general?.themeMode === THEME_MODE.SYSTEM && themeApplied.value) {
       const newMode = e.matches ? THEME_MODE.DARK : THEME_MODE.LIGHT;
       applyCssVariables(newMode, currentThemeColors.value);
     }
   };
 
-  onMounted(() => {
-    // 初始化
-    const colors = currentThemeColors.value;
-    applyCssVariables(activeMode.value, colors);
+  // 监听配置加载完成，应用主题
+  watchLoaded((loaded) => {
+    if (loaded && !themeApplied.value) {
+      themeApplied.value = true;
+      const colors = currentThemeColors.value;
+      applyCssVariables(activeMode.value, colors);
+    }
+  }, { immediate: true });
 
+  onMounted(() => {
     // 监听系统主题
     systemThemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
     systemThemeMedia.addEventListener("change", handleSystemChange);

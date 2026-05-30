@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS blocks (
     metadata TEXT DEFAULT '{}',
     parent_block_id TEXT REFERENCES blocks(id),
     split_index INTEGER DEFAULT 0,
+    is_memo INTEGER DEFAULT 0,
     ai_summary TEXT,
     temporal_score REAL DEFAULT 0.0,
     word_count INTEGER DEFAULT 0,
@@ -173,7 +174,8 @@ CREATE TABLE IF NOT EXISTS projects (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     ai_summary TEXT DEFAULT '',
-    structure TEXT DEFAULT ''
+    structure TEXT DEFAULT '',
+    metadata TEXT DEFAULT '{}'
 );
 
 -- 创建作品-Block 关联表
@@ -235,6 +237,7 @@ CREATE INDEX IF NOT EXISTS idx_blocks_parent ON blocks(parent_block_id);
 CREATE INDEX IF NOT EXISTS idx_blocks_created_at ON blocks(created_at);
 CREATE INDEX IF NOT EXISTS idx_blocks_temporal_score ON blocks(temporal_score);
 CREATE INDEX IF NOT EXISTS idx_blocks_status ON blocks(status);
+CREATE INDEX IF NOT EXISTS idx_blocks_is_memo ON blocks(is_memo);
 
 -- 标签索引
 CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
@@ -319,9 +322,9 @@ END;
 INSERT OR IGNORE INTO migrations_db (id, version, name, description, sql_statement, status, executed_at, created_at, updated_at)
 VALUES (
     '00000000-0000-0000-0000-000000000001',
-    '1.1.0',
-    'Normalized Relations',
-    '规范化关联关系，使用关联表替代JSON数组',
+    '1.1.1',
+    'Init Tables and Indexes',
+    '初始化关联关系表',
     'CREATE TABLE blocks, blocks_fts, tags, tagged_items, semantic_links, concepts, concept_blocks, topics, topic_blocks, topic_concepts, temporal_events, reflections, reflection_blocks, projects, project_blocks, pages, migrations_db',
     'executed',
     '2026-05-21T23:55:15.255Z',

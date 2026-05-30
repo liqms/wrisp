@@ -1,0 +1,27 @@
+{
+  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "id": "continue",
+  "name": "续写",
+  "description": "根据已有文本的内容和风格，自然流畅地续写后续内容，保持逻辑和文风的一致性",
+  "icon": "➡️",
+  "version": "1.0.0",
+  "author": "PenTip Team",
+  "category": ["generation", "continue"],
+  "tags": ["continue", "extend", "generate", "write"],
+  "enabled": true,
+  "promptTemplate": "请续写以下文本，保持内容、风格和逻辑的一致性：\n\n{{text}}\n\n要求：\n1. 自然流畅地延续原文的内容和风格\n2. 保持逻辑连贯性\n3. 只输出续写的内容，不要重复原文",
+  "systemPrompt": "你是一个专业的文本续写助手，擅长根据已有内容自然流畅地延续写作。",
+  "parameters": [],
+  "inputMapping": {
+    "text": "selectedText"
+  },
+  "postProcess": {
+    "type": "trim"
+  },
+  "example": {
+    "input": {
+      "text": "每天坚持阅读三十分钟，看似微不足道，但日积月累的力量不容小觑。"
+    },
+    "output": "一年下来，你将读完数十本书，知识储备和思维深度都会有质的飞跃。更重要的是，这种习惯会潜移默化地改变你的思考方式，让你在面对问题时更加从容和理性。从今天开始，不妨为自己设定一个小目标，在固定的时间里，放下手机，拿起一本书，享受阅读带来的宁静与成长。"
+  }
+}

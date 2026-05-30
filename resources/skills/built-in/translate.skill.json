@@ -1,0 +1,38 @@
+{
+  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "id": "translate",
+  "name": "翻译",
+  "description": "将中文文本翻译为其他语言，提供准确、自然、流畅的翻译结果",
+  "icon": "🌐",
+  "version": "1.0.0",
+  "author": "PenTip Team",
+  "category": ["conversion", "language"],
+  "tags": ["translate", "language", "localization", "convert"],
+  "enabled": true,
+  "promptTemplate": "请将以下中文文本翻译为{{targetLanguage}}：\n\n{{text}}\n\n要求：\n1. 翻译准确、自然、流畅\n2. 保持原文的语气和风格\n3. 只输出翻译结果，不要添加任何解释",
+  "systemPrompt": "你是一个专业的翻译助手，擅长将中文准确自然地翻译为其他语言。",
+  "parameters": [
+    {
+      "name": "targetLanguage",
+      "type": "string",
+      "enum": ["英文", "日文", "韩文", "法文", "德文"],
+      "default": "英文",
+      "label": "目标语言",
+      "description": "选择翻译的目标语言",
+      "ui": "dropdown"
+    }
+  ],
+  "inputMapping": {
+    "text": "selectedText"
+  },
+  "postProcess": {
+    "type": "trim"
+  },
+  "example": {
+    "input": {
+      "text": "知识就是力量。",
+      "targetLanguage": "英文"
+    },
+    "output": "Knowledge is power."
+  }
+}

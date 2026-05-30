@@ -32,6 +32,22 @@ export enum ErrorCode {
   CAPTURE_NOT_FOUND = "ERROR.CAPTURE.NOT_FOUND",
   CAPTURE_COUNT_FAILED = "ERROR.CAPTURE.COUNT_FAILED",
 
+  // ============ 作品错误 ============
+  PROJECT_NOT_FOUND = "ERROR.PROJECT.NOT_FOUND",
+  PROJECT_GET_FAILED = "ERROR.PROJECT.GET_FAILED",
+  PROJECT_LIST_FAILED = "ERROR.PROJECT.LIST_FAILED",
+  PROJECT_CREATE_FAILED = "ERROR.PROJECT.CREATE_FAILED",
+  PROJECT_UPDATE_FAILED = "ERROR.PROJECT.UPDATE_FAILED",
+  PROJECT_DELETE_FAILED = "ERROR.PROJECT.DELETE_FAILED",
+
+  // ============ 下载错误 ============
+  DOWNLOAD_FAILED = "ERROR.DOWNLOAD.FAILED",
+  DOWNLOAD_CANCELLED = "ERROR.DOWNLOAD.CANCELLED",
+  DOWNLOAD_URL_INVALID = "ERROR.DOWNLOAD.URL_INVALID",
+  DOWNLOAD_DIR_CREATE_FAILED = "ERROR.DOWNLOAD.DIR_CREATE_FAILED",
+  DOWNLOAD_FILE_WRITE_FAILED = "ERROR.DOWNLOAD.FILE_WRITE_FAILED",
+  DOWNLOAD_TASK_NOT_FOUND = "ERROR.DOWNLOAD.TASK_NOT_FOUND",
+
   // ============ 日志错误 ============
   LOG_CREATE_FAILED = "ERROR.LOG.CREATE_FAILED",
 
@@ -40,6 +56,15 @@ export enum ErrorCode {
   // ============ 系统错误 ============
   SYSTEM_GET_INFO_FAILED = "ERROR.SYSTEM.GET_INFO_FAILED",
   SYSTEM_OPEN_DIALOG_ERROR = "ERROR.SYSTEM.OPEN_DIALOG_ERROR",
+
+  // ============ AI 网关错误 ============
+  AI_NO_AVAILABLE_PROVIDER = "ERROR.AI.NO_AVAILABLE_PROVIDER",
+  AI_MODEL_NOT_FOUND = "ERROR.AI.MODEL_NOT_FOUND",
+  AI_REQUEST_FAILED = "ERROR.AI.REQUEST_FAILED",
+  AI_PROVIDER_DISABLED = "ERROR.AI.PROVIDER_DISABLED",
+  AI_TIMEOUT = "ERROR.AI.TIMEOUT",
+  AI_INVALID_RESPONSE = "ERROR.AI.INVALID_RESPONSE",
+  AI_STREAM_ERROR = "ERROR.AI.STREAM_ERROR",
 }
 
 /**
@@ -54,6 +79,7 @@ export type ErrorCategory =
   | "NOTIFICATION" // 通知错误
   | "AGENT" // 智能体错误
   | "SYSTEM" // 系统错误
+  | "AI" // AI 网关错误
   | "UNKNOWN" // 未知分类
   | "SUCCESS"; // 成功分类
 
@@ -82,6 +108,8 @@ export function getErrorCategory(errorCode: ErrorCode): ErrorCategory {
       return "NOTIFICATION";
     case "SYSTEM":
       return "SYSTEM";
+    case "AI":
+      return "AI";
     case "AGENT":
       return "AGENT";
     case "SUCCESS":
@@ -105,6 +133,7 @@ export function getErrorCategoryMap(): Record<ErrorCategory, ErrorCode[]> {
     NOTIFICATION: [],
     AGENT: [],
     SYSTEM: [],
+    AI: [],
     UNKNOWN: [],
     SUCCESS: [],
   };

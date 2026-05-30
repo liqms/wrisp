@@ -18,6 +18,7 @@ export default {
       THINK: "Think",
       CREATE: "Create",
       COLOR: "Color",
+      NONE: "None",
     },
     CREATION_TYPE: {
       NOVEL: "Novel",
@@ -31,9 +32,12 @@ export default {
       CHARACTER: "Character",
       WORLDVIEW: "Worldview",
       DRAFT: "Draft",
-      NOTE: "Note",
       KNOWLEDGE: "Knowledge",
       FLASHCARD: "Flashcard",
+      TODO: "Todo",
+      DAILY: "Daily",
+      NOTE: "Note",
+      INSIGHT: "Insight",
     },
   },
   ACTION: {
@@ -152,6 +156,10 @@ export default {
     KEYMAP: "Keymap",
     ABOUT: "About",
     ACCENT_COLOR: "Accent Color",
+    MODEL_MANAGEMENT: "Model Management",
+    PROVIDER_MODELS: "Providers & Models",
+    DEFAULT_MODEL: "Default Model",
+    SHORTCUTS: "Shortcuts",
     GENERAL_SETTINGS: {
       LOCALE: "Language",
       THEME: "Theme",
@@ -174,6 +182,32 @@ export default {
       DEFAULT_WEB_CHAT: "Default Web Chat",
       DEFAULT_PROVIDER: "Default Provider",
       DEFAULT_MODEL: "Default Model",
+      INTELLIGENT: "Intelligent",
+      AI_MODE: "Intelligent Mode",
+      AI_MODE_BASE: "Base Mode",
+      AI_MODE_CORE: "Core Mode",
+      AI_MODE_PRO: "Pro Mode",
+      AI_MODE_BASE_DESC: "Free Record, Full Control",
+      AI_MODE_CORE_DESC: "Local AI, Auto Precipitation",
+      AI_MODE_PRO_DESC: "Cloud LLM, Pro Creation",
+      AI_MODE_BASE_TIP:
+        "You manually record, organize, and precipitate your thoughts, ideas, notes.",
+      AI_MODE_CORE_TIP:
+        "You can use AI to enhance your creation, and PenTip will help you associate, organize, and precipitate them into a knowledge system.",
+      AI_MODE_PRO_TIP:
+        "In addition to the local AI, you can use the cloud AI to enhance your creation, and PenTip will help you associate, organize, and precipitate them into a knowledge system",
+    },
+    MODEL_TYPE_LABELS: {
+      TEXT: "Text Model",
+      IMAGE: "Image Model",
+      AUDIO: "Audio Model",
+      VIDEO: "Video Model",
+    },
+    SHORTCUT_SETTINGS: {
+      RECORDING_HINT: "Press key combination...",
+      CONFLICT_WARNING: "Shortcut conflict, please re-record",
+      PRESS_KEY: "Click to edit",
+      CANCEL_RECORD: "Cancel",
     },
     COLOR: {
       RED: "Red",

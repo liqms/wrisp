@@ -42,3 +42,10 @@ export const THEME_COLOR = {
   BROWN: "brown",
 };
 export type ThemeColor = (typeof THEME_COLOR)[keyof typeof THEME_COLOR];
+
+export const AI_MODE = {
+  BASE: "base",
+  CORE: "core",
+  PRO: "pro",
+};
+export type AiMode = (typeof AI_MODE)[keyof typeof AI_MODE];

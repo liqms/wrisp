@@ -36,13 +36,14 @@ import { useSystem, useConfig, useTheme } from "@/renderer/composables";
 
 const { activeMode, naiveThemeOverrides } = useTheme();
 
-const { locale } = useConfig();
+const { locale, isLoaded } = useConfig();
 
 // 全局主题配置
-// Naive UI 主题对象
-const currentTheme = computed<GlobalTheme | null>(() =>
-  activeMode.value === "dark" ? darkTheme : null,
-);
+// Naive UI 主题对象（配置加载后才应用，避免闪烁）
+const currentTheme = computed<GlobalTheme | null>(() => {
+  if (!isLoaded.value) return null;
+  return activeMode.value === "dark" ? darkTheme : null;
+});
 
 // 全局语言配置
 const currentLocale = computed(() => {

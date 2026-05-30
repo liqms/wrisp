@@ -1,0 +1,38 @@
+{
+  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "id": "polish",
+  "name": "润色",
+  "description": "优化文本表达，提升语言质量和流畅度，使文本更加优美、准确和易读",
+  "icon": "✨",
+  "version": "1.0.0",
+  "author": "PenTip Team",
+  "category": ["editing", "polish"],
+  "tags": ["polish", "refine", "style", "improve"],
+  "enabled": true,
+  "promptTemplate": "请润色以下文本，使其更{{style}}：\n\n{{text}}\n\n要求：只输出润色后的结果，不要添加任何解释。",
+  "systemPrompt": "你是一个专业的文本润色助手，擅长优化中文表达。",
+  "parameters": [
+    {
+      "name": "style",
+      "type": "string",
+      "enum": ["professional", "concise", "vivid", "formal", "casual"],
+      "default": "professional",
+      "label": "润色风格",
+      "description": "选择润色后的文本风格",
+      "ui": "dropdown"
+    }
+  ],
+  "inputMapping": {
+    "text": "selectedText"
+  },
+  "postProcess": {
+    "type": "trim"
+  },
+  "example": {
+    "input": {
+      "text": "这个想法挺好的。",
+      "style": "professional"
+    },
+    "output": "这个想法非常出色，值得深入探讨。"
+  }
+}

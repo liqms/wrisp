@@ -5,7 +5,7 @@ import {
   MigrationDbUpdate,
   MigrationStatus,
 } from "@/main/types/db";
-import { validateId, validateString } from "@/shared/utils/validate";
+import { validateString } from "@/shared/utils/validate";
 
 /**
  * 数据库迁移数据访问对象
@@ -70,7 +70,7 @@ export class MigrationDbDao extends BaseDao<
    */
   findPendingMigrations(): MigrationDb[] {
     return super.query(
-      "SELECT * FROM migrations_db WHERE status = 0 ORDER BY version ASC",
+      "SELECT * FROM migrations_db WHERE status = 'pending' ORDER BY version ASC",
     );
   }
 
@@ -83,7 +83,7 @@ export class MigrationDbDao extends BaseDao<
   markAsExecuted(id: string, executionTime: number): number {
     if (!validateString(id, "迁移ID")) return 0;
     const sql =
-      "UPDATE migrations_db SET status = 1, executed_at = CURRENT_TIMESTAMP, execution_time = ? WHERE id = ?";
+      "UPDATE migrations_db SET status = 'executed', executed_at = CURRENT_TIMESTAMP, execution_time = ? WHERE id = ?";
     return super.execute(sql, [executionTime, id]).changes;
   }
 
@@ -96,7 +96,7 @@ export class MigrationDbDao extends BaseDao<
   markAsFailed(id: string, errorMessage: string): number {
     if (!validateString(id, "迁移ID")) return 0;
     const sql =
-      "UPDATE migrations_db SET status = 2, error_message = ? WHERE id = ?";
+      "UPDATE migrations_db SET status = 'failed', error_message = ? WHERE id = ?";
     return super.execute(sql, [errorMessage, id]).changes;
   }
 
@@ -106,7 +106,7 @@ export class MigrationDbDao extends BaseDao<
    */
   getCurrentVersion(): string | null {
     const sql =
-      "SELECT version FROM migrations_db WHERE status = 1 ORDER BY executed_at DESC LIMIT 1";
+      "SELECT version FROM migrations_db WHERE status = 'executed' ORDER BY executed_at DESC LIMIT 1";
     const result = super.queryOne(sql) as unknown as { version?: string };
     return result?.version || null;
   }

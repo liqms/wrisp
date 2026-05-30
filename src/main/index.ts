@@ -20,10 +20,14 @@ import {
   registerLoggerHandlers,
   registerWebViewHandlers,
   registerCaptureHandlers,
+  registerProjectHandlers,
+  registerAIHandlers,
+  registerSkillHandlers,
 } from "@/main/ipcMain";
 import { databaseMigration } from "@/main/core/migration";
 import { setWorkspacePath } from "@/main/core/db/connection";
 import { registerProtocolHandler } from "@/main/protocol";
+import { skillManager } from "@/main/core/skills/skill.manager";
 
 // 使用传统的 Node.js 路径处理方式
 const __dirname = path.dirname(__filename || process.argv[1] || ".");
@@ -98,6 +102,7 @@ function createWindow() {
 app.whenReady().then(async () => {
   await initializeDatabase();
   registerProtocolHandler();
+  skillManager.initialize();
   createWindow();
   registerWindowHandlers();
   registerConfigHandlers();
@@ -105,6 +110,9 @@ app.whenReady().then(async () => {
   registerLoggerHandlers();
   registerWebViewHandlers();
   registerCaptureHandlers();
+  registerProjectHandlers();
+  registerAIHandlers();
+  registerSkillHandlers();
 
   // 初始化定时任务调度器
   // Scheduler.getInstance()

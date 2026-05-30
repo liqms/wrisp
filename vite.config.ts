@@ -4,6 +4,24 @@ import electron from 'vite-plugin-electron'
 import path from 'path'
 import fs from 'fs'
 
+function copyRecursive(src: string, dest: string) {
+  const stat = fs.statSync(src)
+  
+  if (stat.isDirectory()) {
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(dest, { recursive: true })
+    }
+    
+    const files = fs.readdirSync(src)
+    files.forEach(file => {
+      copyRecursive(path.join(src, file), path.join(dest, file))
+    })
+  } else {
+    fs.copyFileSync(src, dest)
+    console.log(`Copied: ${src} -> ${dest}`)
+  }
+}
+
 function copySchemas() {
   const srcPath = path.resolve(__dirname, 'src/main/schemas')
   const destPath = path.resolve(__dirname, 'dist-electron/schemas')
@@ -12,13 +30,10 @@ function copySchemas() {
     if (!fs.existsSync(destPath)) {
       fs.mkdirSync(destPath, { recursive: true })
     }
-
+    
     const files = fs.readdirSync(srcPath)
     files.forEach(file => {
-      const srcFile = path.join(srcPath, file)
-      const destFile = path.join(destPath, file)
-      fs.copyFileSync(srcFile, destFile)
-      console.log(`Copied: ${srcFile} -> ${destFile}`)
+      copyRecursive(path.join(srcPath, file), path.join(destPath, file))
     })
   }
 }

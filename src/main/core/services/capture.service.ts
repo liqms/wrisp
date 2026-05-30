@@ -42,7 +42,7 @@ class CaptureService {
    * 私有构造函数
    * 防止外部实例化
    */
-  private constructor () {
+  private constructor() {
     this.blockDao = new BlockDao();
     this.projectBlockDao = new ProjectBlockDao();
     this.conceptBlockDao = new ConceptBlockDao();
@@ -77,6 +77,7 @@ class CaptureService {
       metadata: block.metadata,
       parent_record_id: block.parent_block_id,
       project_id: null,
+      is_memo: block.is_memo,
       split_index: block.split_index,
       ai_summary: block.ai_summary,
       temporal_score: block.temporal_score,
@@ -97,6 +98,7 @@ class CaptureService {
       id: block.id,
       content: block.content,
       content_type: block.content_type,
+      is_memo: block.is_memo,
       temporal_score: block.temporal_score,
       word_count: block.word_count,
       status: block.status,
@@ -232,6 +234,7 @@ class CaptureService {
           metadata: capture.metadata || {},
           parent_block_id: null,
           split_index: 0,
+          is_memo: capture.is_memo || 0,
           status: "split",
         };
         createdBlockId = this.blockDao.create(parentBlockCreate);
@@ -275,7 +278,7 @@ class CaptureService {
       // 获取并返回创建的记录 ID
       return createdBlockId;
     } catch (error) {
-      Logger.error("创建记录失败", { error, capture });
+      Logger.error("创建记录失败", { error: String(error), capture });
       throw error;
     }
   }
@@ -313,7 +316,7 @@ class CaptureService {
 
       return CaptureDetail;
     } catch (error) {
-      Logger.error("获取记录详情失败", { error, id });
+      Logger.error("获取记录详情失败", { error: String(error), id });
       throw error;
     }
   }
@@ -418,7 +421,7 @@ class CaptureService {
 
       return true;
     } catch (error) {
-      Logger.error("更新记录失败", { error, capture });
+      Logger.error("更新记录失败", { error: String(error), capture });
       return false;
     }
   }
@@ -484,7 +487,7 @@ class CaptureService {
 
       return result > 0;
     } catch (error) {
-      Logger.error("删除记录失败", { error, id });
+      Logger.error("删除记录失败", { error: String(error), id });
       throw error;
     }
   }
@@ -568,7 +571,7 @@ class CaptureService {
         endIndex,
       };
     } catch (error) {
-      Logger.error("查询记录列表失败", { error, query });
+      Logger.error("查询记录列表失败", { error: String(error), query });
       throw error;
     }
   }
@@ -611,7 +614,12 @@ class CaptureService {
       }
       return [];
     } catch (error) {
-      Logger.error("搜索记录失败", { error, keyword, limit, searchType });
+      Logger.error("搜索记录失败", {
+        error: String(error),
+        keyword,
+        limit,
+        searchType,
+      });
       throw error;
     }
   }
@@ -627,7 +635,7 @@ class CaptureService {
       const blocks = this.blockDao.getRecentBlocks(limit, null);
       return blocks.map((block) => this.blockToCaptureListItem(block));
     } catch (error) {
-      Logger.error("获取最近记录失败", { error, limit });
+      Logger.error("获取最近记录失败", { error: String(error), limit });
       throw error;
     }
   }
@@ -648,7 +656,10 @@ class CaptureService {
         return a.split_index - b.split_index;
       });
     } catch (error) {
-      Logger.error("获取带时间衰减分数的记录失败", { error, limit });
+      Logger.error("获取带时间衰减分数的记录失败", {
+        error: String(error),
+        limit,
+      });
       throw error;
     }
   }
@@ -680,7 +691,7 @@ class CaptureService {
         return a.split_index - b.split_index;
       });
     } catch (error) {
-      Logger.error("获取项目关联记录失败", { error, projectId });
+      Logger.error("获取项目关联记录失败", { error: String(error), projectId });
       throw error;
     }
   }
@@ -699,8 +710,10 @@ class CaptureService {
   ): CaptureDateListItem[] {
     try {
       // 如果传入的是日期（YYYY-MM-DD），补全为当日开始/结束时间，保证按天范围查询包含整天记录
-      const normalizeStart = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T00:00:00.000Z` : d);
-      const normalizeEnd = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T23:59:59.999Z` : d);
+      const normalizeStart = (d: string) =>
+        /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T00:00:00.000Z` : d;
+      const normalizeEnd = (d: string) =>
+        /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T23:59:59.999Z` : d;
       const s = normalizeStart(startDate);
       const e = normalizeEnd(endDate);
 
@@ -731,7 +744,7 @@ class CaptureService {
         }));
     } catch (error) {
       Logger.error("根据日期范围查询记录失败", {
-        error,
+        error: String(error),
         startDate,
         endDate,
       });
@@ -758,7 +771,7 @@ class CaptureService {
       );
     } catch (error) {
       Logger.error("添加记录到项目失败", {
-        error,
+        error: String(error),
         recordId,
         projectId,
         relevanceScore,
@@ -776,7 +789,11 @@ class CaptureService {
     try {
       this.projectBlockDao.deleteBy("project_id", projectId, recordId);
     } catch (error) {
-      Logger.error("从项目移除记录失败", { error, recordId, projectId });
+      Logger.error("从项目移除记录失败", {
+        error: String(error),
+        recordId,
+        projectId,
+      });
       throw error;
     }
   }

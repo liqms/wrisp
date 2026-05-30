@@ -1,0 +1,38 @@
+{
+  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "id": "rewrite",
+  "name": "改写",
+  "description": "用不同的表达方式重写文本，保留原意的同时改变措辞和句式结构",
+  "icon": "🔄",
+  "version": "1.0.0",
+  "author": "PenTip Team",
+  "category": ["editing", "rewrite"],
+  "tags": ["rewrite", "rephrase", "paraphrase", "style"],
+  "enabled": true,
+  "promptTemplate": "请改写以下文本，使其风格更{{style}}：\n\n{{text}}\n\n要求：\n1. 保留原文的核心意思\n2. 只输出改写后的结果，不要添加任何解释",
+  "systemPrompt": "你是一个专业的文本改写助手，擅长用不同的方式表达相同的意思。",
+  "parameters": [
+    {
+      "name": "style",
+      "type": "string",
+      "enum": ["professional", "concise", "vivid", "formal", "casual"],
+      "default": "professional",
+      "label": "改写风格",
+      "description": "选择改写后的文本风格",
+      "ui": "dropdown"
+    }
+  ],
+  "inputMapping": {
+    "text": "selectedText"
+  },
+  "postProcess": {
+    "type": "trim"
+  },
+  "example": {
+    "input": {
+      "text": "这个项目需要更多的时间来完成。",
+      "style": "formal"
+    },
+    "output": "本项目在时间安排上有进一步延展的必要。"
+  }
+}

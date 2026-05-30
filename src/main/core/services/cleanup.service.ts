@@ -27,7 +27,7 @@ export interface CleanupResult {
 
 /**
  * 数据库清理服务类
- * 用于清理软删除的数据（status = 0）
+ * 用于清理软删除的数据（status = 'deleted'）
  */
 export class CleanupService {
   /** 单例实例 */

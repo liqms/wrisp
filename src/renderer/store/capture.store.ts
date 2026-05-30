@@ -13,6 +13,17 @@ import type {
 import { ErrorCode, SearchType } from "@/shared/enums";
 import { handleApiError } from "@/renderer/utils/error.utils";
 
+const sortByCreatedAtAsc = (captures: any[]) => {
+  return [...captures].sort(
+    (a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  );
+};
+
+const sortByDateAsc = (groups: CaptureDateListItem[]) => {
+  return [...groups].sort((a, b) => a.date.localeCompare(b.date));
+};
+
 export const useCaptureStore = defineStore("capture", () => {
   const captures = ref<CaptureListItem[]>([]);
   const recentCaptures = ref<CaptureListItem[]>([]);
@@ -50,20 +61,25 @@ export const useCaptureStore = defineStore("capture", () => {
 
       if (response.success && response.data) {
         const detail = response.data as CaptureDetail;
-        // 使用后端返回的完整对象同步到 dateRangeCaptures（按当天分组）
         const dateKey = detail.created_at.slice(0, 10);
         const grp = dateRangeCaptures.value.find((g) => g.date === dateKey);
         if (grp) {
           grp.captures.push(detail as any);
+          grp.captures = sortByCreatedAtAsc(grp.captures);
         } else {
-          dateRangeCaptures.value.push({ date: dateKey, captures: [detail as any] });
+          dateRangeCaptures.value.push({
+            date: dateKey,
+            captures: [detail as any],
+          });
+          dateRangeCaptures.value = sortByDateAsc(dateRangeCaptures.value);
         }
 
-        // 替换引用以确保 Vue 响应式触发（避免某些嵌套变更未刷新视图）
-        dateRangeCaptures.value = dateRangeCaptures.value.map((g) => ({
-          date: g.date,
-          captures: [...g.captures],
-        }));
+        dateRangeCaptures.value = sortByDateAsc(
+          dateRangeCaptures.value.map((g) => ({
+            date: g.date,
+            captures: sortByCreatedAtAsc([...g.captures]),
+          })),
+        );
 
         return detail.id;
       } else {
@@ -96,20 +112,28 @@ export const useCaptureStore = defineStore("capture", () => {
       if (response.success && response.data) {
         const detail = response.data as CaptureDetail;
 
-        // 用后端返回的完整对象替换本地缓存中的对应项
-        captures.value = captures.value.map((r) => (r.id === detail.id ? (detail as any) : r));
-        recentCaptures.value = recentCaptures.value.map((r) => (r.id === detail.id ? (detail as any) : r));
-        searchResults.value = searchResults.value.map((r) => (r.id === detail.id ? (detail as any) : r));
+        captures.value = captures.value.map((r) =>
+          r.id === detail.id ? (detail as any) : r,
+        );
+        recentCaptures.value = recentCaptures.value.map((r) =>
+          r.id === detail.id ? (detail as any) : r,
+        );
+        searchResults.value = searchResults.value.map((r) =>
+          r.id === detail.id ? (detail as any) : r,
+        );
 
         for (const grp of dateRangeCaptures.value) {
-          grp.captures = grp.captures.map((c: any) => (c.id === detail.id ? (detail as any) : c));
+          grp.captures = grp.captures.map((c: any) =>
+            c.id === detail.id ? (detail as any) : c,
+          );
         }
 
-        // 刷新引用
-        dateRangeCaptures.value = dateRangeCaptures.value.map((g) => ({
-          date: g.date,
-          captures: [...g.captures],
-        }));
+        dateRangeCaptures.value = sortByDateAsc(
+          dateRangeCaptures.value.map((g) => ({
+            date: g.date,
+            captures: [...g.captures],
+          })),
+        );
 
         return true;
       } else {
@@ -171,16 +195,17 @@ export const useCaptureStore = defineStore("capture", () => {
         recentCaptures.value = recentCaptures.value.filter((r) => r.id !== id);
         searchResults.value = searchResults.value.filter((r) => r.id !== id);
 
-        // 同步从 dateRangeCaptures 中移除
         for (const grp of dateRangeCaptures.value) {
           grp.captures = grp.captures.filter((c: any) => c.id !== id);
         }
-        dateRangeCaptures.value = dateRangeCaptures.value
-          .map((g) => ({
-            date: g.date,
-            captures: [...g.captures],
-          }))
-          .filter((g) => g.captures.length > 0);
+        dateRangeCaptures.value = sortByDateAsc(
+          dateRangeCaptures.value
+            .map((g) => ({
+              date: g.date,
+              captures: [...g.captures],
+            }))
+            .filter((g) => g.captures.length > 0),
+        );
 
         return true;
       } else {
@@ -281,17 +306,17 @@ export const useCaptureStore = defineStore("capture", () => {
 
       if (response.success && response.data) {
         const data = response.data as CaptureDateListItem[];
-        // 将服务端返回的数据与本地现有数据合并，优先使用服务端数据，避免覆盖刚创建的本地临时项
-        const newGroups = data.map((g) => ({ date: g.date, captures: [...g.captures] }));
+        const newGroups = data.map((g) => ({
+          date: g.date,
+          captures: [...g.captures],
+        }));
 
         const mergedMap = new Map<string, CaptureListItem[]>();
 
-        // 先把服务端返回的放入 map
         for (const g of newGroups) {
           mergedMap.set(g.date, [...g.captures]);
         }
 
-        // 再合并本地现有的，补充缺失的条目（按 id 去重）
         for (const g of dateRangeCaptures.value) {
           const existing = mergedMap.get(g.date);
           if (!existing) {
@@ -308,8 +333,12 @@ export const useCaptureStore = defineStore("capture", () => {
           }
         }
 
-        // 写回并确保捕获数组为新引用，触发视图更新
-        dateRangeCaptures.value = Array.from(mergedMap.entries()).map(([date, captures]) => ({ date, captures: [...captures] })) as unknown as CaptureDateListItem[];
+        dateRangeCaptures.value = sortByDateAsc(
+          Array.from(mergedMap.entries()).map(([date, captures]) => ({
+            date,
+            captures: sortByCreatedAtAsc([...captures]),
+          })),
+        ) as unknown as CaptureDateListItem[];
       } else {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);

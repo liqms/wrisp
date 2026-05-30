@@ -14,6 +14,7 @@ export interface Project {
   updated_at: Timestamp
   ai_summary: Content | null
   structure: JsonMetadata | null
+  metadata: JsonMetadata
 }
 
 export interface ProjectCreate {
@@ -23,6 +24,7 @@ export interface ProjectCreate {
   type?: ProjectType
   ai_summary?: Content | null
   structure?: JsonMetadata | null
+  metadata?: JsonMetadata
   created_at?: Timestamp
   updated_at?: Timestamp
 }
@@ -33,6 +35,7 @@ export interface ProjectUpdate {
   type?: ProjectType
   ai_summary?: Content | null
   structure?: JsonMetadata | null
+  metadata?: JsonMetadata
   updated_at?: Timestamp
 }
 

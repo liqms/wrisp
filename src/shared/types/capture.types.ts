@@ -4,6 +4,7 @@ import {
   Content,
   QueryParams,
   JsonMetadata,
+  BooleanFlag,
 } from "./base.types";
 import {
   type ContentType,
@@ -23,6 +24,7 @@ export interface CaptureInfo {
   parent_record_id: Id | null;
   project_id: Id | null;
   split_index: number;
+  is_memo: BooleanFlag;
   ai_summary: Content | null;
   temporal_score: number;
   word_count: number;
@@ -37,6 +39,7 @@ export interface CaptureCreate {
   source?: CaptureSource;
   metadata?: JsonMetadata;
   project_id?: Id | null;
+  is_memo?: BooleanFlag;
 }
 
 export interface CaptureUpdate {
@@ -44,12 +47,14 @@ export interface CaptureUpdate {
   content?: Content;
   metadata?: JsonMetadata;
   project_id?: Id | null;
+  is_memo?: BooleanFlag;
 }
 
 export interface CaptureQuery extends QueryParams {
   source?: CaptureSource;
   project_id?: Id | null;
   content_type?: ContentType;
+  is_memo?: BooleanFlag;
   parent_record_id?: Id | null;
   temporal_score_min?: number;
   temporal_score_max?: number;
@@ -59,6 +64,7 @@ export interface CaptureListItem {
   id: Id;
   content: Content;
   content_type: ContentType;
+  is_memo: BooleanFlag;
   temporal_score: number;
   word_count: number;
   status: CaptureStatus;

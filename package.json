@@ -17,6 +17,7 @@
     "clean": "del /Q /S dist-renderer dist-electron release node_modules\\.vite"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
     "@element-plus/icons-vue": "^2.3.2",
     "@lancedb/lancedb": "^0.27.2",
     "@tiptap/core": "^3.23.4",
@@ -34,11 +35,15 @@
     "@tiptap/starter-kit": "^3.23.4",
     "@tiptap/vue-3": "^3.23.4",
     "@vicons/ionicons5": "^0.13.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "apache-arrow": "^21.1.0",
+    "axios": "^1.16.1",
     "better-sqlite3": "^12.9.0",
     "electron-store": "^11.0.2",
     "marked": "^18.0.4",
     "naive-ui": "^2.44.1",
+    "openai": "^6.39.1",
     "pinia": "^3.0.4",
     "turndown": "^7.2.4",
     "vue": "^3.5.32",

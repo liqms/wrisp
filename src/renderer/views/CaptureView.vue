@@ -1,7 +1,7 @@
 <template>
   <n-flex class="capture-view" vertical>
     <n-spin v-if="loading" class="loading" />
-    <n-scrollbar ref="scrollbarRef" v-else>
+    <n-scrollbar ref="scrollbarRef" @scroll="onScroll" v-else>
       <template v-for="group in dateGroups" :key="group.date">
         <n-flex class="date-group" vertical>
           <n-flex class="date-header" align="center">
@@ -9,13 +9,23 @@
           </n-flex>
           <n-divider class="header-line" />
 
-          <n-flex v-for="(capture, idx) in group.captures.filter(c => c && (c.id || c.content))"
-            :key="capture.id || `${group.date}-${idx}`" class="capture-item" vertical>
+          <n-flex
+            v-for="(capture, idx) in group.captures.filter(
+              (c) => c && (c.id || c.content),
+            )"
+            :key="capture.id || `${group.date}-${idx}`"
+            class="capture-item"
+            vertical
+          >
             <SemanticBlockItem v-if="capture" :block="capture" />
           </n-flex>
         </n-flex>
       </template>
-      <n-empty v-if="dateGroups.length === 0" description="暂无记录" class="empty" />
+      <n-empty
+        v-if="dateGroups.length === 0"
+        description="暂无记录"
+        class="empty"
+      />
     </n-scrollbar>
     <NewBlockCreator class="new-block-creator-wrapper" />
     <n-flex align="center" justify="center">
@@ -35,14 +45,21 @@ import { useCapture } from "@/renderer/composables/useCapture";
 import type { SemanticBlock } from "@/renderer/components/editor/SemanticGroup";
 import { useConfig } from "@/renderer/composables/useConfig";
 
-const { dateRangeCaptures, loading, getCapturesByDateRange, clearCaptures } = useCapture();
+const { dateRangeCaptures, loading, getCapturesByDateRange, clearCaptures } =
+  useCapture();
 const { workspace } = useConfig();
 
 const scrollbarRef = ref<any>(null);
-const initialScrolled = ref(false);
+const scrollTop = ref(0);
 let prevTotalCount = 0;
 
-/** 将 CaptureInfo 转换为 SemanticBlock（content 已是 Markdown 字符串） */
+function onScroll(e: Event) {
+  const target = e.target as HTMLElement;
+  if (target) {
+    scrollTop.value = target.scrollTop;
+  }
+}
+
 function toSemanticBlock(capture: any): SemanticBlock {
   return {
     id: capture.id,
@@ -63,6 +80,14 @@ const dateGroups = computed(() =>
   })),
 );
 
+function scrollToBottom() {
+  setTimeout(() => {
+    nextTick(() => {
+      scrollbarRef.value?.scrollTo({ top: 99999 });
+    });
+  }, 100);
+}
+
 async function loadData() {
   const now = new Date();
   const endDate = now.toISOString().slice(0, 10);
@@ -71,39 +96,46 @@ async function loadData() {
     .slice(0, 10);
   await getCapturesByDateRange(startDate, endDate);
   prevTotalCount = dateRangeCaptures.value.reduce(
-    (sum, g) => sum + g.captures.length, 0,
+    (sum, g) => sum + g.captures.length,
+    0,
   );
-
-  nextTick(() => {
-    scrollbarRef.value?.scrollTo({ top: 999999 });
-    initialScrolled.value = true;
-  });
+  scrollToBottom();
 }
 
-// 仅新增数据时自动滚动到底部（忽略编辑等变更）
-watch(dateRangeCaptures, () => {
-  if (!initialScrolled.value) return;
-  const currentTotal = dateRangeCaptures.value.reduce(
-    (sum, g) => sum + g.captures.length, 0,
-  );
-  if (currentTotal > prevTotalCount) {
-    nextTick(() => {
-      scrollbarRef.value?.scrollTo({ top: 999999 });
-    });
-  }
-  prevTotalCount = currentTotal;
-}, { deep: true });
+watch(
+  dateRangeCaptures,
+  () => {
+    const currentTotal = dateRangeCaptures.value.reduce(
+      (sum, g) => sum + g.captures.length,
+      0,
+    );
+    const isAdding = currentTotal > prevTotalCount;
+    const savedScrollTop = scrollTop.value;
 
-// 工作空间发生变化时重新加载数据
-watch(() => workspace.value, async () => {
-  clearCaptures();
-  await loadData();
-});
+    prevTotalCount = currentTotal;
+
+    nextTick(() => {
+      if (isAdding) {
+        scrollToBottom();
+      } else if (prevTotalCount > 0 && savedScrollTop > 0) {
+        scrollbarRef.value?.scrollTo({ top: savedScrollTop });
+      }
+    });
+  },
+  { deep: true, flush: "pre" },
+);
+
+watch(
+  () => workspace.value,
+  async () => {
+    clearCaptures();
+    await loadData();
+  },
+);
 
 onMounted(async () => {
   await loadData();
 });
-
 </script>
 
 <style lang="scss" scoped>
@@ -122,8 +154,6 @@ onMounted(async () => {
 
 .date-header {
   padding: $spacing-xs 0 $spacing-sm;
-  // border-bottom: 1px solid var(--border-color);
-  // margin-bottom: $spacing-sm;
 }
 
 .date-header-text {
@@ -136,17 +166,12 @@ onMounted(async () => {
 }
 
 .capture-item {
-  // padding: $spacing-sm;
-  // border-radius: $radius-md;
-  // background: var(--bg-secondary);
   margin-bottom: $spacing-sm;
-  // border-left: 1px solid var(--border-color);
 }
 
 .capture-content-type {
   font-size: $font-xs;
   color: var(--text-secondary);
-  // margin-bottom: $spacing-xs;
 }
 
 .empty {

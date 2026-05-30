@@ -1,0 +1,38 @@
+{
+  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "id": "tone",
+  "name": "语气转化",
+  "description": "调整文本的语气和表达方式，使其符合特定的沟通场景和受众需求",
+  "icon": "🎭",
+  "version": "1.0.0",
+  "author": "PenTip Team",
+  "category": ["editing", "tone"],
+  "tags": ["tone", "style", "voice", "mood"],
+  "enabled": true,
+  "promptTemplate": "请将以下文本的语气转化为{{tone}}风格：\n\n{{text}}\n\n要求：\n1. 保留原文的核心意思\n2. 调整语气和表达方式以匹配目标风格\n3. 只输出转化后的结果，不要添加任何解释",
+  "systemPrompt": "你是一个专业的语气转化助手，擅长根据不同的场景和受众调整文本的语气和表达方式。",
+  "parameters": [
+    {
+      "name": "tone",
+      "type": "string",
+      "enum": ["正式", "轻松", "幽默", "严肃", "温暖"],
+      "default": "正式",
+      "label": "语气风格",
+      "description": "选择目标语气风格",
+      "ui": "dropdown"
+    }
+  ],
+  "inputMapping": {
+    "text": "selectedText"
+  },
+  "postProcess": {
+    "type": "trim"
+  },
+  "example": {
+    "input": {
+      "text": "你这个方案不行，得重新做。",
+      "tone": "温暖"
+    },
+    "output": "你的方案有一些可以改进的地方，我们一起调整一下，相信可以做得更好。"
+  }
+}

@@ -3,6 +3,7 @@ import {
   ThemeColor,
   Locale,
   UpdateChannel,
+  AiMode,
 } from "@/shared/enums/config.enums";
 
 export interface General {
@@ -68,6 +69,23 @@ export interface DefaultModel {
   modelId: string;
 }
 
+export interface FailoverConfig {
+  maxRetries: number;
+  retryDelayMs: number;
+  circuitBreakerThreshold: number;
+  cooldownMs: number;
+}
+
+export interface SkillsConfig {
+  remoteUpdateEnabled: boolean;
+  remoteUpdateUrl: string;
+}
+
+export interface KeymapItem {
+  id: string;
+  keys: string;
+}
+
 export interface AppConfig {
   general: General; // 通用配置
   miniPrograms: MiniProgram[]; // 小程序列表
@@ -81,4 +99,9 @@ export interface AppConfig {
   isFirstLaunch: boolean; // 是否首次启动
   isUpdateLaunch: boolean; // 是否更新后首次启动
   updatedAt: string; // 更新时间
+  providerPriority: string[]; // AI Provider 优先级顺序
+  failoverConfig: FailoverConfig; // 降级/熔断配置
+  skillsConfig: SkillsConfig; // Skills 远程更新配置
+  shortcuts: KeymapItem[];
+  aiMode: AiMode;
 }

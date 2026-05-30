@@ -17,6 +17,7 @@ import type {
 import type { LOG_LEVEL, SearchType } from "@/shared/enums";
 import type { LogContext } from "@/main/utils/logger";
 import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
+import type { ProjectCreate, ProjectUpdate } from "@/main/types/db";
 
 // 定义 IPC API 接口类型（与 preload.ts 保持一致）
 export interface ElectronAPI {
@@ -79,8 +80,12 @@ export interface ElectronAPI {
   };
   // Capture 相关
   capture: {
-    createCapture(record: CaptureCreate): Promise<ApiResponse<CaptureDetail | null>>;
-    updateCapture(record: CaptureUpdate): Promise<ApiResponse<CaptureDetail | null>>;
+    createCapture(
+      record: CaptureCreate,
+    ): Promise<ApiResponse<CaptureDetail | null>>;
+    updateCapture(
+      record: CaptureUpdate,
+    ): Promise<ApiResponse<CaptureDetail | null>>;
     getRecentCaptures(limit?: number): Promise<ApiResponse<CaptureListItem[]>>;
     deleteCapture(id: Id): Promise<ApiResponse<null>>;
     searchCaptures(
@@ -94,6 +99,28 @@ export interface ElectronAPI {
       startDate: string,
       endDate: string,
     ): Promise<ApiResponse<CaptureDateListItem[]>>;
+  };
+  // Project 相关
+  project: {
+    get(id: string): Promise<ApiResponse<Project | null>>;
+    paginate(params: {
+      page?: number;
+      pageSize?: number;
+      orderBy?: string;
+      orderDir?: "ASC" | "DESC";
+      conditions?: ProjectQuery;
+    }): Promise<ApiResponse<PaginationResult<Project>>>;
+    getWithStats(id: string): Promise<ApiResponse<ProjectWithStats | null>>;
+    getAllWithStats(): Promise<ApiResponse<ProjectWithStats[]>>;
+    findByName(name: string): Promise<ApiResponse<Project | null>>;
+    findByType(type: string): Promise<ApiResponse<Project[]>>;
+    create(data: ProjectCreate): Promise<ApiResponse<string>>;
+    update(id: string, data: ProjectUpdate): Promise<ApiResponse<number>>;
+    delete(id: string): Promise<ApiResponse<number>>;
+    checkNameExists(
+      name: string,
+      excludeId?: string,
+    ): Promise<ApiResponse<boolean>>;
   };
 
   // 通用 IPC 方法（保持向后兼容）

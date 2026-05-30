@@ -6,3 +6,4 @@ export * from "./config.types";
 export * from "./webview.types";
 export * from "./menu.types";
 export * from "./capture.types";
+export * from "./skill.types";

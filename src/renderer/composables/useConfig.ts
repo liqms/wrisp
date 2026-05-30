@@ -7,6 +7,8 @@ import {
   THEME_COLOR,
   ErrorCode,
   ThemeMode,
+  AI_MODE,
+  AiMode,
 } from "@/shared/enums";
 import { logger } from "@/renderer/utils/logger.utils";
 import { useFrontendNotification } from "@/renderer/composables/useNotification";
@@ -36,6 +38,8 @@ export function useConfig(options: UseConfigOptions = {}) {
   // 响应式状态
   const config = computed(() => configStore.config);
   const loading = computed(() => configStore.loading);
+  const isLoaded = computed(() => configStore.isLoaded);
+
   const errorCode = computed(() => configStore.errorCode);
   const errorMessage = computed(() => configStore.errorMessage);
 
@@ -44,13 +48,14 @@ export function useConfig(options: UseConfigOptions = {}) {
   const currentProjectId = computed(() => config.value?.currentProjectId ?? "");
   const workspace = computed(() => config.value?.workspace ?? "");
 
-  // 模型相关
+  // AI相关
   const miniPrograms = computed(() => config.value?.miniPrograms ?? null);
   const defaultMiniProgramId = computed(
     () => config.value?.defaultMiniProgramId ?? "",
   );
   const aiProviders = computed(() => config.value?.aiProviders ?? "deepseek");
   const defaultModels = computed(() => config.value?.defaultModels ?? []);
+  const aiMode = computed(() => config.value?.aiMode ?? AI_MODE.BASE);
 
   // 主题相关
   const themeMode = computed(
@@ -87,6 +92,8 @@ export function useConfig(options: UseConfigOptions = {}) {
 
   // 版本和升级相关
   const version = computed(() => config.value?.version ?? "1.0.0");
+
+  const shortcuts = computed(() => config.value?.shortcuts ?? []);
 
   /**
    * 带重试机制的初始化配置
@@ -259,6 +266,19 @@ export function useConfig(options: UseConfigOptions = {}) {
     return await setValue("isUpdateLaunch", newIsUpdateLaunch);
   }
 
+  async function updateShortcuts(
+    newShortcuts: { id: string; keys: string }[],
+  ): Promise<boolean> {
+    return await setValue("shortcuts", newShortcuts);
+  }
+
+  /**
+   * 更新AI模式
+   */
+  async function updateAiMode(newAiMode: AiMode): Promise<boolean> {
+    return await setValue("aiMode", newAiMode);
+  }
+
   /**
    * 重置配置
    */
@@ -350,6 +370,7 @@ export function useConfig(options: UseConfigOptions = {}) {
     // 状态
     config,
     loading,
+    isLoaded,
     errorCode,
     errorMessage,
 
@@ -369,6 +390,8 @@ export function useConfig(options: UseConfigOptions = {}) {
     themeColor,
     locale,
     version,
+    shortcuts,
+    aiMode,
 
     // 核心方法
     init,
@@ -386,6 +409,8 @@ export function useConfig(options: UseConfigOptions = {}) {
     updateCurrentProjectId,
     updateIsFirstLaunch,
     updateIsUpdateLaunch,
+    updateShortcuts,
+    updateAiMode,
     reset,
     clearError,
 
