@@ -27,4 +27,4 @@ export interface NotificationMessage extends BaseNotification {
 
 export interface NotificationOptions extends Partial<Omit<NotificationMessage, 'id' | 'level' | 'content' | 'timestamp'>> { }
 
-export const NOTIFICATION_CHANNEL = 'app:notification';
+export const NOTIFICATION_CHANNEL = 'notification:show';

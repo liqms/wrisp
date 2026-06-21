@@ -22,13 +22,13 @@ export const UPDATE_CHANNEL = {
 export type UpdateChannel =
   (typeof UPDATE_CHANNEL)[keyof typeof UPDATE_CHANNEL];
 
-export const MODEL_TYPE = {
+export const OUTPUT_MODEL_TYPE = {
   TEXT: "text",
   IMAGE: "image",
   AUDIO: "audio",
   VIDEO: "video",
 };
-export type ModelType = (typeof MODEL_TYPE)[keyof typeof MODEL_TYPE];
+export type OutputModelType = (typeof OUTPUT_MODEL_TYPE)[keyof typeof OUTPUT_MODEL_TYPE];
 
 export const THEME_COLOR = {
   RED: "red",
@@ -43,9 +43,3 @@ export const THEME_COLOR = {
 };
 export type ThemeColor = (typeof THEME_COLOR)[keyof typeof THEME_COLOR];
 
-export const AI_MODE = {
-  BASE: "base",
-  CORE: "core",
-  PRO: "pro",
-};
-export type AiMode = (typeof AI_MODE)[keyof typeof AI_MODE];

@@ -1,10 +1,9 @@
 import { ProjectDao } from "@/main/core/db";
 import type {
-  Project,
   ProjectCreate,
   ProjectUpdate,
   ProjectQuery,
-  ProjectWithStats,
+  ProjectDetail,
 } from "@/main/types/db";
 import { PaginationResult } from "@/shared/utils/pagination";
 import { Logger } from "@/main/utils/logger";
@@ -32,15 +31,15 @@ class ProjectService {
   }
 
   /**
-   * 根据 ID 获取作品
+   * 获取作品详情（含统计和标签）
    * @param id 作品 ID
-   * @returns 作品对象，不存在时返回 null
+   * @returns 作品详情对象，不存在时返回 null
    */
-  public getProject(id: string): Project | null {
+  public getProject(id: string): ProjectDetail | null {
     try {
-      return this.projectDao.findById(id);
+      return this.projectDao.findDetail(id);
     } catch (error) {
-      Logger.error("获取作品失败", { error: String(error), id });
+      Logger.error("获取作品详情失败", { error: String(error), id });
       throw error;
     }
   }
@@ -60,70 +59,19 @@ class ProjectService {
     orderBy?: string;
     orderDir?: "ASC" | "DESC";
     conditions?: ProjectQuery;
-  }): PaginationResult<Project> {
+  }): PaginationResult<ProjectDetail> {
     try {
-      return this.projectDao.paginate({
+      // 默认排除已删除的作品
+      const conditions = (params.conditions || {}) as Record<string, unknown>;
+      if (!conditions.status) {
+        conditions.status = 'active';
+      }
+      return this.projectDao.paginateDetail({
         ...params,
-        conditions: params.conditions as Record<string, unknown> | undefined,
+        conditions,
       });
     } catch (error) {
       Logger.error("分页查询作品失败", { error: String(error), params });
-      throw error;
-    }
-  }
-
-  /**
-   * 获取作品及其关联统计信息
-   * @param id 作品 ID
-   * @returns 包含统计信息的作品对象，不存在时返回 null
-   */
-  public getProjectWithStats(id: string): ProjectWithStats | null {
-    try {
-      return this.projectDao.findWithStats(id);
-    } catch (error) {
-      Logger.error("获取作品统计信息失败", { error: String(error), id });
-      throw error;
-    }
-  }
-
-  /**
-   * 获取所有作品及其关联统计信息
-   * @returns 包含统计信息的作品列表
-   */
-  public getAllProjectsWithStats(): ProjectWithStats[] {
-    try {
-      return this.projectDao.findWithStats();
-    } catch (error) {
-      Logger.error("获取作品统计列表失败", { error: String(error) });
-      throw error;
-    }
-  }
-
-  /**
-   * 根据名称查询作品
-   * @param name 作品名称
-   * @returns 作品对象，不存在时返回 null
-   */
-  public findProjectByName(name: string): Project | null {
-    try {
-      const results = this.projectDao.findBy("name", name);
-      return results[0] ?? null;
-    } catch (error) {
-      Logger.error("根据名称查询作品失败", { error: String(error), name });
-      throw error;
-    }
-  }
-
-  /**
-   * 根据类型查询作品列表
-   * @param type 作品类型
-   * @returns 作品列表
-   */
-  public findProjectsByType(type: string): Project[] {
-    try {
-      return this.projectDao.findBy("type", type);
-    } catch (error) {
-      Logger.error("根据类型查询作品失败", { error: String(error), type });
       throw error;
     }
   }
@@ -135,7 +83,11 @@ class ProjectService {
    */
   public createProject(data: ProjectCreate): string {
     try {
-      const id = this.projectDao.create(data);
+      const { tags, ...projectData } = data;
+      const id = this.projectDao.create(projectData);
+      if (tags && tags.length > 0) {
+        this.projectDao.saveTags(id, tags);
+      }
       Logger.info("创建作品成功", { id, name: data.name });
       return id;
     } catch (error) {
@@ -152,8 +104,12 @@ class ProjectService {
    */
   public updateProject(id: string, data: ProjectUpdate): number {
     try {
-      const changes = this.projectDao.update(id, data);
+      const { tags, ...projectData } = data;
+      const changes = this.projectDao.update(id, projectData);
       if (changes > 0) {
+        if (tags !== undefined) {
+          this.projectDao.saveTags(id, tags);
+        }
         Logger.info("更新作品成功", { id });
       }
       return changes;
@@ -170,13 +126,10 @@ class ProjectService {
    */
   public deleteProject(id: string): number {
     try {
-      const changes = this.projectDao.delete(id);
-      if (changes > 0) {
-        Logger.info("删除作品成功", { id });
-      }
-      return changes;
+      Logger.info("[ProjectService] 软删除作品", { id });
+      return this.projectDao.update(id, { status: 'deleted' } as ProjectUpdate);
     } catch (error) {
-      Logger.error("删除作品失败", { error: String(error), id });
+      Logger.error("[ProjectService] 软删除作品失败", { id, error: String(error) });
       throw error;
     }
   }

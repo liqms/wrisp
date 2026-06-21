@@ -159,3 +159,5 @@ export class TopicConceptDao extends BaseDao<TopicConcept, TopicConceptCreate, T
     return { sql, values }
   }
 }
+
+export const topicConceptDao = new TopicConceptDao()

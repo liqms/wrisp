@@ -14,6 +14,8 @@ export interface DownloadProgress {
   status: DownloadStatus;
   error?: string;
   localPath?: string;
+  groupId?: string;
+  fileName?: string;
 }
 
 export interface DownloadTask {
@@ -27,4 +29,6 @@ export interface DownloadTask {
   error?: string;
   localPath?: string;
   abortController?: AbortController;
+  groupId?: string;
+  fileName?: string;
 }

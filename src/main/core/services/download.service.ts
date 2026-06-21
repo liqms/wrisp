@@ -23,6 +23,8 @@ interface QueueItem {
   taskId: string;
   resolve: (path: string) => void;
   reject: (error: Error) => void;
+  groupId?: string;
+  fileName?: string;
 }
 
 const httpClient = new HttpClient();
@@ -84,7 +86,7 @@ class DownloadService {
     return this;
   }
 
-  public download(url: string, subDir: string): Promise<string> {
+  public download(url: string, subDir: string, options?: { groupId?: string; fileName?: string }): Promise<string> {
     return new Promise((resolve, reject) => {
       const taskId = NodeCryptoUtil.generateUUID();
       const fullSubDir = path.join(this.cachePath, subDir);
@@ -99,12 +101,14 @@ class DownloadService {
         progress: 0,
         downloadedBytes: 0,
         totalBytes: 0,
+        groupId: options?.groupId,
+        fileName: options?.fileName,
       };
       this.tasks.set(taskId, task);
 
       this.notifyProgress(task);
 
-      this.pendingQueue.push({ url, subDir, taskId, resolve, reject });
+      this.pendingQueue.push({ url, subDir, taskId, resolve, reject, groupId: options?.groupId, fileName: options?.fileName });
       this.processQueue();
     });
   }
@@ -215,6 +219,8 @@ class DownloadService {
       status: task.status,
       error: task.error,
       localPath: task.localPath,
+      groupId: task.groupId,
+      fileName: task.fileName,
     };
   }
 
@@ -243,6 +249,33 @@ class DownloadService {
 
   public removeTask(taskId: string): void {
     this.tasks.delete(taskId);
+  }
+
+  /**
+   * 按 groupId 取消所有下载任务
+   * @param groupId 分组 ID
+   * @returns 取消的任务数量
+   */
+  public cancelByGroup(groupId: string): number {
+    let count = 0;
+    for (const [taskId, task] of this.tasks) {
+      if (task.groupId === groupId && task.status !== "completed" && task.status !== "failed") {
+        task.status = "cancelled";
+        task.abortController?.abort();
+        this.notifyProgress(task);
+        this.tasks.delete(taskId);
+        count++;
+      }
+    }
+    // 同时清理 pending 队列中匹配的任务
+    this.pendingQueue = this.pendingQueue.filter((item) => {
+      if (item.groupId === groupId) {
+        count++;
+        return false;
+      }
+      return true;
+    });
+    return count;
   }
 
   public getAllTasks(): DownloadProgress[] {

@@ -2,7 +2,7 @@ import { Id, Timestamp, Ensure, NonEmptyString, Name, Content, QueryParams } fro
 
 export type TopicId = Id
 
-export type TopicStatus = 'pending' | 'confirmed' | 'archived'
+export type TopicStatus = 'active' | 'deleted'
 
 export interface Topic {
   id: TopicId
@@ -43,4 +43,23 @@ export interface TopicWithDetails extends Topic {
   block_count: number
   concept_count: number
   blocks_preview: Content[]
+}
+
+export interface TopicWithConceptsAndBlocks extends Topic {
+  block_count: number;
+  concept_count: number;
+  concepts: ConceptSummary[];
+  blocks: BlockSummary[];
+}
+
+export interface ConceptSummary {
+  id: string;
+  title: string;
+  relevance: number;
+}
+
+export interface BlockSummary {
+  id: string;
+  content: string;
+  relevance_score: number;
 }

@@ -3,7 +3,6 @@ import {
   ThemeColor,
   Locale,
   UpdateChannel,
-  AiMode,
 } from "@/shared/enums/config.enums";
 
 export interface General {
@@ -39,36 +38,6 @@ export interface UserInfo {
   };
 }
 
-export interface AIProvider {
-  id: string;
-  name: string;
-  models: Model[];
-  apiKey: string;
-  logoPath: string;
-  baseUrl: string;
-  websiteUrl?: string;
-  enabled: boolean;
-}
-
-export interface Model {
-  id: string;
-  name: string;
-  type: string;
-  logoPath: string;
-  contextLength: number;
-  maxTokens: number;
-  isInputText: boolean;
-  isInputPic: boolean;
-  isInputAudio: boolean;
-  isInputVideo: boolean;
-  isDefault?: boolean;
-}
-export interface DefaultModel {
-  type: string;
-  providerId: string;
-  modelId: string;
-}
-
 export interface FailoverConfig {
   maxRetries: number;
   retryDelayMs: number;
@@ -91,17 +60,14 @@ export interface AppConfig {
   miniPrograms: MiniProgram[]; // 小程序列表
   defaultMiniProgramId?: string; // 默认小程序ID
   userInfo: UserInfo; // 用户信息
-  aiProviders: AIProvider[]; // AI提供方列表
-  defaultModels: DefaultModel[]; // 默认模型列表
   version: string; // 配置版本
   workspace: string; // 工作目录
   currentProjectId?: string; // 当前选择的项目ID
   isFirstLaunch: boolean; // 是否首次启动
   isUpdateLaunch: boolean; // 是否更新后首次启动
   updatedAt: string; // 更新时间
-  providerPriority: string[]; // AI Provider 优先级顺序
   failoverConfig: FailoverConfig; // 降级/熔断配置
   skillsConfig: SkillsConfig; // Skills 远程更新配置
-  shortcuts: KeymapItem[];
-  aiMode: AiMode;
+  shortcuts?: KeymapItem[]; // 快捷键配置
+
 }

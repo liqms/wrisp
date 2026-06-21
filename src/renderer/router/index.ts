@@ -3,6 +3,7 @@ import MenuLayout from "../layouts/MenuLayout.vue";
 import ChatView from "../views/webview/ChatView.vue";
 import WelcomeView from "../views/Welcome.vue";
 import CaptureView from "../views/CaptureView.vue";
+import ProjectView from "../views/ProjectView.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -29,6 +30,11 @@ const routes: RouteRecordRaw[] = [
         path: "chat",
         name: "Chat",
         component: ChatView,
+      },
+      {
+        path: "projects",
+        name: "Projects",
+        component: ProjectView,
       },
     ],
   },

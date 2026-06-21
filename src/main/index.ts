@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen } from "electron";
+import { app, BrowserWindow, ipcMain, screen } from "electron";
 import path from "path";
 import { Logger } from "@/main/utils/logger";
 import dotenv from "dotenv";
@@ -23,11 +23,21 @@ import {
   registerProjectHandlers,
   registerAIHandlers,
   registerSkillHandlers,
+  registerModelHandlers,
+  registerTagHandlers,
+  registerPageHandlers,
+  registerThinkHandlers,
+  registerSmartTaskHandlers,
+  registerTaskHandlers,
 } from "@/main/ipcMain";
 import { databaseMigration } from "@/main/core/migration";
 import { setWorkspacePath } from "@/main/core/db/connection";
 import { registerProtocolHandler } from "@/main/protocol";
 import { skillManager } from "@/main/core/skills/skill.manager";
+import { vectorService } from "@/main/core/services/vector.service";
+import { taskQueue, taskExecutor } from "@/main/core/task-queue";
+import { downloadService } from "@/main/core/services/download.service";
+import { setupDownloadListeners } from "@/main/preload/listeners/download";
 
 // 使用传统的 Node.js 路径处理方式
 const __dirname = path.dirname(__filename || process.argv[1] || ".");
@@ -103,6 +113,29 @@ app.whenReady().then(async () => {
   await initializeDatabase();
   registerProtocolHandler();
   skillManager.initialize();
+
+  // 恢复中断的任务队列
+  await taskQueue.resetRunningTasks();
+
+  // 检查是否有未完成的任务，需要用户确认续传
+  const hasPendingTasks = taskQueue.countPending() > 0;
+  if (hasPendingTasks) {
+    Logger.info("[App] 发现未完成的任务，等待用户确认续传", {
+      count: taskQueue.countPending(),
+      summary: taskQueue.getPendingSummary(),
+    });
+  } else {
+    // 无未完成任务，正常启动工作器
+    taskExecutor.startWorkers(3);
+  }
+
+  // 注册模型下载任务处理器
+  taskExecutor.registerHandler("model:download-file", async (task) => {
+    const payload = typeof task.payload === "string" ? JSON.parse(task.payload) : task.payload;
+    const { url, subDir, groupId, fileName } = payload ?? {};
+    await downloadService.download(url, subDir, { groupId, fileName });
+  });
+
   createWindow();
   registerWindowHandlers();
   registerConfigHandlers();
@@ -113,6 +146,39 @@ app.whenReady().then(async () => {
   registerProjectHandlers();
   registerAIHandlers();
   registerSkillHandlers();
+  registerModelHandlers();
+  registerTagHandlers();
+  registerPageHandlers();
+  registerThinkHandlers();
+  registerSmartTaskHandlers();
+  registerTaskHandlers();
+
+  // 启动下载事件监听（将 DownloadService 事件桥接到渲染进程）
+  setupDownloadListeners();
+
+  // 如果有待续传任务，发送到渲染进程让用户确认
+  if (hasPendingTasks) {
+    const summary = taskQueue.getPendingSummary();
+    BrowserWindow.getAllWindows().forEach((win) => {
+      win.webContents.send("task:pending", summary);
+    });
+
+    // 监听用户确认/取消续传
+    ipcMain.once("task:confirmResume", () => {
+      Logger.info("[App] 用户确认续传任务");
+      taskExecutor.startWorkers(3);
+    });
+    ipcMain.once("task:cancelResume", () => {
+      Logger.info("[App] 用户取消续传任务");
+    });
+  }
+
+  // 初始化向量数据库服务
+  try {
+    await vectorService.initialize();
+  } catch (error) {
+    Logger.error("向量数据库服务初始化失败", { error: String(error) });
+  }
 
   // 初始化定时任务调度器
   // Scheduler.getInstance()

@@ -49,7 +49,7 @@ import { useI18n } from "vue-i18n";
 import type { MenuOption } from "naive-ui";
 import { NIcon } from "naive-ui";
 import type { Component } from "vue";
-import { Book, TodayOutline, Add, ChatbubbleEllipsesOutline } from "@vicons/ionicons5";
+import { BookOutline, TodayOutline, Add, ChatbubbleEllipsesOutline } from "@vicons/ionicons5";
 import AppHeader from "../components/AppHeader.vue";
 
 const { t } = useI18n();
@@ -69,6 +69,11 @@ const menuOptions = computed<MenuOption[]>(() => [
     icon: renderIcon(TodayOutline),
   },
   {
+    label: "作品",
+    key: "projects",
+    icon: renderIcon(BookOutline),
+  },
+  {
     label: t("APP.BASE.CHAT"),
     key: "chat",
     icon: renderIcon(ChatbubbleEllipsesOutline),
@@ -80,6 +85,7 @@ const routeConfigMap: Record<string, { key: string; path: string }> = {
   think: { key: "think", path: "/think" },
   create: { key: "create", path: "/create" },
   chat: { key: "chat", path: "/chat" },
+  projects: { key: "projects", path: "/projects" },
 };
 
 const handleMenuClick = (key: string) => {

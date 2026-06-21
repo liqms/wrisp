@@ -4,3 +4,7 @@ export * from "./system.api";
 export * from "./logger.api";
 export * from "./capture.api";
 export * from "./project.api";
+export * from "./page.api";
+export * from "./think.api";
+export * from "./smart-task.api";
+export * from "./task.api";

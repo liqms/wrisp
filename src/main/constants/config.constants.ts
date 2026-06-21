@@ -3,11 +3,8 @@ import {
   THEME_MODE,
   LOCALE,
   UPDATE_CHANNEL,
-  MODEL_TYPE,
   THEME_COLOR,
-  AI_MODE,
 } from "@/shared/enums";
-import { DEFAULT_PROVIDER } from "./aiProvider.constant";
 import { TimeUtil } from "@/shared/utils";
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
@@ -59,22 +56,12 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       notification: true,
     },
   },
-  aiProviders: DEFAULT_PROVIDER,
-  defaultModels: [
-    {
-      type: MODEL_TYPE.TEXT,
-      providerId: "deepseek",
-      modelId: "deepseek-v4-flash",
-    },
-  ],
-
   version: "0.0.0",
   workspace: "",
   currentProjectId: "",
   isFirstLaunch: true,
   isUpdateLaunch: false,
   updatedAt: "",
-  providerPriority: ["deepseek", "volcengine"],
   failoverConfig: {
     maxRetries: 2,
     retryDelayMs: 1000,
@@ -86,5 +73,4 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     remoteUpdateUrl: "",
   },
   shortcuts: [],
-  aiMode: AI_MODE.BASE,
 };

@@ -3,7 +3,7 @@
     <!-- 左侧按钮 -->
     <n-flex class="controls-wrapper">
       <n-button @click="handleMenuClick" class="control-btn" text :title="$t('APP.BASE.MENU')">
-        <n-icon>
+        <n-icon size="14">
           <Menu />
         </n-icon>
       </n-button>
@@ -12,16 +12,30 @@
     <!-- 标题 -->
     <n-text class="title">{{ title }}</n-text>
 
+    <!-- 下载进度按钮 -->
+    <n-popover v-if="isDownloadActive" trigger="click" placement="bottom-end" class="download-progress-popover">
+      <template #trigger>
+        <n-button class="control-btn" text :title="$t('DOWNLOAD.TITLE')">
+          <n-badge :value="activeDownloadCount" dot>
+            <n-icon size="17">
+              <ArrowDownCircleOutline />
+            </n-icon>
+          </n-badge>
+        </n-button>
+      </template>
+      <DownloadProgressPanel />
+    </n-popover>
+
     <!-- 窗口控制按钮 -->
     <n-flex class="controls-wrapper">
       <n-button class="control-btn" text :title="$t('APP.BASE.SETTINGS')" @click="handleSettingsClick">
-        <n-icon>
+        <n-icon size="14">
           <SettingsOutline />
         </n-icon>
       </n-button>
       <n-divider vertical />
       <n-button @click="handleMinimize" class="control-btn" text :title="$t('ACTION.WINDOW.MINIMIZE')">
-        <n-icon>
+        <n-icon size="14">
           <Remove />
         </n-icon>
       </n-button>
@@ -29,15 +43,15 @@
         ? $t('ACTION.WINDOW.RESTORE')
         : $t('ACTION.WINDOW.MAXIMIZE')
         ">
-        <n-icon v-if="isMaximized">
+        <n-icon size="14" v-if="isMaximized">
           <Contract />
         </n-icon>
-        <n-icon v-else>
+        <n-icon size="14" v-else>
           <Expand />
         </n-icon>
       </n-button>
       <n-button @click="handleClose" class="control-btn" text :title="$t('ACTION.WINDOW.CLOSE')">
-        <n-icon>
+        <n-icon size="14">
           <Close />
         </n-icon>
       </n-button>
@@ -55,9 +69,12 @@ import {
   Close,
   SettingsOutline,
   Menu,
+  ArrowDownCircleOutline,
 } from "@vicons/ionicons5";
 import { useI18n } from "vue-i18n";
 import SettingsView from "@/renderer/components/SettingsView.vue";
+import DownloadProgressPanel from "@/renderer/components/base/DownloadProgressPanel.vue";
+import { useDownloadStore } from "@/renderer/store/download.store";
 
 const { t } = useI18n();
 
@@ -82,6 +99,23 @@ const isMaximized = ref(false);
 const showSettings = ref(false);
 const isElectron = computed(() => {
   return typeof window !== "undefined" && !!window.electronAPI;
+});
+
+// 下载进度
+const downloadStore = useDownloadStore();
+const isDownloadActive = computed(() => downloadStore.hasActiveDownloads);
+// const isDownloadActive = ref(true);
+const activeDownloadCount = computed(() => {
+  let count = 0;
+  for (const group of downloadStore.allGroupsProgress) {
+    if (!group) continue;
+    for (const file of group.files) {
+      if (file.status === "downloading" || file.status === "pending") {
+        count++;
+      }
+    }
+  }
+  return count;
 });
 
 // 方法
@@ -142,6 +176,10 @@ onMounted(async () => {
   font-size: $font-xs;
   flex: 1;
   color: var(--text-quaternary);
+}
+
+.download-progress-popover {
+  margin-right: $spacing-sm;
 }
 
 .controls-wrapper {

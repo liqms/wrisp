@@ -53,4 +53,5 @@ export interface ReflectionQuery extends QueryParams {
 export interface ReflectionWithBlocks extends Reflection {
   block_count: number
   blocks_preview: Content[]
+  blocks: { id: string; content: string; relevance_score: number }[]
 }

@@ -159,3 +159,5 @@ export class TopicBlockDao extends BaseDao<TopicBlock, TopicBlockCreate, TopicBl
     return { sql, values }
   }
 }
+
+export const topicBlockDao = new TopicBlockDao()

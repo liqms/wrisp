@@ -157,7 +157,7 @@ const handleDelete = async () => {
 
   &.is-editing {
     background-color: var(--bg-secondary);
-    border-left-color: var(--color-primary);
+    border-left-color: var(--primary-color);
     padding: $spacing-sm;
     border-radius: 0;
   }

@@ -4,7 +4,8 @@
 // 创建时间: 2026-05-12
 // =============================================
 
-import lancedb, {
+import {
+  connect,
   type Connection,
   type Table,
   Index,
@@ -101,7 +102,7 @@ export async function initLanceDB(): Promise<Connection> {
   const dbPath = getVectorDbPath();
   console.log(`[LanceDB] 向量数据库路径: ${dbPath}`);
 
-  const db = await lancedb.connect(dbPath);
+  const db = await connect(dbPath);
   console.log("[LanceDB] 连接成功");
 
   return db;
@@ -204,18 +205,15 @@ export async function initVectorTables(db: Connection): Promise<void> {
 export async function createIndexes(db: Connection): Promise<void> {
   console.log("[LanceDB] 开始创建向量索引...");
 
-  // 创建 IVF-PQ 索引配置
-  const indexConfig = Index.ivfPq(ivfPqOptions);
-
   // Block 向量表索引
   const blockTable = await db.openTable("block_embeddings");
   if (!(await indexExists(blockTable, "embedding"))) {
     console.log("[LanceDB] 为 Block 向量表创建索引...");
     try {
-      await blockTable.createIndex("embedding", { config: indexConfig });
+      await blockTable.createIndex("embedding", { config: Index.ivfPq(ivfPqOptions) });
       console.log("[LanceDB] Block 向量表索引创建完成");
     } catch (error) {
-      console.warn("[LanceDB] Block 向量表索引创建失败:", error);
+      console.warn("[LanceDB] Block 向量表索引创建失败（表可能为空，数据写入后会自动创建）:", error);
     }
   } else {
     console.log("[LanceDB] Block 向量表索引已存在");
@@ -226,10 +224,10 @@ export async function createIndexes(db: Connection): Promise<void> {
   if (!(await indexExists(conceptTable, "embedding"))) {
     console.log("[LanceDB] 为概念向量表创建索引...");
     try {
-      await conceptTable.createIndex("embedding", { config: indexConfig });
+      await conceptTable.createIndex("embedding", { config: Index.ivfPq(ivfPqOptions) });
       console.log("[LanceDB] 概念向量表索引创建完成");
     } catch (error) {
-      console.warn("[LanceDB] 概念向量表索引创建失败:", error);
+      console.warn("[LanceDB] 概念向量表索引创建失败（表可能为空，数据写入后会自动创建）:", error);
     }
   } else {
     console.log("[LanceDB] 概念向量表索引已存在");
@@ -240,10 +238,10 @@ export async function createIndexes(db: Connection): Promise<void> {
   if (!(await indexExists(pageTable, "embedding"))) {
     console.log("[LanceDB] 为页面向量表创建索引...");
     try {
-      await pageTable.createIndex("embedding", { config: indexConfig });
+      await pageTable.createIndex("embedding", { config: Index.ivfPq(ivfPqOptions) });
       console.log("[LanceDB] 页面向量表索引创建完成");
     } catch (error) {
-      console.warn("[LanceDB] 页面向量表索引创建失败:", error);
+      console.warn("[LanceDB] 页面向量表索引创建失败（表可能为空，数据写入后会自动创建）:", error);
     }
   } else {
     console.log("[LanceDB] 页面向量表索引已存在");

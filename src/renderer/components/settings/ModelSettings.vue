@@ -1,142 +1,111 @@
 <template>
   <n-scrollbar class="model-settings">
-    <n-card size="small">
+    <n-card size="medium" :bordered="false" class="setting-card">
       <n-flex class="setting-row">
-        <n-text class="setting-label">{{
-          t("SETTINGS.AI_SETTINGS.AI_MODE")
-        }}</n-text>
-        <n-flex class="ai-mode-list">
-          <AIModeCard
-            v-for="mode in aiModeList"
-            :key="mode.value"
-            :label="mode.label"
-            :description="mode.description"
-            :tip="mode.tip"
-            :value="mode.value"
-            :selected="mode.value === currentAiMode.value"
-            @click="handleAiModeClick(mode.value)"
-          />
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.AI_SETTINGS.ENABLE_AI_MODE")
+          }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.AI_SETTINGS.ENABLE_AI_MODE_DESC") }}{{
+            t("SETTINGS.AI_SETTINGS.ENABLE_AI_MODE_DESC_3")
+          }}</n-text>
         </n-flex>
+        <n-switch :value="enableAiMode" class="setting-switch" @update:value="updateEnableAiMode" />
       </n-flex>
-      <n-flex
-        vertical
-        class="config-list"
-        v-if="currentAiMode.value === AI_MODE.PRO"
-      >
-        <n-flex
-          v-for="mt in modelTypes"
-          :key="mt.key"
-          align="center"
-          class="setting-row"
-        >
-          <n-text class="setting-label">{{ mt.label() }}</n-text>
-          <n-select
-            :value="getDefaultForType(mt.key)"
-            :options="getModelsForType(mt.key)"
-            class="setting-select"
-            @update:value="(v: string) => updateDefaultModel(mt.key, v)"
-          />
+
+    </n-card>
+    <n-card size="medium" :bordered="false" class="setting-card">
+      <n-flex class="setting-row">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.AI_SETTINGS.ENABLE_AI_CLOUD")
+          }}</n-text>
+          <n-text class="setting-desc">{{
+            t("SETTINGS.AI_SETTINGS.ENABLE_AI_CLOUD_DESC_3")
+          }}</n-text>
         </n-flex>
+        <n-switch :value="enableCloudAi" class="setting-switch" @update:value="updateEnableCloudAi" />
       </n-flex>
     </n-card>
-    <n-card size="small" :title="t('SETTINGS.PROVIDER_MODELS')">
-      <n-list v-if="providers.length > 0">
-        <n-list-item v-for="provider in providers" :key="provider.id">
-          <n-thing :title="provider.name">
-            <template #description
-              >{{ provider.models.length }} models</template
-            >
-          </n-thing>
-        </n-list-item>
-      </n-list>
-      <n-empty v-else :description="t('TIPS.SEARCH.NO_CREATION')" />
+    <n-card size="medium" :bordered="false" class="setting-card" v-if="enableCloudAi">
+      <n-flex class="setting-row">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.PROVIDER_MODELS")
+          }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.PROVIDER_MODELS_DESC") }}</n-text>
+        </n-flex>
+        <n-button size="medium" type="primary" @click="addProvider">
+          {{ t("ACTION.COMMON.ADD") }}
+        </n-button>
+      </n-flex>
+      <n-flex v-if="providers.length > 0" class="ai-mode-list" wrap>
+        <ProviderItem v-for="provider in providers" :key="provider.id" :provider="provider"
+          @edit="handleEditProvider(provider)" @delete="handleDeleteProvider(provider)"
+          @toggle="handleToggleProvider(provider)" />
+      </n-flex>
     </n-card>
+    <ModelDefault />
+    <AddProviderModal v-model:show="showAddModal" :editing-provider="editingProvider" @confirm="handleAddProvider" />
   </n-scrollbar>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useConfig } from "@/renderer/composables/useConfig";
-import { MODEL_TYPE, AI_MODE, type AiMode } from "@/shared/enums";
-import type { AppConfig, AIProvider, DefaultModel } from "@/shared/types";
-import AIModeCard from "@/renderer/components/base/AIModeCard.vue";
+import { useDialog } from "naive-ui";
+import { useModel } from "@/renderer/composables";
+import type { AIProvider } from "@/shared/types";
+import { logger } from "@/renderer/utils/logger.utils";
+import ProviderItem from "./ProviderItem.vue";
+import AddProviderModal from "./AddProviderModal.vue";
+import ModelDefault from "./ModelDefault.vue";
 
-const props = defineProps<{ config: AppConfig | null }>();
 const { t } = useI18n();
-const config = useConfig();
+const dialog = useDialog();
+const { providers, enableAiMode, enableCloudAi, updateEnableAiMode, updateEnableCloudAi, addOrUpdateAIProvider, deleteAIProvider } = useModel();
+const showAddModal = ref(false);
+const editingProvider = ref<AIProvider | null>(null);
 
-const currentAiMode = computed(() => config.aiMode ?? AI_MODE.BASE);
+function addProvider() {
+  editingProvider.value = null;
+  showAddModal.value = true;
+}
 
-const aiModeList = computed(() => [
-  {
-    value: AI_MODE.BASE,
-    label: t("SETTINGS.AI_SETTINGS.AI_MODE_BASE"),
-    description: t("SETTINGS.AI_SETTINGS.AI_MODE_BASE_DESC"),
-    tip: t("SETTINGS.AI_SETTINGS.AI_MODE_BASE_TIP"),
-  },
-  {
-    value: AI_MODE.CORE,
-    label: t("SETTINGS.AI_SETTINGS.AI_MODE_CORE"),
-    description: t("SETTINGS.AI_SETTINGS.AI_MODE_CORE_DESC"),
-    tip: t("SETTINGS.AI_SETTINGS.AI_MODE_CORE_TIP"),
-  },
-  {
-    value: AI_MODE.PRO,
-    label: t("SETTINGS.AI_SETTINGS.AI_MODE_PRO"),
-    description: t("SETTINGS.AI_SETTINGS.AI_MODE_PRO_DESC"),
-    tip: t("SETTINGS.AI_SETTINGS.AI_MODE_PRO_TIP"),
-  },
-]);
+function handleEditProvider(provider: AIProvider) {
+  editingProvider.value = provider;
+  showAddModal.value = true;
+}
 
-const handleAiModeClick = async (value: AiMode) => {
-  if (value !== currentAiMode.value.value) {
-    await config.updateAiMode(value);
-  }
-};
-
-const modelTypes = computed(() => [
-  { key: MODEL_TYPE.TEXT, label: () => t("SETTINGS.MODEL_TYPE_LABELS.TEXT") },
-  // { key: MODEL_TYPE.IMAGE, label: () => t("SETTINGS.MODEL_TYPE_LABELS.IMAGE") },
-  // { key: MODEL_TYPE.AUDIO, label: () => t("SETTINGS.MODEL_TYPE_LABELS.AUDIO") },
-  // { key: MODEL_TYPE.VIDEO, label: () => t("SETTINGS.MODEL_TYPE_LABELS.VIDEO") },
-]);
-
-const providers = computed<AIProvider[]>(() => props.config?.aiProviders ?? []);
-const defaultModels = computed<DefaultModel[]>(
-  () => props.config?.defaultModels ?? [],
-);
-
-const getModelsForType = (type: string) => {
-  const models: { label: string; value: string }[] = [
-    { label: t("APP.BASE.NONE"), value: "" },
-  ];
-  for (const provider of providers.value) {
-    for (const model of provider.models) {
-      if (model.type.includes(type)) {
-        models.push({
-          label: `${provider.name} / ${model.name}`,
-          value: `${provider.id}:${model.id}`,
-        });
-      }
+async function handleAddProvider(provider: AIProvider) {
+  try {
+    const success = await addOrUpdateAIProvider(provider);
+    if (success) {
+      showAddModal.value = false;
     }
+  } catch (e) {
+    logger.error("添加/更新服务商失败 VUE", { error: e });
   }
-  return models;
-};
+}
 
-const getDefaultForType = (type: string) => {
-  const dm = defaultModels.value.find((m) => m.type === type);
-  return dm ? `${dm.providerId}:${dm.modelId}` : "";
-};
+function handleDeleteProvider(provider: AIProvider) {
+  dialog.warning({
+    title: t('SETTINGS.AI_SETTINGS.DELETE_PROVIDER_TITLE'),
+    content: t('SETTINGS.AI_SETTINGS.DELETE_PROVIDER_CONFIRM', { name: provider.name }),
+    positiveText: t('ACTION.COMMON.DELETE'),
+    negativeText: t('ACTION.COMMON.CANCEL'),
+    style: { width: '360px' },
+    onPositiveClick: () => {
+      deleteAIProvider(provider.id);
+    },
+  });
+}
 
-const updateDefaultModel = async (type: string, value: string) => {
-  const newDefaults = [...defaultModels.value.filter((m) => m.type !== type)];
-  if (value) {
-    const [providerId, modelId] = value.split(":");
-    newDefaults.push({ type, providerId, modelId });
-  }
-  await config.setValue("defaultModels", newDefaults);
-};
+async function handleToggleProvider(provider: AIProvider) {
+  const updated = { ...provider, enabled: !provider.enabled };
+  await addOrUpdateAIProvider(updated);
+}
+
 </script>
 
 <style scoped lang="scss">
@@ -146,8 +115,10 @@ const updateDefaultModel = async (type: string, value: string) => {
   max-height: 100%;
 }
 
-.n-card {
-  margin-bottom: 12px;
+.setting-card {
+  margin-bottom: $spacing-md;
+  background-color: var(--bg-secondary);
+  border-radius: $radius-md;
 }
 
 .ai-mode-list {
@@ -163,13 +134,27 @@ const updateDefaultModel = async (type: string, value: string) => {
   margin-bottom: $spacing-md;
   align-items: center;
   min-height: 34px;
+  justify-content: space-between !important;
+
   &:last-child {
     margin-bottom: 0;
   }
 }
 
+.setting-content {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 0 !important;
+  max-width: calc(100% - 100px);
+}
+
 .setting-label {
-  width: 130px;
+  font-size: $font-base;
+}
+
+.setting-desc {
+  font-size: $font-xs;
+  color: var(--text-third);
 }
 
 .setting-select {

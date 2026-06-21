@@ -2,7 +2,8 @@ import { aiService } from '@/main/core/services/ai.service';
 import { skillManager } from './skill.manager';
 import { Logger } from '@/main/utils/logger';
 import type { SkillDefinition, SkillPostProcess } from '@/shared/types/skill.types';
-import type { LLMRequest, LLMMessage } from '@/main/core/llm-gateway/types';
+import type { LLMRequest, LLMMessage } from '@/main/core/model-gateway/llm-gateway/types';
+import { OUTPUT_MODEL_TYPE } from '@/shared/enums';
 
 export class SkillExecutor {
   async execute(skillId: string, inputs: Record<string, unknown>): Promise<string> {
@@ -23,7 +24,7 @@ export class SkillExecutor {
 
       messages.push({ role: 'user', content: renderedPrompt });
 
-      const request: LLMRequest = { messages };
+      const request: LLMRequest = { messages, outputType: OUTPUT_MODEL_TYPE.TEXT, taskType: skill.taskType };
       const response = await aiService.chatCompletion(request);
 
       return this.postProcess(response.content, skill.postProcess);

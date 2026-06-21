@@ -89,7 +89,7 @@ defineExpose({
 
 .is-focused {
   .input-area {
-    border-color: var(--color-primary);
+    border-color: var(--primary-color);
     //   box-shadow:
     //     0 0 0 4px rgba(79, 110, 247, 0.08),
     //     0 2px 8px rgba(0, 0, 0, 0.06);
@@ -101,13 +101,13 @@ defineExpose({
 
 .has-content {
   .input-area {
-    border-color: var(--color-primary);
+    border-color: var(--primary-color);
   }
 }
 
 .is-focused.has-content {
   .input-area {
-    border-color: var(--color-primary);
+    border-color: var(--primary-color);
   }
 }
 

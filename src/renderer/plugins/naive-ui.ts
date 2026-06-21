@@ -49,6 +49,7 @@ import {
   NThing,
   NPopconfirm,
   NTooltip,
+  NDataTable,
 } from "naive-ui";
 
 // 创建 Naive UI 实例
@@ -104,6 +105,7 @@ const naive = create({
     NThing,
     NPopconfirm,
     NTooltip,
+    NDataTable,
   ],
 });
 

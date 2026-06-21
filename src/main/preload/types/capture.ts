@@ -23,7 +23,7 @@ export interface CaptureAPI {
   ): Promise<ApiResponse<CaptureListItem[]>>;
   listCaptures(query?: CaptureQuery): Promise<ApiResponse<CaptureListItem[]>>;
   getCapturesByDateRange(
-    startDate: string,
-    endDate: string,
+    startDate?: string,
+    endDate?: string,
   ): Promise<ApiResponse<CaptureDateListItem[]>>;
 }

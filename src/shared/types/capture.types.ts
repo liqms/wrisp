@@ -29,6 +29,9 @@ export interface CaptureInfo {
   temporal_score: number;
   word_count: number;
   status: CaptureStatus;
+  child_block_count: number;
+  concept_count: number;
+  topic_count: number;
   created_at: Timestamp;
   updated_at: Timestamp;
 }

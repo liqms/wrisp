@@ -1,57 +1,63 @@
 <template>
   <n-scrollbar class="general-settings">
-    <n-card size="small">
+    <n-card size="medium" :bordered="false" class="setting-card">
       <n-flex align="center" class="setting-row">
-        <n-text class="setting-label">{{
-          t("SETTINGS.ABOUT_SETTINGS.CURRENT_VERSION")
-        }}</n-text>
-        <n-text class="setting-value">PenTip V{{ version }}</n-text>
-        <n-button size="tiny" type="primary" ghost @click="checkUpdate">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.ABOUT_SETTINGS.CURRENT_VERSION")
+            }}</n-text>
+          <n-text class="setting-desc">PenTip V{{ version }}</n-text>
+          <n-text class="setting-link">{{ t("SETTINGS.GENERAL_SETTINGS.UPDATE_RECORD") }}</n-text>
+        </n-flex>
+
+        <n-button type="primary" @click="checkUpdate">
           {{ t("SETTINGS.ABOUT_SETTINGS.CHECK_UPDATE") }}
         </n-button>
       </n-flex>
+      <n-divider />
       <n-flex align="center" class="setting-row">
-        <n-text class="setting-label">{{
-          t("SETTINGS.GENERAL_SETTINGS.THEME")
-        }}</n-text>
-        <n-select
-          v-model:value="themeMode"
-          :options="themeOptions"
-          class="setting-select"
-        />
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.GENERAL_SETTINGS.THEME")
+            }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.SELECT_THEME_DESC") }}</n-text>
+        </n-flex>
+        <n-select v-model:value="themeMode" :options="themeOptions" class="setting-select" />
       </n-flex>
+      <n-divider />
       <n-flex align="center" class="setting-row">
-        <n-text class="setting-label">{{
-          t("SETTINGS.GENERAL_SETTINGS.LOCALE")
-        }}</n-text>
-        <n-select
-          v-model:value="locale"
-          :options="localeOptions"
-          class="setting-select"
-        />
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.GENERAL_SETTINGS.LOCALE")
+            }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.SELECT_LOCALE_DESC") }}</n-text>
+        </n-flex>
+        <n-select v-model:value="locale" :options="localeOptions" class="setting-select" />
       </n-flex>
+      <n-divider />
       <n-flex align="center" class="setting-row">
-        <n-text class="setting-label">{{ t("SETTINGS.ACCENT_COLOR") }}</n-text>
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{ t("SETTINGS.ACCENT_COLOR") }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.SELECT_ACCENT_COLOR_DESC") }}</n-text>
+        </n-flex>
         <n-space class="theme-color-space">
-          <ColorCard
-            v-for="opt in themeColorOptions"
-            :key="opt.themeColor"
-            :label="opt.label"
-            :value="opt.colorHex"
-            :selected="opt.isSelected"
-            @click="() => selectThemeColor(opt.themeColor)"
-          />
+          <ColorCard v-for="opt in themeColorOptions" :key="opt.themeColor" :label="opt.label" :value="opt.colorHex"
+            :selected="opt.isSelected" @click="() => selectThemeColor(opt.themeColor)" />
         </n-space>
       </n-flex>
     </n-card>
 
-    <n-card size="small">
+    <n-card size="medium" :bordered="false" class="setting-card">
       <n-flex align="center" class="setting-row">
-        <n-text class="setting-label">{{
-          t("SETTINGS.DATA_MANAGER_SETTINGS.WORKSPACE")
-        }}</n-text>
-        <n-text class="setting-value">{{ workspace }}</n-text>
-        <n-button size="tiny" type="primary" ghost @click="selectWorkspace">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.DATA_MANAGER_SETTINGS.WORKSPACE")
+            }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.CHOOSE_FOLDER_DESC") }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.CURRENT_FOLDER") }}:&nbsp;
+            {{ workspace }}</n-text>
+        </n-flex>
+        <n-button size="medium" type="primary" @click="selectWorkspace">
           {{ t("ACTION.COMMON.CHANGE") }}
         </n-button>
       </n-flex>
@@ -146,7 +152,7 @@ const selectThemeColor = (color: string) => {
   }
 };
 
-const checkUpdate = async () => {};
+const checkUpdate = async () => { };
 
 const selectWorkspace = async () => {
   try {
@@ -172,25 +178,54 @@ const selectWorkspace = async () => {
   max-height: 100%;
 }
 
-.n-card {
+.setting-card {
   margin-bottom: $spacing-md;
+  background-color: var(--bg-secondary);
+  border-radius: $radius-md;
 }
 
 .setting-row {
   margin-bottom: $spacing-md;
   align-items: center;
   min-height: 34px;
+  justify-content: space-between !important;
+
   &:last-child {
     margin-bottom: 0;
   }
 }
 
-.setting-label {
-  width: 130px;
+.setting-content {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 0 !important;
 }
 
+.setting-label {
+  width: 130px;
+  font-size: $font-base;
+  margin-bottom: $spacing-xs;
+}
+
+.setting-desc {
+  font-size: $font-xs;
+  color: var(--text-third);
+}
+
+.setting-link {
+  font-size: $font-xs;
+  color: var(--text-third);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--primary-color);
+  }
+}
+
+
+
 .setting-select {
-  width: 200px;
+  width: 150px;
 }
 
 .setting-value {

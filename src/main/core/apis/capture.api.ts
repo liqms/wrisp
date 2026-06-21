@@ -102,7 +102,7 @@ async function searchCaptures(
   parent_record_id?: Id | null,
 ): Promise<ApiResponse<CaptureListItem[]>> {
   try {
-    const records = captureService.search(
+    const records = await captureService.search(
       keyword,
       limit,
       searchType,
@@ -122,13 +122,13 @@ async function searchCaptures(
 
 /**
  * 根据日期范围查询记录列表
- * @param startDate 起始日期（ISO 8601 字符串）
- * @param endDate 结束日期（ISO 8601 字符串）
- * @returns 日期范围内的记录列表
+ * @param startDate 起始日期（ISO 8601 字符串），可选
+ * @param endDate 结束日期（ISO 8601 字符串），可选
+ * @returns 日期范围内的记录列表，或不传时返回最近 20 条
  */
 async function getCapturesByDateRange(
-  startDate: string,
-  endDate: string,
+  startDate?: string,
+  endDate?: string,
 ): Promise<ApiResponse<CaptureDateListItem[]>> {
   try {
     const records = captureService.getByDateRange(startDate, endDate);

@@ -150,3 +150,5 @@ export class ConceptDao extends BaseDao<Concept, ConceptCreate, ConceptUpdate> {
     return { sql, values }
   }
 }
+
+export const conceptDao = new ConceptDao()

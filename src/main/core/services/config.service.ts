@@ -23,18 +23,17 @@ class ConfigService {
   private appPath: string;
   private userDataPath: string;
   private configFileName: string;
-  private documentPath: string = "";
   private defaultConfig: AppConfig | null = null;
 
   /**
    * 私有构造函数
    * 初始化配置服务，设置应用路径、加载默认配置和用户配置
    */
-  private constructor () {
+  private constructor() {
     this.appPath = app.getAppPath();
     this.userDataPath = app.getPath("userData");
     this.configFileName = "app";
-    this.documentPath = app.getPath("documents");
+
 
     const configDir = path.join(this.userDataPath, "config");
     fs.mkdirSync(configDir, { recursive: true });
@@ -78,9 +77,12 @@ class ConfigService {
   private getDefaultConfig(): AppConfig {
     const now = TimeUtil.toISOString(new Date());
     const appVersion = getAppVersion();
+    const documentsPath = app.getPath("documents");
+    const defaultWorkspace = path.join(documentsPath, "PenTip");
 
     return {
       ...DEFAULT_APP_CONFIG,
+      workspace: defaultWorkspace,
       version: appVersion,
       updatedAt: now,
     };
@@ -162,24 +164,6 @@ class ConfigService {
       this.loadConfig();
     }
     return this.config!;
-  }
-
-  /**
-   * 更新配置
-   * @param config - 要更新的配置对象（部分更新）
-   * @returns 操作结果错误码
-   */
-  public setConfig(config: Partial<AppConfig>): void {
-    try {
-      this.config = ObjectUtil.deepMerge(this.config!, config);
-      this.saveConfig();
-    } catch (error) {
-      Logger.error("AppConfig 更新配置失败", {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      throw error;
-    }
   }
 
   /**

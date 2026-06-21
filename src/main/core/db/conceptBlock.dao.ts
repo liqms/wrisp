@@ -159,3 +159,5 @@ export class ConceptBlockDao extends BaseDao<ConceptBlock, ConceptBlockCreate, C
     return { sql, values }
   }
 }
+
+export const conceptBlockDao = new ConceptBlockDao()

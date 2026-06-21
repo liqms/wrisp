@@ -8,4 +8,7 @@ export const aiModule: AIAPI = {
   getProviders: () => ipcRenderer.invoke("ai:getProviders"),
   testProviderConnection: (providerId) => ipcRenderer.invoke("ai:testProviderConnection", providerId),
   refreshConfig: () => ipcRenderer.invoke("ai:refreshConfig"),
+  isLocalAvailable: () => ipcRenderer.invoke("ai:localAvailable"),
+  isCloudAvailable: () => ipcRenderer.invoke("ai:cloudAvailable"),
+  getRouteStatus: () => ipcRenderer.invoke("ai:routeStatus"),
 };

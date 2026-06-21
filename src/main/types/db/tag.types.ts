@@ -34,9 +34,8 @@ export type StrictTagCreate = Ensure<TagCreate, {
 
 export interface TagQuery extends QueryParams {
   name?: Name
-  color?: Color
 }
 
-export interface TagWithCount extends Tag {
+export interface TagDetail extends Tag {
   usage_count: number
 }

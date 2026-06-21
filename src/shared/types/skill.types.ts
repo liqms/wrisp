@@ -1,3 +1,5 @@
+import type { TaskType } from "@/shared/enums";
+
 export type SkillSource = "built-in" | "custom" | "remote";
 
 export type SkillParamUI = "dropdown" | "input" | "textarea" | "toggle" | "slider";
@@ -38,6 +40,7 @@ export interface SkillDefinition {
   category: string[];
   tags?: string[];
   enabled: boolean;
+  taskType?: TaskType;
   promptTemplate: string;
   systemPrompt?: string;
   parameters?: SkillParameter[];

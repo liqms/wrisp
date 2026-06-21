@@ -17,7 +17,10 @@ import type {
 import type { LOG_LEVEL, SearchType } from "@/shared/enums";
 import type { LogContext } from "@/main/utils/logger";
 import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
-import type { ProjectCreate, ProjectUpdate } from "@/main/types/db";
+import type { Project, ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail } from "@/main/types/db";
+import type { Tag, TagCreate, TagUpdate, TagQuery, TagDetail, TagId } from "@/shared/types";
+import type { PaginationResult } from "@/shared/utils/pagination";
+import type { ModelType } from "@/shared/types/model.types";
 
 // 定义 IPC API 接口类型（与 preload.ts 保持一致）
 export interface ElectronAPI {
@@ -49,6 +52,7 @@ export interface ElectronAPI {
     openDialog(
       options: OpenDialogOptions,
     ): Promise<ApiResponse<OpenDialogReturnValue>>;
+    openExternal(url: string): Promise<ApiResponse<void>>;
   };
 
   // 日志管理
@@ -102,18 +106,14 @@ export interface ElectronAPI {
   };
   // Project 相关
   project: {
-    get(id: string): Promise<ApiResponse<Project | null>>;
+    get(id: string): Promise<ApiResponse<ProjectDetail | null>>;
     paginate(params: {
       page?: number;
       pageSize?: number;
       orderBy?: string;
       orderDir?: "ASC" | "DESC";
       conditions?: ProjectQuery;
-    }): Promise<ApiResponse<PaginationResult<Project>>>;
-    getWithStats(id: string): Promise<ApiResponse<ProjectWithStats | null>>;
-    getAllWithStats(): Promise<ApiResponse<ProjectWithStats[]>>;
-    findByName(name: string): Promise<ApiResponse<Project | null>>;
-    findByType(type: string): Promise<ApiResponse<Project[]>>;
+    }): Promise<ApiResponse<PaginationResult<ProjectDetail>>>;
     create(data: ProjectCreate): Promise<ApiResponse<string>>;
     update(id: string, data: ProjectUpdate): Promise<ApiResponse<number>>;
     delete(id: string): Promise<ApiResponse<number>>;
@@ -121,6 +121,34 @@ export interface ElectronAPI {
       name: string,
       excludeId?: string,
     ): Promise<ApiResponse<boolean>>;
+  };
+  // Model 相关
+  model: {
+    getConfig(): Promise<ApiResponse<ModelConfig>>;
+    getValue(keyPath: string): Promise<ApiResponse<any>>;
+    setValue(keyPath: string, value: any): Promise<ApiResponse<void>>;
+    resetConfig(): Promise<ApiResponse<void>>;
+    downloadModel(type: ModelType): Promise<ApiResponse<string>>;
+    checkModelExist(): Promise<ApiResponse<Record<string, boolean>>>;
+    reDownloadModel(type: ModelType): Promise<ApiResponse<void>>;
+    cancelDownload(groupId: string): Promise<ApiResponse<void>>;
+  };
+
+  // Tag 相关
+  tag: {
+    getDetailById(id: TagId): Promise<ApiResponse<TagDetail | null>>;
+    findTags(name: string, options?: { exact?: boolean; limit?: number }): Promise<ApiResponse<Tag[]>>;
+    getAllTags(entityType?: string): Promise<ApiResponse<TagDetail[]>>;
+    paginateTags(params: {
+      page?: number;
+      pageSize?: number;
+      orderBy?: string;
+      orderDir?: "ASC" | "DESC";
+      conditions?: TagQuery;
+    }): Promise<ApiResponse<any>>;
+    createTags(data: TagCreate | TagCreate[]): Promise<ApiResponse<string | string[]>>;
+    updateTag(items: { id: TagId; data: TagUpdate } | { id: TagId; data: TagUpdate }[]): Promise<ApiResponse<number | number[]>>;
+    deleteTag(ids: TagId | TagId[]): Promise<ApiResponse<number>>;
   };
 
   // 通用 IPC 方法（保持向后兼容）

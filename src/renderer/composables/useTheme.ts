@@ -61,13 +61,13 @@ export function useTheme() {
     root.setAttribute("data-color", themeColor.value);
 
     // 设置 CSS 变量
-    root.style.setProperty("--color-primary", colors.primaryColor);
-    root.style.setProperty("--color-primary-hover", colors.primaryColorHover);
+    root.style.setProperty("--primary-color", colors.primaryColor);
+    root.style.setProperty("--primary-color-hover", colors.primaryColorHover);
     root.style.setProperty(
-      "--color-primary-pressed",
+      "--primary-color-pressed",
       colors.primaryColorPressed,
     );
-    root.style.setProperty("--color-primary-suppl", colors.primaryColorSuppl);
+    root.style.setProperty("--primary-color-suppl", colors.primaryColorSuppl);
     root.style.setProperty("--bg-primary", colors.backgroundColor);
   };
 

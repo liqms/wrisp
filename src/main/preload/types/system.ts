@@ -5,4 +5,5 @@ export interface SystemAPI {
   getSystemInfo(): Promise<ApiResponse<SystemInfo>>
   showSystemNotification(level: NotificationLevel, title: string, body: string): Promise<ApiResponse<void>>
   openDialog(options: OpenDialogOptions): Promise<ApiResponse<OpenDialogReturnValue>>
+  openExternal(url: string): Promise<ApiResponse<void>>
 }

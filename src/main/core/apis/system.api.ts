@@ -3,6 +3,7 @@ import { response } from "@/main/utils/response";
 import { ErrorCode } from '@/shared/enums'
 import type { ApiResponse, SystemInfo, NotificationLevel } from '@/shared/types'
 import type { OpenDialogOptions, OpenDialogReturnValue } from 'electron'
+import { shell } from 'electron'
 import { Logger } from '@/main/utils/logger'
 
 const systemService = SystemService.getInstance()
@@ -38,8 +39,19 @@ async function openDialog(options: OpenDialogOptions): Promise<ApiResponse<OpenD
   }
 }
 
+async function openExternal(url: string): Promise<ApiResponse<void>> {
+  try {
+    await shell.openExternal(url)
+    return response.empty()
+  } catch (error) {
+    Logger.error('打开外部链接失败', { url, error: String(error) })
+    return response.error(ErrorCode.SYSTEM_OPEN_EXTERNAL_ERROR, error as Error)
+  }
+}
+
 export {
   getSystemInfo,
   showSystemNotification,
-  openDialog
+  openDialog,
+  openExternal,
 }

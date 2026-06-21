@@ -15,14 +15,14 @@ export function useFrontendNotification(options: NotificationOptions) {
     const notificationStore = useNotificationStore()
     const id = computed(() => CryptoUtil.generateUUID())
     const now = Date.now()
-    const meta = TimeUtil.format(now, 'yyyy-MM-dd HH:mm')
+    const meta = TimeUtil.format(now, 'YYYY-MM-DD HH:mm')
     const message = computed(() => ({
         id: id.value,
         content: options.content,
         timestamp: now,
         title: options.title,
         meta: meta,
-        timeout: 2500,
+        timeout: 2000,
     }))
 
     return {

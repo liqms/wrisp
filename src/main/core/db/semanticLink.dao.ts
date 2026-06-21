@@ -131,3 +131,5 @@ export class SemanticLinkDao extends BaseDao<SemanticLink, SemanticLinkCreate, S
     return { sql, values }
   }
 }
+
+export const semanticLinkDao = new SemanticLinkDao()

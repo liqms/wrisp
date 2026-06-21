@@ -6,9 +6,12 @@ import {
   getProviders,
   testProviderConnection,
   refreshAIConfig,
+  isLocalAvailable,
+  isCloudAvailable,
+  getRouteStatus,
 } from "@/main/core/apis/ai.api";
 import type { ApiResponse } from "@/shared/types";
-import type { LLMRequest, LLMResponse, CostSummary, CostRecord } from "@/main/core/llm-gateway/types";
+import type { LLMRequest, LLMResponse, CostSummary, CostRecord } from "@/main/core/model-gateway/llm-gateway/types";
 
 export function registerAIHandlers() {
   ipcMain.handle(
@@ -42,5 +45,17 @@ export function registerAIHandlers() {
 
   ipcMain.handle("ai:refreshConfig", async (): Promise<ApiResponse<void>> => {
     return refreshAIConfig();
+  });
+
+  ipcMain.handle("ai:localAvailable", async (): Promise<ApiResponse<boolean>> => {
+    return isLocalAvailable();
+  });
+
+  ipcMain.handle("ai:cloudAvailable", async (): Promise<ApiResponse<boolean>> => {
+    return isCloudAvailable();
+  });
+
+  ipcMain.handle("ai:routeStatus", async (): Promise<ApiResponse<Record<string, unknown>>> => {
+    return getRouteStatus();
   });
 }

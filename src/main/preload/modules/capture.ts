@@ -44,7 +44,7 @@ export const captureModule: CaptureAPI = {
     ipcRenderer.invoke("capture:list", query) as Promise<
       ApiResponse<CaptureListItem[]>
     >,
-  getCapturesByDateRange: (startDate: string, endDate: string) =>
+  getCapturesByDateRange: (startDate?: string, endDate?: string) =>
     ipcRenderer.invoke("capture:getByDateRange", startDate, endDate) as Promise<
       ApiResponse<CaptureDateListItem[]>
     >,

@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS blocks (
     parent_block_id TEXT REFERENCES blocks(id),
     split_index INTEGER DEFAULT 0,
     is_memo INTEGER DEFAULT 0,
+    is_archived INTEGER DEFAULT 0,
     ai_summary TEXT,
     temporal_score REAL DEFAULT 0.0,
     word_count INTEGER DEFAULT 0,
@@ -97,10 +98,10 @@ CREATE TABLE IF NOT EXISTS topics (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     summary TEXT,
-    status TEXT DEFAULT 'pending',
+    status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    CHECK (status IN ('pending', 'confirmed', 'archived'))
+    CHECK (status IN ('active', 'deleted'))
 );
 
 -- 创建主题-Block 关联表
@@ -171,11 +172,13 @@ CREATE TABLE IF NOT EXISTS projects (
     name TEXT NOT NULL,
     description TEXT,
     type TEXT,
+    status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     ai_summary TEXT DEFAULT '',
     structure TEXT DEFAULT '',
-    metadata TEXT DEFAULT '{}'
+    metadata TEXT DEFAULT '{}',
+    CHECK (status IN ('active', 'deleted'))
 );
 
 -- 创建作品-Block 关联表
@@ -226,6 +229,26 @@ CREATE TABLE IF NOT EXISTS migrations_db (
     CHECK (status IN ('pending', 'executed', 'failed'))
 );
 
+-- 创建通用任务队列表
+CREATE TABLE IF NOT EXISTS tasks (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    payload TEXT NOT NULL DEFAULT '{}',
+    priority INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    started_at TEXT,
+    finished_at TEXT,
+    retry_count INTEGER DEFAULT 0,
+    max_retries INTEGER DEFAULT 3,
+    error_message TEXT,
+    result TEXT,
+    group_id TEXT,
+    depends_on TEXT,
+    CHECK (status IN ('pending', 'running', 'succeeded', 'failed', 'cancelled'))
+);
+
 -- 启用外键约束
 PRAGMA foreign_keys = ON;
 
@@ -238,6 +261,7 @@ CREATE INDEX IF NOT EXISTS idx_blocks_created_at ON blocks(created_at);
 CREATE INDEX IF NOT EXISTS idx_blocks_temporal_score ON blocks(temporal_score);
 CREATE INDEX IF NOT EXISTS idx_blocks_status ON blocks(status);
 CREATE INDEX IF NOT EXISTS idx_blocks_is_memo ON blocks(is_memo);
+CREATE INDEX IF NOT EXISTS idx_blocks_is_archived ON blocks(is_archived);
 
 -- 标签索引
 CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
@@ -299,6 +323,12 @@ CREATE INDEX IF NOT EXISTS idx_pages_container ON pages(project_id, is_container
 
 -- 迁移表索引
 CREATE INDEX IF NOT EXISTS idx_migrations_db_version ON migrations_db(version);
+
+-- 任务队列索引
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
+CREATE INDEX IF NOT EXISTS idx_tasks_group_id ON tasks(group_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_depends_on ON tasks(depends_on);
 
 -- ==================== FTS 同步触发器 ====================
 

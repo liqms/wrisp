@@ -42,6 +42,7 @@ export interface ConceptQuery extends QueryParams {
 }
 
 export interface ConceptWithBlocks extends Concept {
-  linked_block_contents: Content[]
   block_count: number
+  linked_block_contents: Content[]
+  blocks: { id: string; content: string; relevance_score: number }[]
 }

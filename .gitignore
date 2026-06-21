@@ -49,3 +49,5 @@ Thumbs.db
 
 # documentation
 docs
+# Test coverage
+coverage

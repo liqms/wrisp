@@ -1,9 +1,9 @@
 :root {
   // 基础色（浅色）
-  --color-primary: #18a058;
-  --color-primary-hover: #36ad6a;
-  --color-primary-pressed: #0c7a43;
-  --color-primary-suppl: #36ad6a;
+  --primary-color: #18a058;
+  --primary-color-hover: #36ad6a;
+  --primary-color-pressed: #0c7a43;
+  --primary-color-suppl: #36ad6a;
   // 按钮颜色
   --info-color: #2080f0;
   --info-hover: #4098fc;
@@ -24,7 +24,7 @@
   // 文本颜色
   --text-primary: #000000;
   --text-secondary: rgb(31, 34, 37);
-  --text-third: rgb(51, 54, 57);
+  --text-third: rgb(79, 83, 87);
   --text-quaternary: rgb(118, 124, 130);
   --text-disabled: rgba(194, 194, 194, 1);
   // 占位符颜色
@@ -36,9 +36,9 @@
   --icon-color-pressed: rgba(175, 175, 175, 1);
   --icon-color-disabled: rgba(209, 209, 209, 1);
   // 背景颜色
-  --bg-primary: #FCFCFC;
-  --bg-secondary: #F8F8F8;
-  --bg-tertiary: #F3F3F5;
+  --bg-primary: #fcfcfc;
+  --bg-secondary: #f8f8f8;
+  --bg-tertiary: #f3f3f5;
   --bg-overlay: rgba(0, 0, 0, 0.5);
   // 分隔线颜色
   --divider-color: #efeff5;
@@ -65,10 +65,10 @@
 
 html[data-theme="dark"] {
   // 基础色（深色）
-  --color-primary: #63e2b7;
-  --color-primary-hover: #7fe7c4;
-  --color-primary-pressed: #5acea7;
-  --color-primary-suppl: rgb(42, 148, 125);
+  --primary-color: #63e2b7;
+  --primary-color-hover: #7fe7c4;
+  --primary-color-pressed: #5acea7;
+  --primary-color-suppl: rgb(42, 148, 125);
   --color-info: #2d8cff;
   --color-success: #18a058;
   --color-warning: #f0a020;
@@ -105,7 +105,7 @@ html[data-theme="dark"] {
   --icon-color-hover: rgba(255, 255, 255, 0.475);
   --icon-color-pressed: rgba(255, 255, 255, 0.304);
   // 背景颜色
-  --bg-primary: #1C1C1F;
+  --bg-primary: #1c1c1f;
   --bg-secondary: #252528;
   --bg-tertiary: #18181c;
   --bg-overlay: rgba(0, 0, 0, 0.6);

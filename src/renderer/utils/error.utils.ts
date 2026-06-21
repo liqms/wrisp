@@ -24,7 +24,7 @@ export function getErrorMessage(errorCode: ErrorCode | null): string {
     }
 
     // 将 ErrorCode 转换为 i18n 键名
-    const i18nKey = `ERROR.${errorCode}`;
+    const i18nKey = `${errorCode}`;
     const message = t(i18nKey);
 
     // 如果找不到对应的翻译，使用备用消息

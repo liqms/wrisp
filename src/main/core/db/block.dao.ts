@@ -9,6 +9,7 @@ import {
   Language,
   BlockId,
   BlockStatus,
+  BooleanFlag,
 } from "@/main/types/db";
 
 type FindByField = "source" | "content_type" | "language" | "status";
@@ -199,6 +200,39 @@ export class BlockDao extends BaseDao<Block, BlockCreate, BlockUpdate> {
     const stmt = this.db.prepare(sql);
     const result = stmt.run([score, this.getCurrentTimestamp(), id]);
     return result.changes;
+  }
+
+  /**
+   * 设置单个 Block 的归档状态（独立方法，不注册 IPC）
+   * @param id Block ID
+   * @param isArchived 是否归档 (0 | 1)
+   */
+  setArchived(id: BlockId, isArchived: BooleanFlag): number {
+    if (!id || id.trim() === "") return 0;
+    const safeValue: number = isArchived ? 1 : 0;
+    const sql = `UPDATE ${this.tableName} SET is_archived = ?, updated_at = ? WHERE id = ?`;
+    const stmt = this.db.prepare(sql);
+    const result = stmt.run([safeValue, this.getCurrentTimestamp(), id]);
+    return result.changes;
+  }
+
+  /**
+   * 批量设置 Block 的归档状态（独立方法，不注册 IPC）
+   * 在事务中执行，确保原子性
+   * @param ids Block ID 数组
+   * @param isArchived 是否归档 (0 | 1)
+   * @returns 实际受影响的行数
+   */
+  setArchivedBatch(ids: BlockId[], isArchived: BooleanFlag): number {
+    if (!ids || ids.length === 0) return 0;
+    const safeValue: number = isArchived ? 1 : 0;
+    return this.transaction(() => {
+      const placeholders = ids.map(() => "?").join(", ");
+      const sql = `UPDATE ${this.tableName} SET is_archived = ?, updated_at = ? WHERE id IN (${placeholders})`;
+      const stmt = this.db.prepare(sql);
+      const result = stmt.run([safeValue, this.getCurrentTimestamp(), ...ids]);
+      return result.changes;
+    });
   }
 
   /**

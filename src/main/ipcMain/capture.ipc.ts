@@ -82,8 +82,8 @@ export function registerCaptureHandlers(): void {
     "capture:getByDateRange",
     async (
       _,
-      startDate: string,
-      endDate: string,
+      startDate?: string,
+      endDate?: string,
     ): Promise<ApiResponse<CaptureDateListItem[]>> => {
       return getCapturesByDateRange(startDate, endDate);
     },

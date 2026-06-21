@@ -17,6 +17,8 @@ import {
 } from "@/shared/types";
 import { Block, BlockCreate, Language, BlockId } from "@/main/types/db";
 import { configService } from "./config.service";
+import { vectorService } from "./vector.service";
+import { modelRouter } from "@/main/core/model-gateway/router";
 import {
   CONTENT_TYPE,
   CAPTURE_SOURCE,
@@ -24,6 +26,7 @@ import {
   SearchType,
 } from "@/shared/enums";
 import { PaginationResult } from "@/shared/utils/pagination";
+import { embed, rerank } from "@/main/core/model-gateway/local-gateway";
 
 /**
  * Capture 服务
@@ -68,6 +71,10 @@ class CaptureService {
    * @returns CaptureInfo 对象
    */
   private blockToCaptureInfo(block: Block): CaptureInfo {
+    const childBlocks = this.blockDao.findByParentBlock(block.id);
+    const conceptCount = this.conceptBlockDao.countBy("block_id", block.id);
+    const topicCount = this.topicBlockDao.countBy("block_id", block.id);
+
     return {
       id: block.id,
       content: block.content,
@@ -83,6 +90,9 @@ class CaptureService {
       temporal_score: block.temporal_score,
       word_count: block.word_count,
       status: block.status,
+      child_block_count: childBlocks.length,
+      concept_count: conceptCount,
+      topic_count: topicCount,
       created_at: block.created_at,
       updated_at: block.updated_at,
     };
@@ -589,12 +599,12 @@ class CaptureService {
    *   - 具体 ID：搜索指定父 block 下的子 block
    * @returns 匹配的记录列表
    */
-  public search(
+  public async search(
     keyword: string,
     limit: number = 50,
     searchType?: SearchType,
     parent_record_id?: Id | null,
-  ): CaptureListItem[] {
+  ): Promise<CaptureListItem[]> {
     try {
       if (searchType === SEARCH_TYPE.KEYWORD) {
         const blocks = this.blockDao.searchFts(
@@ -609,8 +619,22 @@ class CaptureService {
           return a.split_index - b.split_index;
         });
       } else if (searchType === SEARCH_TYPE.SEMANTIC) {
-        // 语义搜索暂未实现
-        return [];
+        const canUseLocal = modelRouter.isLocalAvailable();
+        if (canUseLocal) {
+          return this.searchByVector(keyword, limit, parent_record_id);
+        }
+        // 未开启本地智能时，回退到 SQL FTS 搜索
+        const blocks = this.blockDao.searchFts(
+          keyword,
+          limit,
+          parent_record_id,
+        );
+        return this.blocksToRecordListWithChildren(blocks, (a, b) => {
+          const timeCompare =
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          if (timeCompare !== 0) return timeCompare;
+          return a.split_index - b.split_index;
+        });
       }
       return [];
     } catch (error) {
@@ -621,6 +645,89 @@ class CaptureService {
         searchType,
       });
       throw error;
+    }
+  }
+
+  /**
+   * 向量语义搜索
+   * 通过向量数据库搜索语义相似的 block，再映射为 CaptureListItem[]
+   */
+  private async searchByVector(
+    keyword: string,
+    limit: number,
+    parent_record_id?: Id | null,
+  ): Promise<CaptureListItem[]> {
+    try {
+      const ANN_TOP_K = 50;
+      const RERANK_TOP_K = 10;
+
+      // Step 1: 使用 jina-embeddings-v3 生成查询向量
+      const { vector } = await embed(keyword, {
+        modelName: "Xenova/jina-embeddings-v3",
+      });
+
+      // Step 2: LanceDB ANN 检索 Top-50
+      const searchResults = await vectorService.searchBlockEmbeddings({
+        vector,
+        topK: ANN_TOP_K,
+      });
+
+      if (!searchResults || searchResults.length === 0) {
+        return [];
+      }
+
+      // Step 3: 获取候选 block 的 content 文本
+      const candidateBlockIds = searchResults.map((r) => r.item.block_id);
+      const candidateBlocks = this.blockDao.findByIds(candidateBlockIds);
+
+      if (candidateBlocks.length === 0) {
+        return [];
+      }
+
+      // 构建 block_id -> Block 映射
+      const blockMap = new Map(candidateBlocks.map((b) => [b.id, b]));
+      const candidateContents: string[] = [];
+      const orderedBlocks: Block[] = [];
+
+      for (const blockId of candidateBlockIds) {
+        const block = blockMap.get(blockId);
+        if (block) {
+          candidateContents.push(block.content);
+          orderedBlocks.push(block);
+        }
+      }
+
+      // Step 4: bge-reranker-v2-m3 对候选文档重排序
+      const rerankResults = await rerank(keyword, candidateContents, {
+        modelName: "Xenova/bge-reranker-v2-m3",
+      });
+
+      // Step 5: 取 Top-10 的 block，映射为 CaptureListItem[]
+      const topKBlocks = rerankResults
+        .slice(0, RERANK_TOP_K)
+        .map((r) => orderedBlocks[r.index])
+        .filter(Boolean);
+
+      return this.blocksToRecordListWithChildren(topKBlocks, (a, b) => {
+        const timeCompare =
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (timeCompare !== 0) return timeCompare;
+        return a.split_index - b.split_index;
+      });
+    } catch (error) {
+      Logger.error("向量语义搜索失败，回退到 SQL FTS", {
+        error: String(error),
+        keyword,
+        limit,
+      });
+      // 向量搜索失败时回退到 SQL FTS
+      const blocks = this.blockDao.searchFts(keyword, limit, parent_record_id);
+      return this.blocksToRecordListWithChildren(blocks, (a, b) => {
+        const timeCompare =
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (timeCompare !== 0) return timeCompare;
+        return a.split_index - b.split_index;
+      });
     }
   }
 
@@ -700,24 +807,33 @@ class CaptureService {
    * 根据日期范围查询记录列表
    * 包含非拆分的父 block 以及拆分后的父 block + 子 block 列表
    * 结果按 created_at ASC 排序
-   * @param startDate 起始日期（ISO 8601 字符串）
-   * @param endDate 结束日期（ISO 8601 字符串）
-   * @returns 日期范围内的记录列表
+   * @param startDate 起始日期（ISO 8601 字符串），可选
+   * @param endDate 结束日期（ISO 8601 字符串），可选
+   * @returns 日期范围内的记录列表，或不传日期范围时返回最近 20 条
    */
   public getByDateRange(
-    startDate: string,
-    endDate: string,
+    startDate?: string,
+    endDate?: string,
   ): CaptureDateListItem[] {
     try {
-      // 如果传入的是日期（YYYY-MM-DD），补全为当日开始/结束时间，保证按天范围查询包含整天记录
-      const normalizeStart = (d: string) =>
-        /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T00:00:00.000Z` : d;
-      const normalizeEnd = (d: string) =>
-        /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T23:59:59.999Z` : d;
-      const s = normalizeStart(startDate);
-      const e = normalizeEnd(endDate);
+      let blocks: Block[];
 
-      const blocks = this.blockDao.findByDateRange(s, e, "active");
+      if (startDate && endDate) {
+        // 如果传入的是日期（YYYY-MM-DD），补全为当日开始/结束时间，保证按天范围查询包含整天记录
+        const normalizeStart = (d: string) =>
+          /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T00:00:00.000Z` : d;
+        const normalizeEnd = (d: string) =>
+          /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T23:59:59.999Z` : d;
+        const s = normalizeStart(startDate);
+        const e = normalizeEnd(endDate);
+
+        blocks = this.blockDao.findByDateRange(s, e, "active");
+      } else {
+        // 不传日期范围时，返回最近 20 条父 block
+        const sql = `SELECT * FROM blocks WHERE parent_block_id IS NULL ORDER BY created_at DESC LIMIT 20`;
+        blocks = this.blockDao.query(sql) as Block[];
+      }
+
       const items = this.blocksToRecordListWithChildren(blocks, (a, b) => {
         const timeCompare =
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime();

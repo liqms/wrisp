@@ -14,6 +14,9 @@ export * from "./project.types";
 export * from "./projectBlock.types";
 export * from "./page.types";
 export * from "./migrationDb.types";
+export * from "./vector.types";
+export * from "./task-execution.types";
+export * from "./task.types";
 
 export type {
   BlockId,
@@ -35,7 +38,7 @@ export type {
   TagUpdate,
   StrictTagCreate,
   TagQuery,
-  TagWithCount,
+  TagDetail,
 } from "./tag.types";
 
 export type {
@@ -88,6 +91,9 @@ export type {
   StrictTopicCreate,
   TopicQuery,
   TopicWithDetails,
+  TopicWithConceptsAndBlocks,
+  ConceptSummary,
+  BlockSummary,
 } from "./topic.types";
 
 export type {
@@ -139,13 +145,13 @@ export type {
 
 export type {
   ProjectId,
-  ProjectType,
+  ProjectStatus,
   Project,
   ProjectCreate,
   ProjectUpdate,
   StrictProjectCreate,
   ProjectQuery,
-  ProjectWithStats,
+  ProjectDetail,
 } from "./project.types";
 
 export type {
@@ -180,4 +186,4 @@ export type {
   MigrationHistory,
 } from "./migrationDb.types";
 
-export type { Name, Timestamp, Id, Description } from "@/shared/types";
+export type { Name, Timestamp, Id, Description, BooleanFlag } from "@/shared/types";

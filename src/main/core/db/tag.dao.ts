@@ -1,11 +1,10 @@
-import { BaseDao } from './base.dao'
+﻿import { BaseDao } from './base.dao'
 import {
   Tag,
   TagCreate,
   TagUpdate,
-  TagQuery,
   TagId,
-  TagWithCount,
+  TagDetail,
   Name
 } from '@/main/types/db'
 
@@ -25,27 +24,21 @@ export class TagDao extends BaseDao<Tag, TagCreate, TagUpdate> {
 
   /**
    * 根据名称模糊查询标签列表
-   * @param name 名称关键词
+   * @param name 名称关键词（自动转义 LIKE 通配符）
+   * @param limit 最大返回条数（默认 50）
    */
-  findByNameLike(name: string): Tag[] {
-    const sql = `SELECT * FROM ${this.tableName} WHERE name LIKE ? ORDER BY name ASC`
-    return this.query(sql, [`%${name}%`])
-  }
-
-  /**
-   * 根据颜色查询标签列表
-   * @param color 标签颜色
-   */
-  findByColor(color: string): Tag[] {
-    const sql = `SELECT * FROM ${this.tableName} WHERE color = ? ORDER BY name ASC`
-    return this.query(sql, [color])
+  findByNameLike(name: string, limit: number = 50): Tag[] {
+    // 转义 LIKE 通配符 %、_ 及反斜杠
+    const escaped = name.replace(/[\\%_]/g, '\\$&')
+    const sql = `SELECT * FROM ${this.tableName} WHERE name LIKE ? ESCAPE '\\' ORDER BY name ASC LIMIT ?`
+    return this.query(sql, [`%${escaped}%`, limit])
   }
 
   /**
    * 获取标签及其使用次数
    * @param entityType 实体类型过滤（可选）
    */
-  getAllWithCount(entityType?: string): TagWithCount[] {
+  getAllDetail(entityType?: string): TagDetail[] {
     let sql: string
     let params: unknown[] = []
 
@@ -59,7 +52,7 @@ export class TagDao extends BaseDao<Tag, TagCreate, TagUpdate> {
           WHERE entity_type = ?
           GROUP BY tag_id
         ) ti ON t.id = ti.tag_id
-        ORDER BY usage_count DESC
+        ORDER BY usage_count DESC, created_at DESC
       `
       params = [entityType]
     } else {
@@ -75,7 +68,7 @@ export class TagDao extends BaseDao<Tag, TagCreate, TagUpdate> {
       `
     }
 
-    return this.query(sql, params) as TagWithCount[]
+    return this.query(sql, params) as TagDetail[]
   }
 
   /**
@@ -87,36 +80,37 @@ export class TagDao extends BaseDao<Tag, TagCreate, TagUpdate> {
     let sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE name = ?`
     const params: unknown[] = [name]
 
-    if (excludeId) {
+    if (excludeId != null) {
       sql += ' AND id != ?)'
       params.push(excludeId)
     } else {
       sql += ')'
     }
 
+    // 为结果列添加别名，确保在不同 SQLite 版本中可以稳定读取列名
+    sql += ' AS "exists"'
+
     const stmt = this.db.prepare(sql)
-    const result = stmt.get(params) as unknown as { exists: number }
+    const result = stmt.get(params) as unknown as { exists?: number }
     return result?.exists === 1
   }
 
   /**
-   * 构建 WHERE 子句
-   * @param conditions 查询条件
+   * 根据 ID 查询标签详情（含使用次数）
+   * @param id 标签 ID
    */
-  protected buildWhereClause(conditions: TagQuery): { sql: string; values: unknown[] } {
-    const conditionsArray: string[] = []
-    const values: unknown[] = []
-
-    if (conditions.name !== undefined) {
-      conditionsArray.push('name = ?')
-      values.push(conditions.name)
-    }
-    if (conditions.color !== undefined) {
-      conditionsArray.push('color = ?')
-      values.push(conditions.color)
-    }
-
-    const sql = conditionsArray.length > 0 ? conditionsArray.join(' AND ') : '1=1'
-    return { sql, values }
+  getDetailById(id: TagId): TagDetail | null {
+    const sql = `
+      SELECT t.*, COALESCE(ti.count, 0) as usage_count
+      FROM ${this.tableName} t
+      LEFT JOIN (
+        SELECT tag_id, COUNT(*) as count
+        FROM tagged_items
+        GROUP BY tag_id
+      ) ti ON t.id = ti.tag_id
+      WHERE t.id = ?
+    `
+    return this.queryOne(sql, [id]) as TagDetail | null
   }
 }
+

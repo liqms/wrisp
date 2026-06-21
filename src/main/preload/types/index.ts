@@ -7,6 +7,11 @@ import type { CaptureAPI } from "./capture";
 import type { ProjectAPI } from "./project";
 import type { AIAPI } from "./ai";
 import type { SkillAPI } from "./skill";
+import type { ModelAPI } from "./model";
+import type { TagAPI } from "./tag";
+import type { ThinkAPI } from "./think";
+import type { SmartTaskAPI } from "./smart-task";
+import type { TaskAPI } from "./task";
 
 export interface ElectronAPI {
   config: ConfigAPI;
@@ -18,6 +23,11 @@ export interface ElectronAPI {
   project: ProjectAPI;
   ai: AIAPI;
   skill: SkillAPI;
+  model: ModelAPI;
+  think: ThinkAPI;
+  tag: TagAPI;
+  smartTask: SmartTaskAPI;
+  task: TaskAPI;
 
   // 通用 IPC 方法（保持向后兼容）
   send: (channel: string, data: any) => void;
@@ -39,4 +49,9 @@ export type {
   ProjectAPI,
   AIAPI,
   SkillAPI,
+  ModelAPI,
+  TagAPI,
+  ThinkAPI,
+  SmartTaskAPI,
+  TaskAPI,
 };

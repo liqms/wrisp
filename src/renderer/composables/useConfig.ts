@@ -7,8 +7,6 @@ import {
   THEME_COLOR,
   ErrorCode,
   ThemeMode,
-  AI_MODE,
-  AiMode,
 } from "@/shared/enums";
 import { logger } from "@/renderer/utils/logger.utils";
 import { useFrontendNotification } from "@/renderer/composables/useNotification";
@@ -53,9 +51,6 @@ export function useConfig(options: UseConfigOptions = {}) {
   const defaultMiniProgramId = computed(
     () => config.value?.defaultMiniProgramId ?? "",
   );
-  const aiProviders = computed(() => config.value?.aiProviders ?? "deepseek");
-  const defaultModels = computed(() => config.value?.defaultModels ?? []);
-  const aiMode = computed(() => config.value?.aiMode ?? AI_MODE.BASE);
 
   // 主题相关
   const themeMode = computed(
@@ -273,13 +268,6 @@ export function useConfig(options: UseConfigOptions = {}) {
   }
 
   /**
-   * 更新AI模式
-   */
-  async function updateAiMode(newAiMode: AiMode): Promise<boolean> {
-    return await setValue("aiMode", newAiMode);
-  }
-
-  /**
    * 重置配置
    */
   async function reset(): Promise<boolean> {
@@ -378,8 +366,6 @@ export function useConfig(options: UseConfigOptions = {}) {
     general,
     miniPrograms,
     defaultMiniProgramId,
-    aiProviders,
-    defaultModels,
     userInfo,
     isAuthenticated,
     hasProfile,
@@ -391,7 +377,6 @@ export function useConfig(options: UseConfigOptions = {}) {
     locale,
     version,
     shortcuts,
-    aiMode,
 
     // 核心方法
     init,
@@ -410,7 +395,6 @@ export function useConfig(options: UseConfigOptions = {}) {
     updateIsFirstLaunch,
     updateIsUpdateLaunch,
     updateShortcuts,
-    updateAiMode,
     reset,
     clearError,
 

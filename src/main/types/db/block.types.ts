@@ -29,10 +29,12 @@ export interface Block {
   parent_block_id: BlockId | null;
   split_index: number;
   is_memo: BooleanFlag;
+  is_archived: BooleanFlag;
   ai_summary: Content | null;
   temporal_score: number;
   word_count: number;
   status: BlockStatus;
+  last_smart_processed_at: Timestamp | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 }
@@ -48,9 +50,11 @@ export interface BlockCreate {
   split_index?: number;
   ai_summary?: Content | null;
   is_memo?: BooleanFlag;
+  is_archived?: BooleanFlag;
   temporal_score?: number;
   word_count?: number;
   status?: BlockStatus;
+  last_smart_processed_at?: Timestamp | null;
   created_at?: Timestamp;
   updated_at?: Timestamp;
 }
@@ -64,10 +68,12 @@ export interface BlockUpdate {
   parent_block_id?: BlockId | null;
   split_index?: number;
   is_memo?: BooleanFlag;
+  is_archived?: BooleanFlag;
   ai_summary?: Content | null;
   temporal_score?: number;
   word_count?: number;
   status?: BlockStatus;
+  last_smart_processed_at?: Timestamp | null;
   updated_at?: Timestamp;
 }
 
@@ -83,6 +89,7 @@ export interface BlockQuery extends QueryParams {
   source?: CaptureSource;
   status?: BlockStatus;
   is_memo?: BooleanFlag;
+  is_archived?: BooleanFlag;
   content_type?: ContentType;
   language?: Language;
   parent_block_id?: BlockId | null;
