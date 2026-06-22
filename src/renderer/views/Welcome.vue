@@ -74,7 +74,7 @@
             </n-flex>
             <n-flex class="welcome-enable-ai-mode-desc-item" v-if="enableAiMode">
               <DownloadButton v-for="model in modelList" :key="model.id" :title="model.label" :desc="model.desc"
-                :progress="model.progress" :localpath="model.localpath" @click="handleDownloadClick" />
+                :progress="model.progress" :localpath="model.localpath" />
             </n-flex>
           </n-flex>
         </n-flex>
@@ -232,12 +232,6 @@ const modelList = computed(() => {
   });
 });
 
-// 点击单个模型触发下载
-const handleDownloadClick = () => {
-  if (!modelStore.loading && enableAiMode.value) {
-    handleToggleAiMode(true);
-  }
-};
 
 // 初始化：加载模型状态
 onMounted(async () => {

@@ -80,7 +80,7 @@ const handleClick = () => {
 
 .download-button {
   // height: 40px !important;
-  width: 300px !important;
+  // width: 300px !important;
   padding: $spacing-xs $spacing-sm !important;
   border-radius: $radius-sm;
   background-color: var(--bg-primary);

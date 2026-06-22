@@ -269,9 +269,9 @@ export default {
     EMBEDDINGS: "Embeddings Model",
     RERANKER: "Reranker Model",
     LANGUAGE: "Language Model",
-    EMBEDDINGS_DESC: "About 600 MB.",
-    RERANKER_DESC: "About 600 MB.",
-    LANGUAGE_DESC: "About 600 MB.",
+    EMBEDDINGS_DESC: "About 1.15 GB.",
+    RERANKER_DESC: "About 1.15 GB.",
+    LANGUAGE_DESC: "About 2.3 GB.",
   },
   NOTIFICATION: {
     SUCCESS: "Operation successful",
