@@ -13,6 +13,11 @@ import type {
   CaptureDetail,
   CaptureDateListItem,
   Id,
+  LLMRequest,
+  LLMResponse,
+  LLMStreamChunk,
+  CostRecord,
+  CostSummary,
 } from "@/shared/types";
 import type { LOG_LEVEL, SearchType } from "@/shared/enums";
 import type { LogContext } from "@/main/utils/logger";
@@ -132,6 +137,23 @@ export interface ElectronAPI {
     checkModelExist(): Promise<ApiResponse<Record<string, boolean>>>;
     reDownloadModel(type: ModelType): Promise<ApiResponse<void>>;
     cancelDownload(groupId: string): Promise<ApiResponse<void>>;
+  };
+
+  // AI 网关相关
+  ai: {
+    chatCompletion(request: LLMRequest): Promise<ApiResponse<LLMResponse>>;
+    chatCompletionStream(request: LLMRequest): Promise<ApiResponse<null>>;
+    onChatStreamChunk(callback: (chunk: LLMStreamChunk) => void): () => void;
+    onChatStreamDone(callback: () => void): () => void;
+    onChatStreamError(callback: (error: string) => void): () => void;
+    getCostSummary(): Promise<ApiResponse<CostSummary>>;
+    getCostRecords(count?: number): Promise<ApiResponse<CostRecord[]>>;
+    getProviders(): Promise<ApiResponse<Array<{ providerId: string; providerName: string; models: any[]; isHealthy: boolean; enabled: boolean }>>>;
+    testProviderConnection(providerId: string): Promise<ApiResponse<boolean>>;
+    refreshConfig(): Promise<ApiResponse<void>>;
+    isLocalAvailable(): Promise<ApiResponse<boolean>>;
+    isCloudAvailable(): Promise<ApiResponse<boolean>>;
+    getRouteStatus(): Promise<ApiResponse<Record<string, unknown>>>;
   };
 
   // Tag 相关

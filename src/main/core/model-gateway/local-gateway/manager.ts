@@ -47,8 +47,10 @@ class LocalAiManager {
     modelName: DEFAULT_RERANK_CONFIG.modelName,
   };
 
+  /** 私有构造函数，防止外部实例化 */
   private constructor() { }
 
+  /** 获取 LocalAiManager 单例 */
   public static getInstance(): LocalAiManager {
     if (!LocalAiManager.instance) {
       LocalAiManager.instance = new LocalAiManager();

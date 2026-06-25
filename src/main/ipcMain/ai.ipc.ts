@@ -1,6 +1,7 @@
 import { ipcMain } from "electron";
 import {
   chatCompletion,
+  chatCompletionStream,
   getCostSummary,
   getCostRecords,
   getProviders,
@@ -18,6 +19,13 @@ export function registerAIHandlers() {
     "ai:chatCompletion",
     async (_, request: LLMRequest): Promise<ApiResponse<LLMResponse>> => {
       return chatCompletion(request);
+    },
+  );
+
+  ipcMain.handle(
+    "ai:chatCompletionStream",
+    async (event, request: LLMRequest): Promise<ApiResponse<null>> => {
+      return chatCompletionStream(event, request);
     },
   );
 

@@ -67,15 +67,6 @@ export interface BlockEmbedding {
 }
 
 /**
- * 概念向量表 Schema 类型
- */
-export interface ConceptEmbedding {
-  [key: string]: unknown;
-  concept_id: Id;
-  embedding: number[];
-}
-
-/**
  * 页面向量表 Schema 类型
  */
 export interface PageEmbedding {
@@ -163,23 +154,6 @@ export async function initVectorTables(db: Connection): Promise<void> {
     console.log("[LanceDB] Block 向量表已存在");
   }
 
-  // ==================== 概念向量表 ====================
-  if (!(await tableExists(db, "concept_embeddings"))) {
-    console.log("[LanceDB] 创建概念向量表...");
-    const schema = new Schema([
-      new Field("concept_id", new Utf8(), false),
-      new Field(
-        "embedding",
-        new FixedSizeList(1536, new Field("item", new Float32(), false)),
-        false,
-      ),
-    ]);
-    await db.createEmptyTable("concept_embeddings", schema);
-    console.log("[LanceDB] 概念向量表创建完成");
-  } else {
-    console.log("[LanceDB] 概念向量表已存在");
-  }
-
   // ==================== 页面向量表 ====================
   if (!(await tableExists(db, "pages_embeddings"))) {
     console.log("[LanceDB] 创建页面向量表...");
@@ -219,20 +193,6 @@ export async function createIndexes(db: Connection): Promise<void> {
     console.log("[LanceDB] Block 向量表索引已存在");
   }
 
-  // 概念向量表索引
-  const conceptTable = await db.openTable("concept_embeddings");
-  if (!(await indexExists(conceptTable, "embedding"))) {
-    console.log("[LanceDB] 为概念向量表创建索引...");
-    try {
-      await conceptTable.createIndex("embedding", { config: Index.ivfPq(ivfPqOptions) });
-      console.log("[LanceDB] 概念向量表索引创建完成");
-    } catch (error) {
-      console.warn("[LanceDB] 概念向量表索引创建失败（表可能为空，数据写入后会自动创建）:", error);
-    }
-  } else {
-    console.log("[LanceDB] 概念向量表索引已存在");
-  }
-
   // 页面向量表索引
   const pageTable = await db.openTable("pages_embeddings");
   if (!(await indexExists(pageTable, "embedding"))) {
@@ -253,13 +213,6 @@ export async function createIndexes(db: Connection): Promise<void> {
  */
 export async function getBlockEmbeddingTable(db: Connection): Promise<Table> {
   return await db.openTable("block_embeddings");
-}
-
-/**
- * 获取概念向量表
- */
-export async function getConceptEmbeddingTable(db: Connection): Promise<Table> {
-  return await db.openTable("concept_embeddings");
 }
 
 /**
@@ -325,42 +278,6 @@ export async function searchBlockEmbeddings(
 ): Promise<BlockEmbedding[]> {
   const results = await table.search(queryVector).limit(topK).toArray();
   return results as BlockEmbedding[];
-}
-
-/**
- * 插入单个概念向量
- */
-export async function insertConceptEmbedding(
-  table: Table,
-  data: ConceptEmbedding,
-): Promise<void> {
-  await table.add([data]);
-}
-
-/**
- * 更新概念向量
- */
-export async function updateConceptEmbedding(
-  table: Table,
-  conceptId: string,
-  data: Partial<ConceptEmbedding>,
-): Promise<void> {
-  await table.delete(`concept_id = '${conceptId}'`);
-  if (data) {
-    await table.add([{ concept_id: conceptId, ...data } as ConceptEmbedding]);
-  }
-}
-
-/**
- * 搜索相似概念
- */
-export async function searchConceptEmbeddings(
-  table: Table,
-  queryVector: number[],
-  topK: number = 10,
-): Promise<ConceptEmbedding[]> {
-  const results = await table.search(queryVector).limit(topK).toArray();
-  return results as ConceptEmbedding[];
 }
 
 /**

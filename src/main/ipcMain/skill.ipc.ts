@@ -11,9 +11,11 @@ import {
   setSkillEnabled,
   checkSkillUpdates,
   applySkillUpdates,
+  getSkillExecutions,
+  getSkillExecutionStats,
 } from "@/main/core/apis/skill.api";
 import type { ApiResponse } from "@/shared/types";
-import type { SkillListItem, CategoryNode, SkillUpdateItem } from "@/shared/types/skill.types";
+import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
 
 export function registerSkillHandlers() {
   ipcMain.handle("skill:getSkills", async (): Promise<ApiResponse<SkillListItem[]>> => {
@@ -37,7 +39,7 @@ export function registerSkillHandlers() {
 
   ipcMain.handle(
     "skill:execute",
-    async (_, skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<string>> => {
+    async (_, skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<SkillExecuteResult>> => {
       return executeSkill(skillId, inputs);
     },
   );
@@ -77,4 +79,18 @@ export function registerSkillHandlers() {
   ipcMain.handle("skill:applySkillUpdates", async (): Promise<ApiResponse<void>> => {
     return applySkillUpdates();
   });
+
+  ipcMain.handle(
+    "skill:getSkillExecutions",
+    async (_, skillId?: string, limit?: number): Promise<ApiResponse<SkillExecutionRecord[]>> => {
+      return getSkillExecutions(skillId, limit);
+    },
+  );
+
+  ipcMain.handle(
+    "skill:getSkillExecutionStats",
+    async (_, skillId?: string): Promise<ApiResponse<{ total: number; succeeded: number; failed: number; avgTimeMs: number }>> => {
+      return getSkillExecutionStats(skillId);
+    },
+  );
 }

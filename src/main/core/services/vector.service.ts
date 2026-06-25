@@ -2,8 +2,6 @@ import type { Connection } from "@lancedb/lancedb";
 import type {
   BlockEmbeddingCreate,
   BlockEmbeddingUpdate,
-  ConceptEmbeddingCreate,
-  ConceptEmbeddingUpdate,
   PageEmbeddingCreate,
   PageEmbeddingUpdate,
   VectorSearchParams,
@@ -12,7 +10,6 @@ import type {
 } from "@/main/types/db/vector.types";
 import {
   BlockVectorDao,
-  ConceptVectorDao,
   PageVectorDao,
 } from "@/main/core/db/vector.dao";
 import { Logger } from "@/main/utils/logger";
@@ -26,11 +23,10 @@ class VectorService {
   private static instance: VectorService | null = null;
   private db: Connection | null = null;
   private blockVectorDao: BlockVectorDao | null = null;
-  private conceptVectorDao: ConceptVectorDao | null = null;
   private pageVectorDao: PageVectorDao | null = null;
   private initialized: boolean = false;
 
-  private constructor() {}
+  private constructor() { }
 
   /**
    * 获取 VectorService 单例实例
@@ -53,7 +49,6 @@ class VectorService {
     try {
       this.db = await initializeLanceDB();
       this.blockVectorDao = new BlockVectorDao(this.db);
-      this.conceptVectorDao = new ConceptVectorDao(this.db);
       this.pageVectorDao = new PageVectorDao(this.db);
       this.initialized = true;
       Logger.info("[VectorService] 向量数据库服务初始化成功");
@@ -69,7 +64,7 @@ class VectorService {
    * 确保服务已初始化
    */
   private ensureInitialized(): void {
-    if (!this.initialized || !this.db || !this.blockVectorDao || !this.conceptVectorDao || !this.pageVectorDao) {
+    if (!this.initialized || !this.db || !this.blockVectorDao || !this.pageVectorDao) {
       throw new Error("[VectorService] 服务未初始化，请先调用 initialize()");
     }
   }
@@ -165,101 +160,6 @@ class VectorService {
       return results;
     } catch (error) {
       Logger.error("[VectorService] 搜索 Block 向量失败", { error: String(error), params });
-      throw error;
-    }
-  }
-
-  // ==================== 概念向量操作 ====================
-
-  /**
-   * 创建概念向量
-   */
-  public async createConceptEmbedding(data: ConceptEmbeddingCreate): Promise<void> {
-    this.ensureInitialized();
-    try {
-      await this.conceptVectorDao!.create(data);
-      Logger.info("[VectorService] 创建概念向量成功", { concept_id: data.concept_id });
-    } catch (error) {
-      Logger.error("[VectorService] 创建概念向量失败", { error: String(error), data });
-      throw error;
-    }
-  }
-
-  /**
-   * 批量创建概念向量
-   */
-  public async createConceptEmbeddings(dataList: ConceptEmbeddingCreate[]): Promise<void> {
-    this.ensureInitialized();
-    try {
-      await this.conceptVectorDao!.createBatch(dataList);
-      Logger.info("[VectorService] 批量创建概念向量成功", { count: dataList.length });
-    } catch (error) {
-      Logger.error("[VectorService] 批量创建概念向量失败", {
-        error: String(error),
-        count: dataList.length,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * 更新概念向量
-   */
-  public async updateConceptEmbedding(conceptId: string, data: ConceptEmbeddingUpdate): Promise<void> {
-    this.ensureInitialized();
-    try {
-      await this.conceptVectorDao!.update(conceptId, data);
-      Logger.info("[VectorService] 更新概念向量成功", { concept_id: conceptId });
-    } catch (error) {
-      Logger.error("[VectorService] 更新概念向量失败", { error: String(error), conceptId, data });
-      throw error;
-    }
-  }
-
-  /**
-   * 删除概念向量
-   */
-  public async deleteConceptEmbedding(conceptId: string): Promise<void> {
-    this.ensureInitialized();
-    try {
-      await this.conceptVectorDao!.delete(conceptId);
-      Logger.info("[VectorService] 删除概念向量成功", { concept_id: conceptId });
-    } catch (error) {
-      Logger.error("[VectorService] 删除概念向量失败", { error: String(error), conceptId });
-      throw error;
-    }
-  }
-
-  /**
-   * 批量删除概念向量
-   */
-  public async deleteConceptEmbeddings(conceptIds: string[]): Promise<void> {
-    this.ensureInitialized();
-    try {
-      await this.conceptVectorDao!.deleteBatch(conceptIds);
-      Logger.info("[VectorService] 批量删除概念向量成功", { count: conceptIds.length });
-    } catch (error) {
-      Logger.error("[VectorService] 批量删除概念向量失败", {
-        error: String(error),
-        count: conceptIds.length,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * 搜索相似概念向量
-   */
-  public async searchConceptEmbeddings(
-    params: VectorSearchParams,
-  ): Promise<VectorSearchResult<import("@/main/types/db/vector.types").ConceptEmbedding>[]> {
-    this.ensureInitialized();
-    try {
-      const results = await this.conceptVectorDao!.search(params);
-      Logger.debug("[VectorService] 搜索概念向量成功", { topK: params.topK, count: results.length });
-      return results;
-    } catch (error) {
-      Logger.error("[VectorService] 搜索概念向量失败", { error: String(error), params });
       throw error;
     }
   }
@@ -367,12 +267,11 @@ class VectorService {
   public async getAllStats(): Promise<VectorStats[]> {
     this.ensureInitialized();
     try {
-      const [blockStats, conceptStats, pageStats] = await Promise.all([
+      const [blockStats, pageStats] = await Promise.all([
         this.blockVectorDao!.getStats(),
-        this.conceptVectorDao!.getStats(),
         this.pageVectorDao!.getStats(),
       ]);
-      return [blockStats, conceptStats, pageStats];
+      return [blockStats, pageStats];
     } catch (error) {
       Logger.error("[VectorService] 获取统计信息失败", { error: String(error) });
       throw error;

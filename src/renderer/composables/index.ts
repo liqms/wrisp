@@ -6,3 +6,4 @@ export * from "./useCapture";
 export * from "./useTheme";
 export * from "./useProject";
 export * from "./useModel";
+export * from "./useAIStream";

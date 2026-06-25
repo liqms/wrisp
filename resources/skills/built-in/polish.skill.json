@@ -11,23 +11,30 @@
   "enabled": true,
   "promptTemplate": "请润色以下文本，使其更{{style}}：\n\n{{text}}\n\n要求：只输出润色后的结果，不要添加任何解释。",
   "systemPrompt": "你是一个专业的文本润色助手，擅长优化中文表达。",
-  "parameters": [
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "需要润色的文本"
+      },
+      "style": {
+        "type": "string",
+        "enum": ["professional", "concise", "vivid", "formal", "casual"],
+        "default": "professional",
+        "description": "润色风格"
+      }
+    },
+    "required": ["text"]
+  },
+  "output": {
+    "type": "text"
+  },
+  "preProcess": [
     {
-      "name": "style",
-      "type": "string",
-      "enum": ["professional", "concise", "vivid", "formal", "casual"],
-      "default": "professional",
-      "label": "润色风格",
-      "description": "选择润色后的文本风格",
-      "ui": "dropdown"
+      "type": "trim"
     }
   ],
-  "inputMapping": {
-    "text": "selectedText"
-  },
-  "postProcess": {
-    "type": "trim"
-  },
   "example": {
     "input": {
       "text": "这个想法挺好的。",

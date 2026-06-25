@@ -3,9 +3,6 @@ import type {
   BlockEmbedding,
   BlockEmbeddingCreate,
   BlockEmbeddingUpdate,
-  ConceptEmbedding,
-  ConceptEmbeddingCreate,
-  ConceptEmbeddingUpdate,
   PageEmbedding,
   PageEmbeddingCreate,
   PageEmbeddingUpdate,
@@ -15,11 +12,6 @@ import type {
   VectorTableName,
 } from "@/main/types/db/vector.types";
 import { Logger } from "@/main/utils/logger";
-import {
-  getBlockEmbeddingTable,
-  getConceptEmbeddingTable,
-  getPageEmbeddingTable,
-} from "../vector/lancedb";
 
 /**
  * 向量数据访问对象基类
@@ -203,174 +195,6 @@ export class BlockVectorDao extends BaseVectorDao {
       };
     } catch (error) {
       Logger.error("[BlockVectorDao] 获取统计信息失败", { error: String(error) });
-      throw error;
-    }
-  }
-}
-
-/**
- * 概念向量数据访问对象
- */
-export class ConceptVectorDao extends BaseVectorDao {
-  /**
-   * 创建概念向量记录
-   */
-  async create(data: ConceptEmbeddingCreate): Promise<void> {
-    try {
-      const table = await this.getTable("concept_embeddings");
-      await table.add([data as ConceptEmbedding]);
-      Logger.debug("[ConceptVectorDao] 创建向量记录", { concept_id: data.concept_id });
-    } catch (error) {
-      Logger.error("[ConceptVectorDao] 创建概念向量失败", { error: String(error), data });
-      throw error;
-    }
-  }
-
-  /**
-   * 批量创建概念向量记录
-   */
-  async createBatch(dataList: ConceptEmbeddingCreate[]): Promise<void> {
-    if (dataList.length === 0) {
-      return;
-    }
-    try {
-      const table = await this.getTable("concept_embeddings");
-      await table.add(dataList as ConceptEmbedding[]);
-      Logger.debug("[ConceptVectorDao] 批量创建向量记录", { count: dataList.length });
-    } catch (error) {
-      Logger.error("[ConceptVectorDao] 批量创建概念向量失败", {
-        error: String(error),
-        count: dataList.length,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * 根据概念 ID 更新向量
-   */
-  async update(conceptId: string, data: ConceptEmbeddingUpdate): Promise<void> {
-    try {
-      const table = await this.getTable("concept_embeddings");
-      await table.delete(`concept_id = '${conceptId}'`);
-      await table.add([{ concept_id: conceptId, ...data } as ConceptEmbedding]);
-      Logger.debug("[ConceptVectorDao] 更新向量记录", { concept_id: conceptId });
-    } catch (error) {
-      Logger.error("[ConceptVectorDao] 更新概念向量失败", {
-        error: String(error),
-        conceptId,
-        data,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * 根据概念 ID 删除向量
-   */
-  async delete(conceptId: string): Promise<void> {
-    try {
-      const table = await this.getTable("concept_embeddings");
-      await table.delete(`concept_id = '${conceptId}'`);
-      Logger.debug("[ConceptVectorDao] 删除向量记录", { concept_id: conceptId });
-    } catch (error) {
-      Logger.error("[ConceptVectorDao] 删除概念向量失败", { error: String(error), conceptId });
-      throw error;
-    }
-  }
-
-  /**
-   * 根据概念 ID 批量删除向量
-   */
-  async deleteBatch(conceptIds: string[]): Promise<void> {
-    if (conceptIds.length === 0) {
-      return;
-    }
-    try {
-      const table = await this.getTable("concept_embeddings");
-      for (const conceptId of conceptIds) {
-        await table.delete(`concept_id = '${conceptId}'`);
-      }
-      Logger.debug("[ConceptVectorDao] 批量删除向量记录", { count: conceptIds.length });
-    } catch (error) {
-      Logger.error("[ConceptVectorDao] 批量删除概念向量失败", {
-        error: String(error),
-        count: conceptIds.length,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * 根据概念 ID 查询向量
-   */
-  async findByConceptId(conceptId: string): Promise<ConceptEmbedding | null> {
-    try {
-      const table = await this.getTable("concept_embeddings");
-      const results = await table
-        .search([0])
-        .where(`concept_id = '${conceptId}'`)
-        .limit(1)
-        .toArray();
-      return (results[0] as ConceptEmbedding) || null;
-    } catch (error) {
-      Logger.error("[ConceptVectorDao] 查询概念向量失败", { error: String(error), conceptId });
-      throw error;
-    }
-  }
-
-  /**
-   * 语义搜索概念向量
-   */
-  async search(params: VectorSearchParams): Promise<VectorSearchResult<ConceptEmbedding>[]> {
-    try {
-      const table = await this.getTable("concept_embeddings");
-      const results = await table.search(params.vector).limit(params.topK || 10).toArray();
-
-      return results.map((item: unknown) => {
-        const embedding = item as ConceptEmbedding;
-        return {
-          item: embedding,
-          score: 1 - (embedding._distance || 0),
-          distance: embedding._distance,
-        };
-      });
-    } catch (error) {
-      Logger.error("[ConceptVectorDao] 搜索概念向量失败", { error: String(error), params });
-      throw error;
-    }
-  }
-
-  /**
-   * 检查概念向量是否存在
-   */
-  async exists(conceptId: string): Promise<boolean> {
-    try {
-      const result = await this.findByConceptId(conceptId);
-      return result !== null;
-    } catch (error) {
-      Logger.error("[ConceptVectorDao] 检查概念向量存在性失败", { error: String(error), conceptId });
-      return false;
-    }
-  }
-
-  /**
-   * 获取概念向量表统计信息
-   */
-  async getStats(): Promise<VectorStats> {
-    try {
-      const table = await this.getTable("concept_embeddings");
-      const count = await table.countRows();
-      const indexes = await table.listIndices();
-
-      return {
-        tableName: "concept_embeddings",
-        rowCount: count,
-        dimension: 1536,
-        indexed: indexes.length > 0,
-      };
-    } catch (error) {
-      Logger.error("[ConceptVectorDao] 获取统计信息失败", { error: String(error) });
       throw error;
     }
   }

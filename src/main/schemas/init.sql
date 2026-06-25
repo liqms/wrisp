@@ -249,6 +249,22 @@ CREATE TABLE IF NOT EXISTS tasks (
     CHECK (status IN ('pending', 'running', 'succeeded', 'failed', 'cancelled'))
 );
 
+-- 创建 Skill 执行历史表
+CREATE TABLE IF NOT EXISTS skill_executions (
+    id TEXT PRIMARY KEY,
+    skill_id TEXT NOT NULL,
+    input TEXT,
+    output TEXT,
+    level TEXT NOT NULL DEFAULT 'L1',
+    model_used TEXT,
+    tokens_used INTEGER DEFAULT 0,
+    execution_time_ms INTEGER DEFAULT 0,
+    steps INTEGER DEFAULT 1,
+    status TEXT NOT NULL DEFAULT 'succeeded',
+    error_message TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- 启用外键约束
 PRAGMA foreign_keys = ON;
 
@@ -329,6 +345,10 @@ CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
 CREATE INDEX IF NOT EXISTS idx_tasks_group_id ON tasks(group_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_depends_on ON tasks(depends_on);
+
+-- Skill 执行历史索引
+CREATE INDEX IF NOT EXISTS idx_skill_executions_skill_id ON skill_executions(skill_id);
+CREATE INDEX IF NOT EXISTS idx_skill_executions_created_at ON skill_executions(created_at);
 
 -- ==================== FTS 同步触发器 ====================
 

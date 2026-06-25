@@ -29,8 +29,8 @@ class AIService {
   }
 
   async chatCompletion(request: LLMRequest): Promise<LLMResponse> {
-    // 如果请求携带 taskType，使用路由器决策
-    if (request.taskType) {
+    // 如果请求携带 taskType 且无 tools（L2 不走本地路由），使用路由器决策
+    if (request.taskType && !request.tools) {
       const target = await modelRouter.route(request.taskType);
       if (target === "local") {
         return this.localChatCompletion(request);

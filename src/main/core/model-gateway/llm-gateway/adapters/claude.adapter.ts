@@ -7,6 +7,7 @@ const DEFAULT_CLAUDE_BASE_URL = "https://api.anthropic.com/v1";
 export class ClaudeAdapter extends BaseAdapter {
   private client: Anthropic;
 
+  /** 初始化 Claude 适配器，创建 Anthropic SDK 客户端 */
   constructor (providerId: string, providerName: string, baseUrl: string, apiKey: string, models: Model[]) {
     const url = baseUrl || DEFAULT_CLAUDE_BASE_URL;
     super(providerId, providerName, url, apiKey, models);
@@ -17,6 +18,7 @@ export class ClaudeAdapter extends BaseAdapter {
     });
   }
 
+  /** 调用 Anthropic API 执行非流式聊天补全 */
   async chatCompletion(request: LLMRequest): Promise<LLMResponse> {
     const systemMessages = request.messages.filter(m => m.role === "system");
     const nonSystemMessages = request.messages.filter(m => m.role !== "system");
@@ -46,6 +48,7 @@ export class ClaudeAdapter extends BaseAdapter {
     };
   }
 
+  /** 调用 Anthropic API 执行流式聊天补全 */
   async *chatCompletionStream(request: LLMRequest): AsyncIterable<LLMStreamChunk> {
     const systemMessages = request.messages.filter(m => m.role === "system");
     const nonSystemMessages = request.messages.filter(m => m.role !== "system");
@@ -93,6 +96,7 @@ export class ClaudeAdapter extends BaseAdapter {
     }
   }
 
+  /** 测试与 Anthropic API 的连接是否正常 */
   async testConnection(): Promise<boolean> {
     try {
       await this.client.models.list({ limit: 1 });
@@ -102,6 +106,7 @@ export class ClaudeAdapter extends BaseAdapter {
     }
   }
 
+  /** 从 Anthropic API 获取可用模型列表 */
   async listModels(): Promise<Model[]> {
     try {
       const data = await this.client.models.list();

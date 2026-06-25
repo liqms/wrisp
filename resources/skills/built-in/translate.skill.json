@@ -11,23 +11,30 @@
   "enabled": true,
   "promptTemplate": "请将以下中文文本翻译为{{targetLanguage}}：\n\n{{text}}\n\n要求：\n1. 翻译准确、自然、流畅\n2. 保持原文的语气和风格\n3. 只输出翻译结果，不要添加任何解释",
   "systemPrompt": "你是一个专业的翻译助手，擅长将中文准确自然地翻译为其他语言。",
-  "parameters": [
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "需要翻译的中文文本"
+      },
+      "targetLanguage": {
+        "type": "string",
+        "enum": ["英文", "日文", "韩文", "法文", "德文"],
+        "default": "英文",
+        "description": "目标语言"
+      }
+    },
+    "required": ["text"]
+  },
+  "output": {
+    "type": "text"
+  },
+  "preProcess": [
     {
-      "name": "targetLanguage",
-      "type": "string",
-      "enum": ["英文", "日文", "韩文", "法文", "德文"],
-      "default": "英文",
-      "label": "目标语言",
-      "description": "选择翻译的目标语言",
-      "ui": "dropdown"
+      "type": "trim"
     }
   ],
-  "inputMapping": {
-    "text": "selectedText"
-  },
-  "postProcess": {
-    "type": "trim"
-  },
   "example": {
     "input": {
       "text": "知识就是力量。",

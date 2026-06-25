@@ -5,6 +5,7 @@
 import { TaskType, TASK_TYPE } from "@/shared/enums";
 import { modelService } from "@/main/core/services/model.service";
 import { modelManager } from "@/main/core/model-gateway/local-gateway/model-manager";
+import type { AIProvider } from "@/shared/types/model.types";
 import { Logger } from "@/main/utils/logger";
 
 type RouteTarget = "local" | "cloud";
@@ -16,17 +17,15 @@ interface RoutingRule {
 
 /** 任务路由规则表 */
 const taskRules: Record<TaskType, RoutingRule> = {
-  [TASK_TYPE.EMBEDDING]: { primary: "local" },
-  [TASK_TYPE.RERANK]: { primary: "local" },
-  [TASK_TYPE.CLUSTERING]: { primary: "local" },
-  [TASK_TYPE.TOPIC_DETECTION]: { primary: "local" },
-  [TASK_TYPE.SHORT_SUMMARY]: { primary: "local", fallback: "cloud" },
-  [TASK_TYPE.SIMPLE_REFLECTION]: { primary: "local", fallback: "cloud" },
-  [TASK_TYPE.REWRITE]: { primary: "cloud" },
-  [TASK_TYPE.POLISH]: { primary: "cloud" },
-  [TASK_TYPE.REASONING]: { primary: "cloud" },
-  [TASK_TYPE.LONG_WRITING]: { primary: "cloud" },
-  [TASK_TYPE.MULTIMODAL]: { primary: "cloud" },
+  [TASK_TYPE.CONCEPT_NAMING]: { primary: "cloud", fallback: "local" }, // 概念命名和演化摘要任务
+  [TASK_TYPE.TOPIC_SUMMARY]: { primary: "cloud", fallback: "local" }, // 主题命名与摘要任务
+  [TASK_TYPE.SUMMARY]: { primary: "cloud", fallback: "local" }, // 摘要任务优
+  [TASK_TYPE.REFLECTION]: { primary: "cloud", fallback: "local" }, // 反思任务
+  [TASK_TYPE.REWRITE]: { primary: "cloud", fallback: "local" }, // 改写任务
+  [TASK_TYPE.POLISH]: { primary: "cloud", fallback: "local" }, // 润色任务
+  [TASK_TYPE.CONTINUE]: { primary: "cloud", fallback: "local" }, // 续写任务
+  [TASK_TYPE.EXPAND]: { primary: "cloud", fallback: "local" }, // 扩写任务
+  [TASK_TYPE.MULTIMODAL]: { primary: "cloud", fallback: "local" }, // 多模态任务
 };
 
 class ModelRouter {
@@ -71,11 +70,14 @@ class ModelRouter {
 
   /**
    * 检查云端 AI 是否可用
-   * 判断标准：enableCloudAi 开关启用
+   * 判断标准：enableCloudAi 开关启用 + 至少有一个服务商
    */
   public isCloudAvailable(): boolean {
     const enabled = modelService.getValue<boolean>("enableCloudAi");
-    return enabled === true;
+    if (enabled !== true) return false;
+
+    const providers = modelService.getValue<AIProvider[]>("aiProviders");
+    return Array.isArray(providers) && providers.some(p => p.enabled);
   }
 
   /**

@@ -619,7 +619,7 @@ class CaptureService {
           return a.split_index - b.split_index;
         });
       } else if (searchType === SEARCH_TYPE.SEMANTIC) {
-        const canUseLocal = modelRouter.isLocalAvailable();
+        const canUseLocal = await modelRouter.isLocalAvailable();
         if (canUseLocal) {
           return this.searchByVector(keyword, limit, parent_record_id);
         }
@@ -697,12 +697,12 @@ class CaptureService {
         }
       }
 
-      // Step 4: bge-reranker-v2-m3 对候选文档重排序
+      // Step 5: bge-reranker-v2-m3 对候选文档重排序
       const rerankResults = await rerank(keyword, candidateContents, {
         modelName: "Xenova/bge-reranker-v2-m3",
       });
 
-      // Step 5: 取 Top-10 的 block，映射为 CaptureListItem[]
+      // Step 6: 取 Top-10 的 block，映射为 CaptureListItem[]
       const topKBlocks = rerankResults
         .slice(0, RERANK_TOP_K)
         .map((r) => orderedBlocks[r.index])

@@ -9,6 +9,15 @@ export interface LLMMessage {
   content: string;
 }
 
+export interface ToolCall {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
 export interface LLMRequest {
   messages: LLMMessage[];
   model?: string;
@@ -19,6 +28,14 @@ export interface LLMRequest {
   topP?: number;
   stop?: string[];
   stream?: boolean;
+  tools?: Array<{
+    type: "function";
+    function: {
+      name: string;
+      description: string;
+      parameters: Record<string, unknown>;
+    };
+  }>;
 }
 
 export interface LLMResponse {
@@ -27,6 +44,7 @@ export interface LLMResponse {
   providerId: string;
   content: string;
   finishReason: string;
+  toolCalls?: ToolCall[];
   usage: {
     promptTokens: number;
     completionTokens: number;

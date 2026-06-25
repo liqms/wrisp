@@ -11,23 +11,30 @@
   "enabled": true,
   "promptTemplate": "请将以下文本的语气转化为{{tone}}风格：\n\n{{text}}\n\n要求：\n1. 保留原文的核心意思\n2. 调整语气和表达方式以匹配目标风格\n3. 只输出转化后的结果，不要添加任何解释",
   "systemPrompt": "你是一个专业的语气转化助手，擅长根据不同的场景和受众调整文本的语气和表达方式。",
-  "parameters": [
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "需要调整语气的文本"
+      },
+      "tone": {
+        "type": "string",
+        "enum": ["正式", "轻松", "幽默", "严肃", "温暖"],
+        "default": "正式",
+        "description": "语气风格"
+      }
+    },
+    "required": ["text"]
+  },
+  "output": {
+    "type": "text"
+  },
+  "preProcess": [
     {
-      "name": "tone",
-      "type": "string",
-      "enum": ["正式", "轻松", "幽默", "严肃", "温暖"],
-      "default": "正式",
-      "label": "语气风格",
-      "description": "选择目标语气风格",
-      "ui": "dropdown"
+      "type": "trim"
     }
   ],
-  "inputMapping": {
-    "text": "selectedText"
-  },
-  "postProcess": {
-    "type": "trim"
-  },
   "example": {
     "input": {
       "text": "你这个方案不行，得重新做。",

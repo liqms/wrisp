@@ -1,16 +1,15 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 import { app } from "electron";
 import { Logger } from "@/main/utils/logger";
 import { skillSchemaValidator } from "./skill.schema.validator";
 import { compareVersions, VersionComparison } from "@/main/utils/version";
-("@/main/utils/version");
 import type {
   SkillDefinition,
   SkillManifest,
   SkillManifestEntry,
   SkillSettings,
-  SkillSettingsEntry,
   SkillListItem,
   CategoryNode,
   SkillSource,
@@ -29,7 +28,7 @@ class SkillManager {
   private changeCallbacks: Array<() => void> = [];
   private skillSources: Map<string, SkillSource> = new Map();
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SkillManager {
     if (!SkillManager.instance) {
@@ -154,31 +153,18 @@ class SkillManager {
     skill.enabled = enabled;
 
     if (!this.settings) {
-      this.settings = { skills: [] };
+      this.settings = { disabledSkills: [], skillParams: {} };
     }
 
-    const entry = this.settings.skills.find((e) => e.id === id);
-    if (entry) {
-      entry.enabled = enabled;
+    if (enabled) {
+      this.settings.disabledSkills = this.settings.disabledSkills.filter((s: string) => s !== id);
     } else {
-      this.settings.skills.push({
-        id,
-        enabled,
-        parameterOverrides: {},
-      });
-    }
-
-    this.saveSettings();
-
-    if (this.manifest) {
-      const manifestEntry = this.manifest.skills.find((e) => e.id === id);
-      if (manifestEntry) {
-        manifestEntry.enabled = enabled;
-        this.manifest.updatedAt = new Date().toISOString();
-        this.saveManifest();
+      if (!this.settings.disabledSkills.includes(id)) {
+        this.settings.disabledSkills.push(id);
       }
     }
 
+    this.saveSettings();
     this.notifyChange();
   }
 
@@ -214,6 +200,7 @@ class SkillManager {
       return;
     }
 
+    definition.enabled = definition.enabled !== false;
     this.skills.set(definition.id, definition);
     this.skillSources.set(definition.id, CUSTOM);
 
@@ -265,9 +252,7 @@ class SkillManager {
     }
 
     this.skills.set(id, merged);
-    this.updateManifestEntry(merged);
     this.saveManifest();
-
     this.notifyChange();
     Logger.info(`Custom skill updated: ${id}`);
   }
@@ -294,13 +279,14 @@ class SkillManager {
     this.skillSources.delete(id);
 
     if (this.manifest) {
-      this.manifest.skills = this.manifest.skills.filter((e) => e.id !== id);
-      this.manifest.updatedAt = new Date().toISOString();
+      delete this.manifest.skills[id];
+      this.manifest.lastUpdate = new Date().toISOString();
       this.saveManifest();
     }
 
     if (this.settings) {
-      this.settings.skills = this.settings.skills.filter((e) => e.id !== id);
+      this.settings.disabledSkills = this.settings.disabledSkills.filter((s: string) => s !== id);
+      delete this.settings.skillParams[id];
       this.saveSettings();
     }
 
@@ -375,7 +361,14 @@ class SkillManager {
     try {
       if (fs.existsSync(manifestPath)) {
         const content = fs.readFileSync(manifestPath, "utf-8");
-        this.manifest = JSON.parse(content) as SkillManifest;
+        const parsed = JSON.parse(content);
+
+        // 解析 V2 格式
+        if (parsed.version === 2 && parsed.skills && typeof parsed.skills === "object" && !Array.isArray(parsed.skills)) {
+          this.manifest = parsed as SkillManifest;
+        } else {
+          this.manifest = this.buildManifestFromSkills();
+        }
         this.syncManifest();
       } else {
         this.manifest = this.buildManifestFromSkills();
@@ -392,32 +385,30 @@ class SkillManager {
     if (!this.manifest) return;
 
     const currentIds = new Set(this.skills.keys());
-    this.manifest.skills = this.manifest.skills.filter((e) =>
-      currentIds.has(e.id),
-    );
 
-    for (const [id, skill] of this.skills) {
-      const existing = this.manifest.skills.find((e) => e.id === id);
-      if (existing) {
-        existing.name = skill.name;
-        existing.version = skill.version;
-        existing.category = skill.category;
-        existing.icon = skill.icon;
-        existing.source = this.getSkillSource(id);
-      } else {
-        this.manifest.skills.push({
-          id: skill.id,
-          name: skill.name,
-          version: skill.version,
-          category: skill.category,
-          icon: skill.icon,
-          enabled: skill.enabled,
-          source: this.getSkillSource(id),
-        });
+    // 移除不存在的 skill
+    for (const id of Object.keys(this.manifest.skills)) {
+      if (!currentIds.has(id)) {
+        delete this.manifest.skills[id];
       }
     }
 
-    this.manifest.updatedAt = new Date().toISOString();
+    // 添加新的 skill
+    for (const [id, skill] of this.skills) {
+      if (!this.manifest.skills[id]) {
+        const source = this.getSkillSource(id);
+        this.manifest.skills[id] = {
+          id,
+          path: `${source}/${id}.skill.json`,
+          source,
+          hash: this.computeSkillHash(id),
+          version: skill.version,
+          installedAt: new Date().toISOString(),
+        };
+      }
+    }
+
+    this.manifest.lastUpdate = new Date().toISOString();
   }
 
   private loadSettings(): void {
@@ -425,8 +416,14 @@ class SkillManager {
     try {
       if (fs.existsSync(settingsPath)) {
         const content = fs.readFileSync(settingsPath, "utf-8");
-        this.settings = JSON.parse(content) as SkillSettings;
-        this.syncSettings();
+        const parsed = JSON.parse(content);
+
+        // 解析 V2 格式
+        if (parsed.disabledSkills !== undefined && Array.isArray(parsed.disabledSkills)) {
+          this.settings = parsed as SkillSettings;
+        } else {
+          this.settings = this.buildSettingsFromSkills();
+        }
       } else {
         this.settings = this.buildSettingsFromSkills();
       }
@@ -438,114 +435,88 @@ class SkillManager {
     }
   }
 
-  private syncSettings(): void {
-    if (!this.settings) return;
-
-    const currentIds = new Set(this.skills.keys());
-    this.settings.skills = this.settings.skills.filter((e) =>
-      currentIds.has(e.id),
-    );
-
-    for (const id of this.skills.keys()) {
-      if (!this.settings.skills.find((e) => e.id === id)) {
-        const skill = this.skills.get(id)!;
-        this.settings.skills.push({
-          id,
-          enabled: skill.enabled,
-          parameterOverrides: {},
-        });
-      }
-    }
-  }
-
   private applySettings(): void {
     if (!this.settings) return;
 
-    for (const entry of this.settings.skills) {
-      const skill = this.skills.get(entry.id);
-      if (!skill) continue;
+    // 应用禁用列表
+    for (const id of this.settings.disabledSkills) {
+      const skill = this.skills.get(id);
+      if (skill) {
+        skill.enabled = false;
+      }
+    }
 
-      skill.enabled = entry.enabled;
+    // 默认启用所有未在禁用列表中的 skill
+    for (const [id, skill] of this.skills) {
+      if (!this.settings.disabledSkills.includes(id)) {
+        skill.enabled = true;
+      }
+    }
 
-      if (entry.parameterOverrides && skill.parameters) {
-        for (const param of skill.parameters) {
-          const override = entry.parameterOverrides[param.name];
-          if (override !== undefined) {
-            param.default = override;
-          }
+    // 应用参数覆盖
+    for (const [skillId, params] of Object.entries(this.settings.skillParams)) {
+      const skill = this.skills.get(skillId);
+      if (!skill?.input?.properties) continue;
+
+      for (const [propName, propDef] of Object.entries(skill.input.properties)) {
+        const override = params[propName];
+        if (override !== undefined) {
+          propDef.default = override;
         }
       }
     }
   }
 
   private buildManifestFromSkills(): SkillManifest {
-    const entries: SkillManifestEntry[] = [];
+    const skills: Record<string, SkillManifestEntry> = {};
     for (const [id, skill] of this.skills) {
-      entries.push({
-        id: skill.id,
-        name: skill.name,
+      const source = this.getSkillSource(id);
+      skills[id] = {
+        id,
+        path: `${source}/${id}.skill.json`,
+        source,
+        hash: this.computeSkillHash(id),
         version: skill.version,
-        category: skill.category,
-        icon: skill.icon,
-        enabled: skill.enabled,
-        source: this.getSkillSource(id),
-      });
+        installedAt: new Date().toISOString(),
+      };
     }
-    return { skills: entries, updatedAt: new Date().toISOString() };
+    return { version: 2, lastUpdate: new Date().toISOString(), skills };
   }
 
   private buildSettingsFromSkills(): SkillSettings {
-    const entries: SkillSettingsEntry[] = [];
+    const disabledSkills: string[] = [];
     for (const [id, skill] of this.skills) {
-      entries.push({
-        id,
-        enabled: skill.enabled,
-        parameterOverrides: {},
-      });
+      if (!skill.enabled) {
+        disabledSkills.push(id);
+      }
     }
-    return { skills: entries };
+    return { disabledSkills, skillParams: {} };
   }
 
   private addToManifest(skill: SkillDefinition): void {
     if (!this.manifest) {
-      this.manifest = { skills: [], updatedAt: new Date().toISOString() };
+      this.manifest = { version: 2, lastUpdate: new Date().toISOString(), skills: {} };
     }
 
-    this.manifest.skills.push({
+    const source = CUSTOM as SkillSource;
+    this.manifest.skills[skill.id] = {
       id: skill.id,
-      name: skill.name,
+      path: `${source}/${skill.id}.skill.json`,
+      source,
+      hash: this.computeSkillHash(skill.id),
       version: skill.version,
-      category: skill.category,
-      icon: skill.icon,
-      enabled: skill.enabled,
-      source: CUSTOM as SkillSource,
-    });
-    this.manifest.updatedAt = new Date().toISOString();
+      installedAt: new Date().toISOString(),
+    };
+    this.manifest.lastUpdate = new Date().toISOString();
   }
 
   private addToSettings(id: string, enabled: boolean): void {
     if (!this.settings) {
-      this.settings = { skills: [] };
+      this.settings = { disabledSkills: [], skillParams: {} };
     }
 
-    this.settings.skills.push({
-      id,
-      enabled,
-      parameterOverrides: {},
-    });
-  }
-
-  private updateManifestEntry(skill: SkillDefinition): void {
-    if (!this.manifest) return;
-
-    const entry = this.manifest.skills.find((e) => e.id === skill.id);
-    if (entry) {
-      entry.name = skill.name;
-      entry.version = skill.version;
-      entry.category = skill.category;
-      entry.icon = skill.icon;
-      entry.enabled = skill.enabled;
-      this.manifest.updatedAt = new Date().toISOString();
+    if (!enabled && !this.settings.disabledSkills.includes(id)) {
+      this.settings.disabledSkills.push(id);
     }
   }
 
@@ -577,6 +548,13 @@ class SkillManager {
     }
   }
 
+  private computeSkillHash(id: string): string {
+    const skill = this.skills.get(id);
+    if (!skill) return "";
+    const content = JSON.stringify(skill);
+    return crypto.createHash("sha256").update(content).digest("hex");
+  }
+
   private getSkillSource(id: string): SkillSource {
     return this.skillSources.get(id) || BUILT_IN;
   }
@@ -593,7 +571,8 @@ class SkillManager {
       tags: skill.tags,
       enabled: skill.enabled,
       source: this.getSkillSource(skill.id),
-      parameters: skill.parameters,
+      level: skill.tools && skill.tools.length > 0 ? "L2" : "L1",
+      input: skill.input,
       example: skill.example,
     };
   }

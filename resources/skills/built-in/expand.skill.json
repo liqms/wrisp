@@ -11,23 +11,30 @@
   "enabled": true,
   "promptTemplate": "请扩写以下文本，扩写长度为{{length}}：\n\n{{text}}\n\n要求：\n1. 保持原文的核心意思和逻辑结构\n2. 丰富细节、例证或论述\n3. 只输出扩写后的结果，不要添加任何解释",
   "systemPrompt": "你是一个专业的文本扩写助手，擅长在保持原意的基础上丰富内容和细节。",
-  "parameters": [
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "需要扩写的文本"
+      },
+      "length": {
+        "type": "string",
+        "enum": ["short", "medium", "long"],
+        "default": "medium",
+        "description": "扩写长度"
+      }
+    },
+    "required": ["text"]
+  },
+  "output": {
+    "type": "text"
+  },
+  "preProcess": [
     {
-      "name": "length",
-      "type": "string",
-      "enum": ["short", "medium", "long"],
-      "default": "medium",
-      "label": "扩写长度",
-      "description": "选择扩写的程度",
-      "ui": "dropdown"
+      "type": "trim"
     }
   ],
-  "inputMapping": {
-    "text": "selectedText"
-  },
-  "postProcess": {
-    "type": "trim"
-  },
   "example": {
     "input": {
       "text": "阅读有诸多益处，能够增长知识、开阔视野。",

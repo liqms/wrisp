@@ -309,6 +309,10 @@ export const useModelStore = defineStore("model", () => {
 
             if (response.success) {
                 config.value = { ...config.value, aiProviders: list };
+                // 通知后端刷新 LLM 网关配置
+                window.electronAPI.ai.refreshConfig().catch((e: unknown) =>
+                    logger.error("刷新 AI 配置失败", { error: e }),
+                );
                 return true;
             } else {
                 errorCode.value = response.code;
@@ -344,6 +348,10 @@ export const useModelStore = defineStore("model", () => {
 
             if (response.success) {
                 config.value = { ...config.value, aiProviders: list };
+                // 通知后端刷新 LLM 网关配置
+                window.electronAPI.ai.refreshConfig().catch((e: unknown) =>
+                    logger.error("刷新 AI 配置失败", { error: e }),
+                );
                 return true;
             } else {
                 errorCode.value = response.code;

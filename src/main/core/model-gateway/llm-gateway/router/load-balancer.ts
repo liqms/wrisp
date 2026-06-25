@@ -6,10 +6,12 @@ export class LoadBalancer {
   private providerManager: ProviderManager;
   private roundRobinCounters: Map<string, number> = new Map();
 
+  /** 初始化负载均衡器 */
   constructor(providerManager: ProviderManager) {
     this.providerManager = providerManager;
   }
 
+  /** 轮询算法选择候选适配器 */
   select(request: LLMRequest, candidates: BaseAdapter[]): BaseAdapter | null {
     if (candidates.length === 0) {
       return this.providerManager.getDefaultAdapter();

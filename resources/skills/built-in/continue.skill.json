@@ -11,13 +11,24 @@
   "enabled": true,
   "promptTemplate": "请续写以下文本，保持内容、风格和逻辑的一致性：\n\n{{text}}\n\n要求：\n1. 自然流畅地延续原文的内容和风格\n2. 保持逻辑连贯性\n3. 只输出续写的内容，不要重复原文",
   "systemPrompt": "你是一个专业的文本续写助手，擅长根据已有内容自然流畅地延续写作。",
-  "parameters": [],
-  "inputMapping": {
-    "text": "selectedText"
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "需要续写的文本"
+      }
+    },
+    "required": ["text"]
   },
-  "postProcess": {
-    "type": "trim"
+  "output": {
+    "type": "text"
   },
+  "preProcess": [
+    {
+      "type": "trim"
+    }
+  ],
   "example": {
     "input": {
       "text": "每天坚持阅读三十分钟，看似微不足道，但日积月累的力量不容小觑。"

@@ -11,13 +11,24 @@
   "enabled": true,
   "promptTemplate": "请从以下文本中提取核心关键词和关键短语：\n\n{{text}}\n\n要求：\n1. 提取 5-10 个最能代表文本核心内容的关键词或短语\n2. 按重要性从高到低排列\n3. 每个关键词用逗号分隔\n4. 只输出关键词列表，不要添加任何解释",
   "systemPrompt": "你是一个专业的关键词提取助手，擅长从文本中准确识别和提取核心关键词。",
-  "parameters": [],
-  "inputMapping": {
-    "text": "selectedText"
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "需要提取关键词的文本"
+      }
+    },
+    "required": ["text"]
   },
-  "postProcess": {
-    "type": "trim"
+  "output": {
+    "type": "text"
   },
+  "preProcess": [
+    {
+      "type": "trim"
+    }
+  ],
   "example": {
     "input": {
       "text": "深度学习是机器学习的一个子集，它使用多层神经网络来模拟人脑的学习过程。通过大量数据的训练，深度学习模型能够自动提取特征，在图像识别、语音识别和自然语言处理等领域取得了显著成果。"

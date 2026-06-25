@@ -16,6 +16,9 @@ export * from "./hardware";
 import { localGateway } from "./gateway";
 import type { EmbeddingConfig, RerankConfig } from "./types";
 
+/** 对单个文本进行向量嵌入（代理方法） */
 export const embed = (text: string, config?: Partial<EmbeddingConfig>) => localGateway.embed(text, config);
+/** 对批量文本进行向量嵌入（代理方法） */
 export const embedBatch = (texts: string[], config?: Partial<EmbeddingConfig>) => localGateway.embedBatch(texts, config);
+/** 对文档列表进行重排序（代理方法） */
 export const rerank = (query: string, documents: string[], config?: Partial<RerankConfig>) => localGateway.rerank(query, documents, config);

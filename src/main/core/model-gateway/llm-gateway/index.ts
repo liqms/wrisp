@@ -12,6 +12,7 @@ export class LLMGateway {
   private failoverHandler: FailoverHandler;
   private costTracker: CostTracker;
 
+  /** 初始化 LLM Gateway，创建 ProviderManager、ModelSelector、FailoverHandler、CostTracker */
   constructor(config: LLMGatewayConfig) {
     this.providerManager = new ProviderManager(config.providers, config.providerPriority);
     this.modelSelector = new ModelSelector(this.providerManager, config.providerPriority, config.defaultModels);
@@ -25,6 +26,7 @@ export class LLMGateway {
     });
   }
 
+  /** 从 ModelConfig 工厂方法创建 LLMGateway 实例 */
   static fromModelConfig(modelConfig: ModelConfig, failoverConfig: { maxRetries: number; retryDelayMs: number; circuitBreakerThreshold: number; cooldownMs: number }): LLMGateway {
     return new LLMGateway({
       providers: modelConfig.aiProviders,
@@ -34,6 +36,7 @@ export class LLMGateway {
     });
   }
 
+  /** 执行非流式聊天补全调用，自动处理故障转移和用量记录 */
   async chatCompletion(request: LLMRequest): Promise<LLMResponse> {
     const startTime = Date.now();
     GatewayLogger.info("chatCompletion 请求", {
@@ -60,6 +63,7 @@ export class LLMGateway {
     return response;
   }
 
+  /** 执行流式聊天补全调用，逐块 yield 响应内容 */
   async *chatCompletionStream(request: LLMRequest): AsyncIterable<LLMStreamChunk> {
     const { providerId, chunks } = await this.failoverHandler.executeStream(request, async (adapter, req) => {
       const results: LLMStreamChunk[] = [];
@@ -82,18 +86,22 @@ export class LLMGateway {
     }
   }
 
+  /** 获取 Token 用量汇总 */
   getCostSummary() {
     return this.costTracker.getSummary();
   }
 
+  /** 获取最近 N 条 Token 用量记录 */
   getCostRecords(count?: number) {
     return this.costTracker.getRecentRecords(count);
   }
 
+  /** 获取 ProviderManager 实例 */
   getProviderManager(): ProviderManager {
     return this.providerManager;
   }
 
+  /** 刷新配置（Provider、默认模型等） */
   refreshConfig(modelConfig: ModelConfig): void {
     this.providerManager.refreshAll(modelConfig.aiProviders, modelConfig.providerPriority);
     this.modelSelector.updateDefaultModels(modelConfig.defaultModels);

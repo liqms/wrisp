@@ -1,11 +1,12 @@
 import { skillManager } from "@/main/core/skills/skill.manager";
 import { skillExecutor } from "@/main/core/skills/skill.executor";
 import { skillUpdater } from "@/main/core/skills/skill.updater";
+import { skillExecutionDao } from "@/main/core/db/skill-execution.dao";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import { Logger } from "@/main/utils/logger";
 import type { ApiResponse } from "@/shared/types";
-import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillDefinition } from "@/shared/types/skill.types";
+import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillDefinition, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
 
 async function getSkills(): Promise<ApiResponse<SkillListItem[]>> {
   try {
@@ -47,7 +48,7 @@ async function getCategories(): Promise<ApiResponse<CategoryNode[]>> {
   }
 }
 
-async function executeSkill(skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<string>> {
+async function executeSkill(skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<SkillExecuteResult>> {
   try {
     const result = await skillExecutor.execute(skillId, inputs);
     return response.success(result);
@@ -118,6 +119,31 @@ async function applySkillUpdates(): Promise<ApiResponse<void>> {
   }
 }
 
+async function getSkillExecutions(skillId?: string, limit?: number): Promise<ApiResponse<SkillExecutionRecord[]>> {
+  try {
+    let result: SkillExecutionRecord[];
+    if (skillId) {
+      result = skillExecutionDao.getBySkillId(skillId, limit || 20);
+    } else {
+      result = skillExecutionDao.getRecent(limit || 20);
+    }
+    return response.success(result);
+  } catch (error) {
+    Logger.error("获取 Skill 执行历史失败", { error: String(error) });
+    return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error);
+  }
+}
+
+async function getSkillExecutionStats(skillId?: string): Promise<ApiResponse<{ total: number; succeeded: number; failed: number; avgTimeMs: number }>> {
+  try {
+    const result = skillExecutionDao.getStats(skillId);
+    return response.success(result);
+  } catch (error) {
+    Logger.error("获取 Skill 执行统计失败", { error: String(error) });
+    return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error);
+  }
+}
+
 export {
   getSkills,
   getSkill,
@@ -130,4 +156,6 @@ export {
   setSkillEnabled,
   checkSkillUpdates,
   applySkillUpdates,
+  getSkillExecutions,
+  getSkillExecutionStats,
 };

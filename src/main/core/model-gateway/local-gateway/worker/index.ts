@@ -62,6 +62,7 @@ const responseTypeMap: Record<string, string> = {
   "unload-llm": "llm-unloaded",
 };
 
+/** Worker 消息入口 - 根据消息类型路由到对应的 handler */
 self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const { id, type, payload } = event.data;
 

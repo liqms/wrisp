@@ -85,6 +85,82 @@
       "type": "string",
       "maxLength": 4096
     },
+    "input": {
+      "type": "object",
+      "required": ["type", "properties"],
+      "properties": {
+        "type": { "const": "object" },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/SkillInputProperty"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "description": "输入参数定义（JSON Schema 格式）"
+    },
+    "output": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["text", "json", "markdown"]
+        },
+        "schema": {
+          "type": "object"
+        }
+      },
+      "description": "输出类型定义"
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SkillToolDefinition"
+      },
+      "maxItems": 16,
+      "description": "工具定义（L2 能力）"
+    },
+    "maxSteps": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "description": "最大工具调用轮数（L2）"
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2,
+      "description": "模型温度"
+    },
+    "preProcess": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SkillPreProcess"
+      },
+      "maxItems": 8,
+      "description": "预处理规则"
+    },
+    "workflow": {
+      "type": "object",
+      "required": ["nodeType", "inputs", "outputs"],
+      "properties": {
+        "nodeType": { "type": "string", "minLength": 1 },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "description": "Workflow 集成配置"
+    },
     "parameters": {
       "type": "array",
       "items": {
@@ -107,6 +183,69 @@
     }
   },
   "definitions": {
+    "SkillInputProperty": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "boolean", "array", "object"]
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "enum": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "default": {}
+      }
+    },
+    "SkillToolDefinition": {
+      "type": "object",
+      "required": ["type", "function"],
+      "properties": {
+        "type": { "const": "function" },
+        "function": {
+          "type": "object",
+          "required": ["name", "description", "parameters"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "description": { "type": "string", "minLength": 1 },
+            "parameters": {
+              "type": "object",
+              "required": ["type", "properties"],
+              "properties": {
+                "type": { "const": "object" },
+                "properties": {
+                  "type": "object",
+                  "additionalProperties": { "type": "object" }
+                },
+                "required": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "SkillPreProcess": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["trim", "stripHtml", "extractSelection"]
+        },
+        "options": {
+          "type": "object"
+        }
+      }
+    },
     "SkillParameter": {
       "type": "object",
       "required": ["name", "type", "default", "label", "description", "ui"],
@@ -156,7 +295,10 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["trim"]
+          "enum": ["trim", "stripHtml", "formatJson", "wrapMarkdown"]
+        },
+        "options": {
+          "type": "object"
         }
       }
     },

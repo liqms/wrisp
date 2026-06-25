@@ -40,12 +40,14 @@ class ModelManager {
   private idleTimerHandle: NodeJS.Timeout | null = null;
   private idleTimerRunning = false;
 
+  /** 初始化模型存储路径 */
   private constructor() {
     this.userDataPath = app.getPath("userData");
     this.modelsBasePath = path.join(this.userDataPath, "models");
     fs.mkdirSync(this.modelsBasePath, { recursive: true });
   }
 
+  /** 获取 ModelManager 单例实例 */
   public static getInstance(): ModelManager {
     if (!ModelManager.instance) {
       ModelManager.instance = new ModelManager();

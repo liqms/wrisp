@@ -1,3 +1,8 @@
+/**
+ * DownloadService — 文件下载服务
+ * 单例模式，支持并发下载、队列管理、进度通知、取消/分组管理等
+ */
+
 import { app } from "electron";
 import fs from "fs";
 import path from "path";
@@ -29,6 +34,10 @@ interface QueueItem {
 
 const httpClient = new HttpClient();
 
+/**
+ * 文件下载服务，单例模式
+ * 管理下载任务的生命周期：排队、执行、进度通知、取消
+ */
 class DownloadService {
   private static instance: DownloadService | null = null;
   private tasks: Map<string, DownloadTask> = new Map();
@@ -39,12 +48,14 @@ class DownloadService {
   private activeDownloads = 0;
   private pendingQueue: QueueItem[] = [];
 
+  /** 初始化下载服务，创建缓存目录 */
   private constructor() {
     this.userDataPath = app.getPath("userData");
     this.cachePath = path.join(this.userDataPath, "Cache");
     fs.mkdirSync(this.cachePath, { recursive: true });
   }
 
+  /** 获取 DownloadService 单例实例 */
   public static getInstance(): DownloadService {
     if (!DownloadService.instance) {
       DownloadService.instance = new DownloadService();
@@ -52,6 +63,7 @@ class DownloadService {
     return DownloadService.instance;
   }
 
+  /** 监听下载事件（progress / complete / error） */
   public on(
     event: "progress",
     listener: (progress: DownloadProgress) => void,
@@ -64,11 +76,13 @@ class DownloadService {
     event: "error",
     listener: (taskId: string, error: string) => void,
   ): this;
+  /** 事件绑定实现 */
   public on(event: string, listener: (...args: any[]) => void): this {
     this.eventEmitter.on(event, listener);
     return this;
   }
 
+  /** 移除下载事件监听（progress / complete / error） */
   public off(
     event: "progress",
     listener: (progress: DownloadProgress) => void,
@@ -81,11 +95,19 @@ class DownloadService {
     event: "error",
     listener: (taskId: string, error: string) => void,
   ): this;
+  /** 事件移除实现 */
   public off(event: string, listener: (...args: any[]) => void): this {
     this.eventEmitter.off(event, listener);
     return this;
   }
 
+  /**
+   * 添加下载任务到队列
+   * @param url 下载地址
+   * @param subDir 缓存子目录
+   * @param options 可选配置（分组 ID、自定义文件名）
+   * @returns 下载完成后的本地文件路径
+   */
   public download(url: string, subDir: string, options?: { groupId?: string; fileName?: string }): Promise<string> {
     return new Promise((resolve, reject) => {
       const taskId = NodeCryptoUtil.generateUUID();
@@ -113,6 +135,7 @@ class DownloadService {
     });
   }
 
+  /** 处理下载队列，按最大并发数依次执行 */
   private async processQueue(): Promise<void> {
     if (
       this.activeDownloads >= this.maxConcurrentDownloads ||
@@ -130,11 +153,13 @@ class DownloadService {
     this.processQueue();
   }
 
+  /** 清理文件名中的非法字符，防止路径遍历 */
   private sanitizeFileName(fileName: string): string {
     const safe = fileName.replace(/[<>:"/\\|?*]/g, "_").trim();
     return safe || `download_${Date.now()}`;
   }
 
+  /** 执行单个下载任务（流式写入文件，带进度通知） */
   private async executeDownload(item: QueueItem): Promise<void> {
     const { url, subDir, taskId, resolve, reject } = item;
     const task = this.tasks.get(taskId);
@@ -209,6 +234,7 @@ class DownloadService {
     }
   }
 
+  /** 将 DownloadTask 转换为对外暴露的 DownloadProgress 格式 */
   private toProgress(task: DownloadTask): DownloadProgress {
     return {
       taskId: task.taskId,
@@ -224,15 +250,18 @@ class DownloadService {
     };
   }
 
+  /** 发射进度事件通知监听者 */
   private notifyProgress(task: DownloadTask): void {
     this.eventEmitter.emit("progress", this.toProgress(task));
   }
 
+  /** 获取指定任务的下载状态 */
   public getTaskStatus(taskId: string): DownloadProgress | null {
     const task = this.tasks.get(taskId);
     return task ? this.toProgress(task) : null;
   }
 
+  /** 取消指定下载任务 */
   public cancelTask(taskId: string): boolean {
     const task = this.tasks.get(taskId);
     if (!task) return false;
@@ -247,6 +276,7 @@ class DownloadService {
     return true;
   }
 
+  /** 从任务列表中移除指定任务记录 */
   public removeTask(taskId: string): void {
     this.tasks.delete(taskId);
   }
@@ -278,14 +308,17 @@ class DownloadService {
     return count;
   }
 
+  /** 获取所有下载任务的状态列表 */
   public getAllTasks(): DownloadProgress[] {
     return Array.from(this.tasks.values()).map((task) => this.toProgress(task));
   }
 
+  /** 获取缓存根目录路径 */
   public getCachePath(): string {
     return this.cachePath;
   }
 
+  /** 获取缓存子目录路径（自动创建） */
   public getSubDirPath(subDir: string): string {
     const subDirPath = path.join(this.cachePath, subDir);
     fs.mkdirSync(subDirPath, { recursive: true });

@@ -4,6 +4,7 @@ import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";
 import type { LLMRequest, LLMResponse, CostSummary, CostRecord } from "@/main/core/model-gateway/llm-gateway/types";
 import { Logger } from "@/main/utils/logger";
+import type { IpcMainInvokeEvent } from "electron";
 
 async function chatCompletion(request: LLMRequest): Promise<ApiResponse<LLMResponse>> {
   try {
@@ -11,6 +12,24 @@ async function chatCompletion(request: LLMRequest): Promise<ApiResponse<LLMRespo
     return response.success(result);
   } catch (error) {
     Logger.error("AI chatCompletion 失败", { error: String(error) });
+    return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error);
+  }
+}
+
+async function chatCompletionStream(
+  event: IpcMainInvokeEvent,
+  request: LLMRequest,
+): Promise<ApiResponse<null>> {
+  try {
+    const stream = aiService.chatCompletionStream(request);
+    for await (const chunk of stream) {
+      event.sender.send("ai:chatCompletionStream:chunk", chunk);
+    }
+    event.sender.send("ai:chatCompletionStream:done");
+    return response.empty();
+  } catch (error) {
+    Logger.error("AI chatCompletionStream 失败", { error: String(error) });
+    event.sender.send("ai:chatCompletionStream:error", String(error));
     return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error);
   }
 }
@@ -95,4 +114,4 @@ async function getRouteStatus(): Promise<ApiResponse<Record<string, unknown>>> {
   }
 }
 
-export { chatCompletion, getCostSummary, getCostRecords, getProviders, testProviderConnection, refreshAIConfig, isLocalAvailable, isCloudAvailable, getRouteStatus };
+export { chatCompletion, chatCompletionStream, getCostSummary, getCostRecords, getProviders, testProviderConnection, refreshAIConfig, isLocalAvailable, isCloudAvailable, getRouteStatus };

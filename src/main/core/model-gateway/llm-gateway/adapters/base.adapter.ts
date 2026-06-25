@@ -7,6 +7,7 @@ export abstract class BaseAdapter {
   protected apiKey: string;
   protected models: Model[];
 
+  /** 初始化基础适配器 */
   constructor(providerId: string, providerName: string, baseUrl: string, apiKey: string, models: Model[]) {
     this.providerId = providerId;
     this.providerName = providerName;
@@ -15,7 +16,9 @@ export abstract class BaseAdapter {
     this.models = models;
   }
 
+  /** 获取 Provider ID */
   getProviderId(): string { return this.providerId; }
+  /** 获取支持的模型列表 */
   getModels(): Model[] { return this.models; }
 
   abstract listModels(): Promise<Model[]>;

@@ -12,10 +12,12 @@ import { Logger } from "@/main/utils/logger";
 export class ProviderManager {
   private adapters: Map<string, AdapterInfo> = new Map();
 
+  /** 初始化 ProviderManager */
   constructor(providers: AIProvider[], providerPriority: string[]) {
     this.initFromConfig(providers, providerPriority);
   }
 
+  /** 从配置初始化 Provider 适配器列表 */
   private initFromConfig(providers: AIProvider[], providerPriority: string[]): void {
     for (const provider of providers) {
       if (!provider.enabled) continue;
@@ -39,6 +41,7 @@ export class ProviderManager {
     }
   }
 
+  /** 根据 Provider ID 创建对应的适配器实例 */
   private createAdapter(provider: AIProvider): BaseAdapter | null {
     try {
       const pid = provider.id.toLowerCase();
@@ -64,6 +67,7 @@ export class ProviderManager {
     }
   }
 
+  /** 根据模型名称查找对应的适配器 */
   getAdapterByModel(modelName: string): BaseAdapter | null {
     for (const info of this.adapters.values()) {
       if (!info.isHealthy) continue;
@@ -74,28 +78,34 @@ export class ProviderManager {
     return null;
   }
 
+  /** 根据 Provider ID 获取适配器 */
   getAdapterByProvider(providerId: string): BaseAdapter | null {
     const info = this.adapters.get(providerId);
     return info?.isHealthy ? info.adapter : null;
   }
 
+  /** 获取 Provider 的详细信息 */
   getAdapterInfo(providerId: string): AdapterInfo | undefined {
     return this.adapters.get(providerId);
   }
 
+  /** 获取所有已注册的适配器 */
   getAllAdapters(): AdapterInfo[] {
     return Array.from(this.adapters.values());
   }
 
+  /** 获取所有健康的适配器 */
   getHealthyAdapters(): AdapterInfo[] {
     return Array.from(this.adapters.values()).filter(a => a.isHealthy);
   }
 
+  /** 获取第一个健康的适配器作为默认 */
   getDefaultAdapter(): BaseAdapter | null {
     const healthy = this.getHealthyAdapters();
     return healthy.length > 0 ? healthy[0].adapter : null;
   }
 
+  /** 设置 Provider 的健康状态 */
   setHealth(providerId: string, healthy: boolean): void {
     const info = this.adapters.get(providerId);
     if (info) {
@@ -103,6 +113,7 @@ export class ProviderManager {
     }
   }
 
+  /** 动态添加一个新的 AI Provider */
   addProvider(provider: AIProvider): void {
     const adapter = this.createAdapter(provider);
     if (adapter) {
@@ -116,10 +127,12 @@ export class ProviderManager {
     }
   }
 
+  /** 移除指定的 AI Provider */
   removeProvider(providerId: string): void {
     this.adapters.delete(providerId);
   }
 
+  /** 更新指定的 AI Provider（先删后增） */
   updateProvider(provider: AIProvider): void {
     this.removeProvider(provider.id);
     if (provider.enabled) {
@@ -127,6 +140,7 @@ export class ProviderManager {
     }
   }
 
+  /** 完全刷新所有 Provider 配置 */
   refreshAll(providers: AIProvider[], providerPriority: string[]): void {
     this.adapters.clear();
     this.initFromConfig(providers, providerPriority);

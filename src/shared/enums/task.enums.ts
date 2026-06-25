@@ -3,26 +3,22 @@
  * 用于模型路由层根据任务类型选择本地/云端 AI 源
  */
 export const TASK_TYPE = {
-  /** 向量嵌入 */
-  EMBEDDING: "embedding",
-  /** 重排序 */
-  RERANK: "rerank",
-  /** 语义聚类 */
-  CLUSTERING: "clustering",
-  /** 主题检测 */
-  TOPIC_DETECTION: "topic_detection",
-  /** 短摘要 */
-  SHORT_SUMMARY: "short_summary",
-  /** 简单反思 */
-  SIMPLE_REFLECTION: "simple_reflection",
-  /** 重写 */
+  /** 概念命名和演化摘要 */
+  CONCEPT_NAMING: "concept_naming",
+  /** 主题命名与摘要 */
+  TOPIC_SUMMARY: "topic_summary",
+  /** 摘要 */
+  SUMMARY: "summary",
+  /** 反思 */
+  REFLECTION: "reflection",
+  /** 改写 */
   REWRITE: "rewrite",
   /** 润色 */
   POLISH: "polish",
-  /** 推理 */
-  REASONING: "reasoning",
-  /** 长文生成 */
-  LONG_WRITING: "long_writing",
+  /** 续写 */
+  CONTINUE: "continue",
+  /** 扩写 */
+  EXPAND: "expand",
   /** 多模态 */
   MULTIMODAL: "multimodal",
 } as const;

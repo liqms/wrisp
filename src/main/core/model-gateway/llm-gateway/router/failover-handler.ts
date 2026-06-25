@@ -16,12 +16,14 @@ export class FailoverHandler {
   private modelSelector: ModelSelector;
   private circuits: Map<string, CircuitState> = new Map();
 
+  /** 初始化故障转移处理器 */
   constructor(config: FailoverConfig, providerManager: ProviderManager, modelSelector: ModelSelector) {
     this.config = config;
     this.providerManager = providerManager;
     this.modelSelector = modelSelector;
   }
 
+  /** 执行带故障转移的非流式请求，自动熔断降级 */
   async execute(request: LLMRequest): Promise<LLMResponse> {
     let currentAdapter = this.modelSelector.select(request);
 
@@ -55,6 +57,7 @@ export class FailoverHandler {
     throw new Error("NO_AVAILABLE_PROVIDER: 所有 AI Provider 均不可用");
   }
 
+  /** 执行带故障转移的流式请求，自动熔断降级 */
   async executeStream(
     request: LLMRequest,
     streamFn: (adapter: BaseAdapter, request: LLMRequest) => Promise<LLMStreamChunk[]>,
@@ -91,6 +94,7 @@ export class FailoverHandler {
     throw new Error("NO_AVAILABLE_PROVIDER: 所有 AI Provider 均不可用");
   }
 
+  /** 带指数退避的重试逻辑 */
   private async retryWithBackoff(adapter: BaseAdapter, request: LLMRequest): Promise<LLMResponse> {
     let lastError: unknown;
 
@@ -110,6 +114,7 @@ export class FailoverHandler {
     throw lastError;
   }
 
+  /** 检查 Provider 是否处于熔断状态 */
   private isCircuitOpen(providerId: string): boolean {
     const circuit = this.circuits.get(providerId);
     if (!circuit || !circuit.isOpen) return false;
@@ -124,6 +129,7 @@ export class FailoverHandler {
     return true;
   }
 
+  /** 调用成功 - 重置熔断计数器并标记健康 */
   private onSuccess(providerId: string): void {
     const circuit = this.circuits.get(providerId);
     if (circuit) {
@@ -133,6 +139,7 @@ export class FailoverHandler {
     this.providerManager.setHealth(providerId, true);
   }
 
+  /** 调用失败 - 增加熔断计数，超过阈值则触发熔断 */
   private onFailure(providerId: string): void {
     let circuit = this.circuits.get(providerId);
     if (!circuit) {
@@ -150,6 +157,7 @@ export class FailoverHandler {
     }
   }
 
+  /** 延时工具方法 */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }

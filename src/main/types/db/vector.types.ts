@@ -4,31 +4,27 @@ export type EmbeddingId = Id;
 
 export type EmbeddingVector = number[];
 
-export type VectorTableName = "block_embeddings" | "concept_embeddings" | "pages_embeddings";
+export type VectorTableName = "block_embeddings" | "pages_embeddings";
 
 /**
  * Block 向量数据
  */
 export interface BlockEmbedding {
+  [key: string]: unknown;
   block_id: Id;
   embedding: EmbeddingVector;
-}
-
-/**
- * 概念向量数据
- */
-export interface ConceptEmbedding {
-  concept_id: Id;
-  embedding: EmbeddingVector;
+  _distance?: number;
 }
 
 /**
  * 页面向量数据
  */
 export interface PageEmbedding {
+  [key: string]: unknown;
   page_id: Id;
   project_id: Id;
   embedding: EmbeddingVector;
+  _distance?: number;
 }
 
 /**
@@ -62,21 +58,6 @@ export interface BlockEmbeddingCreate {
  * Block 向量更新参数
  */
 export interface BlockEmbeddingUpdate {
-  embedding: EmbeddingVector;
-}
-
-/**
- * 概念向量创建参数
- */
-export interface ConceptEmbeddingCreate {
-  concept_id: Id;
-  embedding: EmbeddingVector;
-}
-
-/**
- * 概念向量更新参数
- */
-export interface ConceptEmbeddingUpdate {
   embedding: EmbeddingVector;
 }
 

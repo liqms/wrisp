@@ -7,12 +7,14 @@ export class ModelSelector {
   private providerPriority: string[];
   private defaultModels: DefaultModel[];
 
+  /** 初始化模型选择器 */
   constructor(providerManager: ProviderManager, providerPriority: string[], defaultModels: DefaultModel[]) {
     this.providerManager = providerManager;
     this.providerPriority = providerPriority;
     this.defaultModels = defaultModels;
   }
 
+  /** 根据请求选择合适的 Provider 适配器 */
   select(request: LLMRequest): BaseAdapter | null {
     if (request.model) {
       const adapter = this.providerManager.getAdapterByModel(request.model);
@@ -38,6 +40,7 @@ export class ModelSelector {
     return this.providerManager.getDefaultAdapter();
   }
 
+  /** 获取当前 Provider 的下一个可用 Provider（用于故障转移） */
   getNextProvider(currentProviderId: string): BaseAdapter | null {
     const currentIndex = this.providerPriority.indexOf(currentProviderId);
     const startIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
@@ -50,14 +53,17 @@ export class ModelSelector {
     return null;
   }
 
+  /** 更新默认模型列表 */
   updateDefaultModels(defaultModels: DefaultModel[]): void {
     this.defaultModels = defaultModels;
   }
 
+  /** 更新 Provider 优先级顺序 */
   updateProviderPriority(providerPriority: string[]): void {
     this.providerPriority = providerPriority;
   }
 
+  /** 获取指定 Provider 的默认模型 ID */
   getDefaultModelForProvider(providerId: string): string | undefined {
     const defaultModel = this.defaultModels.find(dm => dm.providerId === providerId);
     return defaultModel?.modelId;

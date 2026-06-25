@@ -9,4 +9,5 @@ export * from "./menu.types";
 export * from "./capture.types";
 export * from "./skill.types";
 export * from "./task.types";
+export * from "./llm.types";
 export * from "@/main/types/db/tag.types";

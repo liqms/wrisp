@@ -13,4 +13,6 @@ export const skillModule: SkillAPI = {
   setSkillEnabled: (id, enabled) => ipcRenderer.invoke("skill:setSkillEnabled", id, enabled),
   checkSkillUpdates: () => ipcRenderer.invoke("skill:checkSkillUpdates"),
   applySkillUpdates: () => ipcRenderer.invoke("skill:applySkillUpdates"),
+  getSkillExecutions: (skillId, limit) => ipcRenderer.invoke("skill:getSkillExecutions", skillId, limit),
+  getSkillExecutionStats: (skillId) => ipcRenderer.invoke("skill:getSkillExecutionStats", skillId),
 };
