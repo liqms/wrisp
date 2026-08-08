@@ -1,47 +1,94 @@
 -- =============================================
 -- PenTip 数据库初始化脚本
--- 版本: 1.1.0
--- 创建时间: 2026-05-14
+-- 版本: 2.0.0
+-- 创建时间: 2026-06-28
+-- 基于 docs/storage/sqlite.md v2 设计
 -- =============================================
 
 -- 禁用外键检查（避免循环依赖问题）
 PRAGMA foreign_keys = OFF;
 
--- ==================== 新增核心表 ====================
+-- ==================== 核心表 ====================
 
--- 创建 Block 表
-CREATE TABLE IF NOT EXISTS blocks (
+-- 创建文件索引表
+CREATE TABLE IF NOT EXISTS file_index (
     id TEXT PRIMARY KEY,
-    content TEXT NOT NULL,
-    content_type TEXT DEFAULT 'text',
-    source TEXT DEFAULT 'manual',
-    language TEXT DEFAULT 'zh',
-    metadata TEXT DEFAULT '{}',
-    parent_block_id TEXT REFERENCES blocks(id),
-    split_index INTEGER DEFAULT 0,
-    is_memo INTEGER DEFAULT 0,
-    is_archived INTEGER DEFAULT 0,
-    ai_summary TEXT,
-    temporal_score REAL DEFAULT 0.0,
-    word_count INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'active',
+    file_path TEXT NOT NULL UNIQUE,
+    file_hash TEXT NOT NULL,
+    file_size INTEGER DEFAULT 0,
+    date TEXT,
+    name TEXT,
+    last_synced TEXT,
+    sync_status TEXT DEFAULT 'pending',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
 
--- 创建 Block FTS5 全文索引
-CREATE VIRTUAL TABLE IF NOT EXISTS blocks_fts USING fts5(
+-- 创建语义块表
+CREATE TABLE IF NOT EXISTS semantic_chunks (
+    id TEXT PRIMARY KEY,
+    file_id TEXT NOT NULL REFERENCES file_index(id),
+    file_path TEXT NOT NULL,
+    start_line INTEGER NOT NULL,
+    end_line INTEGER NOT NULL,
+    section_title TEXT,
+    content TEXT NOT NULL,
+    content_hash TEXT,
+    chunk_type TEXT DEFAULT 'journal',
+    ai_summary TEXT,
+    word_count INTEGER DEFAULT 0,
+    temporal_score REAL DEFAULT 0.0,
+    status TEXT DEFAULT 'active',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    CHECK (status IN ('active', 'deleted'))
+);
+
+-- 创建语义块 FTS5 全文索引
+CREATE VIRTUAL TABLE IF NOT EXISTS semantic_chunks_fts USING fts5(
     content,
     ai_summary,
-    content='blocks',
-    content_rowid='rowid',
-   );
+    content='semantic_chunks',
+    content_rowid='rowid'
+);
+
+-- 创建概念 FTS5 全文索引
+CREATE VIRTUAL TABLE IF NOT EXISTS concepts_fts USING fts5(
+    title,
+    evolving_summary,
+    content='concepts',
+    content_rowid='rowid'
+);
+
+-- 创建主题 FTS5 全文索引
+CREATE VIRTUAL TABLE IF NOT EXISTS topics_fts USING fts5(
+    title,
+    summary,
+    content='topics',
+    content_rowid='rowid'
+);
+
+-- 创建作品 FTS5 全文索引
+CREATE VIRTUAL TABLE IF NOT EXISTS projects_fts USING fts5(
+    name,
+    description,
+    ai_summary,
+    content='projects',
+    content_rowid='rowid'
+);
+
+-- 创建页面 FTS5 全文索引
+CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(
+    title,
+    ai_summary,
+    content='pages',
+    content_rowid='rowid'
+);
 
 -- 创建标签表
 CREATE TABLE IF NOT EXISTS tags (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
-    color TEXT DEFAULT '#666666',
     description TEXT DEFAULT '',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -60,14 +107,14 @@ CREATE TABLE IF NOT EXISTS tagged_items (
 -- 创建语义链接表
 CREATE TABLE IF NOT EXISTS semantic_links (
     id TEXT PRIMARY KEY,
-    source_block_id TEXT NOT NULL REFERENCES blocks(id),
-    target_block_id TEXT NOT NULL REFERENCES blocks(id),
+    source_chunk_id TEXT NOT NULL REFERENCES semantic_chunks(id),
+    target_chunk_id TEXT NOT NULL REFERENCES semantic_chunks(id),
     link_type TEXT DEFAULT 'semantic',
     similarity REAL DEFAULT 0.0,
     ai_explanation TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    UNIQUE(source_block_id, target_block_id)
+    UNIQUE(source_chunk_id, target_chunk_id)
 );
 
 -- 创建概念表
@@ -81,16 +128,16 @@ CREATE TABLE IF NOT EXISTS concepts (
     updated_at TEXT NOT NULL
 );
 
--- 创建概念-Block 关联表
-CREATE TABLE IF NOT EXISTS concept_blocks (
+-- 创建概念-语义块关联表
+CREATE TABLE IF NOT EXISTS concept_chunks (
     concept_id TEXT NOT NULL,
-    block_id TEXT NOT NULL,
+    chunk_id TEXT NOT NULL,
     relevance_score REAL DEFAULT 0.0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    PRIMARY KEY (concept_id, block_id),
+    PRIMARY KEY (concept_id, chunk_id),
     FOREIGN KEY (concept_id) REFERENCES concepts(id) ON DELETE CASCADE,
-    FOREIGN KEY (block_id) REFERENCES blocks(id) ON DELETE CASCADE
+    FOREIGN KEY (chunk_id) REFERENCES semantic_chunks(id) ON DELETE CASCADE
 );
 
 -- 创建主题表
@@ -104,16 +151,16 @@ CREATE TABLE IF NOT EXISTS topics (
     CHECK (status IN ('active', 'deleted'))
 );
 
--- 创建主题-Block 关联表
-CREATE TABLE IF NOT EXISTS topic_blocks (
+-- 创建主题-语义块关联表
+CREATE TABLE IF NOT EXISTS topic_chunks (
     topic_id TEXT NOT NULL,
-    block_id TEXT NOT NULL,
+    chunk_id TEXT NOT NULL,
     relevance_score REAL DEFAULT 0.0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    PRIMARY KEY (topic_id, block_id),
+    PRIMARY KEY (topic_id, chunk_id),
     FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
-    FOREIGN KEY (block_id) REFERENCES blocks(id) ON DELETE CASCADE
+    FOREIGN KEY (chunk_id) REFERENCES semantic_chunks(id) ON DELETE CASCADE
 );
 
 -- 创建主题-概念关联表
@@ -131,7 +178,7 @@ CREATE TABLE IF NOT EXISTS topic_concepts (
 -- 创建时间事件表
 CREATE TABLE IF NOT EXISTS temporal_events (
     id TEXT PRIMARY KEY,
-    block_id TEXT NOT NULL REFERENCES blocks(id),
+    chunk_id TEXT NOT NULL REFERENCES semantic_chunks(id),
     event_type TEXT NOT NULL,
     event_data TEXT DEFAULT '{}',
     temporal_score REAL DEFAULT 0.0,
@@ -149,27 +196,28 @@ CREATE TABLE IF NOT EXISTS reflections (
     status TEXT DEFAULT 'pending',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    CHECK (status IN ('pending', 'read', 'archived'))
+    CHECK (status IN ('pending', 'read', 'deleted'))
 );
 
--- 创建反思-Block 关联表
-CREATE TABLE IF NOT EXISTS reflection_blocks (
+-- 创建反思-语义块关联表
+CREATE TABLE IF NOT EXISTS reflection_chunks (
     reflection_id TEXT NOT NULL,
-    block_id TEXT NOT NULL,
+    chunk_id TEXT NOT NULL,
     relevance_score REAL DEFAULT 0.0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    PRIMARY KEY (reflection_id, block_id),
+    PRIMARY KEY (reflection_id, chunk_id),
     FOREIGN KEY (reflection_id) REFERENCES reflections(id) ON DELETE CASCADE,
-    FOREIGN KEY (block_id) REFERENCES blocks(id) ON DELETE CASCADE
+    FOREIGN KEY (chunk_id) REFERENCES semantic_chunks(id) ON DELETE CASCADE
 );
 
--- ==================== 原有表（保留兼容） ====================
+-- ==================== 业务表 ====================
 
 -- 创建作品表
 CREATE TABLE IF NOT EXISTS projects (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    file_path TEXT NOT NULL,
     description TEXT,
     type TEXT,
     status TEXT DEFAULT 'active',
@@ -181,16 +229,16 @@ CREATE TABLE IF NOT EXISTS projects (
     CHECK (status IN ('active', 'deleted'))
 );
 
--- 创建作品-Block 关联表
-CREATE TABLE IF NOT EXISTS project_blocks (
+-- 创建作品-语义块关联表
+CREATE TABLE IF NOT EXISTS  project_chunks (
     project_id TEXT NOT NULL,
-    block_id TEXT NOT NULL,
+    chunk_id TEXT NOT NULL,
     relevance_score REAL DEFAULT 0.0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    PRIMARY KEY (project_id, block_id),
+    PRIMARY KEY (project_id, chunk_id),
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    FOREIGN KEY (block_id) REFERENCES blocks(id) ON DELETE CASCADE
+    FOREIGN KEY (chunk_id) REFERENCES semantic_chunks(id) ON DELETE CASCADE
 );
 
 -- 创建页面表
@@ -198,7 +246,7 @@ CREATE TABLE IF NOT EXISTS pages (
     id TEXT PRIMARY KEY,
     project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
-    content TEXT,
+    file_path TEXT NOT NULL,
     order_index INTEGER DEFAULT 0,
     parent_page_id TEXT REFERENCES pages(id) ON DELETE CASCADE,
     is_container INTEGER DEFAULT 0,
@@ -208,9 +256,11 @@ CREATE TABLE IF NOT EXISTS pages (
     status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    CHECK (status IN ('active', 'archived')),
+    CHECK (status IN ('active', 'deleted')),
     CHECK (is_container IN (0, 1))
 );
+
+-- ==================== 基础设施表 ====================
 
 -- 创建数据库版本表
 CREATE TABLE IF NOT EXISTS migrations_db (
@@ -270,14 +320,15 @@ PRAGMA foreign_keys = ON;
 
 -- ==================== 创建索引 ====================
 
--- Block 索引
-CREATE INDEX IF NOT EXISTS idx_blocks_source ON blocks(source);
-CREATE INDEX IF NOT EXISTS idx_blocks_parent ON blocks(parent_block_id);
-CREATE INDEX IF NOT EXISTS idx_blocks_created_at ON blocks(created_at);
-CREATE INDEX IF NOT EXISTS idx_blocks_temporal_score ON blocks(temporal_score);
-CREATE INDEX IF NOT EXISTS idx_blocks_status ON blocks(status);
-CREATE INDEX IF NOT EXISTS idx_blocks_is_memo ON blocks(is_memo);
-CREATE INDEX IF NOT EXISTS idx_blocks_is_archived ON blocks(is_archived);
+-- 文件索引表索引
+CREATE INDEX IF NOT EXISTS idx_file_index_path ON file_index(file_path);
+CREATE INDEX IF NOT EXISTS idx_file_index_status ON file_index(sync_status);
+
+-- 语义块索引
+CREATE INDEX IF NOT EXISTS idx_semantic_chunks_file ON semantic_chunks(file_id);
+CREATE INDEX IF NOT EXISTS idx_semantic_chunks_path ON semantic_chunks(file_path);
+CREATE INDEX IF NOT EXISTS idx_semantic_chunks_hash ON semantic_chunks(content_hash);
+CREATE INDEX IF NOT EXISTS idx_semantic_chunks_type ON semantic_chunks(chunk_type);
 
 -- 标签索引
 CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
@@ -287,58 +338,60 @@ CREATE INDEX IF NOT EXISTS idx_tagged_items_tag ON tagged_items(tag_id);
 CREATE INDEX IF NOT EXISTS idx_tagged_items_entity ON tagged_items(entity_type, entity_id);
 
 -- 语义链接索引
-CREATE INDEX IF NOT EXISTS idx_semantic_links_source ON semantic_links(source_block_id);
-CREATE INDEX IF NOT EXISTS idx_semantic_links_target ON semantic_links(target_block_id);
+CREATE INDEX IF NOT EXISTS idx_semantic_links_source ON semantic_links(source_chunk_id);
+CREATE INDEX IF NOT EXISTS idx_semantic_links_target ON semantic_links(target_chunk_id);
 CREATE INDEX IF NOT EXISTS idx_semantic_links_type ON semantic_links(link_type);
 
 -- 概念索引
 CREATE INDEX IF NOT EXISTS idx_concepts_relevance ON concepts(relevance);
 CREATE INDEX IF NOT EXISTS idx_concepts_title ON concepts(title);
 
--- 概念-Block 关联表索引
-CREATE INDEX IF NOT EXISTS idx_concept_blocks_concept ON concept_blocks(concept_id);
-CREATE INDEX IF NOT EXISTS idx_concept_blocks_block ON concept_blocks(block_id);
+-- 概念-语义块关联表索引
+CREATE INDEX IF NOT EXISTS idx_concept_chunks_concept ON concept_chunks(concept_id);
+CREATE INDEX IF NOT EXISTS idx_concept_chunks_chunk ON concept_chunks(chunk_id);
 
 -- 主题索引
 CREATE INDEX IF NOT EXISTS idx_topics_status ON topics(status);
 CREATE INDEX IF NOT EXISTS idx_topics_title ON topics(title);
 
--- 主题-Block 关联表索引
-CREATE INDEX IF NOT EXISTS idx_topic_blocks_topic ON topic_blocks(topic_id);
-CREATE INDEX IF NOT EXISTS idx_topic_blocks_block ON topic_blocks(block_id);
+-- 主题-语义块关联表索引
+CREATE INDEX IF NOT EXISTS idx_topic_chunks_topic ON topic_chunks(topic_id);
+CREATE INDEX IF NOT EXISTS idx_topic_chunks_chunk ON topic_chunks(chunk_id);
 
 -- 主题-概念关联表索引
 CREATE INDEX IF NOT EXISTS idx_topic_concepts_topic ON topic_concepts(topic_id);
 CREATE INDEX IF NOT EXISTS idx_topic_concepts_concept ON topic_concepts(concept_id);
 
 -- 时间事件索引
-CREATE INDEX IF NOT EXISTS idx_temporal_events_block_id ON temporal_events(block_id);
+CREATE INDEX IF NOT EXISTS idx_temporal_events_chunk_id ON temporal_events(chunk_id);
 CREATE INDEX IF NOT EXISTS idx_temporal_events_type ON temporal_events(event_type);
 
 -- 反思索引
 CREATE INDEX IF NOT EXISTS idx_reflections_type ON reflections(type);
 CREATE INDEX IF NOT EXISTS idx_reflections_status ON reflections(status);
 
--- 反思-Block 关联表索引
-CREATE INDEX IF NOT EXISTS idx_reflection_blocks_reflection ON reflection_blocks(reflection_id);
-CREATE INDEX IF NOT EXISTS idx_reflection_blocks_block ON reflection_blocks(block_id);
+-- 反思-语义块关联表索引
+CREATE INDEX IF NOT EXISTS idx_reflection_chunks_reflection ON reflection_chunks(reflection_id);
+CREATE INDEX IF NOT EXISTS idx_reflection_chunks_chunk ON reflection_chunks(chunk_id);
 
 -- 作品表索引
 CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(name);
 CREATE INDEX IF NOT EXISTS idx_projects_type ON projects(type);
 
--- 作品-Block 关联表索引
-CREATE INDEX IF NOT EXISTS idx_project_blocks_project ON project_blocks(project_id);
-CREATE INDEX IF NOT EXISTS idx_project_blocks_block ON project_blocks(block_id);
+-- 作品-语义块关联表索引
+CREATE INDEX IF NOT EXISTS idx_project_chunks_project ON  project_chunks(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_chunks_chunk ON  project_chunks(chunk_id);
 
 -- 页面表索引
 CREATE INDEX IF NOT EXISTS idx_pages_project ON pages(project_id);
 CREATE INDEX IF NOT EXISTS idx_pages_order ON pages(project_id, order_index);
 CREATE INDEX IF NOT EXISTS idx_pages_parent ON pages(parent_page_id);
 CREATE INDEX IF NOT EXISTS idx_pages_container ON pages(project_id, is_container, order_index);
+CREATE INDEX IF NOT EXISTS idx_pages_summary ON pages(ai_summary);
 
 -- 迁移表索引
 CREATE INDEX IF NOT EXISTS idx_migrations_db_version ON migrations_db(version);
+CREATE INDEX IF NOT EXISTS idx_migrations_db_status ON migrations_db(status);
 
 -- 任务队列索引
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
@@ -350,34 +403,17 @@ CREATE INDEX IF NOT EXISTS idx_tasks_depends_on ON tasks(depends_on);
 CREATE INDEX IF NOT EXISTS idx_skill_executions_skill_id ON skill_executions(skill_id);
 CREATE INDEX IF NOT EXISTS idx_skill_executions_created_at ON skill_executions(created_at);
 
--- ==================== FTS 同步触发器 ====================
-
-CREATE TRIGGER IF NOT EXISTS blocks_ai AFTER INSERT ON blocks BEGIN
-    INSERT INTO blocks_fts(rowid, content, ai_summary)
-    VALUES (new.rowid, new.content, new.ai_summary);
-END;
-
-CREATE TRIGGER IF NOT EXISTS blocks_ad AFTER DELETE ON blocks BEGIN
-    DELETE FROM blocks_fts WHERE rowid = old.rowid;
-END;
-
-CREATE TRIGGER IF NOT EXISTS blocks_au AFTER UPDATE ON blocks BEGIN
-    DELETE FROM blocks_fts WHERE rowid = old.rowid;
-    INSERT INTO blocks_fts(rowid, content, ai_summary)
-    VALUES (new.rowid, new.content, new.ai_summary);
-END;
-
 -- ==================== 插入初始迁移记录 ====================
 
 INSERT OR IGNORE INTO migrations_db (id, version, name, description, sql_statement, status, executed_at, created_at, updated_at)
 VALUES (
     '00000000-0000-0000-0000-000000000001',
-    '1.1.1',
+    '2.0.0',
     'Init Tables and Indexes',
-    '初始化关联关系表',
-    'CREATE TABLE blocks, blocks_fts, tags, tagged_items, semantic_links, concepts, concept_blocks, topics, topic_blocks, topic_concepts, temporal_events, reflections, reflection_blocks, projects, project_blocks, pages, migrations_db',
+    '初始化 v2 架构：file_index + semantic_chunks + FTS + AI 索引表',
+    'CREATE TABLE file_index, semantic_chunks, semantic_chunks_fts, concepts_fts, topics_fts, projects_fts, pages_fts, tags, tagged_items, semantic_links, concepts, concept_chunks, topics, topic_chunks, topic_concepts, temporal_events, reflections, reflection_chunks, projects,  project_chunks, pages, migrations_db, tasks, skill_executions',
     'executed',
-    '2026-05-21T23:55:15.255Z',
-    '2026-05-21T23:55:15.255Z',
-    '2026-05-21T23:55:15.255Z'
+    '2026-06-28T00:00:00.000Z',
+    '2026-06-28T00:00:00.000Z',
+    '2026-06-28T00:00:00.000Z'
 );

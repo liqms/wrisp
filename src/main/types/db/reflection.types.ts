@@ -3,8 +3,7 @@ import { Id, Timestamp, Ensure, NonEmptyString, Name, Content, QueryParams } fro
 export type ReflectionId = Id
 
 export type ReflectionType = 'pattern' | 'contradiction' | 'evolution' | 'insight'
-
-export type ReflectionStatus = 'pending' | 'read' | 'archived'
+export type ReflectionStatus = 'pending' | 'read' | 'deleted'
 
 export interface Reflection {
   id: ReflectionId

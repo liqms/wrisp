@@ -39,4 +39,6 @@ export interface ModelConfig {
   providerPriority: string[];
   enableAiMode?: boolean; // 是否启用本地AI模式
   enableCloudAi?: boolean; // 是否启用云AI
+  version: string; // 配置文件版本
+  updatedAt: string; // 更新时间
 }

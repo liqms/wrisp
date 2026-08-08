@@ -183,7 +183,7 @@ const commandGroups: CommandGroup[] = [
     ],
   },
   {
-    label: "标题",
+    label: "基本类型",
     items: [
       {
         id: "h1",
@@ -213,6 +213,112 @@ const commandGroups: CommandGroup[] = [
         action: (editor, pos) => {
           deleteSlashText(editor, pos);
           editor.chain().focus().toggleHeading({ level: 3 }).run();
+        },
+      },
+      {
+        id: "h4",
+        title: "标题 4",
+        description: "更小标题",
+        icon: '<strong style="font-size:13px">H4</strong>',
+        action: (editor, pos) => {
+          deleteSlashText(editor, pos);
+          editor.chain().focus().toggleHeading({ level: 4 }).run();
+        },
+      },
+      {
+        id: "h5",
+        title: "标题 5",
+        description: "次小标题",
+        icon: '<strong style="font-size:12px">H5</strong>',
+        action: (editor, pos) => {
+          deleteSlashText(editor, pos);
+          editor.chain().focus().toggleHeading({ level: 5 }).run();
+        },
+      },
+      {
+        id: "h6",
+        title: "标题 6",
+        description: "最小标题",
+        icon: '<strong style="font-size:12px">H6</strong>',
+        action: (editor, pos) => {
+          deleteSlashText(editor, pos);
+          editor.chain().focus().toggleHeading({ level: 6 }).run();
+        },
+      },
+      {
+        id: "link",
+        title: "链接",
+        description: "插入超链接",
+        icon: '<span style="font-size:14px">🔗</span>',
+        action: (editor, pos) => {
+          deleteSlashText(editor, pos);
+          const url = window.prompt("输入链接 URL", "https://");
+          if (url) {
+            editor.chain().focus().setLink({ href: url }).run();
+          }
+        },
+      },
+    ],
+  },
+  {
+    label: "日期和时间",
+    items: [
+      {
+        id: "today",
+        title: "今天",
+        description: "插入今天日期",
+        icon: '<span style="font-size:14px">📅</span>',
+        action: (editor, pos) => {
+          deleteSlashText(editor, pos);
+          editor.chain().focus().insertContent(formatDate(new Date())).run();
+        },
+      },
+      {
+        id: "yesterday",
+        title: "昨天",
+        description: "插入昨天日期",
+        icon: '<span style="font-size:14px">📅</span>',
+        action: (editor, pos) => {
+          deleteSlashText(editor, pos);
+          const d = new Date();
+          d.setDate(d.getDate() - 1);
+          editor.chain().focus().insertContent(formatDate(d)).run();
+        },
+      },
+      {
+        id: "tomorrow",
+        title: "明天",
+        description: "插入明天日期",
+        icon: '<span style="font-size:14px">📅</span>',
+        action: (editor, pos) => {
+          deleteSlashText(editor, pos);
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          editor.chain().focus().insertContent(formatDate(d)).run();
+        },
+      },
+      {
+        id: "currentTime",
+        title: "当前时间",
+        description: "插入当前日期和时间",
+        icon: '<span style="font-size:14px">🕐</span>',
+        action: (editor, pos) => {
+          deleteSlashText(editor, pos);
+          editor.chain().focus().insertContent(formatDateTime(new Date())).run();
+        },
+      },
+      {
+        id: "datePicker",
+        title: "日期选择",
+        description: "选择自定义日期插入",
+        icon: '<span style="font-size:14px">🗓️</span>',
+        action: (editor, pos) => {
+          deleteSlashText(editor, pos);
+          const today = formatDate(new Date());
+          const date = window.prompt("选择日期 (YYYY-MM-DD)", today);
+          if (date) {
+            editor.chain().focus().insertContent(date).run();
+          }
         },
       },
     ],
@@ -283,6 +389,22 @@ const commandGroups: CommandGroup[] = [
     ],
   },
 ];
+
+/** 格式化日期为 YYYY-MM-DD */
+function formatDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** 格式化日期时间为 YYYY-MM-DD HH:mm:ss */
+function formatDateTime(d: Date): string {
+  const h = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  const s = String(d.getSeconds()).padStart(2, "0");
+  return `${formatDate(d)} ${h}:${min}:${s}`;
+}
 
 /** 删除斜杠及后面的查询文本 */
 function deleteSlashText(editor: Editor, pos: number) {

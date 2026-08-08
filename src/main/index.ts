@@ -1,9 +1,11 @@
-import { app, BrowserWindow, ipcMain, screen } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
 import { Logger } from "@/main/utils/logger";
 import dotenv from "dotenv";
 import { configService } from "@/main/core/services/config.service";
-// import { Scheduler } from '@/main/core/scheduler'
+import { windowService } from "@/main/core/services/window.service";
+import { scheduler } from '@/main/core/scheduler'
+import { DIST_RENDERER_DIR } from "@/main/constants";
 
 // 设置控制台编码为 UTF-8（Windows 系统）
 if (process.platform === "win32") {
@@ -19,14 +21,16 @@ import {
   registerSystemHandlers,
   registerLoggerHandlers,
   registerWebViewHandlers,
-  registerCaptureHandlers,
+  registerJournalHandlers,
   registerProjectHandlers,
   registerAIHandlers,
   registerSkillHandlers,
   registerModelHandlers,
   registerTagHandlers,
   registerPageHandlers,
-  registerThinkHandlers,
+  registerConceptHandlers,
+  registerTopicHandlers,
+  registerReflectionHandlers,
   registerSmartTaskHandlers,
   registerTaskHandlers,
 } from "@/main/ipcMain";
@@ -35,17 +39,20 @@ import { setWorkspacePath } from "@/main/core/db/connection";
 import { registerProtocolHandler } from "@/main/protocol";
 import { skillManager } from "@/main/core/skills/skill.manager";
 import { vectorService } from "@/main/core/services/vector.service";
+import { trayService } from "@/main/core/services/tray.service";
 import { taskQueue, taskExecutor } from "@/main/core/task-queue";
 import { downloadService } from "@/main/core/services/download.service";
 import { setupDownloadListeners } from "@/main/preload/listeners/download";
+import { setupMenu } from "@/main/menu";
 
 // 使用传统的 Node.js 路径处理方式
 const __dirname = path.dirname(__filename || process.argv[1] || ".");
 
+// 应用退出标志，用于区分窗口关闭和程序退出
+let isAppQuitting = false
+
 // 初始化 Logger
 Logger.initialize();
-// 清理过期日志文件
-Logger.cleanupOldLogsAsync();
 
 // 初始化数据库和数据库迁移
 async function initializeDatabase(): Promise<void> {
@@ -80,15 +87,15 @@ async function initializeDatabase(): Promise<void> {
   }
 }
 
-function createWindow() {
-  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+function createWindow(): BrowserWindow {
+  const { width, height } = windowService.getInitialSize();
 
   // 在开发模式下使用编译后的文件路径，生产模式下使用编译后路径
   const preloadPath = path.join(__dirname, "preload.js");
 
   const mainWindow = new BrowserWindow({
-    width: width * 0.8,
-    height: height * 0.8,
+    width,
+    height,
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
@@ -98,15 +105,31 @@ function createWindow() {
     },
   });
 
+  // 关闭窗口时隐藏到系统托盘而非退出应用
+  mainWindow.on('close', (event) => {
+    if (!isAppQuitting && trayService.isInitialized()) {
+      event.preventDefault()
+      mainWindow.hide()
+    }
+  })
+
+  // 窗口大小变化时保存到配置文件
+  mainWindow.on('resize', () => {
+    const [winWidth, winHeight] = mainWindow.getSize()
+    windowService.saveWindowSize({ width: winWidth, height: winHeight })
+  })
+
   if (process.env.NODE_ENV === "development") {
     const devViteUrl = `http://${process.env.DEV_VITE_HOST}:${process.env.DEV_VITE_PORT}`;
     Logger.info(`开发环境 VITE_URL: ${devViteUrl}`);
     mainWindow.loadURL(devViteUrl);
     mainWindow.webContents.openDevTools();
   } else {
-    const indexPath = path.join(__dirname, "..", "dist-renderer", "index.html");
+    const indexPath = path.join(__dirname, "..", DIST_RENDERER_DIR, "index.html");
     mainWindow.loadFile(indexPath);
   }
+
+  return mainWindow
 }
 
 app.whenReady().then(async () => {
@@ -137,19 +160,23 @@ app.whenReady().then(async () => {
   });
 
   createWindow();
+  setupMenu();
+  trayService.initialize();
   registerWindowHandlers();
   registerConfigHandlers();
   registerSystemHandlers();
   registerLoggerHandlers();
   registerWebViewHandlers();
-  registerCaptureHandlers();
+  registerJournalHandlers();
   registerProjectHandlers();
   registerAIHandlers();
   registerSkillHandlers();
   registerModelHandlers();
   registerTagHandlers();
   registerPageHandlers();
-  registerThinkHandlers();
+  registerConceptHandlers();
+  registerTopicHandlers();
+  registerReflectionHandlers();
   registerSmartTaskHandlers();
   registerTaskHandlers();
 
@@ -181,14 +208,22 @@ app.whenReady().then(async () => {
   }
 
   // 初始化定时任务调度器
-  // Scheduler.getInstance()
-  // Logger.info('定时任务调度器已启动')
+  scheduler.startAll()
+  Logger.info('定时任务调度器已启动')
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
+app.on("before-quit", () => {
+  isAppQuitting = true
+  trayService.destroy()
+})
+
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  // 有系统托盘时，不自动退出应用
+  if (!trayService.isInitialized()) {
+    app.quit()
+  }
 });

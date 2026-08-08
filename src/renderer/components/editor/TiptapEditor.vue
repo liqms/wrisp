@@ -2,38 +2,26 @@
   <n-flex ref="wrapperRef" class="tiptap-editor-wrapper" :class="{ 'slash-active': showSlashMenu }"
     :style="wrapperStyle" @click="focus">
     <EditorContent :editor="editor" class="tiptap-editor markdown-content" />
-    <SlashMenu v-if="slashCommand" :visible="showSlashMenu" :editor="editor!" :start-pos="slashStartPos"
+    <BubbleMenu v-if="editor && enableBubbleMenu" :editor="editor" />
+    <SlashMenu v-if="slashCommand && editor" :visible="showSlashMenu" :editor="editor" :start-pos="slashStartPos"
       :query="slashQuery" @close="closeSlashMenu" />
   </n-flex>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
+import { ref, computed, onBeforeUnmount, watch, nextTick } from "vue";
 import { useEditor, EditorContent } from "@tiptap/vue-3";
 import { createEditorExtensions } from "./extensions";
 import type { Extensions, EditorOptions } from "@tiptap/core";
-import TurndownService from "turndown";
 import { marked } from "marked";
 import SlashMenu from "./slash/SlashMenu.vue";
-
-/** Turndown 实例：HTML → Markdown */
-const turndownService = new TurndownService({
-  headingStyle: "atx",
-  codeBlockStyle: "fenced",
-  emDelimiter: "*",
-});
+import BubbleMenu from "./BubbleMenu.vue";
 
 /** Markdown → HTML（异步，marked 返回 Promise<string>） */
 async function mdToHtml(md: string): Promise<string> {
   if (!md) return "";
   const result = await marked.parse(md, { async: true });
   return result;
-}
-
-/** HTML → Markdown（同步） */
-function htmlToMd(html: string): string {
-  if (!html) return "";
-  return turndownService.turndown(html);
 }
 
 type EditorProps = Partial<EditorOptions["editorProps"]>;
@@ -56,16 +44,19 @@ const props = withDefaults(
     autofocus?: boolean;
     /** 是否启用斜杠命令菜单 */
     slashCommand?: boolean;
+    /** 是否启用气泡菜单 */
+    enableBubbleMenu?: boolean;
   }>(),
   {
     modelValue: "",
-    placeholder: "开始输入...",
+    placeholder: "",
     extensions: undefined,
     editorProps: undefined,
     minHeight: 100,
     maxHeight: 200,
     autofocus: false,
     slashCommand: true,
+    enableBubbleMenu: true,
   },
 );
 
@@ -98,7 +89,7 @@ const slashQuery = ref("");
 function closeSlashMenu() {
   showSlashMenu.value = false;
   slashQuery.value = "";
-  editor.value?.commands.focus();
+  editor.value?.commands?.focus();
 }
 
 // 使用公用扩展工厂 createEditorExtensions（已在工厂内自动去重）
@@ -107,7 +98,7 @@ const finalExtensions = (props.extensions && props.extensions.length > 0)
   : createEditorExtensions(props.placeholder);
 
 const editor = useEditor({
-  content: "", // 初始为空，由 watch/onMounted 通过 Markdown 异步设置
+  content: "", // 初始为空，由 watch 通过 Markdown 异步设置
   extensions: finalExtensions,
   editorProps: {
     ...props.editorProps,
@@ -165,7 +156,7 @@ const editor = useEditor({
     },
   },
   onUpdate: ({ editor: ed }) => {
-    emit("update:modelValue", htmlToMd(ed.getHTML()));
+    emit("update:modelValue", ed.getMarkdown());
     updateHeight();
 
     // 斜杠菜单打开时追踪查询文本
@@ -207,13 +198,13 @@ const updateHeight = () => {
 
 /** 清空编辑器内容 */
 const clear = () => {
-  editor.value?.commands.clearContent(true);
+  editor.value?.commands?.clearContent(true);
   updateHeight();
 };
 
 /** 获取焦点 */
 const focus = () => {
-  editor.value?.commands.focus();
+  editor.value?.commands?.focus();
 };
 
 /** 获取 HTML 内容 */
@@ -228,28 +219,33 @@ const getText = (): string => {
 
 /** 获取 Markdown 内容 */
 const getMarkdown = (): string => {
-  return htmlToMd(editor.value?.getHTML() ?? "");
+  return editor.value?.getMarkdown() ?? "";
 };
 
-/** 监听 modelValue 变化（Markdown → HTML 后设置到编辑器） */
+/** 监听 modelValue 变化（Markdown → HTML 后设置到编辑器，含初始化） */
 watch(
-  () => props.modelValue,
+  (): string | undefined => props.modelValue,
   async (newVal) => {
-    const currentMd = htmlToMd(editor.value?.getHTML() ?? "");
-    if (newVal !== currentMd) {
-      const html = await mdToHtml(newVal ?? "");
-      editor.value?.commands.setContent(html, { emitUpdate: true });
+    if (newVal == null) return;
+    try {
+      const currentMd = editor.value?.getMarkdown() ?? "";
+      if (newVal === currentMd) return;
+      const html = await mdToHtml(newVal);
+      // 不直接访问 editor.value，避免 getter/Proxy 竞态，统一通过 watch 等待就绪
+      let done = false;
+      let stop: (() => void) | undefined;
+      stop = watch(editor, (ed) => {
+        if (done || ed == null || ed.commands == null) return;
+        done = true;
+        stop?.();
+        ed.commands.setContent(html, { emitUpdate: true });
+      }, { immediate: true });
+    } catch (e) {
+      console.error("[TiptapEditor] 更新内容失败:", e);
     }
   },
+  { immediate: true },
 );
-
-/** 初始化时从 Markdown 转换内容 */
-onMounted(async () => {
-  if (props.modelValue) {
-    const html = await mdToHtml(props.modelValue);
-    editor.value?.commands.setContent(html, { emitUpdate: false });
-  }
-});
 
 onBeforeUnmount(() => {
   editor.value?.destroy();

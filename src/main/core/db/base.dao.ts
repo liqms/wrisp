@@ -602,22 +602,27 @@ export abstract class BaseDao<T, C extends object, U extends object> {
   /**
    * 构建 WHERE 子句（由子类实现具体逻辑）
    * @param conditions - 查询条件对象
+   * @param tablePrefix - 可选的表别名前缀（如 'p'），避免联表查询时列名歧义
    * @returns 包含 SQL 和参数的 WHERE 子句对象
    */
-  protected buildWhereClause(conditions: Record<string, unknown>): {
+  protected buildWhereClause(
+    conditions: Record<string, unknown>,
+    tablePrefix?: string,
+  ): {
     sql: string;
     values: unknown[];
   } {
     const conditionsArray: string[] = [];
     const values: unknown[] = [];
+    const prefix = tablePrefix ? `${tablePrefix}.` : "";
 
     for (const [key, value] of Object.entries(conditions)) {
       if (value !== undefined && value !== null) {
         if (typeof value === "string" && value.includes("%")) {
-          conditionsArray.push(`${key} LIKE ?`);
+          conditionsArray.push(`${prefix}${key} LIKE ?`);
           values.push(value);
         } else {
-          conditionsArray.push(`${key} = ?`);
+          conditionsArray.push(`${prefix}${key} = ?`);
           values.push(value);
         }
       }

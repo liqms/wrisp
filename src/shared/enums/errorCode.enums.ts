@@ -23,14 +23,14 @@ export enum ErrorCode {
   WEBVIEW_RESIZE_FAILED = "ERROR.WEBVIEW.RESIZE_FAILED",
   WEBVIEW_HIDE_FAILED = "ERROR.WEBVIEW.HIDE_FAILED",
 
-  // ============ 记录错误 ===========
-  CAPTURE_CREATE_FAILED = "ERROR.CAPTURE.CREATE_FAILED",
-  CAPTURE_GET_FAILED = "ERROR.CAPTURE.GET_FAILED",
-  CAPTURE_UPDATE_FAILED = "ERROR.CAPTURE.UPDATE_FAILED",
-  CAPTURE_DELETE_FAILED = "ERROR.CAPTURE.DELETE_FAILED",
-  CAPTURE_QUERY_FAILED = "ERROR.CAPTURE.QUERY_FAILED",
-  CAPTURE_NOT_FOUND = "ERROR.CAPTURE.NOT_FOUND",
-  CAPTURE_COUNT_FAILED = "ERROR.CAPTURE.COUNT_FAILED",
+  // ============ 日志错误 ===========
+  JOURNAL_CREATE_FAILED = "ERROR.JOURNAL.CREATE_FAILED",
+  JOURNAL_GET_FAILED = "ERROR.JOURNAL.GET_FAILED",
+  JOURNAL_UPDATE_FAILED = "ERROR.JOURNAL.UPDATE_FAILED",
+  JOURNAL_DELETE_FAILED = "ERROR.JOURNAL.DELETE_FAILED",
+  JOURNAL_QUERY_FAILED = "ERROR.JOURNAL.QUERY_FAILED",
+  JOURNAL_NOT_FOUND = "ERROR.JOURNAL.NOT_FOUND",
+  JOURNAL_COUNT_FAILED = "ERROR.JOURNAL.COUNT_FAILED",
 
   // ============ 作品错误 ============
   PROJECT_NOT_FOUND = "ERROR.PROJECT.NOT_FOUND",
@@ -127,7 +127,7 @@ export type ErrorCategory =
   | "COMMON" // 通用错误
   | "CONFIG" // 配置错误
   | "WEBVIEW" // Webview 错误
-  | "CAPTURE" // 记录错误
+  | "JOURNAL" // 日志错误
   | "MODEL" // 模型错误
   | "LOG" // 日志错误
   | "NOTIFICATION" // 通知错误
@@ -159,8 +159,8 @@ export function getErrorCategory(errorCode: ErrorCode): ErrorCategory {
       return "CONFIG";
     case "WEBVIEW":
       return "WEBVIEW";
-    case "CAPTURE":
-      return "CAPTURE";
+    case "JOURNAL":
+      return "JOURNAL";
     case "LOG":
       return "LOG";
     case "MODEL":
@@ -199,7 +199,7 @@ export function getErrorCategoryMap(): Record<ErrorCategory, ErrorCode[]> {
     COMMON: [],
     CONFIG: [],
     WEBVIEW: [],
-    CAPTURE: [],
+    JOURNAL: [],
     MODEL: [],
     LOG: [],
     NOTIFICATION: [],

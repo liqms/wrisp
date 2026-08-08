@@ -7,14 +7,25 @@ import type {
 } from "@/main/types/db";
 import { PaginationResult } from "@/shared/utils/pagination";
 import { Logger } from "@/main/utils/logger";
+import { fileService } from "@/main/core/services/base/file.service";
+import { NodeCryptoUtil } from "@/main/utils";
 
 /**
  * 作品服务
- * 提供作品的 CRUD 操作及业务逻辑封装
+ * 编排两层存储：
+ *   1. 作品文件夹（fileService, workspace/projects/{timestamp}/）
+ *   2. 作品表（ProjectDao, projects 表）
+ * 创建/更新/删除时同步元数据到作品文件夹中的 project.json 文件
+ *
+ * 文件夹命名规则：projects/{timestamp}/
+ * 作品名禁止包含特殊字符：\ / : * ? " < > |
  */
 class ProjectService {
   private static instance: ProjectService | null = null;
   private projectDao: ProjectDao;
+
+  /** 特殊字符正则（Windows 文件夹名非法字符） */
+  private readonly INVALID_CHARS_REGEX = /[\\/:*?"<>|]/g;
 
   private constructor() {
     this.projectDao = new ProjectDao();
@@ -28,6 +39,41 @@ class ProjectService {
       ProjectService.instance = new ProjectService();
     }
     return ProjectService.instance;
+  }
+
+  /**
+   * 校验作品名并替换特殊字符为下划线
+   * @param name - 原始作品名
+   * @returns 清洗后的作品名
+   */
+  private sanitizeName(name: string): string {
+    return name.replace(this.INVALID_CHARS_REGEX, "_").trim();
+  }
+
+  /**
+   * 获取作品 JSON 元数据文件路径
+   * @param filePath - 作品文件夹路径
+   * @returns project.json 的完整路径
+   */
+  private getProjectJsonFilePath(filePath: string): string {
+    return `${filePath}project.json`;
+  }
+
+  /**
+   * 同步作品元数据到 JSON 文件
+   * 从数据库读取最新作品信息，写入到作品文件夹中的 project.json
+   * @param id - 作品 ID
+   */
+  private syncProjectJson(id: string): void {
+    try {
+      const project = this.projectDao.findById(id);
+      if (project) {
+        const jsonPath = this.getProjectJsonFilePath(project.file_path);
+        fileService.writeFile(jsonPath, JSON.stringify(project, null, 2));
+      }
+    } catch (error) {
+      Logger.error("同步作品 JSON 文件失败", { error: String(error), id });
+    }
   }
 
   /**
@@ -61,7 +107,6 @@ class ProjectService {
     conditions?: ProjectQuery;
   }): PaginationResult<ProjectDetail> {
     try {
-      // 默认排除已删除的作品
       const conditions = (params.conditions || {}) as Record<string, unknown>;
       if (!conditions.status) {
         conditions.status = 'active';
@@ -78,18 +123,41 @@ class ProjectService {
 
   /**
    * 创建作品
+   * 1. 校验并清洗作品名
+   * 2. 创建作品文件夹
+   * 3. 保存到数据库
+   * 4. 同步元数据到 project.json
    * @param data 作品创建参数
    * @returns 新创建的作品 ID
    */
   public createProject(data: ProjectCreate): string {
     try {
+      const id = data.id || NodeCryptoUtil.generateUUID();
+      const sanitizedName = this.sanitizeName(data.name);
+      const timestamp = Math.floor(Date.now() / 1000);
+      const filePath = `projects/${timestamp}/`;
+      // 1. 创建作品文件夹
+      fileService.ensureDir(filePath);
+
+      // 2. 保存到数据库
       const { tags, ...projectData } = data;
-      const id = this.projectDao.create(projectData);
+      const projectCreate: ProjectCreate = {
+        ...projectData,
+        id,
+        name: sanitizedName,
+        file_path: filePath,
+      };
+      const createdId = this.projectDao.create(projectCreate);
+
       if (tags && tags.length > 0) {
-        this.projectDao.saveTags(id, tags);
+        this.projectDao.saveTags(createdId, tags);
       }
-      Logger.info("创建作品成功", { id, name: data.name });
-      return id;
+
+      // 3. 同步元数据到 JSON 文件
+      this.syncProjectJson(createdId);
+
+      Logger.info("创建作品成功", { id: createdId, name: sanitizedName, filePath });
+      return createdId;
     } catch (error) {
       Logger.error("创建作品失败", { error: String(error), data });
       throw error;
@@ -98,6 +166,8 @@ class ProjectService {
 
   /**
    * 更新作品
+   * 名称变更时仅更新数据库记录，不改变文件夹路径
+   * 更新后同步元数据到 project.json
    * @param id 作品 ID
    * @param data 作品更新参数
    * @returns 受影响的行数
@@ -105,11 +175,27 @@ class ProjectService {
   public updateProject(id: string, data: ProjectUpdate): number {
     try {
       const { tags, ...projectData } = data;
-      const changes = this.projectDao.update(id, projectData);
+      const existing = this.projectDao.findById(id);
+      if (!existing) {
+        Logger.warn("更新作品失败，作品不存在", { id });
+        return 0;
+      }
+
+      const updateData: ProjectUpdate = { ...projectData };
+
+      // 名称变更时仅更新名称，不改变文件夹路径
+      if (data.name && data.name !== existing.name) {
+        updateData.name = this.sanitizeName(data.name);
+      }
+
+      const changes = this.projectDao.update(id, updateData);
+
       if (changes > 0) {
         if (tags !== undefined) {
           this.projectDao.saveTags(id, tags);
         }
+        // 3. 同步元数据到 JSON 文件
+        this.syncProjectJson(id);
         Logger.info("更新作品成功", { id });
       }
       return changes;
@@ -120,16 +206,24 @@ class ProjectService {
   }
 
   /**
-   * 删除作品
+   * 删除作品（软删除）
+   * 仅标记 status = 'deleted'，保留文件夹和文件
+   * 删除后同步元数据到 project.json（反映已删除状态）
    * @param id 作品 ID
    * @returns 受影响的行数
    */
   public deleteProject(id: string): number {
     try {
-      Logger.info("[ProjectService] 软删除作品", { id });
-      return this.projectDao.update(id, { status: 'deleted' } as ProjectUpdate);
+      const changes = this.projectDao.update(id, { status: 'deleted' } as ProjectUpdate);
+
+      if (changes > 0) {
+        // 同步元数据到 JSON 文件（反映已删除状态）
+        this.syncProjectJson(id);
+        Logger.info("软删除作品成功", { id });
+      }
+      return changes;
     } catch (error) {
-      Logger.error("[ProjectService] 软删除作品失败", { id, error: String(error) });
+      Logger.error("软删除作品失败", { id, error: String(error) });
       throw error;
     }
   }

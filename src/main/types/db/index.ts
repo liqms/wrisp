@@ -1,17 +1,18 @@
-export * from "./block.types";
+export * from "./chunk.types";
+export * from "./fileIndex.types";
 export * from "./tag.types";
 export * from "./taggedItem.types";
 export * from "./semanticLink.types";
 export * from "./concept.types";
-export * from "./conceptBlock.types";
+export * from "./conceptChunk.types";
 export * from "./topic.types";
-export * from "./topicBlock.types";
+export * from "./topicChunk.types";
 export * from "./topicConcept.types";
 export * from "./temporalEvent.types";
 export * from "./reflection.types";
-export * from "./reflectionBlock.types";
+export * from "./reflectionChunk.types";
 export * from "./project.types";
-export * from "./projectBlock.types";
+export * from "./projectChunk.types";
 export * from "./page.types";
 export * from "./migrationDb.types";
 export * from "./vector.types";
@@ -19,27 +20,27 @@ export * from "./task-execution.types";
 export * from "./task.types";
 
 export type {
-  BlockId,
+  ChunkId,
   ContentType,
-  CaptureSource,
+  JournalSource,
   Language,
-  Block,
-  BlockCreate,
-  BlockUpdate,
-  StrictBlockCreate,
-  BlockQuery,
-  BlockFts,
-} from "./block.types";
+  Chunk,
+  ChunkCreate,
+  ChunkUpdate,
+  StrictChunkCreate,
+  ChunkQuery,
+  ChunkFts,
+} from "./chunk.types";
 
 export type {
-  TagId,
-  Tag,
-  TagCreate,
-  TagUpdate,
-  StrictTagCreate,
-  TagQuery,
-  TagDetail,
-} from "./tag.types";
+  FileIndexId,
+  SyncStatus,
+  FileIndex,
+  FileIndexCreate,
+  FileIndexUpdate,
+  StrictFileIndexCreate,
+  FileIndexQuery,
+} from "./fileIndex.types";
 
 export type {
   TaggedItemId,
@@ -75,12 +76,12 @@ export type {
 } from "./concept.types";
 
 export type {
-  ConceptBlock,
-  ConceptBlockCreate,
-  ConceptBlockUpdate,
-  StrictConceptBlockCreate,
-  ConceptBlockQuery,
-} from "./conceptBlock.types";
+  ConceptChunk,
+  ConceptChunkCreate,
+  ConceptChunkUpdate,
+  StrictConceptChunkCreate,
+  ConceptChunkQuery,
+} from "./conceptChunk.types";
 
 export type {
   TopicId,
@@ -97,12 +98,12 @@ export type {
 } from "./topic.types";
 
 export type {
-  TopicBlock,
-  TopicBlockCreate,
-  TopicBlockUpdate,
-  StrictTopicBlockCreate,
-  TopicBlockQuery,
-} from "./topicBlock.types";
+  TopicChunk,
+  TopicChunkCreate,
+  TopicChunkUpdate,
+  StrictTopicChunkCreate,
+  TopicChunkQuery,
+} from "./topicChunk.types";
 
 export type {
   TopicConcept,
@@ -136,12 +137,12 @@ export type {
 } from "./reflection.types";
 
 export type {
-  ReflectionBlock,
-  ReflectionBlockCreate,
-  ReflectionBlockUpdate,
-  StrictReflectionBlockCreate,
-  ReflectionBlockQuery,
-} from "./reflectionBlock.types";
+  ReflectionChunk,
+  ReflectionChunkCreate,
+  ReflectionChunkUpdate,
+  StrictReflectionChunkCreate,
+  ReflectionChunkQuery,
+} from "./reflectionChunk.types";
 
 export type {
   ProjectId,
@@ -155,13 +156,13 @@ export type {
 } from "./project.types";
 
 export type {
-  ProjectBlock,
-  ProjectBlockCreate,
-  ProjectBlockUpdate,
-  StrictProjectBlockCreate,
-  ProjectBlockQuery,
-  ProjectBlockWithDetails,
-} from "./projectBlock.types";
+  ProjectChunk,
+  ProjectChunkCreate,
+  ProjectChunkUpdate,
+  StrictProjectChunkCreate,
+  ProjectChunkQuery,
+  ProjectChunkWithDetails,
+} from "./projectChunk.types";
 
 export type {
   PageId,

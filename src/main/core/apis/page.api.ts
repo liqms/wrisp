@@ -1,14 +1,9 @@
 import { pageService } from "@/main/core/services/page.service";
 import { response } from "@/main/utils/response";
-import { ErrorCode } from "@/shared/enums";
+import { ErrorCode, type PageType } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";
-import type {
-  Page,
-  PageCreate,
-  PageUpdate,
-  PageQuery,
-  PageTree,
-} from "@/main/types/db";
+import type { Page, PageTree } from "@/main/types/db";
+import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import { Logger } from "@/main/utils/logger";
 
@@ -45,20 +40,22 @@ async function paginatePages(params: {
 
 async function getPageTree(
   projectId: string,
+  pageType: PageType,
 ): Promise<ApiResponse<PageTree[]>> {
   try {
-    const tree = pageService.getPageTree(projectId);
+    const tree = pageService.getPageTree(projectId, pageType);
     return response.success(tree);
   } catch (error) {
     Logger.error("获取页面树失败", {
       error: JSON.stringify(error),
       projectId,
+      pageType,
     });
     return response.error(ErrorCode.PAGE_QUERY_FAILED, error as Error);
   }
 }
 
-async function createPage(data: PageCreate): Promise<ApiResponse<string>> {
+async function createPage(data: CreatePageInput): Promise<ApiResponse<string>> {
   try {
     const id = pageService.createPage(data);
     return response.success(id);
@@ -69,18 +66,17 @@ async function createPage(data: PageCreate): Promise<ApiResponse<string>> {
 }
 
 async function updatePage(
-  id: string,
-  data: PageUpdate,
+  data: UpdatePageInput,
 ): Promise<ApiResponse<number>> {
   try {
-    const changes = pageService.updatePage(id, data);
+    const changes = pageService.updatePage(data);
     if (changes > 0) {
       return response.success(changes);
     } else {
       return response.error(ErrorCode.PAGE_NOT_FOUND);
     }
   } catch (error) {
-    Logger.error("更新页面失败", { error: JSON.stringify(error), id, data });
+    Logger.error("更新页面失败", { error: JSON.stringify(error), id: data.id, data });
     return response.error(ErrorCode.PAGE_UPDATE_FAILED, error as Error);
   }
 }

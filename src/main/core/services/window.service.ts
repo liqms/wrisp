@@ -1,4 +1,12 @@
-import { BrowserWindow } from 'electron'
+import { app, BrowserWindow, screen } from 'electron'
+import Store from 'electron-store'
+import path from 'path'
+import { CONFIG_DIR } from '@/main/constants'
+
+interface WindowSize {
+  width: number
+  height: number
+}
 
 /**
  * 窗口服务
@@ -6,12 +14,21 @@ import { BrowserWindow } from 'electron'
  */
 export class WindowService {
   private static instance: WindowService
+  private store: Store<WindowSize>
 
   /**
    * 私有构造函数
    * 防止外部实例化
    */
-  private constructor() {}
+  private constructor() {
+    const configDir = path.join(app.getPath('userData'), CONFIG_DIR)
+    this.store = new Store<WindowSize>({
+      name: 'window',
+      cwd: configDir,
+      fileExtension: 'json',
+      clearInvalidConfig: true,
+    })
+  }
 
   /**
    * 获取 WindowService 的单例实例
@@ -76,6 +93,34 @@ export class WindowService {
     if (focusedWindow) {
       focusedWindow.close()
     }
+  }
+
+  /**
+   * 获取初始窗口大小
+   * 优先从保存的配置中读取已保存的窗口大小，
+   * 否则使用当前桌面工作区域大小的 80%
+   * @returns 窗口宽高
+   */
+  getInitialSize(): WindowSize {
+    const width = this.store.get('width')
+    const height = this.store.get('height')
+    if (width && height) {
+      return { width, height }
+    }
+    const { width: desktopWidth, height: desktopHeight } = screen.getPrimaryDisplay().workAreaSize
+    return {
+      width: Math.round(desktopWidth * 0.8),
+      height: Math.round(desktopHeight * 0.8),
+    }
+  }
+
+  /**
+   * 保存窗口大小到配置文件
+   * @param size 窗口宽高
+   */
+  saveWindowSize(size: WindowSize): void {
+    this.store.set('width', size.width)
+    this.store.set('height', size.height)
   }
 }
 

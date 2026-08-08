@@ -3,15 +3,19 @@ import type { WindowAPI } from "./window";
 import type { SystemAPI } from "./system";
 import type { LoggerAPI } from "./logger";
 import type { WebviewAPI } from "./webview";
-import type { CaptureAPI } from "./capture";
+import type { JournalAPI } from "./journal";
 import type { ProjectAPI } from "./project";
 import type { AIAPI } from "./ai";
 import type { SkillAPI } from "./skill";
 import type { ModelAPI } from "./model";
 import type { TagAPI } from "./tag";
-import type { ThinkAPI } from "./think";
+import type { ConceptAPI } from "./concept";
+import type { TopicAPI } from "./topic";
+import type { ReflectionAPI } from "./reflection";
 import type { SmartTaskAPI } from "./smart-task";
 import type { TaskAPI } from "./task";
+import type { SearchAPI } from "./search";
+import type { PageAPI } from "./page";
 
 export interface ElectronAPI {
   config: ConfigAPI;
@@ -19,15 +23,17 @@ export interface ElectronAPI {
   system: SystemAPI;
   logger: LoggerAPI;
   webview: WebviewAPI;
-  capture: CaptureAPI;
+  journal: JournalAPI;
   project: ProjectAPI;
   ai: AIAPI;
   skill: SkillAPI;
   model: ModelAPI;
   think: ThinkAPI;
   tag: TagAPI;
+  page: PageAPI;
   smartTask: SmartTaskAPI;
   task: TaskAPI;
+  search: SearchAPI;
 
   // 通用 IPC 方法（保持向后兼容）
   send: (channel: string, data: any) => void;
@@ -45,13 +51,17 @@ export type {
   SystemAPI,
   LoggerAPI,
   WebviewAPI,
-  CaptureAPI,
+  JournalAPI,
   ProjectAPI,
   AIAPI,
   SkillAPI,
   ModelAPI,
   TagAPI,
-  ThinkAPI,
+  ConceptAPI,
+  TopicAPI,
+  ReflectionAPI,
   SmartTaskAPI,
   TaskAPI,
+  SearchAPI,
+  PageAPI,
 };

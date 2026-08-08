@@ -2,9 +2,9 @@ import { TaskExecutor, TaskContext, TaskResult } from "../types";
 import { conceptDao } from "@/main/core/db/concept.dao";
 import { topicDao } from "@/main/core/db/topic.dao";
 import { topicConceptDao } from "@/main/core/db/topicConcept.dao";
-import { topicBlockDao } from "@/main/core/db/topicBlock.dao";
+import { topicChunkDao } from "@/main/core/db/topicChunk.dao";
 import { progressManager } from "@/main/core/smart-tasks/progress.manager";
-import { Concept, TopicCreate, TopicConceptCreate, TopicBlockCreate } from "@/main/types/db";
+import { Concept, TopicCreate, TopicConceptCreate, TopicChunkCreate } from "@/main/types/db";
 import { Logger } from "@/main/utils/logger";
 
 export class TopicDetectionExecutor implements TaskExecutor {
@@ -55,7 +55,7 @@ export class TopicDetectionExecutor implements TaskExecutor {
           if (blocks) {
             for (const b of blocks) {
               try {
-                topicBlockDao.create({ topic_id: topic.id, block_id: b.block_id });
+                topicChunkDao.create({ topic_id: topic.id, chunk_id: b.block_id });
               } catch { /* 忽略重复 */ }
             }
           }

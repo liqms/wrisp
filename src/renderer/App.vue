@@ -6,7 +6,7 @@
         <n-dialog-provider>
           <n-modal-provider>
             <router-view />
-            <notification-handler />
+            <notification-toast />
           </n-modal-provider>
         </n-dialog-provider>
       </n-notification-provider>
@@ -26,7 +26,7 @@ import {
   dateEnUS,
   GlobalTheme,
 } from "naive-ui";
-import NotificationHandler from "@/renderer/components/NotificationHandler.vue";
+import NotificationToast from "@/renderer/components/NotificationToast.vue";
 import { initI18n } from "@/renderer/plugins/i18n";
 import { useSystem, useConfig, useTheme, useModel } from "@/renderer/composables";
 import { useDownloadStore } from "@/renderer/store/download.store";
