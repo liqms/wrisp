@@ -1,11 +1,10 @@
-import { Id, Timestamp, Ensure, NonEmptyString, Name, Color, Description, QueryParams } from '@/shared/types'
+import { Id, Timestamp, Ensure, NonEmptyString, Name, Description, QueryParams } from '@/shared/types'
 
 export type TagId = Id
 
 export interface Tag {
   id: TagId
   name: Name
-  color: Color
   description: Description
   created_at: Timestamp
   updated_at: Timestamp
@@ -14,7 +13,6 @@ export interface Tag {
 export interface TagCreate {
   id?: TagId
   name: Name
-  color?: Color
   description?: Description
   created_at?: Timestamp
   updated_at?: Timestamp
@@ -22,7 +20,6 @@ export interface TagCreate {
 
 export interface TagUpdate {
   name?: Name
-  color?: Color
   description?: Description
   updated_at?: Timestamp
 }

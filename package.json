@@ -8,13 +8,13 @@
     "main": "dist-electron/index.js",
     "scripts": {
         "dev": "node scripts/dev.js",
-        "build": "vue-tsc \u0026\u0026 vite build",
+        "build": "vue-tsc && vite build",
         "start": "electron .",
         "rebuild": "electron-rebuild -f -w better-sqlite3",
-        "prod": "vite build \u0026\u0026 electron-builder",
+        "prod": "vite build && electron-builder",
         "lint": "eslint . --fix",
         "typecheck": "vue-tsc --noEmit",
-        "clean": "del /Q /S dist-renderer dist-electron release node_modules\\.vite",
+        "clean": "rd /Q /S dist-renderer dist-electron release 2>nul ",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage"
@@ -24,6 +24,7 @@
         "@element-plus/icons-vue": "^2.3.2",
         "@lancedb/lancedb": "^0.27.2",
         "@tiptap/core": "^3.23.4",
+        "@tiptap/extension-bubble-menu": "^3.27.3",
         "@tiptap/extension-code-block-lowlight": "^3.23.4",
         "@tiptap/extension-highlight": "^3.23.4",
         "@tiptap/extension-image": "^3.23.4",
@@ -120,5 +121,6 @@
             "allowToChangeInstallationDirectory": true,
             "perMachine": false
         }
-    }
+    },
+    "packageManager": "pnpm@11.20.0+sha512.9a6f330a95b66446ea088faf1521405a8a01f07fde7124cc9958dfed52d4bb436737e65b08f85f37b46fcba375092558ac51262b816844b22f63406ed166bfee"
 }

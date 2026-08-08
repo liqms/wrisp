@@ -1,23 +1,32 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { getDatabase } from '@/main/core/db/connection'
+import { getDatabase, getDbPath } from '@/main/core/db/connection'
 import { Logger } from '@/main/utils/logger'
-import { app } from 'electron'
 import { TimeUtil } from '@/shared/utils'
 
 /**
  * 清理结果接口
  */
 export interface CleanupResult {
+  /** 清理的语义块数量 */
+  semanticChunksDeleted: number
+  /** 清理的主题数量 */
+  topicsDeleted: number
   /** 清理的作品数量 */
-  worksDeleted: number
-  /** 清理的文件夹数量 */
-  foldersDeleted: number
-  /** 清理的文件数量 */
-  filesDeleted: number
-  /** 清理的标签数量 */
-  tagsDeleted: number
-  /** 物理删除的文件/文件夹数量 */
+  projectsDeleted: number
+  /** 清理的页面数量 */
+  pagesDeleted: number
+  /** 清理的反思数量 */
+  reflectionsDeleted: number
+  /** 清理的文件索引数量 */
+  fileIndexDeleted: number
+  /** 清理的标签关联数量 */
+  taggedItemsDeleted: number
+  /** 清理的过期任务数量 */
+  tasksDeleted: number
+  /** 清理的过期 Skill 执行记录数量 */
+  skillExecutionsDeleted: number
+  /** 物理删除的文件数量 */
   filesPhysicallyDeleted: number
   /** 是否成功 */
   success: boolean
@@ -27,7 +36,17 @@ export interface CleanupResult {
 
 /**
  * 数据库清理服务类
- * 用于清理软删除的数据（status = 'deleted'）
+ * 用于清理软删除的数据（status = 'deleted'）和过期记录
+ *
+ * v2 架构清理策略：
+ * - semantic_chunks (status = 'deleted') → 级联清理关联表 + FTS
+ * - topics (status = 'deleted') → 级联清理关联表 + FTS
+ * - projects (status = 'deleted') → 级联清理关联表 + FTS + 子 pages
+ * - pages (status = 'deleted') → 清理 FTS
+ * - reflections (status = 'deleted') → 清理关联表
+ * - file_index (sync_status = 'deleted') → 物理删除文件
+ * - tasks (终端状态) → 直接删除
+ * - skill_executions (过期) → 直接删除
  */
 export class CleanupService {
   /** 单例实例 */
@@ -36,10 +55,16 @@ export class CleanupService {
   /** 默认保留天数 */
   private readonly defaultRetentionDays: number = 30
 
+  /** 任务默认保留天数 */
+  private readonly taskRetentionDays: number = 7
+
+  /** Skill 执行记录默认保留天数 */
+  private readonly skillExecutionRetentionDays: number = 90
+
   /**
    * 私有构造函数，实现单例模式
    */
-  private constructor() {}
+  private constructor() { }
 
   /**
    * 获取单例实例
@@ -72,8 +97,18 @@ export class CleanupService {
   }
 
   /**
-   * 异步物理删除文件或文件夹
-   * @param targetPath - 要删除的路径
+   * 获取工作空间路径（从数据库路径推导）
+   * dbPath = {workspace}/sqlite/pentip.db
+   * @returns 工作空间绝对路径
+   */
+  private getWorkspacePath(): string {
+    const dbPath = getDbPath()
+    return path.dirname(path.dirname(dbPath))
+  }
+
+  /**
+   * 异步物理删除文件
+   * @param targetPath - 要删除的路径（相对于 workspace 的相对路径）
    * @returns 是否删除成功
    */
   private async physicallyDelete(targetPath: string): Promise<boolean> {
@@ -82,12 +117,16 @@ export class CleanupService {
         return false
       }
 
-      const normalizedPath = path.normalize(targetPath)
-      const userDataPath = app.getPath('userData')
-      const normalizedUserData = path.normalize(userDataPath)
+      const workspacePath = this.getWorkspacePath()
+      const absolutePath = path.join(workspacePath, targetPath)
+      const normalizedPath = path.normalize(absolutePath)
 
-      if (!normalizedPath.startsWith(normalizedUserData)) {
-        Logger.warn('跳过非用户数据目录的路径', { path: targetPath })
+      if (!normalizedPath.startsWith(workspacePath)) {
+        Logger.warn('跳过非工作空间目录的路径', { path: targetPath })
+        return false
+      }
+
+      if (!fs.existsSync(normalizedPath)) {
         return false
       }
 
@@ -122,7 +161,10 @@ export class CleanupService {
       const physicallyDeletedCount = await this.deletePhysicalFiles(result.deletedPaths)
 
       const duration = Date.now() - startTime
-      const totalDeleted = result.stats.worksDeleted + result.stats.foldersDeleted + result.stats.filesDeleted + result.stats.tagsDeleted
+      const totalDeleted = result.stats.semanticChunksDeleted + result.stats.topicsDeleted +
+        result.stats.projectsDeleted + result.stats.pagesDeleted + result.stats.reflectionsDeleted +
+        result.stats.fileIndexDeleted + result.stats.taggedItemsDeleted +
+        result.stats.tasksDeleted + result.stats.skillExecutionsDeleted
 
       Logger.info('软删除数据清理完成', {
         ...result.stats,
@@ -146,10 +188,15 @@ export class CleanupService {
       })
 
       return {
-        worksDeleted: 0,
-        foldersDeleted: 0,
-        filesDeleted: 0,
-        tagsDeleted: 0,
+        semanticChunksDeleted: 0,
+        topicsDeleted: 0,
+        projectsDeleted: 0,
+        pagesDeleted: 0,
+        reflectionsDeleted: 0,
+        fileIndexDeleted: 0,
+        taggedItemsDeleted: 0,
+        tasksDeleted: 0,
+        skillExecutionsDeleted: 0,
         filesPhysicallyDeleted: 0,
         success: false,
         error: errorMsg
@@ -180,82 +227,137 @@ export class CleanupService {
    * @param retentionDays - 保留天数
    * @returns 清理统计结果和待删除的路径
    */
-  private doCleanup(retentionDays: number): { stats: Omit<CleanupResult, 'success' | 'error' | 'filesPhysicallyDeleted'>; deletedPaths: string[] } {
+  private doCleanup(retentionDays: number): {
+    stats: Omit<CleanupResult, 'success' | 'error' | 'filesPhysicallyDeleted'>
+    deletedPaths: string[]
+  } {
     const expireTimestamp = this.getExpireTimestamp(retentionDays)
+    const taskExpireTimestamp = this.getExpireTimestamp(this.taskRetentionDays)
+    const skillExecExpireTimestamp = this.getExpireTimestamp(this.skillExecutionRetentionDays)
     const deletedPaths: string[] = []
     const stats = {
-      worksDeleted: 0,
-      foldersDeleted: 0,
-      filesDeleted: 0,
-      tagsDeleted: 0
+      semanticChunksDeleted: 0,
+      topicsDeleted: 0,
+      projectsDeleted: 0,
+      pagesDeleted: 0,
+      reflectionsDeleted: 0,
+      fileIndexDeleted: 0,
+      taggedItemsDeleted: 0,
+      tasksDeleted: 0,
+      skillExecutionsDeleted: 0
     }
 
-    // 1. 获取所有需要清理的作品ID及其路径
-    const deletedWorksSql = `SELECT id, path, full_path FROM works WHERE status = 'deleted' AND updated_at < ?`
-    const deletedWorkRecords = this.db.prepare(deletedWorksSql).all(expireTimestamp) as { id: number; path: string; full_path: string }[]
-    const workIds = deletedWorkRecords.map(w => w.id)
+    // 1. 清理软删除的 semantic_chunks
+    const deletedChunksSql = `SELECT id FROM semantic_chunks WHERE status = 'deleted' AND updated_at < ?`
+    const deletedChunks = this.db.prepare(deletedChunksSql).all(expireTimestamp) as { id: string }[]
+    const chunkIds = deletedChunks.map(c => c.id)
 
-    // 收集作品路径用于物理删除
-    for (const work of deletedWorkRecords) {
-      if (work.path) deletedPaths.push(work.path)
-      if (work.full_path) deletedPaths.push(work.full_path)
+    if (chunkIds.length > 0) {
+      const placeholders = chunkIds.map(() => '?').join(', ')
+
+      // 清理关联表
+      this.db.prepare(`DELETE FROM semantic_chunks_fts WHERE rowid IN (SELECT rowid FROM semantic_chunks WHERE id IN (${placeholders}))`).run(...chunkIds)
+      this.db.prepare(`DELETE FROM semantic_links WHERE source_chunk_id IN (${placeholders}) OR target_chunk_id IN (${placeholders})`).run(...chunkIds, ...chunkIds)
+      this.db.prepare(`DELETE FROM concept_chunks WHERE chunk_id IN (${placeholders})`).run(...chunkIds)
+      this.db.prepare(`DELETE FROM topic_chunks WHERE chunk_id IN (${placeholders})`).run(...chunkIds)
+      this.db.prepare(`DELETE FROM  project_chunks WHERE chunk_id IN (${placeholders})`).run(...chunkIds)
+      this.db.prepare(`DELETE FROM reflection_chunks WHERE chunk_id IN (${placeholders})`).run(...chunkIds)
+      this.db.prepare(`DELETE FROM temporal_events WHERE chunk_id IN (${placeholders})`).run(...chunkIds)
+      const taggedResult = this.db.prepare(`DELETE FROM tagged_items WHERE entity_type = 'semantic_chunks' AND entity_id IN (${placeholders})`).run(...chunkIds)
+      stats.taggedItemsDeleted += taggedResult.changes
+
+      // 删除 semantic_chunks
+      const deleteChunksStmt = this.db.prepare(`DELETE FROM semantic_chunks WHERE id IN (${placeholders})`)
+      stats.semanticChunksDeleted = deleteChunksStmt.run(...chunkIds).changes
     }
 
-    if (workIds.length > 0) {
-      // 2. 获取作品关联的文件路径（用于物理删除）
-      const filesOfWorksSql = `SELECT path, full_path FROM files WHERE work_id IN (${workIds.map(() => '?').join(', ')})`
-      const filesOfWorks = this.db.prepare(filesOfWorksSql).all(workIds) as { path: string; full_path: string }[]
-      for (const file of filesOfWorks) {
-        if (file.path) deletedPaths.push(file.path)
-        if (file.full_path) deletedPaths.push(file.full_path)
+    // 2. 清理软删除的 topics
+    const deletedTopicsSql = `SELECT id FROM topics WHERE status = 'deleted' AND updated_at < ?`
+    const deletedTopics = this.db.prepare(deletedTopicsSql).all(expireTimestamp) as { id: string }[]
+    const topicIds = deletedTopics.map(t => t.id)
+
+    if (topicIds.length > 0) {
+      const placeholders = topicIds.map(() => '?').join(', ')
+
+      this.db.prepare(`DELETE FROM topics_fts WHERE rowid IN (SELECT rowid FROM topics WHERE id IN (${placeholders}))`).run(...topicIds)
+      this.db.prepare(`DELETE FROM topic_chunks WHERE topic_id IN (${placeholders})`).run(...topicIds)
+      this.db.prepare(`DELETE FROM topic_concepts WHERE topic_id IN (${placeholders})`).run(...topicIds)
+
+      const deleteTopicsStmt = this.db.prepare(`DELETE FROM topics WHERE id IN (${placeholders})`)
+      stats.topicsDeleted = deleteTopicsStmt.run(...topicIds).changes
+    }
+
+    // 3. 清理软删除的 projects（级联清理关联的 pages）
+    const deletedProjectsSql = `SELECT id FROM projects WHERE status = 'deleted' AND updated_at < ?`
+    const deletedProjects = this.db.prepare(deletedProjectsSql).all(expireTimestamp) as { id: string }[]
+    const projectIds = deletedProjects.map(p => p.id)
+
+    if (projectIds.length > 0) {
+      const placeholders = projectIds.map(() => '?').join(', ')
+
+      // 清理 project 关联的 pages 和 pages_fts
+      const projectPages = this.db.prepare(`SELECT id FROM pages WHERE project_id IN (${placeholders})`).all(...projectIds) as { id: string }[]
+      const pageIds = projectPages.map(p => p.id)
+      if (pageIds.length > 0) {
+        const pagePlaceholders = pageIds.map(() => '?').join(', ')
+        this.db.prepare(`DELETE FROM pages_fts WHERE rowid IN (SELECT rowid FROM pages WHERE id IN (${pagePlaceholders}))`).run(...pageIds)
+        this.db.prepare(`DELETE FROM pages WHERE id IN (${pagePlaceholders})`).run(...pageIds)
       }
 
-      // 3. 获取作品关联的文件夹路径（用于物理删除）
-      const foldersOfWorksSql = `SELECT path, full_path FROM folders WHERE work_id IN (${workIds.map(() => '?').join(', ')})`
-      const foldersOfWorks = this.db.prepare(foldersOfWorksSql).all(workIds) as { path: string; full_path: string }[]
-      for (const folder of foldersOfWorks) {
-        if (folder.path) deletedPaths.push(folder.path)
-        if (folder.full_path) deletedPaths.push(folder.full_path)
+      this.db.prepare(`DELETE FROM projects_fts WHERE rowid IN (SELECT rowid FROM projects WHERE id IN (${placeholders}))`).run(...projectIds)
+      this.db.prepare(`DELETE FROM  project_chunks WHERE project_id IN (${placeholders})`).run(...projectIds)
+
+      const deleteProjectsStmt = this.db.prepare(`DELETE FROM projects WHERE id IN (${placeholders})`)
+      stats.projectsDeleted = deleteProjectsStmt.run(...projectIds).changes
+    }
+
+    // 4. 清理软删除的 pages（孤立页面，不属于已删除的 project）
+    const deletedPagesSql = `SELECT id FROM pages WHERE status = 'deleted' AND updated_at < ? AND project_id NOT IN (SELECT id FROM projects WHERE status = 'deleted')`
+    const deletedPages = this.db.prepare(deletedPagesSql).all(expireTimestamp) as { id: string }[]
+    const pageIds = deletedPages.map(p => p.id)
+
+    if (pageIds.length > 0) {
+      const placeholders = pageIds.map(() => '?').join(', ')
+      this.db.prepare(`DELETE FROM pages_fts WHERE rowid IN (SELECT rowid FROM pages WHERE id IN (${placeholders}))`).run(...pageIds)
+      const deletePagesStmt = this.db.prepare(`DELETE FROM pages WHERE id IN (${placeholders})`)
+      stats.pagesDeleted = deletePagesStmt.run(...pageIds).changes
+    }
+
+    // 5. 清理软删除的 reflections
+    const deletedReflectionsSql = `SELECT id FROM reflections WHERE status = 'deleted' AND updated_at < ?`
+    const deletedReflections = this.db.prepare(deletedReflectionsSql).all(expireTimestamp) as { id: string }[]
+    const reflectionIds = deletedReflections.map(r => r.id)
+
+    if (reflectionIds.length > 0) {
+      const placeholders = reflectionIds.map(() => '?').join(', ')
+      this.db.prepare(`DELETE FROM reflection_chunks WHERE reflection_id IN (${placeholders})`).run(...reflectionIds)
+      const deleteReflectionsStmt = this.db.prepare(`DELETE FROM reflections WHERE id IN (${placeholders})`)
+      stats.reflectionsDeleted = deleteReflectionsStmt.run(...reflectionIds).changes
+    }
+
+    // 6. 清理 file_index（sync_status = 'deleted'），收集文件路径用于物理删除
+    const deletedFileIndexSql = `SELECT file_path FROM file_index WHERE sync_status = 'deleted' AND updated_at < ?`
+    const deletedFiles = this.db.prepare(deletedFileIndexSql).all(expireTimestamp) as { file_path: string }[]
+    for (const file of deletedFiles) {
+      if (file.file_path) {
+        deletedPaths.push(file.file_path)
       }
-
-      // 4. 删除作品关联的标签
-      const deleteTagsStmt = this.db.prepare(
-        `DELETE FROM work_tags WHERE work_id IN (${workIds.map(() => '?').join(', ')})`
-      )
-      stats.tagsDeleted = deleteTagsStmt.run(workIds).changes
-
-      // 5. 删除作品（级联删除会自动删除关联的文件夹和文件）
-      const deleteWorksStmt = this.db.prepare(
-        `DELETE FROM works WHERE id IN (${workIds.map(() => '?').join(', ')})`
-      )
-      stats.worksDeleted = deleteWorksStmt.run(workIds).changes
     }
 
-    // 7. 删除不属于任何作品的孤立文件夹（status = 0）
-    const orphanFoldersSql = `SELECT path, full_path FROM folders WHERE status = 0 AND updated_at < ? AND work_id = 0`
-    const orphanFolders = this.db.prepare(orphanFoldersSql).all(expireTimestamp) as { path: string; full_path: string }[]
-    for (const folder of orphanFolders) {
-      if (folder.path) deletedPaths.push(folder.path)
-      if (folder.full_path) deletedPaths.push(folder.full_path)
-    }
+    const deleteFileIndexStmt = this.db.prepare(`DELETE FROM file_index WHERE sync_status = 'deleted' AND updated_at < ?`)
+    stats.fileIndexDeleted = deleteFileIndexStmt.run(expireTimestamp).changes
 
-    const deleteOrphanFoldersStmt = this.db.prepare(
-      `DELETE FROM folders WHERE status = 0 AND updated_at < ? AND work_id = 0`
+    // 7. 清理过期的任务记录（终端状态）
+    const deleteTasksStmt = this.db.prepare(
+      `DELETE FROM tasks WHERE status IN ('succeeded', 'failed', 'cancelled') AND updated_at < ?`
     )
-    stats.foldersDeleted = deleteOrphanFoldersStmt.run(expireTimestamp).changes
+    stats.tasksDeleted = deleteTasksStmt.run(taskExpireTimestamp).changes
 
-    // 8. 删除不属于任何作品和文件夹的孤立文件（status = 0）
-    const orphanFilesSql = `SELECT path, full_path FROM files WHERE status = 0 AND updated_at < ? AND work_id = 0 AND folder_id = 0`
-    const orphanFiles = this.db.prepare(orphanFilesSql).all(expireTimestamp) as { path: string; full_path: string }[]
-    for (const file of orphanFiles) {
-      if (file.path) deletedPaths.push(file.path)
-      if (file.full_path) deletedPaths.push(file.full_path)
-    }
-
-    const deleteOrphanFilesStmt = this.db.prepare(
-      `DELETE FROM files WHERE status = 0 AND updated_at < ? AND work_id = 0 AND folder_id = 0`
+    // 8. 清理过期的 Skill 执行记录
+    const deleteSkillExecStmt = this.db.prepare(
+      `DELETE FROM skill_executions WHERE created_at < ?`
     )
-    stats.filesDeleted = deleteOrphanFilesStmt.run(expireTimestamp).changes
+    stats.skillExecutionsDeleted = deleteSkillExecStmt.run(skillExecExpireTimestamp).changes
 
     return { stats, deletedPaths }
   }
@@ -265,20 +367,21 @@ export class CleanupService {
    * @returns 统计结果
    */
   public getSoftDeletedStats(): {
-    works: number
-    folders: number
-    files: number
-    tags: number
+    semanticChunks: number
+    topics: number
+    projects: number
+    pages: number
+    reflections: number
+    fileIndex: number
   } {
     try {
       const stats = {
-        works: (this.db.prepare('SELECT COUNT(*) as count FROM works WHERE status = 0').get() as { count: number }).count,
-        folders: (this.db.prepare('SELECT COUNT(*) as count FROM folders WHERE status = 0').get() as { count: number }).count,
-        files: (this.db.prepare('SELECT COUNT(*) as count FROM files WHERE status = 0').get() as { count: number }).count,
-        tags: (this.db.prepare(`
-          SELECT COUNT(*) as count FROM work_tags 
-          WHERE work_id IN (SELECT id FROM works WHERE status = 0)
-        `).get() as { count: number }).count
+        semanticChunks: (this.db.prepare("SELECT COUNT(*) as count FROM semantic_chunks WHERE status = 'deleted'").get() as { count: number }).count,
+        topics: (this.db.prepare("SELECT COUNT(*) as count FROM topics WHERE status = 'deleted'").get() as { count: number }).count,
+        projects: (this.db.prepare("SELECT COUNT(*) as count FROM projects WHERE status = 'deleted'").get() as { count: number }).count,
+        pages: (this.db.prepare("SELECT COUNT(*) as count FROM pages WHERE status = 'deleted'").get() as { count: number }).count,
+        reflections: (this.db.prepare("SELECT COUNT(*) as count FROM reflections WHERE status = 'deleted'").get() as { count: number }).count,
+        fileIndex: (this.db.prepare("SELECT COUNT(*) as count FROM file_index WHERE sync_status = 'deleted'").get() as { count: number }).count
       }
 
       Logger.debug('获取软删除数据统计完成', stats)
@@ -288,7 +391,7 @@ export class CleanupService {
         error: error instanceof Error ? error.message : String(error),
         timestamp: TimeUtil.toISOString(Date.now())
       })
-      return { works: 0, folders: 0, files: 0, tags: 0 }
+      return { semanticChunks: 0, topics: 0, projects: 0, pages: 0, reflections: 0, fileIndex: 0 }
     }
   }
 
@@ -298,21 +401,22 @@ export class CleanupService {
    * @returns 统计结果
    */
   public getExpiringSoftDeletedStats(days: number = 7): {
-    works: number
-    folders: number
-    files: number
-    tags: number
+    semanticChunks: number
+    topics: number
+    projects: number
+    pages: number
+    reflections: number
+    fileIndex: number
   } {
     try {
       const expireTimestamp = this.getExpireTimestamp(days)
       const stats = {
-        works: (this.db.prepare('SELECT COUNT(*) as count FROM works WHERE status = 0 AND updated_at < ?').get(expireTimestamp) as { count: number }).count,
-        folders: (this.db.prepare('SELECT COUNT(*) as count FROM folders WHERE status = 0 AND updated_at < ?').get(expireTimestamp) as { count: number }).count,
-        files: (this.db.prepare('SELECT COUNT(*) as count FROM files WHERE status = 0 AND updated_at < ?').get(expireTimestamp) as { count: number }).count,
-        tags: (this.db.prepare(`
-          SELECT COUNT(*) as count FROM work_tags 
-          WHERE work_id IN (SELECT id FROM works WHERE status = 0 AND updated_at < ?)
-        `).get(expireTimestamp) as { count: number }).count
+        semanticChunks: (this.db.prepare("SELECT COUNT(*) as count FROM semantic_chunks WHERE status = 'deleted' AND updated_at < ?").get(expireTimestamp) as { count: number }).count,
+        topics: (this.db.prepare("SELECT COUNT(*) as count FROM topics WHERE status = 'deleted' AND updated_at < ?").get(expireTimestamp) as { count: number }).count,
+        projects: (this.db.prepare("SELECT COUNT(*) as count FROM projects WHERE status = 'deleted' AND updated_at < ?").get(expireTimestamp) as { count: number }).count,
+        pages: (this.db.prepare("SELECT COUNT(*) as count FROM pages WHERE status = 'deleted' AND updated_at < ?").get(expireTimestamp) as { count: number }).count,
+        reflections: (this.db.prepare("SELECT COUNT(*) as count FROM reflections WHERE status = 'deleted' AND updated_at < ?").get(expireTimestamp) as { count: number }).count,
+        fileIndex: (this.db.prepare("SELECT COUNT(*) as count FROM file_index WHERE sync_status = 'deleted' AND updated_at < ?").get(expireTimestamp) as { count: number }).count
       }
 
       Logger.debug('获取即将过期的软删除数据统计完成', { days, stats })
@@ -323,7 +427,7 @@ export class CleanupService {
         days,
         timestamp: TimeUtil.toISOString(Date.now())
       })
-      return { works: 0, folders: 0, files: 0, tags: 0 }
+      return { semanticChunks: 0, topics: 0, projects: 0, pages: 0, reflections: 0, fileIndex: 0 }
     }
   }
 }

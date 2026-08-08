@@ -59,9 +59,12 @@ export default defineConfig({
             rollupOptions: {
               external: [
                 'electron',
+                'better-sqlite3',
                 '@lancedb/lancedb',
                 /@lancedb\/.*/,
                 'apache-arrow',
+                '@xenova/transformers',
+                'archiver',
               ],
               output: {
                 format: 'cjs'

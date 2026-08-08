@@ -14,6 +14,7 @@ import type {
   CategoryNode,
   SkillSource,
 } from "@/shared/types/skill.types";
+import { TimeUtil } from "@/shared/utils/time";
 
 const BUILT_IN = "built-in";
 const CUSTOM = "custom";
@@ -280,7 +281,7 @@ class SkillManager {
 
     if (this.manifest) {
       delete this.manifest.skills[id];
-      this.manifest.lastUpdate = new Date().toISOString();
+      this.manifest.lastUpdate = TimeUtil.getLocalDateString();
       this.saveManifest();
     }
 
@@ -403,12 +404,11 @@ class SkillManager {
           source,
           hash: this.computeSkillHash(id),
           version: skill.version,
-          installedAt: new Date().toISOString(),
+          installedAt: TimeUtil.getLocalDateString(),
         };
       }
     }
-
-    this.manifest.lastUpdate = new Date().toISOString();
+    this.manifest.lastUpdate = TimeUtil.getLocalDateString();
   }
 
   private loadSettings(): void {

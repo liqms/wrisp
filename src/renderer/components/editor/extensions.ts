@@ -1,12 +1,13 @@
 import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
+import Underline from "@tiptap/extension-underline";
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Markdown } from "@tiptap/markdown";
 import type { Extensions } from "@tiptap/core";
 
 export function getExtensions(placeholder?: string): Extensions {
@@ -19,7 +20,6 @@ export function getExtensions(placeholder?: string): Extensions {
       link: false,
       underline: false,
     }),
-    Underline,
     Link.configure({
       openOnClick: true,
       HTMLAttributes: {
@@ -27,6 +27,7 @@ export function getExtensions(placeholder?: string): Extensions {
         rel: "noopener noreferrer",
       },
     }),
+    Underline,
     Image.configure({
       inline: false,
       allowBase64: true,
@@ -44,6 +45,7 @@ export function getExtensions(placeholder?: string): Extensions {
     Placeholder.configure({
       placeholder: placeholder || "开始输入...",
     }),
+    Markdown,
   ];
 
   // 内部去重：按扩展 name 去重，避免重复注册同名扩展

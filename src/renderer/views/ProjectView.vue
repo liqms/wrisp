@@ -3,7 +3,7 @@
     <!-- 顶部：搜索框 + 新建按钮 -->
     <n-flex class="toolbar" justify="space-between" align="center">
       <n-input v-model:value="searchKeyword" :placeholder="t('TIPS.SEARCH.SEARCH_PROJECT')" clearable :loading="loading"
-        class="search-input" @keyup.enter="handleSearch">
+        class="search-input">
         <template #prefix>
           <n-icon>
             <Search />
@@ -22,7 +22,8 @@
 
     <!-- 中部：作品列表 -->
     <n-data-table remote :columns="columnsRef" :data="dataRef" :loading="loading" :pagination="paginationReactive"
-      @update:page="handlePageChange" :bordered="false" :single-line="false" class="project-table" />
+      :scroll-x="scrollX" :min-row-height="48" @update:page="handlePageChange" :bordered="false"
+      class="project-table" />
 
     <!-- 新建/编辑对话框 -->
     <n-modal v-model:show="showModal" :title="isEditing ? t('ACTION.EDIT.EDIT_PROJECT') : t('ACTION.NEW.PROJECT')"
@@ -53,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, onMounted, reactive } from "vue";
+import { ref, computed, h, onMounted, reactive, watch } from "vue";
 import { useMessage, NButton, NIcon, NTag, NSpace, NPopconfirm } from "naive-ui";
 import { Search, Add, Create, Trash } from "@vicons/ionicons5";
 import { useProject } from "@/renderer/composables/useProject";
@@ -76,6 +77,7 @@ const {
   updateProject,
   deleteProject,
   getProjectDetail,
+  checkNameExists,
 } = useProject();
 
 // 搜索
@@ -86,10 +88,19 @@ const handleSearch = async () => {
     pageSize: paginationReactive.pageSize || 20,
     orderBy: "updated_at",
     orderDir: "DESC",
-    conditions: searchKeyword.value ? { name: searchKeyword.value } : undefined,
+    conditions: searchKeyword.value ? { name: `%${searchKeyword.value}%` } : undefined,
   });
   syncTableData();
 };
+
+// 输入即搜索（300ms 防抖）
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+watch(searchKeyword, () => {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    handleSearch();
+  }, 300);
+});
 
 // 同步表格数据和分页状态
 const syncTableData = () => {
@@ -118,7 +129,7 @@ const handlePageChange = async (page: number) => {
     pageSize: paginationReactive.pageSize,
     orderBy: "updated_at",
     orderDir: "DESC",
-    conditions: searchKeyword.value ? { name: searchKeyword.value } : undefined,
+    conditions: searchKeyword.value ? { name: `%${searchKeyword.value}%` } : undefined,
   });
   syncTableData();
 };
@@ -160,24 +171,26 @@ interface RowData {
   updated_at: string
 }
 
-
+const scrollX = computed(() => 60 + 200 + 90 + 200 + 70 + 70 + 140);
 
 const columns = computed((): DataTableColumn<RowData>[] => [
   {
     title: t('APP.BASE.ROW_INDEX'),
     key: "rowIndex",
+    fixed: 'left',
     width: 60,
   },
   {
     title: t('TIPS.PROJECT.PROJECT_NAME'),
     key: "name",
+    fixed: 'left',
     ellipsis: { tooltip: true },
     width: 200,
   },
   {
     title: t('TIPS.PROJECT.PROJECT_TYPE'),
     key: "type",
-    width: 120,
+    width: 90,
     render(row) {
       return typeLabelMap.value[row.type as keyof typeof typeLabelMap.value] || row.type;
     },
@@ -193,7 +206,7 @@ const columns = computed((): DataTableColumn<RowData>[] => [
         tags!.map((tag) =>
           h(
             NTag,
-            { size: "small", color: { color: tag.color } },
+            { size: "small" },
             { default: () => tag.name },
           ),
         ),
@@ -203,7 +216,7 @@ const columns = computed((): DataTableColumn<RowData>[] => [
   {
     title: () => t('TIPS.COMMON.BLOCK_COUNT'),
     key: "block_count",
-    width: 100,
+    width: 70,
     render(row) {
       const count = row.block_count;
       return count ?? "-";
@@ -212,23 +225,16 @@ const columns = computed((): DataTableColumn<RowData>[] => [
   {
     title: () => t('TIPS.COMMON.PAGE_COUNT'),
     key: "page_count",
-    width: 100,
+    width: 70,
     render(row) {
       const count = row.page_count;
       return count ?? "-";
     },
   },
   {
-    title: () => t('TIPS.COMMON.WORD_COUNT'),
-    key: "updated_at",
-    width: 160,
-    render(row) {
-      return formatTime(row.updated_at);
-    },
-  },
-  {
     title: () => t('ACTION.COMMON.EDIT'),
     key: "actions",
+    fixed: 'right',
     width: 140,
     render(row) {
       return h(NSpace, { size: "small" }, () => [
@@ -339,6 +345,13 @@ const handleSubmit = async () => {
   submitting.value = true;
   try {
     if (isEditing.value && editingId.value) {
+      // 检查名称是否已存在（排除当前编辑的作品）
+      const nameExists = await checkNameExists(formData.value.name, editingId.value);
+      if (nameExists) {
+        message.error(t('NOTIFICATION.PROJECT_NAME_EXISTS'));
+        return;
+      }
+
       const updateData: ProjectUpdate = {
         name: formData.value.name,
         type: formData.value.type as any,
@@ -353,6 +366,13 @@ const handleSubmit = async () => {
         message.error(t('NOTIFICATION.ERROR'));
       }
     } else {
+      // 检查名称是否已存在
+      const nameExists = await checkNameExists(formData.value.name);
+      if (nameExists) {
+        message.error(t('NOTIFICATION.PROJECT_NAME_EXISTS'));
+        return;
+      }
+
       const createData: ProjectCreate = {
         name: formData.value.name,
         type: formData.value.type as any,

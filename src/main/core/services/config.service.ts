@@ -10,6 +10,7 @@ import { configMigration } from "@/main/core/migration";
 import { closeDatabase, setWorkspacePath } from "@/main/core/db/connection";
 import { BrowserWindow } from "electron";
 import { databaseMigration } from "@/main/core/migration/database.migration";
+import { CONFIG_DIR } from "@/main/constants";
 
 /**
  * 配置服务
@@ -35,7 +36,7 @@ class ConfigService {
     this.configFileName = "app";
 
 
-    const configDir = path.join(this.userDataPath, "config");
+    const configDir = path.join(this.userDataPath, CONFIG_DIR);
     fs.mkdirSync(configDir, { recursive: true });
 
     this.defaultConfig = this.getDefaultConfig();
@@ -314,6 +315,13 @@ class ConfigService {
       return path.join(this.userDataPath, "Cache", "static");
     }
     return path.join(this.appPath, "static");
+  }
+
+  /**
+   * 获取应用工作空间路径 workspacePath
+   */
+  public getWorkspacePath(): string {
+    return this.config?.workspace || "";
   }
 }
 

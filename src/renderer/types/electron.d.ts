@@ -6,12 +6,9 @@ import type {
   NavigationState,
   WebContentViewOptions,
   NotificationMessage,
-  CaptureCreate,
-  CaptureUpdate,
-  CaptureQuery,
-  CaptureListItem,
-  CaptureDetail,
-  CaptureDateListItem,
+  JournalFileInfo,
+  JournalFileCreate,
+  JournalFileUpdate,
   Id,
   LLMRequest,
   LLMResponse,
@@ -19,13 +16,16 @@ import type {
   CostRecord,
   CostSummary,
 } from "@/shared/types";
-import type { LOG_LEVEL, SearchType } from "@/shared/enums";
+import type { LOG_LEVEL, PageType } from "@/shared/enums";
 import type { LogContext } from "@/main/utils/logger";
 import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
-import type { Project, ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail } from "@/main/types/db";
+import type { Project, ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail, Page, PageTree } from "@/main/types/db";
 import type { Tag, TagCreate, TagUpdate, TagQuery, TagDetail, TagId } from "@/shared/types";
+import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import type { ModelType } from "@/shared/types/model.types";
+import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
+import type { Concept, ConceptWithBlocks, Topic, TopicWithConceptsAndBlocks, Reflection, ReflectionWithBlocks, TemporalEventWithBlock } from "@/main/types/db";
 
 // 定义 IPC API 接口类型（与 preload.ts 保持一致）
 export interface ElectronAPI {
@@ -87,27 +87,18 @@ export interface ElectronAPI {
     goForward(): Promise<ApiResponse<void>>;
     getNavigationState(): Promise<ApiResponse<NavigationState>>;
   };
-  // Capture 相关
-  capture: {
-    createCapture(
-      record: CaptureCreate,
-    ): Promise<ApiResponse<CaptureDetail | null>>;
-    updateCapture(
-      record: CaptureUpdate,
-    ): Promise<ApiResponse<CaptureDetail | null>>;
-    getRecentCaptures(limit?: number): Promise<ApiResponse<CaptureListItem[]>>;
-    deleteCapture(id: Id): Promise<ApiResponse<null>>;
-    searchCaptures(
-      keyword: string,
-      limit?: number,
-      searchType?: SearchType,
-      parent_record_id?: Id | null,
-    ): Promise<ApiResponse<CaptureListItem[]>>;
-    listCaptures(query?: CaptureQuery): Promise<ApiResponse<CaptureListItem[]>>;
-    getCapturesByDateRange(
-      startDate: string,
-      endDate: string,
-    ): Promise<ApiResponse<CaptureDateListItem[]>>;
+  // Journal 相关
+  journal: {
+    createJournal(
+      record: JournalFileCreate,
+    ): Promise<ApiResponse<string | null>>;
+    updateJournal(
+      record: JournalFileUpdate,
+    ): Promise<ApiResponse<string | null>>;
+    deleteJournal(id: Id): Promise<ApiResponse<null>>;
+    getRecentDays(days?: number): Promise<ApiResponse<JournalFileInfo[]>>;
+    checkTodayJournalExists(data?: string): Promise<ApiResponse<boolean>>;
+    syncLocalFiles(): Promise<ApiResponse<number>>;
   };
   // Project 相关
   project: {
@@ -127,6 +118,22 @@ export interface ElectronAPI {
       excludeId?: string,
     ): Promise<ApiResponse<boolean>>;
   };
+  // Page 相关
+  page: {
+    get(id: string): Promise<ApiResponse<Page | null>>;
+    paginate(params: {
+      page?: number;
+      pageSize?: number;
+      orderBy?: string;
+      orderDir?: "ASC" | "DESC";
+      conditions?: PageQuery;
+    }): Promise<ApiResponse<PaginationResult<Page>>>;
+    getTree(projectId: string, pageType: PageType): Promise<ApiResponse<PageTree[]>>;
+    create(data: CreatePageInput): Promise<ApiResponse<string>>;
+    update(data: UpdatePageInput): Promise<ApiResponse<number>>;
+    delete(id: string): Promise<ApiResponse<number>>;
+  };
+
   // Model 相关
   model: {
     getConfig(): Promise<ApiResponse<ModelConfig>>;
@@ -171,6 +178,68 @@ export interface ElectronAPI {
     createTags(data: TagCreate | TagCreate[]): Promise<ApiResponse<string | string[]>>;
     updateTag(items: { id: TagId; data: TagUpdate } | { id: TagId; data: TagUpdate }[]): Promise<ApiResponse<number | number[]>>;
     deleteTag(ids: TagId | TagId[]): Promise<ApiResponse<number>>;
+  };
+
+  // Skill 相关
+  skill: {
+    getSkills(): Promise<ApiResponse<SkillListItem[]>>;
+    getSkill(id: string): Promise<ApiResponse<SkillListItem>>;
+    getSkillsByCategory(category: string): Promise<ApiResponse<SkillListItem[]>>;
+    getCategories(): Promise<ApiResponse<CategoryNode[]>>;
+    execute(skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<SkillExecuteResult>>;
+    createCustomSkill(definition: Record<string, unknown>): Promise<ApiResponse<void>>;
+    updateCustomSkill(id: string, definition: Record<string, unknown>): Promise<ApiResponse<void>>;
+    deleteCustomSkill(id: string): Promise<ApiResponse<void>>;
+    setSkillEnabled(id: string, enabled: boolean): Promise<ApiResponse<void>>;
+    checkSkillUpdates(): Promise<ApiResponse<SkillUpdateItem[]>>;
+    applySkillUpdates(): Promise<ApiResponse<void>>;
+    getSkillExecutions(skillId?: string, limit?: number): Promise<ApiResponse<SkillExecutionRecord[]>>;
+    getSkillExecutionStats(skillId?: string): Promise<ApiResponse<{ total: number; succeeded: number; failed: number; avgTimeMs: number }>>;
+  };
+
+  // Concept 相关
+  concept: {
+    concept: {
+      list(params: {
+        page?: number;
+        pageSize?: number;
+        orderBy?: string;
+        orderDir?: "ASC" | "DESC";
+        conditions?: Record<string, unknown>;
+      }): Promise<ApiResponse<PaginationResult<Concept>>>;
+      detail(id: string): Promise<ApiResponse<ConceptWithBlocks | null>>;
+    };
+    temporal: {
+      list(startDate?: string, endDate?: string): Promise<ApiResponse<TemporalEventWithBlock[]>>;
+    };
+  };
+
+  // Topic 相关
+  topic: {
+    topic: {
+      list(params: {
+        page?: number;
+        pageSize?: number;
+        orderBy?: string;
+        orderDir?: "ASC" | "DESC";
+        conditions?: Record<string, unknown>;
+      }): Promise<ApiResponse<PaginationResult<Topic>>>;
+      detail(id: string): Promise<ApiResponse<TopicWithConceptsAndBlocks | null>>;
+    };
+  };
+
+  // Reflection 相关
+  reflection: {
+    reflection: {
+      list(params: {
+        page?: number;
+        pageSize?: number;
+        orderBy?: string;
+        orderDir?: "ASC" | "DESC";
+        conditions?: Record<string, unknown>;
+      }): Promise<ApiResponse<PaginationResult<Reflection>>>;
+      detail(id: string): Promise<ApiResponse<ReflectionWithBlocks | null>>;
+    };
   };
 
   // 通用 IPC 方法（保持向后兼容）

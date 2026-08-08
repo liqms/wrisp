@@ -12,15 +12,6 @@ export interface General {
   updateChannel: UpdateChannel;
 }
 
-export interface MiniProgram {
-  id: string;
-  name: string;
-  url: string;
-  icon: string;
-  area: string;
-  isHidden: boolean;
-}
-
 export interface UserInfo {
   nickname: string; // 用户昵称
   avatar?: string; // 头像URL
@@ -57,8 +48,6 @@ export interface KeymapItem {
 
 export interface AppConfig {
   general: General; // 通用配置
-  miniPrograms: MiniProgram[]; // 小程序列表
-  defaultMiniProgramId?: string; // 默认小程序ID
   userInfo: UserInfo; // 用户信息
   version: string; // 配置版本
   workspace: string; // 工作目录

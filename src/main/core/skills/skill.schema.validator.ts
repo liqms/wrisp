@@ -5,6 +5,7 @@ import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import { Logger } from "@/main/utils/logger";
 import type { SkillDefinition } from "@/shared/types/skill.types";
+import { SCHEMAS_DIR } from "@/main/constants";
 
 interface SchemaValidationError {
   field: string;
@@ -42,7 +43,7 @@ class SkillSchemaValidator {
       this.schemaPath = path.join(
         app.getAppPath(),
         "resources",
-        "schemas",
+        SCHEMAS_DIR,
         "skill.schema.json",
       );
     } else {
@@ -50,7 +51,7 @@ class SkillSchemaValidator {
         __dirname,
         "..",
         "resources",
-        "schemas",
+        SCHEMAS_DIR,
         "skill.schema.json",
       );
     }

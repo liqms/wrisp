@@ -18,9 +18,6 @@ export class ConfigMigration {
         if (!config.general) {
           config.general = {}
         }
-        if (!config.miniPrograms) {
-          config.miniPrograms = []
-        }
         if (!config.version) {
           config.version = '1.0.0'
         }

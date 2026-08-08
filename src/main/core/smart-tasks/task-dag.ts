@@ -13,14 +13,14 @@ export interface TaskDagNode {
 /** MVP 任务 DAG */
 export const MVP_TASK_DAG: TaskDagNode[] = [
   // 第 0 层：无依赖，可并行
-  { name: "block-summary", dependencies: [], description: "Block 摘要生成" },
-  { name: "block-vectorize", dependencies: [], description: "Block 向量化" },
+  { name: "chunk-summary", dependencies: [], description: "Block 摘要生成" },
+  { name: "chunk-vectorize", dependencies: [], description: "Chunk 向量化" },
 
   // 第 1 层：依赖向量化完成
-  { name: "semantic-link", dependencies: ["block-vectorize"], description: "语义链接生成" },
+  { name: "semantic-link", dependencies: ["chunk-vectorize"], description: "语义链接生成" },
 
   // 第 2 层：依赖摘要 + 向量化完成
-  { name: "concept-extract", dependencies: ["block-summary", "block-vectorize"], description: "概念提取" },
+  { name: "concept-extract", dependencies: ["chunk-summary", "chunk-vectorize"], description: "概念提取" },
 
   // 第 3 层：依赖概念提取完成
   { name: "topic-detection", dependencies: ["concept-extract"], description: "主题检测与聚类" },
@@ -31,8 +31,8 @@ export const MVP_TASK_DAG: TaskDagNode[] = [
 
 /** 按拓扑排序后的任务名称列表 */
 export const TASK_EXECUTION_ORDER: string[] = [
-  "block-summary",
-  "block-vectorize",
+  "chunk-summary",
+  "chunk-vectorize",
   "semantic-link",
   "concept-extract",
   "topic-detection",

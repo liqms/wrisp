@@ -3,8 +3,9 @@ import { getDatabase, getDbPath } from "@/main/core/db/connection";
 import { MigrationDbDao } from "@/main/core/db/migrationDb.dao";
 import { MigrationDb } from "@/main/types/db";
 import fs from "fs";
-import { join, basename } from "path";
+import { join } from "path";
 import { compareVersions, VersionComparison } from "@/main/utils/version";
+import { MIGRATIONS_DIR, SCHEMAS_DIR } from "@/main/constants";
 
 interface MigrationFile {
   version: string;
@@ -28,32 +29,48 @@ export class DatabaseMigration {
     return DatabaseMigration.instance;
   }
 
+  /**
+   * 获取数据库初始化脚本 (init.sql) 的完整文件路径。
+   * 根据 NODE_ENV 区分生产环境与开发环境的路径。
+   * @returns init.sql 文件的绝对路径
+   */
   private getSchemaFilePath(): string {
     const isProduction = process.env.NODE_ENV === "production";
     let basePath = __dirname;
 
     if (isProduction) {
-      basePath = join(basePath, "..", "schemas");
+      basePath = join(basePath, "..", SCHEMAS_DIR);
     } else {
-      basePath = join(basePath, "schemas");
+      basePath = join(basePath, SCHEMAS_DIR);
     }
 
     return join(basePath, "init.sql");
   }
 
+  /**
+   * 获取迁移文件目录的完整路径。
+   * 根据 NODE_ENV 区分生产环境与开发环境的路径。
+   * @returns migrations 目录的绝对路径
+   */
   private getMigrationsDir(): string {
     const isProduction = process.env.NODE_ENV === "production";
     let basePath = __dirname;
 
     if (isProduction) {
-      basePath = join(basePath, "..", "schemas", "migrations");
+      basePath = join(basePath, "..", SCHEMAS_DIR, MIGRATIONS_DIR);
     } else {
-      basePath = join(basePath, "schemas", "migrations");
+      basePath = join(basePath, SCHEMAS_DIR, MIGRATIONS_DIR);
     }
 
     return basePath;
   }
 
+  /**
+   * 解析迁移文件名，提取版本号与迁移名称。
+   * 文件名格式: {version}_{name}.sql，例如 1.1.1_add_blocks_is_memo.sql。
+   * @param fileName - 迁移文件名
+   * @returns 版本号与名称对象，解析失败返回 null
+   */
   private parseMigrationFileName(
     fileName: string,
   ): { version: string; name: string } | null {
@@ -70,6 +87,11 @@ export class DatabaseMigration {
     };
   }
 
+  /**
+   * 从 migrations 目录加载所有迁移文件。
+   * 读取目录下所有 .sql 文件，解析文件名获取版本号和名称，按版本号排序后返回。
+   * @returns 迁移文件列表（按版本号升序排列）
+   */
   private loadMigrationFiles(): MigrationFile[] {
     const migrationsDir = this.getMigrationsDir();
     const migrationFiles: MigrationFile[] = [];
@@ -113,6 +135,12 @@ export class DatabaseMigration {
     return migrationFiles;
   }
 
+  /**
+   * 初始化数据库表结构。
+   * 读取 init.sql 脚本并执行，创建所有基础表和索引。
+   * @returns 初始化成功返回 true
+   * @throws 初始化失败时抛出错误
+   */
   public initDatabaseSchema(): boolean {
     try {
       Logger.info("开始初始化数据库表结构");
@@ -143,6 +171,11 @@ export class DatabaseMigration {
     }
   }
 
+  /**
+   * 检查数据库是否已完成初始化。
+   * 通过查询 sqlite_master 中是否存在 migrations_db 表来判断。
+   * @returns 已初始化返回 true，否则返回 false
+   */
   public isDatabaseInitialized(): boolean {
     try {
       const db = getDatabase();
@@ -166,6 +199,11 @@ export class DatabaseMigration {
     }
   }
 
+  /**
+   * 获取当前数据库版本号。
+   * 从 migrations_db 表中读取最新版本号。
+   * @returns 当前版本号，获取失败返回 null
+   */
   public getDatabaseVersion(): string | null {
     try {
       return this.migrationDbDao.getCurrentVersion();
@@ -178,6 +216,14 @@ export class DatabaseMigration {
     }
   }
 
+  /**
+   * 执行数据库迁移，将数据库升级到目标版本。
+   * 如果数据库尚未初始化，先执行 initDatabaseSchema；如果当前版本低于目标版本，
+   * 按顺序执行所有未执行的迁移文件（优先从文件加载，否则从 migrations_db 表读取）。
+   * @param targetVersion - 目标版本号，默认为 "1.0.0"
+   * @returns 迁移成功返回 true，当前版本已为目标版本或高于目标版本返回 false
+   * @throws 迁移失败时抛出错误
+   */
   public executeDatabaseMigration(targetVersion: string = "1.0.0"): boolean {
     try {
       const currentVersion = this.getDatabaseVersion();
@@ -269,6 +315,13 @@ export class DatabaseMigration {
     }
   }
 
+  /**
+   * 从迁移文件构建待执行的迁移列表。
+   * 过滤掉已执行的版本，只保留版本号大于当前数据库版本的迁移文件。
+   * @param migrationFiles - 已加载的迁移文件列表
+   * @param existingMigrations - 数据库中已有的迁移记录
+   * @returns 待执行的迁移列表
+   */
   private buildMigrationsFromFiles(
     migrationFiles: MigrationFile[],
     existingMigrations: MigrationDb[],

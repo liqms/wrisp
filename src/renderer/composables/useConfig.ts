@@ -208,15 +208,6 @@ export function useConfig(options: UseConfigOptions = {}) {
   }
 
   /**
-   * 更新默认小程序ID
-   */
-  async function updateDefaultMiniProgramId(newId: string): Promise<boolean> {
-    // 判断新默认小程序ID是否与当前ID相同，相同则直接返回
-    if (newId === defaultMiniProgramId.value) return true;
-    return await setValue("defaultMiniProgramId", newId);
-  }
-
-  /**
    * 更新用户nickname
    */
   async function updateNickname(newNickname: string): Promise<boolean> {
@@ -364,8 +355,6 @@ export function useConfig(options: UseConfigOptions = {}) {
 
     // 计算属性
     general,
-    miniPrograms,
-    defaultMiniProgramId,
     userInfo,
     isAuthenticated,
     hasProfile,
@@ -389,7 +378,6 @@ export function useConfig(options: UseConfigOptions = {}) {
     updateNickname,
     updateAvatar,
     updateBio,
-    updateDefaultMiniProgramId,
     updateWorkspace,
     updateCurrentProjectId,
     updateIsFirstLaunch,

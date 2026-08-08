@@ -6,7 +6,7 @@ import {
   ProjectId,
   Name,
   ProjectDetail,
-  TagId,
+  Id,
 } from "@/main/types/db";
 import { PaginationResult } from "@/shared/utils/pagination";
 import { TimeUtil } from "@/shared/utils";
@@ -55,11 +55,11 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
       SELECT p.*,
         COALESCE(pb.block_count, 0) AS block_count,
         COALESCE(pg.page_count, 0) AS page_count,
-        COALESCE(GROUP_CONCAT(t.id || '|' || t.name || '|' || t.color || '|' || t.description, ';;'), '') AS tags_data
+        COALESCE(GROUP_CONCAT(t.id || '|' || t.name || '|' || t.description, ';;'), '') AS tags_data
       FROM ${this.tableName} p
       LEFT JOIN (
         SELECT project_id, COUNT(*) AS block_count
-        FROM project_blocks
+        FROM project_chunks
         GROUP BY project_id
       ) pb ON pb.project_id = p.id
       LEFT JOIN (
@@ -85,8 +85,8 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
     const { tags_data, ...project } = result;
     const tags: typeof project.tags = tags_data ?
       tags_data.split(';;').map(tagStr => {
-        const [id, name, color, description] = tagStr.split('|');
-        return { id, name, color, description, created_at: '', updated_at: '' };
+        const [id, name, description] = tagStr.split('|');
+        return { id, name, description, created_at: '', updated_at: '' };
       }) : undefined;
     return { ...project, tags };
   }
@@ -101,11 +101,11 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
       SELECT p.*,
         COALESCE(pb.block_count, 0) AS block_count,
         COALESCE(pg.page_count, 0) AS page_count,
-        COALESCE(GROUP_CONCAT(t.id || '|' || t.name || '|' || t.color || '|' || t.description, ';;'), '') AS tags_data
+        COALESCE(GROUP_CONCAT(t.id || '|' || t.name || '|' || t.description, ';;'), '') AS tags_data
       FROM ${this.tableName} p
       LEFT JOIN (
         SELECT project_id, COUNT(*) AS block_count
-        FROM project_blocks
+        FROM project_chunks
         GROUP BY project_id
       ) pb ON pb.project_id = p.id
       LEFT JOIN (
@@ -153,7 +153,7 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
     const values: unknown[] = [];
 
     if (params.conditions && Object.keys(params.conditions).length > 0) {
-      const built = this.buildWhereClause(params.conditions);
+      const built = this.buildWhereClause(params.conditions, 'p');
       whereClause = `WHERE ${built.sql}`;
       values.push(...built.values);
     }
@@ -178,11 +178,11 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
       SELECT p.*,
         COALESCE(pb.block_count, 0) AS block_count,
         COALESCE(pg.page_count, 0) AS page_count,
-        COALESCE(GROUP_CONCAT(t.id || '|' || t.name || '|' || t.color || '|' || t.description, ';;'), '') AS tags_data
+        COALESCE(GROUP_CONCAT(t.id || '|' || t.name || '|' || t.description, ';;'), '') AS tags_data
       FROM ${this.tableName} p
       LEFT JOIN (
         SELECT project_id, COUNT(*) AS block_count
-        FROM project_blocks
+        FROM project_chunks
         GROUP BY project_id
       ) pb ON pb.project_id = p.id
       LEFT JOIN (
@@ -217,7 +217,7 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
     };
   }
 
-  saveTags(projectId: ProjectId, tagIds: TagId[]): void {
+  saveTags(projectId: ProjectId, tagIds: Id[]): void {
     const timestamp = TimeUtil.toISOString(Date.now());
     this.transaction(() => {
       this.execute("DELETE FROM tagged_items WHERE entity_type = 'project' AND entity_id = ?", [projectId]);
