@@ -28,8 +28,8 @@ release
 .env.production.local
 
 # Editor directories and files
-.trae
-.codeartsdoer
+.trae/*
+.codeartsdoer/*
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -39,7 +39,6 @@ release
 *.njsproj
 *.sln
 *.sw?
-.uploads
 
 # OS generated files
 Thumbs.db
@@ -52,4 +51,3 @@ Thumbs.db
 docs
 # Test coverage
 coverage
-
