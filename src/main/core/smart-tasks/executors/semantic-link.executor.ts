@@ -1,18 +1,18 @@
 import { TaskExecutor, TaskContext, TaskResult } from "../types";
-import { BlockDao } from "@/main/core/db";
+import { ChunkDao } from "@/main/core/db";
 import { vectorService } from "@/main/core/services/vector.service";
 import { semanticLinkDao } from "@/main/core/db/semanticLink.dao";
 import { localGateway } from "@/main/core/model-gateway/local-gateway";
 import { progressManager } from "@/main/core/smart-tasks/progress.manager";
-import { Block, BlockUpdate } from "@/main/types/db";
+import { Chunk, ChunkUpdate } from "@/main/types/db";
 import { SemanticLinkCreate } from "@/main/types/db";
 import { Logger } from "@/main/utils/logger";
 
 export class SemanticLinkExecutor implements TaskExecutor {
   public name = "semantic-link";
-  public dependencies = ["block-vectorize"];
+  public dependencies = ["chunk-vectorize"];
 
-  private blockDao = new BlockDao();
+  private chunkDao = new ChunkDao();
 
   public async run(context: TaskContext): Promise<TaskResult> {
     const blocks = this.getVectorizedBlocks(context.processedUntil);
@@ -52,8 +52,8 @@ export class SemanticLinkExecutor implements TaskExecutor {
 
         // Step 3: reranker 排序
         const candidateBlocks = candidates.map((c) =>
-          this.blockDao.findById(c.item.block_id),
-        ).filter(Boolean) as Block[];
+          this.chunkDao.findById(c.item.block_id),
+        ).filter(Boolean) as Chunk[];
 
         const candidateContents = candidateBlocks.map((b) => b.ai_summary || b.content);
         const rerankResults = await localGateway.rerank(summary, candidateContents);
@@ -81,8 +81,8 @@ export class SemanticLinkExecutor implements TaskExecutor {
           }
         }
 
-        const update: BlockUpdate = { last_smart_processed_at: new Date().toISOString() };
-        this.blockDao.update(block.id, update);
+        const update: ChunkUpdate = { last_smart_processed_at: new Date().toISOString() };
+        this.chunkDao.update(block.id, update);
 
         processed++;
         progressManager.update(this.name, processed, total);
@@ -95,16 +95,16 @@ export class SemanticLinkExecutor implements TaskExecutor {
     return { taskName: this.name, success: true, processedCount: processed };
   }
 
-  private getVectorizedBlocks(processedUntil: string | null): Block[] {
+  private getVectorizedBlocks(processedUntil: string | null): Chunk[] {
     if (processedUntil) {
-      return this.blockDao.db
+      return this.chunkDao.db
         .prepare(
           `SELECT * FROM blocks WHERE updated_at > ? AND ai_summary IS NOT NULL`,
         )
-        .all(processedUntil) as Block[];
+        .all(processedUntil) as Chunk[];
     }
-    return this.blockDao.db
+    return this.chunkDao.db
       .prepare(`SELECT * FROM blocks WHERE ai_summary IS NOT NULL`)
-      .all() as Block[];
+      .all() as Chunk[];
   }
 }

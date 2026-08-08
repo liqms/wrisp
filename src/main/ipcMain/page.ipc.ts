@@ -8,14 +8,10 @@ import {
   deletePage,
 } from "@/main/core/apis/page.api";
 import type { ApiResponse } from "@/shared/types";
-import type {
-  Page,
-  PageCreate,
-  PageUpdate,
-  PageQuery,
-  PageTree,
-} from "@/main/types/db";
+import type { Page, PageTree } from "@/main/types/db";
+import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
+import type { PageType } from "@/shared/enums";
 
 export function registerPageHandlers() {
   ipcMain.handle(
@@ -43,14 +39,14 @@ export function registerPageHandlers() {
 
   ipcMain.handle(
     "page:getTree",
-    async (_, projectId: string): Promise<ApiResponse<PageTree[]>> => {
-      return getPageTree(projectId);
+    async (_, projectId: string, pageType: PageType): Promise<ApiResponse<PageTree[]>> => {
+      return getPageTree(projectId, pageType);
     },
   );
 
   ipcMain.handle(
     "page:create",
-    async (_, data: PageCreate): Promise<ApiResponse<string>> => {
+    async (_, data: CreatePageInput): Promise<ApiResponse<string>> => {
       return createPage(data);
     },
   );
@@ -59,10 +55,9 @@ export function registerPageHandlers() {
     "page:update",
     async (
       _,
-      id: string,
-      data: PageUpdate,
+      data: UpdatePageInput,
     ): Promise<ApiResponse<number>> => {
-      return updatePage(id, data);
+      return updatePage(data);
     },
   );
 

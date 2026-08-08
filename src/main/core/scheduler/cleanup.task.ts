@@ -1,19 +1,8 @@
 import { CleanupService, CleanupResult } from '@/main/core/services/cleanup.service'
 import { Logger } from '@/main/utils/logger'
+import { DEFAULT_CLEANUP_CONFIG } from '@/main/constants/auto.constants'
 
-/**
- * 清理配置接口
- */
-export interface CleanupConfig {
-  /** 是否启用自动清理 */
-  enabled: boolean
-  /** 清理间隔（小时） */
-  intervalHours: number
-  /** 是否启用智能清理 */
-  enableSmartCleanup: boolean
-  /** 是否自动启动 */
-  autoStart: boolean
-}
+
 
 /**
  * 清理任务类
@@ -50,7 +39,7 @@ export class CleanupTask {
    */
   async triggerCleanup(force: boolean = false): Promise<CleanupResult> {
     Logger.info('手动触发清理', { force })
-    return await this.cleanupService.cleanupSoftDeletedData(30)
+    return await this.cleanupService.cleanupSoftDeletedData(DEFAULT_CLEANUP_CONFIG.defaultExpirationDays)
   }
 
   /**
@@ -66,7 +55,7 @@ export class CleanupTask {
    * @param days - 天数
    * @returns 即将过期的统计信息
    */
-  async getExpiringSoftDeletedStats(days: number = 7) {
+  async getExpiringSoftDeletedStats(days: number = DEFAULT_CLEANUP_CONFIG.defaultExpirationDays) {
     return await this.cleanupService.getExpiringSoftDeletedStats(days)
   }
 
@@ -76,7 +65,7 @@ export class CleanupTask {
    */
   async shouldCleanup() {
     const stats = await this.cleanupService.getSoftDeletedStats()
-    const total = stats.works + stats.folders + stats.files + stats.tags
+    const total = stats.semanticChunks + stats.topics + stats.projects + stats.pages + stats.reflections + stats.fileIndex
     return total > 0
   }
 
@@ -86,6 +75,6 @@ export class CleanupTask {
    */
   async dryRun() {
     Logger.info('执行清理预览（dry-run）')
-    return await this.cleanupService.getExpiringSoftDeletedStats(30)
+    return await this.cleanupService.getExpiringSoftDeletedStats(DEFAULT_CLEANUP_CONFIG.defaultExpirationDays)
   }
 }

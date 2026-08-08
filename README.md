@@ -1,53 +1,52 @@
 # PenTip
 
-> Capture Freely. Crystallize Automatically.  
-> 自由记录，自动结晶
+> 专为产品经理打造的 AI 认知工作台  
+> Capture Freely. Crystallize Automatically.
 
-PenTip 是一个让思维自动结晶为长期知识系统的 **AI-native Cognitive OS（认知操作系统）**，基于 Electron + Vue3 + TypeScript 构建，专注于 **Local-first** 理念，让你的文档、Prompt、模板完全保存在本地，隐私安全无忧。
+PenTip 是一款 **专为产品经理（PM）定制** 的 AI-native 桌面应用，基于 Electron + Vue 3 + TypeScript 构建，采用 **Local-first** 理念。它将 PM 日常碎片化的需求输入、竞品观察、会议纪要、数据洞察统一沉淀为可追溯的知识体系，并在撰写 PRD、竞品报告、Roadmap 时自动召回相关素材，让每一份产出都有据可依。
 
 ## ✨ 核心卖点
 
 | 特性 | 描述 |
 |------|------|
-| **Block First** | 最小单位不是文档，而是 Block（块），一切都是 Block |
-| **AI Native** | AI 不是插件，而是工作流本身，语义理解、自动关联、聚类、提炼 |
-| **Local-first** | 用户数据完全保存在本地，隐私安全，信任、离线能力、数据可迁移 |
-| **Temporal Knowledge** | 知识在时间流中演化，追踪观点变化、兴趣变化、思维轨迹 |
-| **语义链接** | AI 自动建立知识关联，无需手动双链 |
-| **自动结晶** | 思维流自动结晶为结构化主题和知识体系 |
+| **Block First** | 最小单位不是文档，而是 Block（块），碎片输入零组织压力 |
+| **AI Native** | AI 不是插件，而是工作流本身——语义理解、自动关联、聚类、提炼 |
+| **Local-first** | 调研数据、竞品分析、未公开 Roadmap 完全本地存储，隐私安全无忧 |
+| **决策可追溯** | 每个需求、每次砍需、每个方案选择的背后依据，通过语义链接随时召回 |
+| **自动结晶** | 碎片输入自动聚类为主题，随时间累积成知识体系，报告写作从组装开始 |
+| **反思流** | 持续发现需求模式与决策矛盾，成为 PM 的"第二大脑" |
 
 ## 🎯 目标用户
 
-- **创作者**：内容生产者、自媒体作者
-- **产品经理**：需求分析、产品规划
-- **AI 从业者**：研究员、开发者、Prompt 工程师
-- **研究者**：学者、学生、知识工作者
-- **写作者**：作家、专栏作者
-- **创业者**：Founder、决策者
+**专为产品经理角色定制**，覆盖以下细分场景：
 
-## 🚀 MVP 核心功能
+- **产品经理（PM）**：需求分析、PRD 撰写、用户调研、竞品追踪
+- **产品负责人（PO）**：版本规划、Roadmap 制定、优先级决策
+- **需求分析师**：需求收集、结构化沉淀、跨部门对齐
+- **创业者/决策者**：商业需求沉淀、决策链路追溯、长期思维演化
 
-### Block Capture（块捕获）
-- 灵感、想法、Todo、语音、长文的快速捕获
-- 无限流、Block First、零组织压力
+## 🚀 核心功能
 
-### Semantic Linking（语义链接）
-- AI 自动生成 Embedding 和概念提取
-- 语义层面的自动知识连接
-- 相似性搜索
+### Journal 日志输入
+碎片需求、竞品观察、会议纪要、数据洞察，统一以 Block 形式零组织成本输入。
 
-### Topic Generation（主题生成）
-- AI 自动检测高频主题、重复概念、长期兴趣
-- 生成 Topic（主题）、Summary（摘要）、Timeline（时间线）
-- Concept Page（概念页）
+### Wiki 智能整理
+AI 自动建立语义链接、聚类主题、可视化概念网络，让碎片知识自动成体系。
 
-### Reflection Feed（反思流）
-- 系统自动发现模式、矛盾、重复、长期变化
-- 具备元认知能力的思考伙伴
+### Project 结构化输出
+撰写 PRD、竞品报告、Roadmap 时，AI 召回历史素材，从组装开始而非从零起手。
 
-### 数据存储
-- 本地 SQLite 数据库 + Vector Index（向量索引）
-- Blocks、Concepts、Topics 本地保存
+### Reflection 反思流
+自动发现需求模式、决策矛盾与数据异常归因，成为 PM 的第二大脑。
+
+## 📅 版本路线图
+
+| 版本 | 目标 | 核心交付 |
+|------|------|----------|
+| **V1 Journal 输入** | 内容输入与基础组织 | Block 编辑、PM 模板、决策块、@提及、全局搜索、日历导航 |
+| **V2 智能整理** | AI 自动整理与知识结晶 | 概念网络、主题聚类、语义链接、跨日期关联、决策/行动项提取 |
+| **V3 输出场景** | 结构化输出与作品交付 | Project 作品空间、AI 周报生成、内联 AI 对话、版本升级 |
+
 
 ## 🛠️ 技术栈
 
@@ -57,108 +56,32 @@ PenTip 是一个让思维自动结晶为长期知识系统的 **AI-native Cognit
 - **状态管理**: Pinia
 - **路由**: Vue Router
 - **UI 组件**: Naive UI
+- **编辑器**: Tiptap 3（块编辑器）
+- **数据库**: SQLite（better-sqlite3）+ LanceDB（向量索引）
+- **AI 网关**: 多 Provider 适配（OpenAI/Claude/DeepSeek/Qwen/本地模型）
 - **代码规范**: ESLint + TypeScript
 - **打包工具**: electron-builder
-- **数据库**: SQLite + LanceDB
 
-## � 快速开始
+## 🚀 快速开始
 
-### 环境要求
+### 下载安装
 
-- Node.js 24+
-- pnpm
-- Git
+前往 [Releases 页面](https://github.com/liqms/PenTip/releases) 下载对应平台的安装包：
 
-### 安装依赖
+| 平台 | 安装包 |
+|------|--------|
+| **Windows** | `.exe`（NSIS 安装包）或 `.exe`（便携版） |
+| **macOS** | `.dmg` 或 `.pkg` |
+| **Linux** | `.deb` / `.rpm` / `.AppImage` |
 
-```bash
-# 克隆项目
-git clone https://github.com/liqms/PenTip.git
-cd PenTip
+下载后双击安装即可使用。
 
-# 安装依赖
-pnpm install
-```
+### 首次使用
 
-### 开发环境
+1. 启动应用，选择数据存储目录（默认在用户文档下）
+2. 在设置中配置 AI 模型（OpenAI/Claude/DeepSeek/Qwen 或本地模型）
+3. 进入 Journal 页面，开始记录你的第一条需求或想法
 
-```bash
-# 启动开发服务器（Electron + Vite）
-pnpm dev
-```
-
-### 构建应用
-
-```bash
-# 构建应用
-pnpm build
-
-# 启动应用（先构建后启动）
-pnpm start
-
-# 生产构建（生成可执行文件）
-pnpm prod
-```
-
-### 代码检查
-
-```bash
-# ESLint 检查
-pnpm lint
-
-# TypeScript 类型检查
-pnpm typecheck
-
-# 清理构建文件
-pnpm clean
-```
-
-## 📁 项目结构
-
-```
-PenTip/
-├── src/
-│   ├── main/              # Electron 主进程
-│   │   ├── core/          # 核心业务逻辑
-│   │   ├── ipcMain/       # IPC 主进程处理
-│   │   ├── preload/       # 预加载脚本
-│   │   ├── utils/         # 工具函数
-│   │   └── index.ts       # 主进程入口
-│   ├── renderer/          # Vue 3 渲染进程
-│   │   ├── views/         # 页面视图
-│   │   ├── components/    # 组件
-│   │   ├── store/         # Pinia 状态管理
-│   │   ├── router/        # 路由配置
-│   │   └── main.ts        # 应用入口
-│   └── shared/            # 共享代码
-│       ├── types/         # 类型定义
-│       ├── enums/         # 枚举
-│       └── i18n/          # 国际化
-├── .env                   # 环境变量
-└── package.json
-```
-
-## 🔧 命令参考
-
-| 命令 | 描述 |
-|------|------|
-| `pnpm dev` | 启动开发服务器 |
-| `pnpm build` | 构建应用 |
-| `pnpm prod` | 生产构建（生成安装包） |
-| `pnpm start` | 启动已构建的应用 |
-| `pnpm lint` | ESLint 检查 |
-| `pnpm typecheck` | TypeScript 类型检查 |
-| `pnpm clean` | 清理构建文件 |
-| `pnpm rebuild` | 重建 native 依赖（better-sqlite3） |
-
-## 🤝 贡献指南
-
-欢迎贡献代码！请遵循以下步骤：
-
-1. **Fork 仓库**：Fork 并克隆到本地
-2. **创建分支**：为你的更改创建分支
-3. **提交更改**：提交并推送你的更改
-4. **打开 Pull Request**：描述你的更改和原因
 
 ## 📄 许可证
 
@@ -191,8 +114,6 @@ PenTip/
 
 本软件按"原样"提供，不提供任何形式的明示或暗示担保，包括但不限于适销性、特定用途的适用性和非侵权性的担保。在任何情况下，作者或版权持有人均不对任何索赔、损害或其他责任负责。
 
-## 📞 作者
-
 ## 📞 联系方式
 
 - 项目主页: https://github.com/liqms/PenTip
@@ -201,4 +122,4 @@ PenTip/
 
 ---
 
-**Made with ❤️ for writers everywhere**
+**Made with ❤️ for Product Managers**

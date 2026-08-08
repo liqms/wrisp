@@ -3,18 +3,10 @@ import path from 'path'
 import * as fs from 'fs'
 import { Logger } from '@/main/utils/logger'
 import { TimeUtil } from '@/shared/utils'
-
-/**
- * 备份配置接口
- */
-export interface BackupConfig {
-  /** 是否启用自动备份 */
-  autoBackup: boolean
-  /** 备份间隔（分钟） */
-  backupInterval: number
-  /** 最大备份文件数量 */
-  maxBackupFiles: number
-}
+import { BACKUPS_DIR, CONFIG_DIR} from '@/main/constants'
+import { getDbPath } from '@/main/core/db/connection'
+import { configService } from '@/main/core/services/config.service'
+import { BackupConfig } from '@/main/constants/auto.constants'
 
 /**
  * 备份文件信息接口
@@ -61,24 +53,29 @@ async function copyFile(src: string, dest: string): Promise<void> {
 
 /**
  * 备份任务类
- * 负责管理应用的自动备份和手动备份功能
+ * 只负责执行备份操作，不管理调度逻辑
+ * 
+ * 备份策略：
+ * - 应用配置文件和模型配置文件 → userData/backups/
+ * - SQL 数据库文件 → workspace/backups/
  */
 export class BackupTask {
   /** 单例实例 */
   private static instance: BackupTask
   /** 用户数据路径 */
   private userDataPath: string
-  /** 备份文件路径 */
-  private backupsPath: string
-  /** 备份定时器ID */
-  private backupIntervalId: NodeJS.Timeout | null = null
+  /** 应用备份文件路径 (userData/backups/) */
+  private appBackupsPath: string
+  /** 数据库备份文件路径 (workspace/backups/) */
+  private dbBackupsPath: string
 
   /**
    * 私有构造函数，实现单例模式
    */
   private constructor() {
     this.userDataPath = app.getPath('userData')
-    this.backupsPath = path.join(this.userDataPath, 'backups')
+    this.appBackupsPath = path.join(this.userDataPath, BACKUPS_DIR)
+    this.dbBackupsPath = path.join(configService.getValue('workspace') || '', BACKUPS_DIR)
     this.initBackupsPath()
   }
 
@@ -99,8 +96,8 @@ export class BackupTask {
    */
   private async initBackupsPath(): Promise<void> {
     try {
-      await ensureDir(this.backupsPath)
-      Logger.debug('备份文件夹初始化成功', { backupsPath: this.backupsPath })
+      await ensureDir(this.appBackupsPath)
+      Logger.debug('备份文件夹初始化成功', { appBackupsPath: this.appBackupsPath })
     } catch (error) {
       Logger.error('备份文件夹初始化失败', {
         path: 'main/core/scheduler/backup.task.ts',
@@ -119,50 +116,69 @@ export class BackupTask {
     return {
       autoBackup: true,
       backupInterval: 10,
-      maxBackupFiles: 10
+      maxBackupFiles: 5
     }
   }
 
   /**
    * 生成备份文件名
+   * @param prefix - 备份文件前缀（区分应用备份和数据库备份）
    * @returns 备份文件名
    * @private
    */
-  private generateBackupFilename(): string {
+  private generateBackupFilename(prefix: string = 'backup'): string {
     const now = new Date()
     const timestamp = now.toISOString().replace(/[:.]/g, '-')
-    return `backup_${timestamp}.zip`
+    return `${prefix}_${timestamp}.zip`
   }
 
   /**
-   * 获取需要备份的文件列表
+   * 获取需要备份的应用配置文件和模型配置文件列表
    * @returns 文件路径和目标路径的映射数组
    * @private
    */
   private async getFilesToBackup(): Promise<{ source: string; dest: string }[]> {
     const filesToBackup: { source: string; dest: string }[] = []
 
-    // 添加配置文件夹
-    const configPath = path.join(this.userDataPath, 'config')
+    // 添加配置文件夹（包含应用配置和模型配置）
+    const configPath = path.join(this.userDataPath, CONFIG_DIR)
     if (await pathExists(configPath)) {
       filesToBackup.push({
         source: configPath,
-        dest: 'config'
+        dest: CONFIG_DIR
       })
     }
 
-    // 添加数据库文件
-    const databasesPath = path.join(this.userDataPath, 'databases')
-    if (await pathExists(databasesPath)) {
-      const dbFiles = await fs.promises.readdir(databasesPath)
-      for (const file of dbFiles) {
-        if (file.endsWith('.db') || file.endsWith('.sqlite')) {
-          filesToBackup.push({
-            source: path.join(databasesPath, file),
-            dest: file
-          })
+    return filesToBackup
+  }
+
+  /**
+   * 获取需要备份的数据库文件列表
+   * @returns 文件路径和目标路径的映射数组
+   * @private
+   */
+  private async getDatabaseFilesToBackup(): Promise<{ source: string; dest: string }[]> {
+    const filesToBackup: { source: string; dest: string }[] = []
+
+    try {
+      const dbPath = getDbPath()
+      const dbDir = path.dirname(dbPath)
+
+      if (await pathExists(dbDir)) {
+        const dbFiles = await fs.promises.readdir(dbDir)
+        for (const file of dbFiles) {
+          if (file.endsWith('.db') || file.endsWith('.sqlite') || file.endsWith('.sqlite-wal') || file.endsWith('.sqlite-shm')) {
+            filesToBackup.push({
+              source: path.join(dbDir, file),
+              dest: file
+            })
+          }
         }
       }
+    } catch (error) {
+      Logger.warn('获取数据库文件列表失败', {
+        cause: error instanceof Error ? error.message : String(error)
+      })
     }
 
     return filesToBackup
@@ -176,7 +192,7 @@ export class BackupTask {
    * @private
    */
   private async createBackupArchive(backupPath: string, filesToBackup: { source: string; dest: string }[]): Promise<string> {
-    const tempDir = path.join(this.backupsPath, 'temp')
+    const tempDir = path.join(path.dirname(backupPath), 'temp')
     await ensureDir(tempDir)
 
     // 复制文件到临时目录
@@ -217,21 +233,21 @@ export class BackupTask {
   }
 
   /**
-   * 创建备份文件
+   * 创建应用配置备份
    * @returns 备份文件路径，如果失败则返回 null
    * @private
    */
-  private async createBackup(): Promise<string | null> {
+  private async createAppConfigBackup(): Promise<string | null> {
     const startTime = Date.now()
     try {
-      const backupFilename = this.generateBackupFilename()
-      const backupPath = path.join(this.backupsPath, backupFilename)
+      const backupFilename = this.generateBackupFilename('config')
+      const backupPath = path.join(this.appBackupsPath, backupFilename)
 
-      // 获取需要备份的文件列表
+      // 获取需要备份的应用配置文件列表
       const filesToBackup = await this.getFilesToBackup()
 
       if (filesToBackup.length === 0) {
-        Logger.debug('没有需要备份的文件')
+        Logger.debug('没有需要备份的应用配置文件')
         return null
       }
 
@@ -241,7 +257,7 @@ export class BackupTask {
       // 记录成功信息
       const duration = Date.now() - startTime
       const stats = await fs.promises.stat(backupPath)
-      Logger.info('备份创建成功', {
+      Logger.info('应用配置备份创建成功', {
         backupPath,
         size: stats.size,
         duration: `${duration}ms`
@@ -249,7 +265,53 @@ export class BackupTask {
 
       return resultPath
     } catch (error) {
-      Logger.error('备份创建失败', {
+      Logger.error('应用配置备份创建失败', {
+        path: 'main/core/scheduler/backup.task.ts',
+        cause: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      })
+      return null
+    }
+  }
+
+  /**
+   * 创建数据库备份
+   * @returns 备份文件路径，如果失败则返回 null
+   * @private
+   */
+  private async createDatabaseBackup(): Promise<string | null> {
+    const startTime = Date.now()
+    try {
+
+      // 初始化数据库备份目录
+      await ensureDir(this.dbBackupsPath)
+
+      const backupFilename = this.generateBackupFilename('sqlite')
+      const backupPath = path.join(this.dbBackupsPath, backupFilename)
+
+      // 获取需要备份的数据库文件列表
+      const filesToBackup = await this.getDatabaseFilesToBackup()
+
+      if (filesToBackup.length === 0) {
+        Logger.debug('没有需要备份的数据库文件')
+        return null
+      }
+
+      // 创建备份压缩包
+      const resultPath = await this.createBackupArchive(backupPath, filesToBackup)
+
+      // 记录成功信息
+      const duration = Date.now() - startTime
+      const stats = await fs.promises.stat(backupPath)
+      Logger.info('数据库备份创建成功', {
+        backupPath,
+        size: stats.size,
+        duration: `${duration}ms`
+      })
+
+      return resultPath
+    } catch (error) {
+      Logger.error('数据库备份创建失败', {
         path: 'main/core/scheduler/backup.task.ts',
         cause: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString()
@@ -261,19 +323,21 @@ export class BackupTask {
   /**
    * 清理旧备份文件
    * 删除超过最大备份数量的旧文件
+   * @param backupDir - 备份目录路径
+   * @param prefix - 备份文件前缀
    * @private
    */
-  private async cleanupOldBackups(): Promise<void> {
+  private async cleanupOldBackups(backupDir: string, prefix: string = 'backup'): Promise<void> {
     try {
       const config = this.getConfig()
-      const files = await fs.promises.readdir(this.backupsPath)
+      const files = await fs.promises.readdir(backupDir)
 
       const backupFiles: BackupFileInfo[] = files
-        .filter(file => file.startsWith('backup_') && file.endsWith('.zip'))
+        .filter(file => file.startsWith(`${prefix}_`) && file.endsWith('.zip'))
         .map(file => ({
           name: file,
-          path: path.join(this.backupsPath, file),
-          time: fs.statSync(path.join(this.backupsPath, file)).mtime.getTime()
+          path: path.join(backupDir, file),
+          time: fs.statSync(path.join(backupDir, file)).mtime.getTime()
         }))
         .sort((a, b) => b.time - a.time)
 
@@ -300,12 +364,24 @@ export class BackupTask {
    */
   public async performBackup(): Promise<boolean> {
     try {
-      const backupPath = await this.createBackup()
-      if (backupPath) {
-        await this.cleanupOldBackups()
-        return true
+      let success = false
+
+      // 创建应用配置备份
+      const appBackupPath = await this.createAppConfigBackup()
+      if (appBackupPath) {
+        await this.cleanupOldBackups(this.appBackupsPath, 'config')
+        success = true
       }
-      return false
+
+      // 创建数据库备份
+      const dbBackupPath = await this.createDatabaseBackup()
+      if (dbBackupPath) {
+        // 获取数据库备份目录路径
+        await this.cleanupOldBackups(this.dbBackupsPath, 'sqlite')
+        success = true
+      }
+
+      return success
     } catch (error) {
       Logger.error('备份失败', {
         path: 'main/core/scheduler/backup.task.ts',
@@ -317,67 +393,57 @@ export class BackupTask {
   }
 
   /**
-   * 启动自动备份计划
-   * @private
-   */
-  private startSchedule(): void {
-    this.stopSchedule()
-
-    const intervalMinutes = 10
-    const intervalMs = intervalMinutes * 60 * 1000
-
-    Logger.info('开始备份计划', {
-      intervalMinutes,
-      intervalMs
-    })
-
-    this.backupIntervalId = setInterval(async () => {
-      await this.performBackup()
-    }, intervalMs)
-
-    Logger.info('备份计划已启动（每10分钟执行一次）')
-  }
-
-  /**
-   * 停止自动备份计划
-   * @private
-   */
-  private stopSchedule(): void {
-    if (this.backupIntervalId) {
-      clearInterval(this.backupIntervalId)
-      this.backupIntervalId = null
-      Logger.info('备份计划已停止')
-    }
-  }
-
-  /**
-   * 重启备份计划
-   * 停止当前计划并根据配置重新启动
-   */
-  public restartSchedule(): void {
-    this.startSchedule()
-  }
-
-  /**
-   * 获取备份文件列表
+   * 获取应用配置备份文件列表
    * @returns 备份文件信息数组，按时间降序排列
    */
-  public async getBackupList(): Promise<BackupFileInfo[]> {
+  public async getAppBackupList(): Promise<BackupFileInfo[]> {
     try {
-      const files = await fs.promises.readdir(this.backupsPath)
+      const files = await fs.promises.readdir(this.appBackupsPath)
 
       const backupFiles: BackupFileInfo[] = files
-        .filter(file => file.startsWith('backup_') && file.endsWith('.zip'))
+        .filter(file => file.startsWith('config_') && file.endsWith('.zip'))
         .map(file => ({
           name: file,
-          path: path.join(this.backupsPath, file),
-          time: fs.statSync(path.join(this.backupsPath, file)).mtime.getTime()
+          path: path.join(this.appBackupsPath, file),
+          time: fs.statSync(path.join(this.appBackupsPath, file)).mtime.getTime()
         }))
         .sort((a, b) => b.time - a.time)
 
       return backupFiles
     } catch (error) {
-      Logger.error('获取备份列表失败', {
+      Logger.error('获取应用配置备份列表失败', {
+        path: 'main/core/scheduler/backup.task.ts',
+        cause: error instanceof Error ? error.message : String(error),
+        timestamp: TimeUtil.toISOString(Date.now())
+      })
+      return []
+    }
+  }
+
+  /**
+   * 获取数据库备份文件列表
+   * @returns 备份文件信息数组，按时间降序排列
+   */
+  public async getDatabaseBackupList(): Promise<BackupFileInfo[]> {
+    try {
+      if (!(await pathExists(this.dbBackupsPath))) {
+        return []
+      }
+
+      const files = await fs.promises.readdir(this.dbBackupsPath)
+
+      const backupFiles: BackupFileInfo[] = files
+        .filter(file => file.startsWith('database_') && file.endsWith('.zip'))
+        .map(file => ({
+          name: file,
+          path: path.join(this.dbBackupsPath, file),
+          time: fs.statSync(path.join(this.dbBackupsPath, file)).mtime.getTime()
+        }))
+        .sort((a, b) => b.time - a.time)
+
+      return backupFiles
+    } catch (error) {
+      Logger.error('获取数据库备份列表失败', {
         path: 'main/core/scheduler/backup.task.ts',
         cause: error instanceof Error ? error.message : String(error),
         timestamp: TimeUtil.toISOString(Date.now())
@@ -388,23 +454,29 @@ export class BackupTask {
 
   /**
    * 获取备份文件路径
-   * @param filename 备份文件名
+   * @param type - 备份类型（'config' 或 'sqlite'）
+   * @param filename - 备份文件名
    * @returns 备份文件的完整路径
    */
-  public getBackupPath(filename: string): string {
-    return path.join(this.backupsPath, filename)
+  public getBackupPath(type: 'config' | 'sqlite', filename: string): string {
+    if (type === 'config') {
+      return path.join(this.appBackupsPath, filename)
+    } else {
+      return path.join(this.dbBackupsPath, filename)
+    }
   }
 
   /**
    * 删除备份文件
-   * @param filename 备份文件名
+   * @param type - 备份类型（'config' 或 'sqlite'）
+   * @param filename - 备份文件名
    * @returns 删除是否成功
    */
-  public async deleteBackup(filename: string): Promise<boolean> {
+  public async deleteBackup(type: 'config' | 'sqlite', filename: string): Promise<boolean> {
     try {
-      const backupPath = this.getBackupPath(filename)
+      const backupPath = this.getBackupPath(type, filename)
       await removeDir(backupPath)
-      Logger.info('备份文件删除成功', { filename })
+      Logger.info('备份文件删除成功', { type, filename })
       return true
     } catch (error) {
       Logger.error('删除备份失败', {
@@ -419,12 +491,13 @@ export class BackupTask {
 
   /**
    * 验证备份文件是否完整
-   * @param filename 备份文件名
+   * @param type - 备份类型（'config' 或 'sqlite'）
+   * @param filename - 备份文件名
    * @returns 验证结果
    */
-  public async validateBackup(filename: string): Promise<{ valid: boolean; error?: string }> {
+  public async validateBackup(type: 'config' | 'sqlite', filename: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      const backupPath = this.getBackupPath(filename)
+      const backupPath = this.getBackupPath(type, filename)
 
       // 检查文件是否存在
       if (!(await pathExists(backupPath))) {

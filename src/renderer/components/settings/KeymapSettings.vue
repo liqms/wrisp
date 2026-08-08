@@ -46,6 +46,8 @@ const defaultShortcuts: ShortcutItem[] = [
   { id: "global.capture", labelKey: "快速记录", defaultKeys: "Ctrl+Shift+C", currentKeys: "Ctrl+Shift+C" },
   { id: "global.search", labelKey: "搜索", defaultKeys: "Ctrl+Shift+F", currentKeys: "Ctrl+Shift+F" },
   { id: "global.settings", labelKey: "设置", defaultKeys: "Ctrl+,", currentKeys: "Ctrl+," },
+  { id: "global.copy", labelKey: t("SETTINGS.SHORTCUT_SETTINGS.COPY"), defaultKeys: "Ctrl+C", currentKeys: "Ctrl+C" },
+  { id: "global.paste", labelKey: t("SETTINGS.SHORTCUT_SETTINGS.PASTE"), defaultKeys: "Ctrl+V", currentKeys: "Ctrl+V" },
 ];
 
 const shortcuts = ref<ShortcutItem[]>([...defaultShortcuts]);

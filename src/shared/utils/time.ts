@@ -159,8 +159,8 @@ export class TimeUtil {
     const d1 = new Date(date1)
     const d2 = new Date(date2)
     return d1.getFullYear() === d2.getFullYear() &&
-           d1.getMonth() === d2.getMonth() &&
-           d1.getDate() === d2.getDate()
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate()
   }
 
   /**
@@ -199,6 +199,18 @@ export class TimeUtil {
    */
   static today(): string {
     return this.format(new Date(), 'YYYY-MM-DD')
+  }
+
+  /**
+   * 获取本地日期字符串（基于系统时区）
+   * @returns yyyy-MM-dd 格式的本地日期字符串
+   */
+  static getLocalDateString(): string {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 
   /**

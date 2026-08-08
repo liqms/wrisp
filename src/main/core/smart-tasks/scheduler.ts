@@ -2,22 +2,23 @@ import { TaskExecutor, TaskContext, TaskResult, TaskStatus } from "./types";
 import { progressManager } from "./progress.manager";
 import { MVP_TASK_DAG, TASK_EXECUTION_ORDER } from "./task-dag";
 import { TaskExecutionDao } from "@/main/core/db/task-execution.dao";
-import { BlockDao } from "@/main/core/db";
-import { TaskExecutionCreate, TaskExecutionUpdate, Block } from "@/main/types/db";
-import { BlockVectorizeExecutor } from "./executors/block-vectorize.executor";
-import { BlockSummaryExecutor } from "./executors/block-summary.executor";
+import { ChunkDao } from "@/main/core/db";
+import { TaskExecutionCreate, TaskExecutionUpdate, Chunk } from "@/main/types/db";
+import { ChunkVectorizeExecutor } from "./executors/chunk-vectorize.executor";
+import { ChunkSummaryExecutor } from "./executors/chunk-summary.executor";
 import { SemanticLinkExecutor } from "./executors/semantic-link.executor";
 import { ConceptExtractExecutor } from "./executors/concept-extract.executor";
 import { TopicDetectionExecutor } from "./executors/topic-detection.executor";
 import { TopicSummaryExecutor } from "./executors/topic-summary.executor";
 import { Logger } from "@/main/utils/logger";
 import { generateId } from "@/shared/utils";
+import { TimeUtil } from "@/shared/utils/time";
 
 class SmartTaskScheduler {
   private static instance: SmartTaskScheduler | null = null;
 
   private taskExecutionDao = new TaskExecutionDao();
-  private blockDao = new BlockDao();
+  private chunkDao = new ChunkDao();
   private status: TaskStatus = "idle";
   private currentExecutionId: string | null = null;
   private cancelSignal = { cancelled: false };
@@ -28,8 +29,8 @@ class SmartTaskScheduler {
   private taskOrder = TASK_EXECUTION_ORDER;
 
   private constructor() {
-    this.registerExecutor(new BlockSummaryExecutor());
-    this.registerExecutor(new BlockVectorizeExecutor());
+    this.registerExecutor(new ChunkSummaryExecutor());
+    this.registerExecutor(new ChunkVectorizeExecutor());
     this.registerExecutor(new SemanticLinkExecutor());
     this.registerExecutor(new ConceptExtractExecutor());
     this.registerExecutor(new TopicDetectionExecutor());
@@ -77,7 +78,7 @@ class SmartTaskScheduler {
       this.currentExecutionId = executionId;
       const create: TaskExecutionCreate = {
         id: executionId,
-        started_at: new Date().toISOString(),
+        started_at: TimeUtil.getLocalDateString(),
         status: "running",
         tasks_summary: JSON.stringify(this.taskOrder.map((n) => ({ name: n, status: "pending" }))),
         processed_until: null,
@@ -142,7 +143,7 @@ class SmartTaskScheduler {
 
       // 更新执行记录
       const update: TaskExecutionUpdate = {
-        finished_at: new Date().toISOString(),
+        finished_at: TimeUtil.getLocalDateString(),
         status: finalStatus,
         tasks_summary: JSON.stringify(
           results.map((r) => ({
@@ -202,7 +203,7 @@ class SmartTaskScheduler {
 
   /** 计算本次处理的 updated_at 最大值 */
   private computeProcessedUntil(): string | null {
-    const blocks = this.blockDao.findAll() as Block[];
+    const blocks = this.chunkDao.findAll() as Chunk[];
     if (blocks.length === 0) return null;
     const max = blocks.reduce((max, b) => (b.updated_at > max ? b.updated_at : max), blocks[0].updated_at);
     return max;

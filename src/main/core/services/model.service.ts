@@ -6,13 +6,15 @@ import { ModelConfig, ModelType } from "@/shared/types/model.types";
 import { DEFAULT_MODEL_CONFIG } from "@/main/constants/model.constants";
 import { Logger } from "@/main/utils/logger";
 import { downloadService } from "@/main/core/services/download.service";
-import { ObjectUtil } from "@/shared/utils";
+import { ObjectUtil, TimeUtil } from "@/shared/utils";
 import { configService } from "@/main/core/services/config.service";
 import { taskQueue } from "@/main/core/task-queue";
 import type { EnqueueTaskInput } from "@/shared/types/task.types";
 import { BUILTIN_MODELS, resolveModelUrl } from "@/main/core/model-gateway/local-gateway/model-registry";
 import { notificationService } from "@/main/core/services/notification.service";
 import { t } from "@/main/utils/i18n";
+import { modelConfigMigration } from "@/main/core/migration/model.migration";
+import { needsMigration } from "@/main/utils/version";
 
 class ModelService {
   private static instance: ModelService | null = null;
@@ -67,7 +69,26 @@ class ModelService {
     try {
       const storeData = this.store.store;
       const defaultConfig = this.defaultConfig || this.getDefaultConfig();
-      this.config = ObjectUtil.deepMerge(defaultConfig, storeData as Partial<ModelConfig>);
+      let mergedConfig = ObjectUtil.deepMerge(defaultConfig, storeData as Partial<ModelConfig>);
+
+      // 检查版本并执行迁移
+      const appVersion = this.getDefaultConfig().version;
+      const configVersion = mergedConfig.version || "0.0.0";
+
+      if (needsMigration(configVersion, appVersion)) {
+        Logger.info("检测到版本升级，执行模型配置迁移", {
+          configVersion,
+          appVersion,
+        });
+
+        mergedConfig = modelConfigMigration.migrateConfig(
+          mergedConfig,
+          configVersion,
+          appVersion,
+        );
+      }
+
+      this.config = mergedConfig;
       Logger.debug("ModelConfig 加载成功");
     } catch (error) {
       Logger.error("加载 ModelConfig 失败, 使用默认配置", {
@@ -85,6 +106,7 @@ class ModelService {
   private saveConfig(): void {
     try {
       if (this.config) {
+        this.config.updatedAt = TimeUtil.toISOString(Date.now());
         this.store.set(this.config);
       }
     } catch (error) {
@@ -147,6 +169,8 @@ class ModelService {
     try {
       // 直接使用 electron-store 的 set 方法，支持点号路径
       this.store.set(keyPath, value as any);
+      // 自动更新 updatedAt
+      this.store.set("updatedAt", TimeUtil.toISOString(Date.now()));
       // 同步更新内存中的配置
       const keys = keyPath.split(".");
       let target: any = this.config!;
@@ -159,6 +183,7 @@ class ModelService {
         }
       }
       target[keys[keys.length - 1]] = value;
+      this.config!.updatedAt = TimeUtil.toISOString(Date.now());
     } catch (error) {
       Logger.error("ModelConfig 设置配置值失败", {
         keyPath,
@@ -175,6 +200,7 @@ class ModelService {
   public resetConfig(): void {
     try {
       this.config = this.defaultConfig || this.getDefaultConfig();
+      this.config.updatedAt = TimeUtil.toISOString(Date.now());
       this.saveConfig();
       Logger.info("ModelConfig 重置为默认值");
     } catch (error) {

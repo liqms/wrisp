@@ -1,18 +1,18 @@
 import { TaskExecutor, TaskContext, TaskResult } from "../types";
-import { BlockDao } from "@/main/core/db";
+import { ChunkDao } from "@/main/core/db";
 import { conceptDao } from "@/main/core/db/concept.dao";
-import { conceptBlockDao } from "@/main/core/db/conceptBlock.dao";
+import { conceptChunkDao } from "@/main/core/db/conceptChunk.dao";
 import { localGateway } from "@/main/core/model-gateway/local-gateway";
 import { progressManager } from "@/main/core/smart-tasks/progress.manager";
-import { Block, BlockUpdate } from "@/main/types/db";
-import { ConceptCreate, ConceptBlockCreate } from "@/main/types/db";
+import { Chunk, ChunkUpdate } from "@/main/types/db";
+import { ConceptCreate, ConceptChunkCreate } from "@/main/types/db";
 import { Logger } from "@/main/utils/logger";
 
 export class ConceptExtractExecutor implements TaskExecutor {
   public name = "concept-extract";
-  public dependencies = ["block-summary", "block-vectorize"];
+  public dependencies = ["chunk-summary", "chunk-vectorize"];
 
-  private blockDao = new BlockDao();
+  private chunkDao = new ChunkDao();
 
   public async run(context: TaskContext): Promise<TaskResult> {
     const blocks = this.getUnprocessedBlocks(context.processedUntil);
@@ -43,18 +43,18 @@ export class ConceptExtractExecutor implements TaskExecutor {
 
           // 建立关联
           try {
-            const cbCreate: ConceptBlockCreate = {
+            const cbCreate: ConceptChunkCreate = {
               concept_id: concept.id,
-              block_id: block.id,
+              chunk_id: block.id,
             };
-            conceptBlockDao.create(cbCreate);
+            conceptChunkDao.create(cbCreate);
           } catch {
             // 可能已存在关联，忽略
           }
         }
 
-        const update: BlockUpdate = { last_smart_processed_at: new Date().toISOString() };
-        this.blockDao.update(block.id, update);
+        const update: ChunkUpdate = { last_smart_processed_at: new Date().toISOString() };
+        this.chunkDao.update(block.id, update);
 
         processed++;
         progressManager.update(this.name, processed, total);
@@ -76,14 +76,14 @@ export class ConceptExtractExecutor implements TaskExecutor {
       .filter((s) => s.length > 0 && s.length < 50);
   }
 
-  private getUnprocessedBlocks(processedUntil: string | null): Block[] {
+  private getUnprocessedBlocks(processedUntil: string | null): Chunk[] {
     if (processedUntil) {
-      return this.blockDao.db
+      return this.chunkDao.db
         .prepare(
           `SELECT * FROM blocks WHERE updated_at > ?`,
         )
-        .all(processedUntil) as Block[];
+        .all(processedUntil) as Chunk[];
     }
-    return this.blockDao.db.prepare(`SELECT * FROM blocks`).all() as Block[];
+    return this.chunkDao.db.prepare(`SELECT * FROM blocks`).all() as Chunk[];
   }
 }

@@ -3,6 +3,7 @@ import { join } from "path";
 import { app } from "electron";
 import fs from "fs";
 import { Logger } from "@/main/utils/logger";
+import { SQLITE_DIR, MAIN_DB_FILE } from "@/main/constants";
 
 /** 全局存储键名，用于在模块被重复打包时共享状态 */
 const WORKSPACE_PATH_KEY = "__PENTIP_WORKSPACE_PATH__";
@@ -36,13 +37,13 @@ export function getDbPath(): string {
   if (app) {
     basePath = getWorkspacePath();
     if (!basePath) {
-      throw new Error("workspace 配置未设置");
+      throw new Error("workspace path is not set");
     }
   } else {
     basePath = join(process.cwd(), ".pentip");
   }
 
-  return join(basePath, "sqlite", "main.db");
+  return join(basePath, SQLITE_DIR, MAIN_DB_FILE);
 }
 
 /**

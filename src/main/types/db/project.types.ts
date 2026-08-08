@@ -9,6 +9,7 @@ export type ProjectStatus = 'active' | 'deleted'
 export interface Project {
   id: ProjectId
   name: Name
+  file_path: string
   description: Description
   type: ProjectType
   status: ProjectStatus
@@ -22,6 +23,7 @@ export interface Project {
 export interface ProjectCreate {
   id?: ProjectId
   name: Name
+  file_path?: string
   description?: Description
   type?: ProjectType
   status?: ProjectStatus
@@ -35,6 +37,7 @@ export interface ProjectCreate {
 
 export interface ProjectUpdate {
   name?: Name
+  file_path?: string
   description?: Description
   type?: ProjectType
   status?: ProjectStatus

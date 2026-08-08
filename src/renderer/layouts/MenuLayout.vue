@@ -49,13 +49,13 @@ import { useI18n } from "vue-i18n";
 import type { MenuOption } from "naive-ui";
 import { NIcon } from "naive-ui";
 import type { Component } from "vue";
-import { BookOutline, TodayOutline, Add, ChatbubbleEllipsesOutline } from "@vicons/ionicons5";
+import { BookOutline, TodayOutline, Add, LibraryOutline } from "@vicons/ionicons5";
 import AppHeader from "../components/AppHeader.vue";
 
 const { t } = useI18n();
 const router = useRouter();
 
-const menuVisible = ref(true);
+const menuVisible = ref(false);
 const selectedKey = ref("");
 
 function renderIcon(icon: Component) {
@@ -64,8 +64,8 @@ function renderIcon(icon: Component) {
 
 const menuOptions = computed<MenuOption[]>(() => [
   {
-    label: t("APP.BASE.CAPTURE"),
-    key: "capture",
+    label: t("APP.BASE.JOURNAL"),
+    key: "journal",
     icon: renderIcon(TodayOutline),
   },
   {
@@ -73,18 +73,13 @@ const menuOptions = computed<MenuOption[]>(() => [
     key: "projects",
     icon: renderIcon(BookOutline),
   },
-  {
-    label: t("APP.BASE.CHAT"),
-    key: "chat",
-    icon: renderIcon(ChatbubbleEllipsesOutline),
-  },
-]);
+  ]);
 
 const routeConfigMap: Record<string, { key: string; path: string }> = {
-  capture: { key: "capture", path: "/capture" },
+  journal: { key: "journal", path: "/journal" },
+  wiki: { key: "wiki", path: "/wiki" },
   think: { key: "think", path: "/think" },
   create: { key: "create", path: "/create" },
-  chat: { key: "chat", path: "/chat" },
   projects: { key: "projects", path: "/projects" },
 };
 
