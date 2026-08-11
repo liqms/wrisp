@@ -38,7 +38,7 @@ const editorRef = ref<InstanceType<typeof TiptapEditor> | null>(null);
 
 const todayStr = TimeUtil.getLocalDateString();
 const isToday = computed(() => props.journal.date === todayStr);
-const editorMinHeight = computed(() => (isToday.value ? 300 : undefined));
+const editorMinHeight = computed(() => (isToday.value ? 300 : 200));
 
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let isSyncingFromProp = false;

@@ -116,6 +116,22 @@ async function syncLocalFiles(): Promise<ApiResponse<number>> {
   }
 }
 
+/**
+ * 根据 journal 文件的实际文件重置 file_index 表
+ * 扫描 journal/ 目录下的 .md 文件，清空 file_index 表后重新填充。
+ * 注意：此操作会同时清空 semantic_chunks 表（外键引用 file_index）。
+ * @returns 重置后的记录数
+ */
+async function resetJournalTable(): Promise<ApiResponse<number>> {
+  try {
+    const count = journalService.resetJournalTable();
+    return response.success(count);
+  } catch (error) {
+    Logger.error("重置 file_index 表失败", { error: String(error) });
+    return response.error(ErrorCode.JOURNAL_QUERY_FAILED, error as Error);
+  }
+}
+
 export {
   createJournal,
   updateJournal,
@@ -123,4 +139,5 @@ export {
   getRecentDays,
   checkTodayJournalExists,
   syncLocalFiles,
+  resetJournalTable,
 };

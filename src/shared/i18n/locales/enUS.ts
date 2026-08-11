@@ -165,6 +165,30 @@ export default {
       OVERWRITE_CONFIRM_CONTENT: "Are you sure you want to overwrite today's journal? This action cannot be undone.",
     },
   },
+  EDITOR: {
+    SLASH: {
+      PM_TEMPLATE: {
+        GROUP_LABEL: "Templates",
+        REQUIREMENT_TITLE: "User Requirement",
+        REQUIREMENT_DESC: "Insert user requirement skeleton",
+        INTERVIEW_TITLE: "User Interview",
+        INTERVIEW_DESC: "Insert user interview skeleton",
+        COMPETITOR_TITLE: "Competitor Observation",
+        COMPETITOR_DESC: "Insert competitor observation skeleton",
+        DATA_TITLE: "Product Data",
+        DATA_DESC: "Insert product data skeleton",
+        MEETING_TITLE: "Meeting Notes",
+        MEETING_DESC: "Insert meeting notes skeleton",
+      },
+    },
+    CONTEXT_MENU: {
+      CUT: "Cut",
+      COPY: "Copy",
+      PASTE: "Paste",
+      DELETE: "Delete",
+      SELECT_ALL: "Select All",
+    },
+  },
   SETTINGS: {
     GENERAL: "General",
     EDITOR: "Editor",
@@ -173,6 +197,12 @@ export default {
     KEYMAP: "Keymap",
     ABOUT: "About",
     ACCENT_COLOR: "Accent Color",
+    PROFESSION: {
+      LABEL: "Profession",
+      DESC: "Determines which templates appear in the Slash menu",
+      OPTION_PM: "Product Manager",
+      SAVED: "Profession saved",
+    },
     MODEL_MANAGEMENT: "Model Management",
     PROVIDER_MODELS: "Providers & Models",
     PROVIDER_MODELS_DESC: "Add the providers you use",
@@ -211,6 +241,10 @@ export default {
     DATA_MANAGER_SETTINGS: {
       WORKSPACE: "Workspace",
       SELECT_WORKSPACE: "Select Workspace",
+      REBUILD_INDEX: "Rebuild Index",
+      REBUILD_INDEX_DESC: "Read local Journal files and rebuild the data index",
+      REBUILD_INDEX_LOADING: "Rebuilding...",
+      REBUILD_INDEX_SUCCESS: "Index rebuilt, {count} records total",
     },
     AI_SETTINGS: {
       INTELLIGENT: "Intelligent",

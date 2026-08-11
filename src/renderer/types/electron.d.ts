@@ -99,6 +99,7 @@ export interface ElectronAPI {
     getRecentDays(days?: number): Promise<ApiResponse<JournalFileInfo[]>>;
     checkTodayJournalExists(data?: string): Promise<ApiResponse<boolean>>;
     syncLocalFiles(): Promise<ApiResponse<number>>;
+    resetJournalTable(): Promise<ApiResponse<number>>;
   };
   // Project 相关
   project: {

@@ -31,4 +31,8 @@ export const journalModule: JournalAPI = {
     ipcRenderer.invoke("journal:syncLocalFiles") as Promise<
       ApiResponse<number>
     >,
+  resetJournalTable: () =>
+    ipcRenderer.invoke("journal:resetJournalTable") as Promise<
+      ApiResponse<number>
+    >,
 };

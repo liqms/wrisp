@@ -41,6 +41,28 @@
     margin: 4px 0;
   }
 
+  // 任务清单：勾选框与文字同一行，文字过长时在右侧换行而非折到勾选框下方
+  ul[data-type="taskList"] {
+    list-style: none;
+    padding: 0;
+  }
+
+  ul[data-type="taskList"] li {
+    display: flex;
+    align-items: flex-start;
+
+    > label {
+      flex: 0 0 auto;
+      margin-right: 0.5rem;
+      margin-top: 0.25rem;
+      user-select: none;
+    }
+
+    > div {
+      flex: 1 1 auto;
+    }
+  }
+
   code {
     background-color: var(--bg-secondary);
     padding: 2px 6px;

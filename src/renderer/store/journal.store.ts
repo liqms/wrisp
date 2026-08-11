@@ -171,6 +171,20 @@ export const useJournalStore = defineStore("journal", () => {
     }
   };
 
+  const resetJournalTable = async (): Promise<number> => {
+    try {
+      const response = (await window.electronAPI.journal.resetJournalTable()) as ApiResponse<number>;
+
+      if (response.success && response.data !== undefined) {
+        return response.data as number;
+      }
+      return 0;
+    } catch (error) {
+      console.warn("重置 file_index 表失败", error);
+      return 0;
+    }
+  };
+
   const clearError = () => {
     errorCode.value = null;
     errorMessage.value = null;
@@ -194,6 +208,7 @@ export const useJournalStore = defineStore("journal", () => {
     deleteJournal,
     checkTodayJournalExists,
     syncLocalFiles,
+    resetJournalTable,
     clearError,
     clearJournals,
   };

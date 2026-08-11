@@ -6,6 +6,7 @@ import {
   getRecentDays,
   checkTodayJournalExists,
   syncLocalFiles,
+  resetJournalTable
 } from "@/main/core/apis/journal.api";
 import type {
   JournalFileCreate,
@@ -61,6 +62,13 @@ export function registerJournalHandlers(): void {
     "journal:syncLocalFiles",
     async (): Promise<ApiResponse<number>> => {
       return syncLocalFiles();
+    },
+  );
+
+  ipcMain.handle(
+    "journal:resetJournalTable",
+    async (): Promise<ApiResponse<number>> => {
+      return resetJournalTable();
     },
   );
 }

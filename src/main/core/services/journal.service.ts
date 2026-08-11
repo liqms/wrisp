@@ -4,7 +4,6 @@ import {
   JournalFileInfo,
   JournalFileCreate,
   JournalFileUpdate,
-  JournalFileQuery,
   Id,
 } from "@/shared/types";
 import { FileIndexDao } from "@/main/core/db";
@@ -61,48 +60,60 @@ class JournalService {
   }
 
   /**
+   * 扫描 journal/ 目录下所有以日期格式命名的 .md 文件，构建文件索引数据
+   * @returns 文件索引创建数据数组（目录不存在时返回空数组）
+   */
+  private scanJournalFiles(): FileIndexCreate[] {
+    const journalDir = `${JOURNAL_DIR}/`;
+    const datePattern = /^(\d{4}-\d{2}-\d{2})\.md$/;
+
+    if (!fileService.exists(journalDir)) {
+      Logger.debug("journal 文件夹不存在", { journalDir });
+      return [];
+    }
+
+    const mdFiles = fileService.listFiles(journalDir, ".md");
+    const result: FileIndexCreate[] = [];
+
+    for (const rawPath of mdFiles) {
+      const filePath = rawPath.replace(/\\/g, "/");
+      const fileName = filePath.split("/").pop() || "";
+      const match = fileName.match(datePattern);
+      if (!match) continue;
+
+      const fileInfo = fileService.getFileInfo(filePath);
+      const now = new Date().toISOString();
+
+      result.push({
+        id: NodeCryptoUtil.generateUUID(),
+        file_path: filePath,
+        file_hash: fileInfo?.hash || "",
+        file_size: fileInfo?.size || 0,
+        date: match[1],
+        name: fileName,
+        updated_at: fileInfo?.modifiedAt || now,
+        sync_status: "pending",
+      });
+    }
+
+    return result;
+  }
+
+  /**
    * 同步本地日志文件夹中的文件到文件索引表
    * 扫描 journal/ 目录下所有以日期格式命名的 .md 文件，
    * 检查文件索引表中是否已有记录，缺失的自动创建。
    * @returns 新增的文件索引数量
    */
   public syncLocalFiles(): number {
-    const journalDir = `${JOURNAL_DIR}/`;
-    const datePattern = /^(\d{4}-\d{2}-\d{2})\.md$/;
-
     try {
-      if (!fileService.exists(journalDir)) {
-        Logger.debug("日志文件夹不存在，跳过同步", { journalDir });
-        return 0;
-      }
+      const allFiles = this.scanJournalFiles();
+      if (allFiles.length === 0) return 0;
 
-      const mdFiles = fileService.listFiles(journalDir, ".md");
-      const newFileIndexes: FileIndexCreate[] = [];
-
-      for (const rawPath of mdFiles) {
-        const filePath = rawPath.replace(/\\/g, "/");
-        const fileName = filePath.split("/").pop() || "";
-        const match = fileName.match(datePattern);
-        if (!match) continue;
-
-        const date = match[1];
-        const existing = this.fileIndexDao.findByFilePath(filePath);
-        if (existing) continue;
-
-        const fileInfo = fileService.getFileInfo(filePath);
-        const now = new Date().toISOString();
-
-        newFileIndexes.push({
-          id: NodeCryptoUtil.generateUUID(),
-          file_path: filePath,
-          file_hash: fileInfo?.hash || "",
-          file_size: fileInfo?.size || 0,
-          date,
-          name: fileName,
-          updated_at: fileInfo?.modifiedAt || now,
-          sync_status: "pending",
-        });
-      }
+      // 过滤掉已存在的记录
+      const newFileIndexes = allFiles.filter(
+        (f) => !this.fileIndexDao.findByFilePath(f.file_path),
+      );
 
       if (newFileIndexes.length > 0) {
         this.fileIndexDao.createBatch(newFileIndexes);
@@ -219,6 +230,35 @@ class JournalService {
     }
   }
 
+
+  /**
+   * 根据 journal 文件的实际文件重置 file_index 表
+   * 扫描 journal/ 目录下的 .md 文件，清空 file_index 表后重新填充。
+   * 注意：此操作会同时清空 semantic_chunks 表（外键引用 file_index）。
+   * @returns 重置后的记录数
+   */
+  public resetJournalTable(): number {
+    try {
+      const newFileIndexes = this.scanJournalFiles();
+
+      this.fileIndexDao.transaction(() => {
+        // 先删除 semantic_chunks（外键引用 file_index）
+        this.fileIndexDao.execute("DELETE FROM semantic_chunks");
+        // 清空 file_index
+        this.fileIndexDao.execute("DELETE FROM file_index");
+        // 重新填充
+        for (const item of newFileIndexes) {
+          this.fileIndexDao.create(item);
+        }
+      });
+
+      Logger.info("file_index 表重置完成", { count: newFileIndexes.length });
+      return newFileIndexes.length;
+    } catch (error) {
+      Logger.error("重置 file_index 表失败", { error: String(error) });
+      throw error;
+    }
+  }
 
   /**
    * 查询最近有记录 N 天的日志

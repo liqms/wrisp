@@ -5,6 +5,7 @@ import {
   UPDATE_CHANNEL,
   THEME_COLOR,
 } from "@/shared/enums";
+import { PROFESSION } from "@/shared/enums/profession.enums";
 import { TimeUtil } from "@/shared/utils";
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
@@ -27,6 +28,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       country: "中国",
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       notification: true,
+      profession: PROFESSION.PM,
     },
   },
   version: "1.0.0",

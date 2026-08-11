@@ -163,6 +163,30 @@ export default {
       OVERWRITE_CONFIRM_CONTENT: "确定要覆盖今日日志吗？此操作不可撤销。",
     },
   },
+  EDITOR: {
+    SLASH: {
+      PM_TEMPLATE: {
+        GROUP_LABEL: "职业模板",
+        REQUIREMENT_TITLE: "用户需求",
+        REQUIREMENT_DESC: "插入用户需求框架",
+        INTERVIEW_TITLE: "用户访谈",
+        INTERVIEW_DESC: "插入用户访谈框架",
+        COMPETITOR_TITLE: "竞品观察",
+        COMPETITOR_DESC: "插入竞品观察框架",
+        DATA_TITLE: "产品数据",
+        DATA_DESC: "插入产品数据框架",
+        MEETING_TITLE: "会议纪要",
+        MEETING_DESC: "插入会议纪要框架",
+      },
+    },
+    CONTEXT_MENU: {
+      CUT: "剪切",
+      COPY: "复制",
+      PASTE: "粘贴",
+      DELETE: "删除",
+      SELECT_ALL: "全选",
+    },
+  },
   SETTINGS: {
     GENERAL: "常规",
     EDITOR: "编辑器",
@@ -171,6 +195,12 @@ export default {
     KEYMAP: "快捷键",
     ABOUT: "关于",
     ACCENT_COLOR: "主题色",
+    PROFESSION: {
+      LABEL: "职业",
+      DESC: "决定 Slash 菜单展示的模板",
+      OPTION_PM: "产品经理",
+      SAVED: "职业已保存",
+    },
     MODEL_MANAGEMENT: "模型管理",
     PROVIDER_MODELS: "模型服务商",
     PROVIDER_MODELS_DESC: "添加你使用的模型服务商",
@@ -208,6 +238,10 @@ export default {
     DATA_MANAGER_SETTINGS: {
       WORKSPACE: "工作空间",
       SELECT_WORKSPACE: "选择工作空间",
+      REBUILD_INDEX: "重建索引",
+      REBUILD_INDEX_DESC: "读取本地 Journal 文件并重新构建数据索引",
+      REBUILD_INDEX_LOADING: "重建中...",
+      REBUILD_INDEX_SUCCESS: "索引重建完成，共 {count} 条记录",
     },
     AI_SETTINGS: {
       INTELLIGENT: "智能",

@@ -7,7 +7,7 @@
             t("SETTINGS.ABOUT_SETTINGS.CURRENT_VERSION")
             }}</n-text>
           <n-text class="setting-desc">PenTip V{{ version }}</n-text>
-          <n-text class="setting-link">{{ t("SETTINGS.GENERAL_SETTINGS.UPDATE_RECORD") }}</n-text>
+          <n-text class="setting-link" @click="openUpdateRecord">{{ t("SETTINGS.GENERAL_SETTINGS.UPDATE_RECORD") }}</n-text>
         </n-flex>
 
         <n-button type="primary" @click="checkUpdate">
@@ -37,6 +37,17 @@
       <n-divider />
       <n-flex align="center" class="setting-row">
         <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.PROFESSION.LABEL")
+          }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.PROFESSION.DESC") }}</n-text>
+        </n-flex>
+        <n-select :value="profession" :options="professionOptions" class="setting-select"
+          @update:value="onProfessionChange" />
+      </n-flex>
+      <n-divider />
+      <n-flex align="center" class="setting-row">
+        <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{ t("SETTINGS.ACCENT_COLOR") }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.SELECT_ACCENT_COLOR_DESC") }}</n-text>
         </n-flex>
@@ -61,6 +72,21 @@
           {{ t("ACTION.COMMON.CHANGE") }}
         </n-button>
       </n-flex>
+      <n-divider />
+      <n-flex align="center" class="setting-row">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX")
+            }}</n-text>
+          <n-text class="setting-desc">{{
+            t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX_DESC")
+            }}</n-text>
+        </n-flex>
+        <n-button size="medium" type="primary" :loading="rebuildingIndex" :disabled="rebuildingIndex"
+          @click="rebuildIndex">
+          {{ t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX") }}
+        </n-button>
+      </n-flex>
     </n-card>
   </n-scrollbar>
 </template>
@@ -70,20 +96,28 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { AppConfig } from "@/shared/types";
 import { useConfig } from "@/renderer/composables/useConfig";
+import { useJournal } from "@/renderer/composables/useJournal";
+import { useMessage } from "naive-ui";
 import ColorCard from "@/renderer/components/base/ColorCard.vue";
 import { setLocale } from "@/renderer/plugins/i18n";
+import { RELEASES_URL } from "@/main/constants";
 import {
   THEME_MODE,
   LOCALE,
   ErrorCode,
+  PROFESSION,
   getThemeThemePrimaryColor,
   type ThemeMode,
+  type Profession,
 } from "@/shared/enums";
 import { logger } from "@/renderer/utils/logger.utils";
 
 defineProps<{ config: AppConfig | null }>();
 
 const { t } = useI18n();
+const message = useMessage();
+const { resetJournalTable } = useJournal();
+const rebuildingIndex = ref(false);
 const configStore = useConfig();
 const {
   version,
@@ -91,6 +125,7 @@ const {
   themeMode: configThemeMode,
   themeColor,
   locale: configLocale,
+  profession: configProfession,
   updateThemeMode,
   updateLocale,
   updateThemeColor,
@@ -134,6 +169,24 @@ watch(locale, async (newLocale) => {
   }
 });
 
+const profession = ref<Profession>(configProfession.value);
+
+const professionOptions = [
+  { label: t("SETTINGS.PROFESSION.OPTION_PM"), value: PROFESSION.PM },
+];
+
+const onProfessionChange = async (value: Profession) => {
+  if (value === profession.value) return;
+  profession.value = value;
+  try {
+    await configStore.setValue("userInfo.preferences.profession", value);
+    message.success(t("SETTINGS.PROFESSION.SAVED"));
+  } catch (error) {
+    logger.error("更新职业失败", { error });
+    message.error(t("ERROR.COMMON.ACTION_ERROR"));
+  }
+};
+
 const primaryColor = computed(() => getThemeThemePrimaryColor(themeMode.value));
 
 const themeColorOptions = computed(() =>
@@ -154,6 +207,28 @@ const selectThemeColor = (color: string) => {
 
 const checkUpdate = async () => { };
 
+const openUpdateRecord = async (): Promise<void> => {
+  try {
+    await window.electronAPI.system.openExternal(RELEASES_URL);
+  } catch (error) {
+    logger.error("打开更新记录失败", { error });
+  }
+};
+
+const rebuildIndex = async () => {
+  if (rebuildingIndex.value) return;
+  rebuildingIndex.value = true;
+  try {
+    const count = await resetJournalTable();
+    message.success(t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX_SUCCESS", { count }));
+  } catch (error) {
+    logger.error("重建索引失败", { error });
+    message.error(t("ERROR.COMMON.ACTION_ERROR"));
+  } finally {
+    rebuildingIndex.value = false;
+  }
+};
+
 const selectWorkspace = async () => {
   try {
     const result = await window.electronAPI.system.openDialog({
@@ -172,7 +247,7 @@ const selectWorkspace = async () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/renderer/styles/variables.scss" as *;
+@use "@/renderer/styles/_variables.scss" as *;
 
 .general-settings {
   max-height: 100%;

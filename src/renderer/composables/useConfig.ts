@@ -7,6 +7,7 @@ import {
   THEME_COLOR,
   ErrorCode,
   ThemeMode,
+  PROFESSION,
 } from "@/shared/enums";
 import { logger } from "@/renderer/utils/logger.utils";
 import { useFrontendNotification } from "@/renderer/composables/useNotification";
@@ -46,11 +47,7 @@ export function useConfig(options: UseConfigOptions = {}) {
   const currentProjectId = computed(() => config.value?.currentProjectId ?? "");
   const workspace = computed(() => config.value?.workspace ?? "");
 
-  // AI相关
-  const miniPrograms = computed(() => config.value?.miniPrograms ?? null);
-  const defaultMiniProgramId = computed(
-    () => config.value?.defaultMiniProgramId ?? "",
-  );
+
 
   // 主题相关
   const themeMode = computed(
@@ -84,6 +81,11 @@ export function useConfig(options: UseConfigOptions = {}) {
 
   // 多语言相关
   const locale = computed(() => general.value?.locale ?? LOCALE.ZH);
+
+  // 职业（决定 Slash Menu 展示的模板）
+  const profession = computed(() => {
+    return userInfo.value?.preferences?.profession ?? PROFESSION.PM;
+  });
 
   // 版本和升级相关
   const version = computed(() => config.value?.version ?? "1.0.0");
@@ -364,6 +366,7 @@ export function useConfig(options: UseConfigOptions = {}) {
     themeMode,
     themeColor,
     locale,
+    profession,
     version,
     shortcuts,
 

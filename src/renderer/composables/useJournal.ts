@@ -97,6 +97,17 @@ export function useJournal(options: UseJournalOptions = {}) {
     }
   };
 
+  const resetJournalTable = async (): Promise<number> => {
+    try {
+      const count = await store.resetJournalTable();
+      logger.info("file_index 表重置完成", { count });
+      return count;
+    } catch (error) {
+      logger.error("重置 file_index 表失败", { error });
+      return 0;
+    }
+  };
+
   const loadRecentRecords = () => getRecentDays(days);
 
   const updateContentLocally = (id: Id, content: string) =>
@@ -122,6 +133,7 @@ export function useJournal(options: UseJournalOptions = {}) {
     deleteJournal,
     checkTodayJournalExists,
     syncLocalFiles,
+    resetJournalTable,
     loadRecentRecords,
     updateContentLocally,
     clearError,

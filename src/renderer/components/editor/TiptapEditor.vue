@@ -1,21 +1,24 @@
 <template>
   <n-flex ref="wrapperRef" class="tiptap-editor-wrapper" :class="{ 'slash-active': showSlashMenu }"
-    :style="wrapperStyle" @click="focus">
+    :style="wrapperStyle" @click="focus" @contextmenu="onContextMenu">
     <EditorContent :editor="editor" class="tiptap-editor markdown-content" />
     <BubbleMenu v-if="editor && enableBubbleMenu" :editor="editor" />
     <SlashMenu v-if="slashCommand && editor" :visible="showSlashMenu" :editor="editor" :start-pos="slashStartPos"
       :query="slashQuery" @close="closeSlashMenu" />
+    <ContextMenu :visible="contextVisible" :pos-x="contextX" :pos-y="contextY" @update:visible="contextVisible = $event"
+      @cut="handleCut" @copy="handleCopy" @paste="handlePaste" @delete="handleDelete" @select-all="handleSelectAll" />
   </n-flex>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, watch, nextTick } from "vue";
+import { ref, computed, onBeforeUnmount, watch } from "vue";
 import { useEditor, EditorContent } from "@tiptap/vue-3";
 import { createEditorExtensions } from "./extensions";
 import type { Extensions, EditorOptions } from "@tiptap/core";
 import { marked } from "marked";
 import SlashMenu from "./slash/SlashMenu.vue";
 import BubbleMenu from "./BubbleMenu.vue";
+import ContextMenu from "./ContextMenu.vue";
 
 /** Markdown → HTML（异步，marked 返回 Promise<string>） */
 async function mdToHtml(md: string): Promise<string> {
@@ -86,6 +89,47 @@ const showSlashMenu = ref(false);
 const slashStartPos = ref(0);
 const slashQuery = ref("");
 
+/** 右键上下文菜单状态 */
+const contextVisible = ref(false);
+const contextX = ref(0);
+const contextY = ref(0);
+
+function onContextMenu(e: MouseEvent): void {
+  e.preventDefault();
+  contextX.value = e.clientX;
+  contextY.value = e.clientY;
+  contextVisible.value = true;
+}
+
+function focusEditor(): void {
+  editor.value?.commands?.focus?.();
+}
+
+function handleCut(): void {
+  focusEditor();
+  document.execCommand("cut");
+}
+
+function handleCopy(): void {
+  focusEditor();
+  document.execCommand("copy");
+}
+
+function handlePaste(): void {
+  focusEditor();
+  document.execCommand("paste");
+}
+
+function handleDelete(): void {
+  focusEditor();
+  editor.value?.commands?.deleteSelection?.();
+}
+
+function handleSelectAll(): void {
+  focusEditor();
+  editor.value?.commands?.selectAll?.();
+}
+
 function closeSlashMenu() {
   showSlashMenu.value = false;
   slashQuery.value = "";
@@ -128,21 +172,20 @@ const editor = useEditor({
 
       // 检测斜杠命令：在行首或空格后输入 /
       if (props.slashCommand && event.key === "/" && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
-        const { state } = view;
+        const { state, dispatch } = view;
         const { $from } = state.selection;
         const textBefore = $from.pos > 0
           ? state.doc.textBetween(Math.max(0, $from.pos - 1), $from.pos)
           : "";
         if ($from.parentOffset === 0 || textBefore === " " || textBefore === "\n") {
-          // 让 / 先插入，然后下一个微任务中打开菜单
-          nextTick(() => {
-            const curState = view.state;
-            const curSel = curState.selection;
-            slashStartPos.value = curSel.$from.pos;
-            slashQuery.value = "";
-            showSlashMenu.value = true;
-          });
-          return false;
+          // 主动插入斜杠（保留在编辑器中），并记录斜杠结束位置后打开菜单
+          event.preventDefault();
+          const insertPos = state.selection.from;
+          dispatch(state.tr.insertText("/", insertPos));
+          slashStartPos.value = insertPos + 1;
+          slashQuery.value = "";
+          showSlashMenu.value = true;
+          return true;
         }
       }
 

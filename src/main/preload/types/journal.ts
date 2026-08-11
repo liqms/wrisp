@@ -13,4 +13,5 @@ export interface JournalAPI {
   getRecentDays(days?: number): Promise<ApiResponse<JournalFileInfo[]>>;
   checkTodayJournalExists(date?: string): Promise<ApiResponse<boolean>>;
   syncLocalFiles(): Promise<ApiResponse<number>>;
+  resetJournalTable(): Promise<ApiResponse<number>>;
 }

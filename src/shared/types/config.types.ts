@@ -4,6 +4,7 @@ import {
   Locale,
   UpdateChannel,
 } from "@/shared/enums/config.enums";
+import type { Profession } from "@/shared/enums/profession.enums";
 
 export interface General {
   themeMode: ThemeMode;
@@ -26,6 +27,7 @@ export interface UserInfo {
     country?: string; // 国家或地区
     timezone: string; // 时区设置
     notification: boolean; // 通知偏好
+    profession?: Profession; // 当前用户职业，决定 Slash Menu 展示哪套模板
   };
 }
 
