@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, Menu, ipcMain } from "electron";
 import path from "path";
 import { Logger } from "@/main/utils/logger";
 import dotenv from "dotenv";
@@ -33,6 +33,7 @@ import {
   registerReflectionHandlers,
   registerSmartTaskHandlers,
   registerTaskHandlers,
+  registerUpdateHandlers,
 } from "@/main/ipcMain";
 import { databaseMigration } from "@/main/core/migration";
 import { setWorkspacePath } from "@/main/core/db/connection";
@@ -43,7 +44,6 @@ import { trayService } from "@/main/core/services/tray.service";
 import { taskQueue, taskExecutor } from "@/main/core/task-queue";
 import { downloadService } from "@/main/core/services/download.service";
 import { setupDownloadListeners } from "@/main/preload/listeners/download";
-import { setupMenu } from "@/main/menu";
 
 // 使用传统的 Node.js 路径处理方式
 const __dirname = path.dirname(__filename || process.argv[1] || ".");
@@ -98,6 +98,8 @@ function createWindow(): BrowserWindow {
     height,
     minWidth: 800,
     minHeight: 600,
+    autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
     webPreferences: {
       preload: preloadPath,
       nodeIntegration: false,
@@ -119,7 +121,7 @@ function createWindow(): BrowserWindow {
     windowService.saveWindowSize({ width: winWidth, height: winHeight })
   })
 
-  if (process.env.NODE_ENV === "development") {
+  if (!app.isPackaged) {
     const devViteUrl = `http://${process.env.DEV_VITE_HOST}:${process.env.DEV_VITE_PORT}`;
     Logger.info(`开发环境 VITE_URL: ${devViteUrl}`);
     mainWindow.loadURL(devViteUrl);
@@ -160,7 +162,7 @@ app.whenReady().then(async () => {
   });
 
   createWindow();
-  setupMenu();
+  Menu.setApplicationMenu(null);
   trayService.initialize();
   registerWindowHandlers();
   registerConfigHandlers();
@@ -179,6 +181,7 @@ app.whenReady().then(async () => {
   registerReflectionHandlers();
   registerSmartTaskHandlers();
   registerTaskHandlers();
+  registerUpdateHandlers();
 
   // 启动下载事件监听（将 DownloadService 事件桥接到渲染进程）
   setupDownloadListeners();

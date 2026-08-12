@@ -1,3 +1,7 @@
+nodeLinker: hoisted
+overrides:
+  '@electron/get': ^3.1.0
+  stack-trace: 0.0.3
 allowBuilds:
   '@parcel/watcher': true
   better-sqlite3: true
@@ -5,5 +9,3 @@ allowBuilds:
   electron-winstaller: true
   protobufjs: true
   sharp: true
-ignoredBuiltDependencies:
-  - better-sqlite3

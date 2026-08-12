@@ -10,7 +10,7 @@
           <n-text class="setting-link" @click="openUpdateRecord">{{ t("SETTINGS.GENERAL_SETTINGS.UPDATE_RECORD") }}</n-text>
         </n-flex>
 
-        <n-button type="primary" @click="checkUpdate">
+        <n-button type="primary" :loading="checkingUpdate" @click="checkUpdate">
           {{ t("SETTINGS.ABOUT_SETTINGS.CHECK_UPDATE") }}
         </n-button>
       </n-flex>
@@ -88,6 +88,17 @@
         </n-button>
       </n-flex>
     </n-card>
+
+    <UpdatePrompt
+      v-model:visible="updateVisible"
+      :version="updateVersion"
+      :release-notes="updateNotes"
+      :downloading="downloading"
+      :percent="updatePercent"
+      :installed="installed"
+      @update="handleUpdate"
+      @install="handleInstall"
+    />
   </n-scrollbar>
 </template>
 
@@ -99,6 +110,7 @@ import { useConfig } from "@/renderer/composables/useConfig";
 import { useJournal } from "@/renderer/composables/useJournal";
 import { useMessage } from "naive-ui";
 import ColorCard from "@/renderer/components/base/ColorCard.vue";
+import UpdatePrompt from "@/renderer/components/UpdatePrompt.vue";
 import { setLocale } from "@/renderer/plugins/i18n";
 import { RELEASES_URL } from "@/main/constants";
 import {
@@ -205,7 +217,65 @@ const selectThemeColor = (color: string) => {
   }
 };
 
-const checkUpdate = async () => { };
+// ===== 更新功能状态 =====
+const checkingUpdate = ref(false);
+const updateVisible = ref(false);
+const updateVersion = ref("");
+const updateNotes = ref("");
+const updatePercent = ref(0);
+const downloading = ref(false);
+const installed = ref(false);
+
+const checkUpdate = async (): Promise<void> => {
+  if (checkingUpdate.value) return;
+  checkingUpdate.value = true;
+  try {
+    const hasUpdate = await window.electronAPI.update.check();
+    if (!hasUpdate) {
+      message.success(t("UPDATE.NO_UPDATE"));
+      return;
+    }
+    // 更新可用后，主进程会广播 update:available，由下方监听填充版本信息并打开弹窗
+  } catch (error) {
+    logger.error("检查更新失败", { error });
+    message.error(t("UPDATE.CHECK_FAILED"));
+  } finally {
+    checkingUpdate.value = false;
+  }
+};
+
+// 订阅更新事件（可用/进度/下载完成/错误）
+window.electronAPI.update.onEvent("available", (info: { version: string; releaseNotes?: string }) => {
+  updateVersion.value = info.version;
+  updateNotes.value = info.releaseNotes ?? "";
+  updateVisible.value = true;
+});
+window.electronAPI.update.onEvent("download-progress", (payload: { percent: number }) => {
+  downloading.value = true;
+  updatePercent.value = Math.round(payload.percent);
+});
+window.electronAPI.update.onEvent("downloaded", () => {
+  downloading.value = false;
+  installed.value = true;
+  message.success(t("UPDATE.DOWNLOADED"));
+});
+window.electronAPI.update.onEvent("error", () => {
+  downloading.value = false;
+  message.error(t("UPDATE.CHECK_FAILED"));
+});
+
+const handleUpdate = async (): Promise<void> => {
+  try {
+    await window.electronAPI.update.download();
+  } catch (error) {
+    downloading.value = false;
+    message.error(t("UPDATE.CHECK_FAILED"));
+  }
+};
+
+const handleInstall = (): void => {
+  window.electronAPI.update.install();
+};
 
 const openUpdateRecord = async (): Promise<void> => {
   try {

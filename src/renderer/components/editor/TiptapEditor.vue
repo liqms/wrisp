@@ -278,10 +278,14 @@ watch(
       let done = false;
       let stop: (() => void) | undefined;
       stop = watch(editor, (ed) => {
-        if (done || ed == null || ed.commands == null) return;
-        done = true;
-        stop?.();
-        ed.commands.setContent(html, { emitUpdate: true });
+        if (done || ed == null) return;
+        try {
+          done = true;
+          stop?.();
+          ed.commands?.setContent?.(html, { emitUpdate: true });
+        } catch {
+          done = false;
+        }
       }, { immediate: true });
     } catch (e) {
       console.error("[TiptapEditor] 更新内容失败:", e);

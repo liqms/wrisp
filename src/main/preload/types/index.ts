@@ -16,6 +16,7 @@ import type { SmartTaskAPI } from "./smart-task";
 import type { TaskAPI } from "./task";
 import type { SearchAPI } from "./search";
 import type { PageAPI } from "./page";
+import type { UpdateAPI } from "./update";
 
 export interface ElectronAPI {
   config: ConfigAPI;
@@ -34,6 +35,7 @@ export interface ElectronAPI {
   smartTask: SmartTaskAPI;
   task: TaskAPI;
   search: SearchAPI;
+  update: UpdateAPI;
 
   // 通用 IPC 方法（保持向后兼容）
   send: (channel: string, data: any) => void;
@@ -64,4 +66,5 @@ export type {
   TaskAPI,
   SearchAPI,
   PageAPI,
+  UpdateAPI,
 };

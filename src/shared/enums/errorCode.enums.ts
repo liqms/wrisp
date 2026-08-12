@@ -118,6 +118,11 @@ export enum ErrorCode {
   AI_TIMEOUT = "ERROR.AI.TIMEOUT",
   AI_INVALID_RESPONSE = "ERROR.AI.INVALID_RESPONSE",
   AI_STREAM_ERROR = "ERROR.AI.STREAM_ERROR",
+
+  // ============ 更新错误 ============
+  UPDATE_CHECK_FAILED = "ERROR.UPDATE.CHECK_FAILED",
+  UPDATE_DOWNLOAD_FAILED = "ERROR.UPDATE.DOWNLOAD_FAILED",
+  UPDATE_INSTALL_FAILED = "ERROR.UPDATE.INSTALL_FAILED",
 }
 
 /**
@@ -139,6 +144,7 @@ export type ErrorCategory =
   | "REFLECTION" // 反思错误
   | "TEMPORAL_EVENT" // 时间事件错误
   | "AI" // AI 网关错误
+  | "UPDATE" // 更新错误
   | "UNKNOWN" // 未知分类
   | "SUCCESS"; // 成功分类
 
@@ -181,6 +187,8 @@ export function getErrorCategory(errorCode: ErrorCode): ErrorCategory {
       return "TEMPORAL_EVENT";
     case "AI":
       return "AI";
+    case "UPDATE":
+      return "UPDATE";
     case "AGENT":
       return "AGENT";
     case "SUCCESS":
@@ -211,6 +219,7 @@ export function getErrorCategoryMap(): Record<ErrorCategory, ErrorCode[]> {
     REFLECTION: [],
     TEMPORAL_EVENT: [],
     AI: [],
+    UPDATE: [],
     UNKNOWN: [],
     SUCCESS: [],
   };

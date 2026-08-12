@@ -65,6 +65,7 @@ export default defineConfig({
                 'apache-arrow',
                 '@xenova/transformers',
                 'archiver',
+                'electron-updater',
               ],
               output: {
                 format: 'cjs'

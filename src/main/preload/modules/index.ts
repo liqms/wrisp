@@ -16,6 +16,7 @@ import { reflectionModule } from "./reflection";
 import { smartTaskModule } from "./smart-task";
 import { taskModule } from "./task";
 import { searchModule } from "./search";
+import { updateModule } from "./update";
 
 export const modules = {
   config: configModule,
@@ -36,4 +37,5 @@ export const modules = {
   smartTask: smartTaskModule,
   task: taskModule,
   search: searchModule,
+  update: updateModule,
 };

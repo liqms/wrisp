@@ -5,10 +5,16 @@
       <n-text depth="3" class="release-notes">{{ releaseNotes }}</n-text>
     </n-flex>
     <template #footer>
-      <n-flex justify="end">
-        <n-button @click="handleSkip">{{ t('UPDATE.SKIP') }}</n-button>
-        <n-button @click="handleLater">{{ t('UPDATE.LATER') }}</n-button>
-        <n-button type="primary" @click="handleUpdate">{{ t('UPDATE.UPDATE_NOW') }}</n-button>
+      <n-flex justify="end" align="center">
+        <n-text v-if="downloading" depth="3">{{ t('UPDATE.DOWNLOADING', { percent }) }}</n-text>
+        <template v-else>
+          <n-button v-if="installed" type="primary" @click="handleInstall">{{ t('UPDATE.INSTALLING') }}</n-button>
+          <template v-else>
+            <n-button @click="handleSkip">{{ t('UPDATE.SKIP') }}</n-button>
+            <n-button @click="handleLater">{{ t('UPDATE.LATER') }}</n-button>
+            <n-button type="primary" @click="handleUpdate">{{ t('UPDATE.UPDATE_NOW') }}</n-button>
+          </template>
+        </template>
       </n-flex>
     </template>
   </n-modal>
@@ -26,11 +32,17 @@ const props = withDefaults(
     visible?: boolean;
     version?: string;
     releaseNotes?: string;
+    downloading?: boolean;
+    percent?: number;
+    installed?: boolean;
   }>(),
   {
     visible: false,
     version: "0.0.0",
     releaseNotes: "",
+    downloading: false,
+    percent: 0,
+    installed: false,
   },
 );
 
@@ -39,6 +51,7 @@ const emit = defineEmits<{
   (e: "update"): void;
   (e: "later"): void;
   (e: "skip"): void;
+  (e: "install"): void;
 }>();
 
 const visible = computed({
@@ -56,6 +69,10 @@ function handleLater(): void {
 
 function handleSkip(): void {
   emit("skip");
+}
+
+function handleInstall(): void {
+  emit("install");
 }
 </script>
 

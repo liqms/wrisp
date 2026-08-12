@@ -16,7 +16,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     updateChannel: UPDATE_CHANNEL.STABLE,
   },
   userInfo: {
-    nickname: "用户",
+    nickname: "",
     avatar: "avatar/01.png",
     token: "",
     refreshToken: "",

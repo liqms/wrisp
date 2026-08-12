@@ -4,7 +4,7 @@
     <n-flex class="controls-wrapper">
       <n-button @click="handleMenuClick" class="control-btn" text :title="$t('APP.BASE.MENU')">
         <n-icon size="14">
-          <Menu />
+          <MenuOutlined />
         </n-icon>
       </n-button>
     </n-flex>
@@ -18,7 +18,7 @@
         <n-button class="control-btn" text :title="$t('DOWNLOAD.TITLE')">
           <n-badge :value="activeDownloadCount" dot>
             <n-icon size="17">
-              <ArrowDownCircleOutline />
+              <FileDownloadOutlined />
             </n-icon>
           </n-badge>
         </n-button>
@@ -30,13 +30,13 @@
     <n-flex class="controls-wrapper">
       <n-button class="control-btn" text :title="$t('APP.BASE.SETTINGS')" @click="handleSettingsClick">
         <n-icon size="14">
-          <SettingsOutline />
+          <SettingsOutlined />
         </n-icon>
       </n-button>
       <n-divider vertical />
       <n-button @click="handleMinimize" class="control-btn" text :title="$t('ACTION.WINDOW.MINIMIZE')">
         <n-icon size="14">
-          <Remove />
+          <MinimizeOutlined />
         </n-icon>
       </n-button>
       <n-button @click="handleMaximize" class="control-btn" text :title="isMaximized
@@ -44,15 +44,15 @@
         : $t('ACTION.WINDOW.MAXIMIZE')
         ">
         <n-icon size="14" v-if="isMaximized">
-          <Contract />
+          <FullscreenExitOutlined />
         </n-icon>
         <n-icon size="14" v-else>
-          <Expand />
+          <FullscreenOutlined />
         </n-icon>
       </n-button>
       <n-button @click="handleClose" class="control-btn" text :title="$t('ACTION.WINDOW.CLOSE')">
         <n-icon size="14">
-          <Close />
+          <CloseOutlined />
         </n-icon>
       </n-button>
     </n-flex>
@@ -63,14 +63,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import {
-  Remove,
-  Expand,
-  Contract,
-  Close,
-  SettingsOutline,
-  Menu,
-  ArrowDownCircleOutline,
-} from "@vicons/ionicons5";
+  MinimizeOutlined,
+  FullscreenOutlined,
+  FullscreenExitOutlined,
+  CloseOutlined,
+  SettingsOutlined,
+  MenuOutlined,
+  FileDownloadOutlined,
+} from "@vicons/material";
 import { useI18n } from "vue-i18n";
 import SettingsView from "@/renderer/components/SettingsView.vue";
 import DownloadProgressPanel from "@/renderer/components/base/DownloadProgressPanel.vue";

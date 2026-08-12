@@ -1,5 +1,5 @@
 {
-  "name": "pentip",
+  "name": "Pentip",
   "version": "1.0.0",
   "description": "Pentip - 基于Electron和Vue 3的跨平台桌面应用",
   "type": "commonjs",
@@ -14,7 +14,7 @@
     "prod": "vite build && electron-builder",
     "lint": "eslint . --fix",
     "typecheck": "vue-tsc --noEmit",
-    "clean": "rd /Q /S dist-renderer dist-electron release 2>nul ",
+    "clean": "powershell -NoProfile -Command \"Remove-Item -Recurse -Force dist-renderer, dist-electron, release -ErrorAction SilentlyContinue; exit 0\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -47,6 +47,7 @@
     "axios": "^1.16.1",
     "better-sqlite3": "^12.9.0",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.9",
     "marked": "^18.0.4",
     "naive-ui": "^2.44.1",
     "openai": "^6.39.1",
@@ -89,6 +90,8 @@
   "build": {
     "appId": "com.pentip.app",
     "productName": "PenTip",
+    "npmRebuild": false,
+    "afterPack": "scripts/afterPack.js",
     "directories": {
       "output": "release"
     },

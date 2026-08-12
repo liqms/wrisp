@@ -89,6 +89,22 @@ export const templates: Template[] = [
 - 行动项：
 `,
   },
+  {
+    id: "plan",
+    profession: "pm",
+    titleKey: "EDITOR.SLASH.PM_TEMPLATE.PLAN_TITLE",
+    descKey: "EDITOR.SLASH.PM_TEMPLATE.PLAN_DESC",
+    icon: '<span style="font-size:14px">🗓️</span>',
+    markdown: `## 工作计划 - {主题}
+- 周期：{起止时间}
+- 目标：
+- 任务：
+  - [ ] {任务1}
+  - [ ] {任务2}
+- 优先级：P0/P1/P2
+- 风险与依赖：
+`,
+  },
 ];
 
 /** 由模板数组 + 职业构建 Slash 命令组；无匹配模板时返回 null */

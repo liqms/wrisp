@@ -26,6 +26,7 @@ import type { PaginationResult } from "@/shared/utils/pagination";
 import type { ModelType } from "@/shared/types/model.types";
 import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
 import type { Concept, ConceptWithBlocks, Topic, TopicWithConceptsAndBlocks, Reflection, ReflectionWithBlocks, TemporalEventWithBlock } from "@/main/types/db";
+import type { UpdateAPI } from "@/main/preload/types/update";
 
 // 定义 IPC API 接口类型（与 preload.ts 保持一致）
 export interface ElectronAPI {
@@ -242,6 +243,9 @@ export interface ElectronAPI {
       detail(id: string): Promise<ApiResponse<ReflectionWithBlocks | null>>;
     };
   };
+
+  // 更新相关
+  update: UpdateAPI;
 
   // 通用 IPC 方法（保持向后兼容）
   send: (channel: string, data: any) => void;

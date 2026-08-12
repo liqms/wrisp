@@ -49,14 +49,14 @@ import { useI18n } from "vue-i18n";
 import type { MenuOption } from "naive-ui";
 import { NIcon } from "naive-ui";
 import type { Component } from "vue";
-import { BookOutline, TodayOutline, Add, LibraryOutline } from "@vicons/ionicons5";
+import { BookOutlined, TodayOutlined, AddOutlined, LibraryBooksOutlined } from "@vicons/material";
 import AppHeader from "../components/AppHeader.vue";
 
 const { t } = useI18n();
 const router = useRouter();
 
-const menuVisible = ref(false);
-const selectedKey = ref("");
+const menuVisible = ref(true);
+const selectedKey = ref("journal");
 
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) });
@@ -66,14 +66,14 @@ const menuOptions = computed<MenuOption[]>(() => [
   {
     label: t("APP.BASE.JOURNAL"),
     key: "journal",
-    icon: renderIcon(TodayOutline),
+    icon: renderIcon(TodayOutlined),
   },
   {
     label: "作品",
     key: "projects",
-    icon: renderIcon(BookOutline),
+    icon: renderIcon(BookOutlined),
   },
-  ]);
+]);
 
 const routeConfigMap: Record<string, { key: string; path: string }> = {
   journal: { key: "journal", path: "/journal" },
