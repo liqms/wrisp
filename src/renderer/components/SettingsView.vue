@@ -1,7 +1,7 @@
 <template>
   <n-modal v-model:show="showModal" preset="card" :title="t('APP.BASE.SETTINGS')"
-    :style="{ maxHeight: '80vh', maxWidth: '900px' }" :segmented="{ content: 'soft', footer: 'soft' }"
-    :mask-closable="false">
+    :style="{ maxHeight: '80vh', maxWidth: '900px', width: 'calc(100% - 60px)' }" :segmented="{ content: 'soft', footer: 'soft' }"
+    :mask-closable="false" header-style="font-size: 16px;">
     <n-flex class="settings-container">
       <div class="settings-sidebar">
         <n-menu :options="menuOptions" v-model:value="activeMenuKey" />
@@ -104,7 +104,7 @@ const currentComponent = computed<Component | null>(() => {
 }
 
 .settings-sidebar {
-  width: 230px;
+  width: 200px;
   flex-shrink: 0;
   border-right: 1px solid var(--border-color);
   overflow-y: auto;
@@ -118,7 +118,7 @@ const currentComponent = computed<Component | null>(() => {
 
 @media screen and (max-width: 900px) {
   .settings-sidebar {
-    width: 180px;
+    width: 160px;
   }
 }
 </style>

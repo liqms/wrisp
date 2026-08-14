@@ -1,11 +1,11 @@
 export default {
   APP: {
     BASE: {
-      NAME: "PenTip",
-      SLOGAN: "Capture Freely. Crystallize Automatically.",
+      NAME: "Wrisp",
+      SLOGAN: "Crisp writing, pure soul.",
       WELCOME: "Welcome to",
       WELCOME_DESC:
-        "Pentip makes it easy to record, think, and create. Record freely, think associatively, create on the fly.",
+        "Wrisp makes it easy to record, think, and create. Record freely, think associatively, create on the fly.",
       FEATURES_1_TITLE: "Quick Capture",
       FEATURES_1_DESC:
         "No thinking required. Just write it down.",

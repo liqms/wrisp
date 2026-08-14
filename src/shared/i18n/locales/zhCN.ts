@@ -1,11 +1,11 @@
 export default {
   APP: {
     BASE: {
-      NAME: "PenTip",
-      SLOGAN: "自由记录，自动结晶",
+      NAME: "Wrisp",
+      SLOGAN: "写干净的字，做纯粹的人",
       WELCOME: "欢迎来到",
       WELCOME_DESC:
-        "Pentip 让记录、思考、创造如此简单。记录，无需整理；思考，自动关联；创造，随手调用。",
+        "Wrisp 让记录、思考、创造如此简单。记录，无需整理；思考，自动关联；创造，随手调用。",
       FEATURES_1_TITLE: "快速记录",
       FEATURES_1_DESC: "不用想放哪，不用起标题，写下就好。",
       FEATURES_2_TITLE: "自动成体系",

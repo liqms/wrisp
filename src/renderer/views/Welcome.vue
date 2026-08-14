@@ -3,7 +3,7 @@
     <n-scrollbar class="welcome-content">
       <n-flex class="welcome-hello">
         <n-flex class="welcome-hello-title">
-          <n-icon :color="themeVars.primaryColor" size="40">
+          <n-icon :color="iconColor" size="40">
             <HeartOutline />
           </n-icon>
           <n-text class="welcome-hello-title-text">{{
@@ -37,7 +37,7 @@
             </n-text>
             <n-text class="welcome-workspace-desc-path">{{ t("SETTINGS.GENERAL_SETTINGS.CURRENT_FOLDER") }}:&nbsp;
               {{ currentWorkspace }}</n-text>
-            <n-flex class="welcome-workspace-btn" @click="selectWorkspace">
+            <n-flex class="welcome-workspace-btn" :style="{ backgroundColor: buttonBgColor }" @click="selectWorkspace">
               <n-text class="welcome-workspace-btn-title">
                 {{ t("SETTINGS.GENERAL_SETTINGS.CHOOSE_FOLDER") }}
               </n-text>
@@ -104,8 +104,11 @@ import { useI18n } from "vue-i18n";
 import { useThemeVars } from "naive-ui";
 import FeatureCard from "@/renderer/components/base/FeatureCard.vue";
 import DownloadButton from "@/renderer/components/base/DownloadButton.vue";
+import { hexToRgb } from "@/shared/enums/themeColor.enums";
 
 const themeVars = useThemeVars();
+const buttonBgColor = computed(() => hexToRgb(themeVars.value.primaryColor, 0.1));
+const iconColor = computed(() => themeVars.value.primaryColor);
 
 const { t } = useI18n();
 const { workspace, updateWorkspace } = useConfig();
@@ -390,7 +393,7 @@ watch(enableAiMode, (val) => {
   flex-direction: column !important;
   padding: $spacing-md;
   margin-top: $spacing-xs;
-  background-color: var(--bg-primary);
+  // background-color: var(--bg-primary);
   border-radius: $radius-md;
   gap: 0px !important;
   align-items: center;
