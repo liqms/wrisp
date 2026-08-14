@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "translate",
   "name": "翻译",
   "description": "将中文文本翻译为其他语言，提供准确、自然、流畅的翻译结果",
   "icon": "🌐",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["conversion", "language"],
   "tags": ["translate", "language", "localization", "convert"],
   "enabled": true,

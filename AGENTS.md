@@ -1,4 +1,4 @@
-# PenTip — Agent Guide
+# Wrisp — Agent Guide
 
 ## Quick start
 
@@ -69,7 +69,7 @@ Path alias: `@/` → `./src/` (tsconfig.app.json, vite.config.ts, vitest.config.
 
 - **IPC 4-layer pattern**: preload module (`preload/modules/<domain>.ts`) → preload type (`preload/types/<domain>.ts`) → core API (`core/apis/<domain>.api.ts`) → ipcMain handler (`ipcMain/<domain>.ipc.ts`), registered in `ipcMain/index.ts` and wired in `main/index.ts`. Reference: `.github/instructions/ipc-channel.instructions.md`. Prompt template: `.github/prompts/add-ipc-channel.prompt.md`.
 - **DAO pattern**: 20 entity DAOs + `migrationDb.dao` extend `BaseDao<T,C,U>` (table-name validation + auto timestamps). Reference: `.github/instructions/dao-pattern.instructions.md`.
-- **DB path**: `<workspace>/sqlite/main.db` (workspace from config or `globalThis.__PENTIP_WORKSPACE_PATH__`).
+- **DB path**: `<workspace>/sqlite/main.db` (workspace from config or `globalThis.__WRISP_WORKSPACE_PATH__`).
 - **Config**: electron-store at `<userData>/config/app.json`. Defaults in `src/main/constants/config.constants.ts`; migrations in `core/migration/config.migration.ts`.
 - **i18n**: `initI18n()` lives in `renderer/plugins/i18n.ts`; awaited before mount in `renderer/main.ts` and called again in `App.vue` mounted — both after Pinia is installed.
 - **TypeScript strict**: `noUnusedLocals` + `noUnusedParameters` are **strict** in `tsconfig.app.json` — build fails on unused vars. `tsconfig.vitest.json` relaxes them for tests.

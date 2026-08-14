@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "summarize",
   "name": "摘要",
   "description": "提取文本的核心要点，生成简洁精炼的摘要，帮助快速把握文本主旨",
   "icon": "📋",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["editing", "rewrite"],
   "tags": ["summarize", "summary", "abstract", "condense"],
   "enabled": true,

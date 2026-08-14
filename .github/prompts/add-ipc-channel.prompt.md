@@ -5,7 +5,7 @@ description: "Use when: adding a new IPC channel domain to the project. Creates 
 
 # 添加新 IPC 通道
 
-为 PenTip 添加一个新的 IPC 通道域。
+为 Wrisp 添加一个新的 IPC 通道域。
 
 ## 领域名称
 

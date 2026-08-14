@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "polish",
   "name": "润色",
   "description": "优化文本表达，提升语言质量和流畅度，使文本更加优美、准确和易读",
   "icon": "✨",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["editing", "polish"],
   "tags": ["polish", "refine", "style", "improve"],
   "enabled": true,

@@ -1,11 +1,11 @@
-﻿// @vitest-environment node
+// @vitest-environment node
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import Database from 'better-sqlite3'
 import path from 'path'
 import fs from 'fs'
 
 vi.mock('electron', () => ({
-  app: { getPath: vi.fn(() => '/tmp'), getVersion: vi.fn(() => '1.0.0'), getName: vi.fn(() => 'PenTip'), on: vi.fn() },
+  app: { getPath: vi.fn(() => '/tmp'), getVersion: vi.fn(() => '1.0.0'), getName: vi.fn(() => 'Wrisp'), on: vi.fn() },
   BrowserWindow: vi.fn(),
   ipcMain: { on: vi.fn(), handle: vi.fn() },
   contextBridge: { exposeInMainWorld: vi.fn() },

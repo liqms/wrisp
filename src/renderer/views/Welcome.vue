@@ -10,7 +10,7 @@
             t("APP.BASE.WELCOME")
           }}</n-text>
           <n-gradient-text class="welcome-hello-title-sub" type="primary">
-            PenTip!
+            Wrisp!
           </n-gradient-text>
         </n-flex>
         <n-text class="welcome-hello-desc">

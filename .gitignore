@@ -16,6 +16,7 @@ dist-ssr
 dist-renderer
 dist-electron
 build
+/index.js
 
 # Release outputs
 release

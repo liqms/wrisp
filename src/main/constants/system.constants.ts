@@ -6,4 +6,4 @@
  */
 
 /** 发布版本（Releases）页面地址 */
-export const RELEASES_URL = "https://github.com/liqms/pentip/releases" as const;
+export const RELEASES_URL = "https://github.com/liqms/wrisp/releases" as const;

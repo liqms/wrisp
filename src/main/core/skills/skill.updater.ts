@@ -32,7 +32,7 @@ class SkillUpdater {
   }
 
   private getSkillsDir(): string {
-    const workspacePath = (globalThis as Record<string, unknown>).__PENTIP_WORKSPACE_PATH__ as string;
+    const workspacePath = (globalThis as Record<string, unknown>).__WRISP_WORKSPACE_PATH__ as string;
     if (workspacePath && workspacePath.trim() !== '') {
       return path.join(workspacePath, 'skills');
     }

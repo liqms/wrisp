@@ -6,7 +6,7 @@ import { Logger } from "@/main/utils/logger";
 import { SQLITE_DIR, MAIN_DB_FILE } from "@/main/constants";
 
 /** 全局存储键名，用于在模块被重复打包时共享状态 */
-const WORKSPACE_PATH_KEY = "__PENTIP_WORKSPACE_PATH__";
+const WORKSPACE_PATH_KEY = "__WRISP_WORKSPACE_PATH__";
 
 /** 数据库连接实例 */
 let db: Database.Database | null = null;
@@ -40,7 +40,7 @@ export function getDbPath(): string {
       throw new Error("workspace path is not set");
     }
   } else {
-    basePath = join(process.cwd(), ".pentip");
+    basePath = join(process.cwd(), ".wrisp");
   }
 
   return join(basePath, SQLITE_DIR, MAIN_DB_FILE);

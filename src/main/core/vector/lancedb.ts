@@ -1,5 +1,5 @@
 // =============================================
-// PenTip LanceDB 向量数据库初始化脚本
+// Wrisp LanceDB 向量数据库初始化脚本
 // 版本: 2.0.0
 // 创建时间: 2026-05-12
 // =============================================
@@ -45,7 +45,7 @@ export function getVectorDbPath(): string {
     }
   } else {
     // 非 Electron 环境（测试、CLI等）
-    basePath = join(process.cwd(), ".pentip");
+    basePath = join(process.cwd(), ".wrisp");
   }
 
   const vectorPath = join(basePath, "vectors");
@@ -321,7 +321,7 @@ export async function searchPageEmbeddings(
  */
 export async function initializeLanceDB(): Promise<Connection> {
   console.log("=============================================");
-  console.log("PenTip LanceDB 向量数据库初始化");
+  console.log("Wrisp LanceDB 向量数据库初始化");
   console.log("=============================================");
 
   try {

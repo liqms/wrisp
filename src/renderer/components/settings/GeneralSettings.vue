@@ -6,7 +6,7 @@
           <n-text class="setting-label">{{
             t("SETTINGS.ABOUT_SETTINGS.CURRENT_VERSION")
             }}</n-text>
-          <n-text class="setting-desc">PenTip V{{ version }}</n-text>
+          <n-text class="setting-desc">Wrisp V{{ version }}</n-text>
           <n-text class="setting-link" @click="openUpdateRecord">{{ t("SETTINGS.GENERAL_SETTINGS.UPDATE_RECORD") }}</n-text>
         </n-flex>
 

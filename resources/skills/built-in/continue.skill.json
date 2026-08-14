@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "continue",
   "name": "续写",
   "description": "根据已有文本的内容和风格，自然流畅地续写后续内容，保持逻辑和文风的一致性",
   "icon": "➡️",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["generation", "continue"],
   "tags": ["continue", "extend", "generate", "write"],
   "enabled": true,

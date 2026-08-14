@@ -1,9 +1,9 @@
-﻿// @vitest-environment node
+// @vitest-environment node
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 // ── Mocks (hoisted by vitest) ──
 vi.mock('electron', () => ({
-  app: { getPath: vi.fn(() => '/tmp'), getVersion: vi.fn(() => '1.0.0'), getName: vi.fn(() => 'PenTip'), on: vi.fn() },
+  app: { getPath: vi.fn(() => '/tmp'), getVersion: vi.fn(() => '1.0.0'), getName: vi.fn(() => 'Wrisp'), on: vi.fn() },
   BrowserWindow: vi.fn(),
   ipcMain: { on: vi.fn(), handle: vi.fn() },
   contextBridge: { exposeInMainWorld: vi.fn() },
@@ -22,7 +22,7 @@ vi.mock('winston-daily-rotate-file', () => ({ default: vi.fn() }))
 // ── Mock configService using vi.hoisted ──
 const mockConfig = vi.hoisted(() => ({
   version: '1.0.0',
-  workspace: '/mock/workspace/PenTip',
+  workspace: '/mock/workspace/Wrisp',
   general: { themeMode: 'system', themeColor: 'green', locale: 'zh-CN' },
 }))
 

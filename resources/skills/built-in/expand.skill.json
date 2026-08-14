@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "expand",
   "name": "扩写",
   "description": "在保持原意的基础上扩展文本内容，增加细节、例证或论述，使内容更加丰富完整",
   "icon": "📈",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["editing", "rewrite"],
   "tags": ["expand", "elaborate", "extend", "detail"],
   "enabled": true,

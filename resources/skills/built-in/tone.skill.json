@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "tone",
   "name": "语气转化",
   "description": "调整文本的语气和表达方式，使其符合特定的沟通场景和受众需求",
   "icon": "🎭",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["editing", "tone"],
   "tags": ["tone", "style", "voice", "mood"],
   "enabled": true,

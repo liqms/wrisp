@@ -98,7 +98,7 @@ export class CleanupService {
 
   /**
    * 获取工作空间路径（从数据库路径推导）
-   * dbPath = {workspace}/sqlite/pentip.db
+   * dbPath = {workspace}/sqlite/wrisp.db
    * @returns 工作空间绝对路径
    */
   private getWorkspacePath(): string {

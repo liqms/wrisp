@@ -1,5 +1,5 @@
 {
-  "name": "Pentip",
+  "name": "wrisp",
   "version": "1.0.0",
   "description": "Wrisp. Crisp writing, pure soul.",
   "type": "commonjs",
@@ -88,12 +88,17 @@
     "vue-tsc": "^3.2.6"
   },
   "build": {
-    "appId": "com.pentip.app",
-    "productName": "PenTip",
+    "appId": "com.wrisp.app",
+    "productName": "Wrisp",
     "npmRebuild": false,
     "afterPack": "scripts/afterPack.js",
     "directories": {
       "output": "release"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "liqms",
+      "repo": "wrisp"
     },
     "files": [
       "dist-renderer/**/*",
@@ -105,7 +110,7 @@
         "nsis",
         "portable"
       ],
-      "icon": "static/pentip.ico"
+      "icon": "static/wrisp.ico"
     },
     "mac": {
       "target": [

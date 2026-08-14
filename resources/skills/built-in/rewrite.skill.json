@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "rewrite",
   "name": "改写",
   "description": "用不同的表达方式重写文本，保留原意的同时改变措辞和句式结构",
   "icon": "🔄",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["editing", "rewrite"],
   "tags": ["rewrite", "rephrase", "paraphrase", "style"],
   "enabled": true,

@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "outline",
   "name": "大纲生成",
   "description": "根据主题或内容自动生成结构化的文章大纲，涵盖主要章节和关键要点",
   "icon": "📑",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["generation", "outline"],
   "tags": ["outline", "structure", "organize", "plan"],
   "enabled": true,

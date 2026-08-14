@@ -51,7 +51,7 @@ class BackupService {
 
       // 备份数据库文件
       const workspacePath =
-        (globalThis as any).__PENTIP_WORKSPACE_PATH__ || "";
+        (globalThis as any).__WRISP_WORKSPACE_PATH__ || "";
       if (workspacePath) {
         const dbDir = path.join(workspacePath, SQLITE_DIR);
         if (fs.existsSync(dbDir)) {
@@ -91,7 +91,7 @@ class BackupService {
       const dbBackup = path.join(restorePath, "sqlite");
       if (fs.existsSync(dbBackup)) {
         const workspacePath =
-          (globalThis as any).__PENTIP_WORKSPACE_PATH__ || "";
+          (globalThis as any).__WRISP_WORKSPACE_PATH__ || "";
         if (workspacePath) {
           const dbDir = path.join(workspacePath, "sqlite");
           fs.mkdirSync(dbDir, { recursive: true });

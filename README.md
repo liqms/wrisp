@@ -1,9 +1,9 @@
-# PenTip
+# Wrisp
 
 > 专为产品经理打造的 AI 认知工作台  
 > Capture Freely. Crystallize Automatically.
 
-PenTip 是一款 **专为产品经理（PM）定制** 的 AI-native 桌面应用，基于 Electron + Vue 3 + TypeScript 构建，采用 **Local-first** 理念。它将 PM 日常碎片化的需求输入、竞品观察、会议纪要、数据洞察统一沉淀为可追溯的知识体系，并在撰写 PRD、竞品报告、Roadmap 时自动召回相关素材，让每一份产出都有据可依。
+Wrisp 是一款 **专为产品经理（PM）定制** 的 AI-native 桌面应用，基于 Electron + Vue 3 + TypeScript 构建，采用 **Local-first** 理念。它将 PM 日常碎片化的需求输入、竞品观察、会议纪要、数据洞察统一沉淀为可追溯的知识体系，并在撰写 PRD、竞品报告、Roadmap 时自动召回相关素材，让每一份产出都有据可依。
 
 ## ✨ 核心卖点
 
@@ -66,7 +66,7 @@ AI 自动建立语义链接、聚类主题、可视化概念网络，让碎片�
 
 ### 下载安装
 
-前往 [Releases 页面](https://github.com/liqms/PenTip/releases) 下载对应平台的安装包：
+前往 [Releases 页面](https://github.com/liqms/wrisp/releases) 下载对应平台的安装包：
 
 | 平台 | 安装包 |
 |------|--------|
@@ -116,8 +116,8 @@ AI 自动建立语义链接、聚类主题、可视化概念网络，让碎片�
 
 ## 📞 联系方式
 
-- 项目主页: https://github.com/liqms/PenTip
-- 问题反馈: https://github.com/liqms/PenTip/issues
+- 项目主页: https://github.com/liqms/wrisp
+- 问题反馈: https://github.com/liqms/wrisp/issues
 - 邮箱: liqms@msn.cn
 
 ---

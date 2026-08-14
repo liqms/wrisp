@@ -42,7 +42,7 @@ const { t } = useI18n();
 const configStore = useConfig();
 const config = configStore.config;
 
-const STORAGE_KEY = "PENTIP_SETTINGS_MENU_KEY";
+const STORAGE_KEY = "WRISP_SETTINGS_MENU_KEY";
 
 const activeMenuKey = ref<string>(
   localStorage.getItem(STORAGE_KEY) || "general",

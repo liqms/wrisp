@@ -79,7 +79,7 @@ class ConfigService {
     const now = TimeUtil.toISOString(new Date());
     const appVersion = getAppVersion();
     const documentsPath = app.getPath("documents");
-    const defaultWorkspace = path.join(documentsPath, "PenTip");
+    const defaultWorkspace = path.join(documentsPath, "Wrisp");
 
     return {
       ...DEFAULT_APP_CONFIG,
@@ -258,7 +258,7 @@ class ConfigService {
       if (!workspacePath || workspacePath.trim() === "") {
         throw new Error("工作空间路径不能为空");
       }
-      const newWorkspace = path.join(workspacePath.trim(), "PenTip");
+      const newWorkspace = path.join(workspacePath.trim(), "Wrisp");
       const normalizedPath = path.resolve(newWorkspace);
       if (!fs.existsSync(normalizedPath)) {
         fs.mkdirSync(normalizedPath, { recursive: true });

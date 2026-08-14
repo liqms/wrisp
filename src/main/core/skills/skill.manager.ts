@@ -41,7 +41,7 @@ class SkillManager {
   public initialize(): void {
     try {
       const workspacePath: string = (globalThis as Record<string, unknown>)
-        .__PENTIP_WORKSPACE_PATH__ as string;
+        .__WRISP_WORKSPACE_PATH__ as string;
 
       if (workspacePath && workspacePath.trim() !== "") {
         this.skillsDir = path.join(workspacePath, "skills");

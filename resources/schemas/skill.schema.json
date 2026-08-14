@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://pentip.app/schemas/skill.schema.json",
+  "$id": "https://trywrisp.com/schemas/skill.schema.json",
   "title": "Skill",
-  "description": "PenTip Skill 定义规范",
+  "description": "Wrisp Skill 定义规范",
   "type": "object",
   "required": [
     "id",

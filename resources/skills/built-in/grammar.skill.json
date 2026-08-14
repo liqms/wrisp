@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "grammar",
   "name": "语法修正",
   "description": "检查并修正文本中的语法、标点、用词和句式错误，确保文本规范正确",
   "icon": "📝",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["editing", "polish"],
   "tags": ["grammar", "correction", "proofread", "spelling"],
   "enabled": true,

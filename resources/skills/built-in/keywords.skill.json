@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "keywords",
   "name": "关键词提取",
   "description": "从文本中提取核心关键词和关键短语，识别文本的主要主题和重点内容",
   "icon": "🔑",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["analysis", "keyword"],
   "tags": ["keywords", "extraction", "analysis", "topic"],
   "enabled": true,

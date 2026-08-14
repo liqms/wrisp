@@ -157,7 +157,7 @@ export default {
     JOURNAL: {
       SEND: "Quick Capture",
       INPUT_JOURNAL_TIP:
-        "Quickly capture your thoughts, ideas or notes. PenTip will automatically help you associate, organize and precipitate them into a knowledge system.",
+        "Quickly capture your thoughts, ideas or notes. Wrisp will automatically help you associate, organize and precipitate them into a knowledge system.",
       SEND_TIP: "Press Enter for a new line, Shift + Enter to capture",
       LOAD_EXISTING_TITLE: "Journal Exists",
       LOAD_EXISTING_CONTENT: "A journal entry for today already exists. Do you want to load the existing content or overwrite it?",
@@ -226,8 +226,8 @@ export default {
       LOCALE_ZH_CN: "简体中文",
       LOCALE_EN_US: "English",
       UPDATE_RECORD: "Update Record",
-      UPDATE_RECORD_DESC: "Check and update PenTip to the latest version",
-      SELECT_THEME_DESC: "Set PenTip theme mode",
+      UPDATE_RECORD_DESC: "Check and update Wrisp to the latest version",
+      SELECT_THEME_DESC: "Set Wrisp theme mode",
       SELECT_ACCENT_COLOR_DESC: "Select a theme color. This color will affect the color of selected elements, links, etc.",
       SELECT_LOCALE_DESC: "Change interface language",
       SELECT_LOCALE: "Select Language",
@@ -236,7 +236,7 @@ export default {
       CHOOSE_FOLDER_TITLE:
         "First, you need to choose a folder as your workspace.",
       CHOOSE_FOLDER_DESC:
-        "Inside this folder, PenTip will store all your thoughts, ideas, notes.",
+        "Inside this folder, Wrisp will store all your thoughts, ideas, notes.",
       CHOOSE_FOLDER_DESC_2: "Open existing directory or Create new one.",
       CURRENT_FOLDER: "Current Folder",
     },
@@ -257,16 +257,16 @@ export default {
       INTELLIGENT: "Intelligent",
       AI_MODE: "Intelligent Mode",
       ENABLE_AI_MODE: "Enable AI Mode",
-      ENABLE_AI_MODE_TITLE: "Second, you need to enable the local intelligence of PenTip.",
+      ENABLE_AI_MODE_TITLE: "Second, you need to enable the local intelligence of Wrisp.",
       ENABLE_AI_MODE_DESC:
-        "PenTip needs to download AI models to achieve local intelligence.",
+        "Wrisp needs to download AI models to achieve local intelligence.",
       ENABLE_AI_MODE_DESC_2:
-        "To unlock automatic concept extraction and topic crystallization, Pentip requires downloading 2 local AI models (~2.3 GB). The model stays on your device — safe and private. You can also turn it on later in Settings.",
+        "To unlock automatic concept extraction and topic crystallization, Wrisp requires downloading 2 local AI models (~2.3 GB). The model stays on your device — safe and private. You can also turn it on later in Settings.",
       ENABLE_AI_MODE_DESC_3:
-        "PenTip will help you associate, organize, and precipitate them into a knowledge system.",
+        "Wrisp will help you associate, organize, and precipitate them into a knowledge system.",
       ENABLE_AI_CLOUD:
         "Enable Cloud LLM",
-      ENABLE_AI_CLOUD_TITLE: "Third, you need to enable the cloud intelligence of PenTip.",
+      ENABLE_AI_CLOUD_TITLE: "Third, you need to enable the cloud intelligence of Wrisp.",
       ENABLE_AI_CLOUD_DESC_3:
         "You can use the cloud AI to enhance your creation.",
       ADD_PROVIDER: "Add Provider",

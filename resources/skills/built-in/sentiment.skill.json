@@ -1,11 +1,11 @@
 {
-  "$schema": "https://pentip.app/schemas/skill.schema.json",
+  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
   "id": "sentiment",
   "name": "情感分析",
   "description": "分析文本的情感倾向和情绪色彩，识别作者的态度、情绪和立场",
   "icon": "💭",
   "version": "1.0.0",
-  "author": "PenTip Team",
+  "author": "Wrisp Team",
   "category": ["analysis", "sentiment"],
   "tags": ["sentiment", "emotion", "analysis", "tone"],
   "enabled": true,

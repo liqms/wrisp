@@ -11,7 +11,7 @@
 export const SQLITE_DIR = "sqlite" as const;
 
 /** 主数据库文件名 */
-export const MAIN_DB_FILE = "pentip.db" as const;
+export const MAIN_DB_FILE = "wrisp.db" as const;
 
 // ============ UserData 文件夹 ============
 
@@ -53,7 +53,7 @@ export const DIST_ELECTRON_DIR = "dist-electron" as const;
 // ============ 默认工作空间 ============
 
 /** 默认工作空间文件夹名称（位于用户文档目录下） */
-export const DEFAULT_WORKSPACE_DIR = "PenTip" as const;
+export const DEFAULT_WORKSPACE_DIR = "Wrisp" as const;
 
 /** 作品文件夹 */
 export const PROJECT_DIR = "projects" as const;

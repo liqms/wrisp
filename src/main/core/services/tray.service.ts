@@ -44,7 +44,7 @@ export class TrayService {
       // 调整图标大小为 16x16（Windows 托盘标准尺寸）
       const resizedIcon = icon.resize({ width: 16, height: 16 })
       this.tray = new Tray(resizedIcon)
-      this.tray.setToolTip('PenTip')
+      this.tray.setToolTip('Wrisp')
       this.tray.setContextMenu(this.createContextMenu())
 
       // 点击托盘图标显示主窗口
@@ -81,7 +81,7 @@ export class TrayService {
       {
         label: '打开官方网站',
         click: () => {
-          shell.openExternal('https://pentip.app')
+          shell.openExternal('https://trywrisp.com')
         },
       },
       { type: 'separator' },
@@ -117,11 +117,11 @@ export class TrayService {
   private resolveIconPath(): string | null {
     const possiblePaths = [
       // 开发环境：__dirname = dist-electron/
-      path.join(__dirname, '..', 'static', 'pentip.png'),
+      path.join(__dirname, '..', 'static', 'wrisp.png'),
       // 生产环境（asar 打包）
-      path.join(process.resourcesPath || '', 'static', 'pentip.png'),
+      path.join(process.resourcesPath || '', 'static', 'wrisp.png'),
       // 应用根目录
-      path.join(app.getAppPath(), 'static', 'pentip.png'),
+      path.join(app.getAppPath(), 'static', 'wrisp.png'),
     ]
 
     for (const p of possiblePaths) {
