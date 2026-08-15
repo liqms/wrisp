@@ -6,16 +6,22 @@ export function deleteSlashText(editor: Editor, pos: number) {
   const { state } = editor;
   const { doc } = state;
   let endPos = pos;
-  while (endPos < doc.content.size) {
+  // 查询文本始终位于同一文本块内，因此以文本块末尾为扫描边界。
+  // 节点边界处 textBetween 返回空串（而非 \n），若越过边界会把后续节点的内容一并删除。
+  const blockEnd = doc.resolve(pos).end();
+  while (endPos < blockEnd && endPos < doc.content.size) {
     const char = doc.textBetween(endPos, endPos + 1);
-    if (char === " " || char === "\n") break;
+    if (char === " " || char === "\n" || char === "") break;
     endPos++;
   }
   if (endPos === pos) {
-    const textBefore = doc.textBetween(Math.max(0, pos - 10), pos);
+    // 查询在菜单输入框中输入时，编辑器内只有 "/"。
+    // 仅在当前文本块内反向查找斜杠，避免越过块边界把前一区块的内容一并删除。
+    const blockStart = doc.resolve(pos).start();
+    const textBefore = doc.textBetween(blockStart, pos);
     const slashIdx = textBefore.lastIndexOf("/");
     if (slashIdx >= 0) {
-      const actualStart = Math.max(0, pos - 10) + slashIdx;
+      const actualStart = blockStart + slashIdx;
       editor
         .chain()
         .focus()

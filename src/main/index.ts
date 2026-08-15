@@ -68,17 +68,10 @@ async function initializeDatabase(): Promise<void> {
   try {
     Logger.info("开始初始化数据库");
 
-    const isInitialized = databaseMigration.isDatabaseInitialized();
-
-    if (!isInitialized) {
-      Logger.info("数据库未初始化，执行初始化");
-      await databaseMigration.executeDatabaseMigration();
-    } else {
-      Logger.info("数据库已初始化，检查版本迁移");
-      await databaseMigration.executeDatabaseMigration(
-        process.env.SQLITE_DB_VERSION || "1.0.0",
-      );
-    }
+    // 目标版本从迁移文件/待执行迁移记录派生，不再依赖 .env 的 SQLITE_DB_VERSION。
+    // 未初始化时 executeDatabaseMigration 内部会先执行 initDatabaseSchema。
+    const targetVersion = databaseMigration.getTargetVersion();
+    await databaseMigration.executeDatabaseMigration(targetVersion);
 
     Logger.info("数据库初始化完成");
   } catch (error) {

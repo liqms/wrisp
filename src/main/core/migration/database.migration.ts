@@ -217,6 +217,32 @@ export class DatabaseMigration {
   }
 
   /**
+   * 获取数据库迁移的目标版本号。
+   * 取「迁移文件 + 待执行迁移记录」中的最高版本号；两者都为空时返回 "0.0.0"（无需迁移）。
+   * 作为 executeDatabaseMigration 的目标版本，替代原先对 .env SQLITE_DB_VERSION 的依赖。
+   * @returns 目标版本号
+   */
+  public getTargetVersion(): string {
+    const migrationFiles = this.loadMigrationFiles();
+    const pendingMigrations = this.migrationDbDao.findPendingMigrations();
+
+    let target = "0.0.0";
+
+    for (const file of migrationFiles) {
+      if (compareVersions(file.version, target) === VersionComparison.NEWER) {
+        target = file.version;
+      }
+    }
+    for (const migration of pendingMigrations) {
+      if (compareVersions(migration.version, target) === VersionComparison.NEWER) {
+        target = migration.version;
+      }
+    }
+
+    return target;
+  }
+
+  /**
    * 执行数据库迁移，将数据库升级到目标版本。
    * 如果数据库尚未初始化，先执行 initDatabaseSchema；如果当前版本低于目标版本，
    * 按顺序执行所有未执行的迁移文件（优先从文件加载，否则从 migrations_db 表读取）。

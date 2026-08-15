@@ -1,6 +1,6 @@
 {
   "name": "wrisp",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Wrisp. Crisp writing, pure soul.",
   "type": "commonjs",
   "author": "iclassink",
@@ -10,6 +10,7 @@
     "dev": "node scripts/dev.js",
     "build": "vue-tsc && vite build",
     "start": "electron .",
+    "bump": "node scripts/bump-version.mjs",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "prod": "vite build && electron-builder",
     "lint": "eslint . --fix",
@@ -110,7 +111,7 @@
         "nsis",
         "portable"
       ],
-      "icon": "static/wrisp.ico"
+      "icon": "static/wrisp.png"
     },
     "mac": {
       "target": [
