@@ -6,6 +6,10 @@ on:
       - "v*"
   workflow_dispatch:
 
+# GITHUB_TOKEN 默认对 contents 只读，发布 GitHub Release 需要写权限
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Release on ${{ matrix.os }}
@@ -37,10 +41,12 @@ jobs:
       - name: Build & Publish to GitHub Releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS 签名与公证（可选，如配置了以下 secrets 则启用）
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # macOS 签名与公证（可选）。注意：不要在未配置 secret 时传入空字符串，
+          # 空 CSC_LINK 会被 electron-builder 当作证书路径解析导致构建失败
+          # （Error: <projectDir> not a file）。配置好 secrets 后请恢复以下行：
+          # CSC_LINK: ${{ secrets.CSC_LINK }}
+          # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: pnpm prod --publish always
