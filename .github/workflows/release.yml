@@ -6,6 +6,10 @@ on:
       - "v*"
   workflow_dispatch:
 
+# GITHUB_TOKEN 默认对 contents 只读，发布 GitHub Release 需要写权限
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Release on ${{ matrix.os }}
