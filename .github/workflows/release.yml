@@ -20,14 +20,16 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
 
     steps:
+      # Node 20 运行时已于 2026-06-02 被 GitHub Actions 强制迁移到 Node 24，
+      # 这里使用基于 Node 24 的 action 版本以消除弃用警告
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: pnpm
