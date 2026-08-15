@@ -12,7 +12,7 @@ export class ModelConfigMigration {
 
   private registerMigrations(): void {
     this.addMigration({
-      version: '1.0.0',
+      version: '0.1.0',
       description: '初始版本迁移',
       migrate: (config: any) => {
         if (!config.aiProviders) {
@@ -31,7 +31,7 @@ export class ModelConfigMigration {
           config.enableCloudAi = false
         }
         if (!config.version) {
-          config.version = '1.0.0'
+          config.version = '0.1.0'
         }
         if (!config.updatedAt) {
           config.updatedAt = TimeUtil.toISOString(Date.now())

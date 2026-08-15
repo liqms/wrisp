@@ -12,14 +12,14 @@ export class ConfigMigration {
 
   private registerMigrations(): void {
     this.addMigration({
-      version: '1.0.0',
+      version: '0.1.0',
       description: '初始版本迁移',
       migrate: (config: any) => {
         if (!config.general) {
           config.general = {}
         }
         if (!config.version) {
-          config.version = '1.0.0'
+          config.version = '0.1.0'
         }
         if (!config.workspace) {
           config.workspace = ''

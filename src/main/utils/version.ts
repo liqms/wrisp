@@ -1,4 +1,6 @@
 
+import { app } from "electron";
+
 export enum VersionComparison {
   OLDER = -1,
   EQUAL = 0,
@@ -38,11 +40,14 @@ export function needsMigration(currentVersion: string, targetVersion: string): b
 
 /**
  * 获取应用版本号
+ * 唯一权威来源为 package.json（打包后 app.getVersion() 即 package.json 的 version），
+ * 不再依赖 .env 中的 APP_VERSION，避免生产环境（.env 未打包）版本回退为 0.0.0。
  * @returns 应用版本号
  */
 export function getAppVersion(): string {
-  if (process.env.APP_VERSION) {
-    return process.env.APP_VERSION
+  try {
+    return app.getVersion();
+  } catch {
+    return "0.0.0";
   }
-  return '0.0.0'
 }

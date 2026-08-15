@@ -217,6 +217,42 @@ export class DatabaseMigration {
   }
 
   /**
+   * 获取数据库迁移的目标版本号。
+   * 取「迁移文件 + 待执行迁移记录」中的最高版本号；两者都为空时返回 "0.0.0"（无需迁移）。
+   * 作为 executeDatabaseMigration 的目标版本，替代原先对 .env SQLITE_DB_VERSION 的依赖。
+   * @returns 目标版本号
+   */
+  public getTargetVersion(): string {
+    const migrationFiles = this.loadMigrationFiles();
+
+    let target = "0.0.0";
+
+    for (const file of migrationFiles) {
+      if (compareVersions(file.version, target) === VersionComparison.NEWER) {
+        target = file.version;
+      }
+    }
+
+    // 数据库尚未初始化时不存在 migrations_db 表，无法查询待执行迁移记录，
+    // 此时直接以迁移文件中的最高版本作为目标版本。
+    // executeDatabaseMigration 内部会先执行 initDatabaseSchema 完成初始化。
+    if (this.isDatabaseInitialized()) {
+      const pendingMigrations = this.migrationDbDao.findPendingMigrations();
+
+      for (const migration of pendingMigrations) {
+        if (
+          compareVersions(migration.version, target) ===
+          VersionComparison.NEWER
+        ) {
+          target = migration.version;
+        }
+      }
+    }
+
+    return target;
+  }
+
+  /**
    * 执行数据库迁移，将数据库升级到目标版本。
    * 如果数据库尚未初始化，先执行 initDatabaseSchema；如果当前版本低于目标版本，
    * 按顺序执行所有未执行的迁移文件（优先从文件加载，否则从 migrations_db 表读取）。
@@ -226,6 +262,14 @@ export class DatabaseMigration {
    */
   public executeDatabaseMigration(targetVersion: string = "1.0.0"): boolean {
     try {
+      // 数据库尚未初始化（如首次运行/全新安装）时，migrations_db 表不存在，
+      // 无法查询当前版本，直接执行初始化脚本。
+      if (!this.isDatabaseInitialized()) {
+        Logger.info("数据库尚未初始化，执行初始化");
+        this.initDatabaseSchema();
+        return true;
+      }
+
       const currentVersion = this.getDatabaseVersion();
 
       if (!currentVersion) {
@@ -262,10 +306,10 @@ export class DatabaseMigration {
         migrationFiles.length > 0
           ? this.buildMigrationsFromFiles(migrationFiles, pendingMigrations)
           : pendingMigrations.map((m) => ({
-              id: m.id,
-              version: m.version,
-              sql_statement: m.sql_statement,
-            }));
+            id: m.id,
+            version: m.version,
+            sql_statement: m.sql_statement,
+          }));
 
       for (const migration of migrationsToProcess) {
         if (

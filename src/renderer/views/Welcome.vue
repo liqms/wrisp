@@ -3,7 +3,7 @@
     <n-scrollbar class="welcome-content">
       <n-flex class="welcome-hello">
         <n-flex class="welcome-hello-title">
-          <n-icon :color="iconColor" size="40">
+          <n-icon :color="themeVars.primaryColor" size="40">
             <HeartOutline />
           </n-icon>
           <n-text class="welcome-hello-title-text">{{
@@ -27,7 +27,7 @@
         </n-text>
         <n-flex class="welcome-workspace-card">
           <n-flex class="welcome-workspace-icon-wrapper">
-            <n-icon class="welcome-workspace-icon" size="54">
+            <n-icon :color="iconColor" size="54">
               <Folder />
             </n-icon>
           </n-flex>
@@ -57,7 +57,7 @@
 
         <n-flex class="welcome-enable-ai-mode-card">
           <n-flex class="welcome-enable-ai-mode-icon-wrapper">
-            <n-icon class="welcome-enable-ai-mode-icon" size="54">
+            <n-icon :color="iconColor" size="54">
               <Cube />
             </n-icon>
           </n-flex>
@@ -108,7 +108,7 @@ import { hexToRgb } from "@/shared/enums/themeColor.enums";
 
 const themeVars = useThemeVars();
 const buttonBgColor = computed(() => hexToRgb(themeVars.value.primaryColor, 0.1));
-const iconColor = computed(() => themeVars.value.primaryColor);
+const iconColor = computed(() => hexToRgb(themeVars.value.primaryColor, 0.5));
 
 const { t } = useI18n();
 const { workspace, updateWorkspace } = useConfig();

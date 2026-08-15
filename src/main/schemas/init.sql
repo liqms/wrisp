@@ -1,6 +1,6 @@
 -- =============================================
 -- Wrisp 数据库初始化脚本
--- 版本: 2.0.0
+-- 版本: 0.1.0
 -- 创建时间: 2026-06-28
 -- 基于 docs/storage/sqlite.md v2 设计
 -- =============================================
@@ -408,9 +408,9 @@ CREATE INDEX IF NOT EXISTS idx_skill_executions_created_at ON skill_executions(c
 INSERT OR IGNORE INTO migrations_db (id, version, name, description, sql_statement, status, executed_at, created_at, updated_at)
 VALUES (
     '00000000-0000-0000-0000-000000000001',
-    '2.0.0',
+    '0.1.0',
     'Init Tables and Indexes',
-    '初始化 v2 架构：file_index + semantic_chunks + FTS + AI 索引表',
+    '初始化 v0.1 架构：file_index + semantic_chunks + FTS + AI 索引表',
     'CREATE TABLE file_index, semantic_chunks, semantic_chunks_fts, concepts_fts, topics_fts, projects_fts, pages_fts, tags, tagged_items, semantic_links, concepts, concept_chunks, topics, topic_chunks, topic_concepts, temporal_events, reflections, reflection_chunks, projects,  project_chunks, pages, migrations_db, tasks, skill_executions',
     'executed',
     '2026-06-28T00:00:00.000Z',

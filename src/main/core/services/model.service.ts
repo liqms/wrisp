@@ -14,7 +14,7 @@ import { BUILTIN_MODELS, resolveModelUrl } from "@/main/core/model-gateway/local
 import { notificationService } from "@/main/core/services/notification.service";
 import { t } from "@/main/utils/i18n";
 import { modelConfigMigration } from "@/main/core/migration/model.migration";
-import { needsMigration } from "@/main/utils/version";
+import { needsMigration, getAppVersion } from "@/main/utils/version";
 
 class ModelService {
   private static instance: ModelService | null = null;
@@ -72,7 +72,7 @@ class ModelService {
       let mergedConfig = ObjectUtil.deepMerge(defaultConfig, storeData as Partial<ModelConfig>);
 
       // 检查版本并执行迁移
-      const appVersion = this.getDefaultConfig().version;
+      const appVersion = getAppVersion();
       const configVersion = mergedConfig.version || "0.0.0";
 
       if (needsMigration(configVersion, appVersion)) {

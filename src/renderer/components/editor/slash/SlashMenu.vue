@@ -242,7 +242,7 @@ onBeforeUnmount(() => {
   transition: border-color $transition-fast ease, box-shadow $transition-fast ease;
 
   &::placeholder {
-    color: var(--text-tertiary);
+    color: var(--text-third);
   }
 
   &:focus {
@@ -267,7 +267,7 @@ onBeforeUnmount(() => {
 .slash-group-label {
   padding: $spacing-xs $spacing-md;
   font-size: $font-xs;
-  color: var(--text-tertiary);
+  color: var(--text-third);
   font-weight: $font-medium;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -317,7 +317,7 @@ onBeforeUnmount(() => {
 
   .cmd-desc {
     font-size: $font-xs;
-    color: var(--text-tertiary);
+    color: var(--text-third);
     line-height: 1.3;
   }
 }
@@ -326,6 +326,6 @@ onBeforeUnmount(() => {
   padding: $spacing-xl 0;
   text-align: center;
   font-size: $font-xs;
-  color: var(--text-tertiary);
+  color: var(--text-third);
 }
 </style>

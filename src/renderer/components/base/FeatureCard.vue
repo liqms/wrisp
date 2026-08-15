@@ -1,6 +1,6 @@
 <template>
   <n-flex class="welcome-features-item">
-    <n-icon class="welcome-features-icon" size="48">
+    <n-icon :color="iconColor" size="48">
       <component :is="icon" />
     </n-icon>
     <n-text class="welcome-features-title">
@@ -13,7 +13,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import type { Component } from "vue";
+import { hexToRgb } from "@/shared/enums/themeColor.enums";
+import { useThemeVars } from "naive-ui";
+
+const themeVars = useThemeVars();
+const iconColor = computed(() => hexToRgb(themeVars.value.primaryColor, 0.5));
 const props = defineProps<{
   icon: Component;
   title: string;
@@ -35,9 +41,6 @@ const props = defineProps<{
   padding: $spacing-md;
 }
 
-.welcome-features-icon {
-  color: var(--primary-color);
-}
 
 .welcome-features-title {
   font-size: $font-sm;
@@ -47,7 +50,7 @@ const props = defineProps<{
 
 .welcome-features-desc {
   font-size: $font-xs;
-  color: var(--text-tertiary);
+  color: var(--text-third);
 }
 
 @media (max-width: $breakpoint-lg) {

@@ -88,7 +88,7 @@ export function useConfig(options: UseConfigOptions = {}) {
   });
 
   // 版本和升级相关
-  const version = computed(() => config.value?.version ?? "1.0.0");
+  const version = computed(() => config.value?.version ?? "0.1.0");
 
   const shortcuts = computed(() => config.value?.shortcuts ?? []);
 
