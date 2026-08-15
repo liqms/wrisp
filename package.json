@@ -1,9 +1,9 @@
 {
   "name": "wrisp",
   "version": "0.1.0",
-  "description": "Wrisp. Crisp writing, pure soul.",
+  "description": "Crisp writing, pure soul.",
   "type": "commonjs",
-  "author": "iclassink",
+  "author": "Wrisp Team",
   "license": "AGPL-3.0",
   "main": "dist-electron/index.js",
   "scripts": {

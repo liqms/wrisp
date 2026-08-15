@@ -50,7 +50,7 @@ const props = defineProps<{
 
 .welcome-features-desc {
   font-size: $font-xs;
-  color: var(--text-tertiary);
+  color: var(--text-third);
 }
 
 @media (max-width: $breakpoint-lg) {

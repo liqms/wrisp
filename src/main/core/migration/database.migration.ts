@@ -224,7 +224,6 @@ export class DatabaseMigration {
    */
   public getTargetVersion(): string {
     const migrationFiles = this.loadMigrationFiles();
-    const pendingMigrations = this.migrationDbDao.findPendingMigrations();
 
     let target = "0.0.0";
 
@@ -233,9 +232,20 @@ export class DatabaseMigration {
         target = file.version;
       }
     }
-    for (const migration of pendingMigrations) {
-      if (compareVersions(migration.version, target) === VersionComparison.NEWER) {
-        target = migration.version;
+
+    // 数据库尚未初始化时不存在 migrations_db 表，无法查询待执行迁移记录，
+    // 此时直接以迁移文件中的最高版本作为目标版本。
+    // executeDatabaseMigration 内部会先执行 initDatabaseSchema 完成初始化。
+    if (this.isDatabaseInitialized()) {
+      const pendingMigrations = this.migrationDbDao.findPendingMigrations();
+
+      for (const migration of pendingMigrations) {
+        if (
+          compareVersions(migration.version, target) ===
+          VersionComparison.NEWER
+        ) {
+          target = migration.version;
+        }
       }
     }
 
@@ -252,6 +262,14 @@ export class DatabaseMigration {
    */
   public executeDatabaseMigration(targetVersion: string = "1.0.0"): boolean {
     try {
+      // 数据库尚未初始化（如首次运行/全新安装）时，migrations_db 表不存在，
+      // 无法查询当前版本，直接执行初始化脚本。
+      if (!this.isDatabaseInitialized()) {
+        Logger.info("数据库尚未初始化，执行初始化");
+        this.initDatabaseSchema();
+        return true;
+      }
+
       const currentVersion = this.getDatabaseVersion();
 
       if (!currentVersion) {
@@ -288,10 +306,10 @@ export class DatabaseMigration {
         migrationFiles.length > 0
           ? this.buildMigrationsFromFiles(migrationFiles, pendingMigrations)
           : pendingMigrations.map((m) => ({
-              id: m.id,
-              version: m.version,
-              sql_statement: m.sql_statement,
-            }));
+            id: m.id,
+            version: m.version,
+            sql_statement: m.sql_statement,
+          }));
 
       for (const migration of migrationsToProcess) {
         if (
