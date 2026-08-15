@@ -4,6 +4,8 @@
   "description": "Crisp writing, pure soul.",
   "type": "commonjs",
   "author": "Wrisp Team",
+  "homepage": "https://trywrisp.com",
+  "email": "liqms@msn.cn",
   "license": "AGPL-3.0",
   "main": "dist-electron/index.js",
   "scripts": {
@@ -120,6 +122,7 @@
       ]
     },
     "linux": {
+      "maintainer": "Wrisp Team <liqms@msn.cn>",
       "target": [
         "deb",
         "rpm",
