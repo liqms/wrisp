@@ -31,7 +31,7 @@ function findFiles(dir, fileName, results = []) {
 }
 
 exports.default = async function afterPack(context) {
-  const { appOutDir } = context;
+  const { appOutDir, electronPlatformName } = context;
   const src = path.join(
     process.cwd(),
     "node_modules",
@@ -46,7 +46,18 @@ exports.default = async function afterPack(context) {
     return;
   }
 
-  const resourcesDir = path.join(appOutDir, "resources");
+  // macOS 下 app 是 <productName>.app 目录，resources 在其 Contents 下；
+  // Windows/Linux 下 resources 直接位于 appOutDir 下。
+  let resourcesDir = path.join(appOutDir, "resources");
+  if (electronPlatformName === "darwin") {
+    const appDir = fs
+      .readdirSync(appOutDir)
+      .find((name) => name.endsWith(".app"));
+    if (appDir) {
+      resourcesDir = path.join(appOutDir, appDir, "Contents", "Resources");
+    }
+  }
+
   const targets = findFiles(resourcesDir, "better_sqlite3.node");
 
   if (targets.length === 0) {
