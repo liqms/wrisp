@@ -1,0 +1,187 @@
+-- lexer tokens --
+paragraph "段落里的标签 ##紧急## 结束"
+  text "段落里的标签 "
+  taskTag "##紧急##"
+  text " 结束"
+-- parsed json --
+{
+ "type": "doc",
+ "content": [
+  {
+   "type": "heading",
+   "attrs": {
+    "level": 2
+   },
+   "content": [
+    {
+     "type": "text",
+     "text": "待办清单"
+    }
+   ]
+  },
+  {
+   "type": "taskList",
+   "content": [
+    {
+     "type": "taskItem",
+     "attrs": {
+      "checked": false
+     },
+     "content": [
+      {
+       "type": "paragraph",
+       "content": [
+        {
+         "type": "text",
+         "text": "任务1 "
+        },
+        {
+         "type": "text",
+         "text": "p0",
+         "marks": [
+          {
+           "type": "taskTag",
+           "attrs": {
+            "value": "p0",
+            "kind": "priority"
+           }
+          }
+         ]
+        },
+        {
+         "type": "text",
+         "text": " "
+        },
+        {
+         "type": "text",
+         "text": "2026-08-16",
+         "marks": [
+          {
+           "type": "taskTag",
+           "attrs": {
+            "value": "2026-08-16",
+            "kind": "datetime"
+           }
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "taskItem",
+     "attrs": {
+      "checked": true
+     },
+     "content": [
+      {
+       "type": "paragraph",
+       "content": [
+        {
+         "type": "text",
+         "text": "已完成 "
+        },
+        {
+         "type": "text",
+         "text": "work",
+         "marks": [
+          {
+           "type": "taskTag",
+           "attrs": {
+            "value": "work",
+            "kind": "custom"
+           }
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "content": [
+    {
+     "type": "text",
+     "text": "段落里的标签 "
+    },
+    {
+     "type": "text",
+     "text": "紧急",
+     "marks": [
+      {
+       "type": "taskTag",
+       "attrs": {
+        "value": "紧急",
+        "kind": "custom"
+       }
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": " 结束，日期 "
+    },
+    {
+     "type": "text",
+     "text": "2026-08-16",
+     "marks": [
+      {
+       "type": "taskTag",
+       "attrs": {
+        "value": "2026-08-16",
+        "kind": "datetime"
+       }
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "，时间 "
+    },
+    {
+     "type": "text",
+     "text": "14:30",
+     "marks": [
+      {
+       "type": "taskTag",
+       "attrs": {
+        "value": "14:30",
+        "kind": "datetime"
+       }
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "，优先级 "
+    },
+    {
+     "type": "text",
+     "text": "P1",
+     "marks": [
+      {
+       "type": "taskTag",
+       "attrs": {
+        "value": "P1",
+        "kind": "priority"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
+-- serialized --
+## 待办清单
+
+- [ ] 任务1 ##p0## ##2026-08-16##
+- [x] 已完成 ##work##
+
+段落里的标签 ##紧急## 结束，日期 ##2026-08-16##，时间 ##14:30##，优先级 ##P1##
+-- roundtrip match --
+true

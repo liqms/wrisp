@@ -5,7 +5,7 @@
       <n-layout-sider bordered :width="200" :collapsed-width="64" :collapse-mode="'width'" :collapsed="menuVisible"
         class="sidebar">
         <n-flex vertical class="menu-container-main">
-          <n-menu :options="menuOptions" v-model:value="selectedKey" :collapsed="menuVisible" :collapsed-width="64"
+          <n-menu v-model:value="selectedKey" :options="menuOptions" :collapsed="menuVisible" :collapsed-width="64"
             :collapsed-icon-size="20" :icon-size="18" mode="vertical" @update:value="handleMenuClick" />
         </n-flex>
         <!-- 
@@ -43,13 +43,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, h } from "vue";
+import { ref, computed, h } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { MenuOption } from "naive-ui";
 import { NIcon } from "naive-ui";
 import type { Component } from "vue";
-import { BookOutlined, TodayOutlined, AddOutlined, LibraryBooksOutlined } from "@vicons/material";
+import { BookOutlined, TodayOutlined } from "@vicons/material";
 import AppHeader from "../components/AppHeader.vue";
 
 const { t } = useI18n();

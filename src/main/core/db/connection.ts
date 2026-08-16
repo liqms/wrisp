@@ -15,7 +15,9 @@ let db: Database.Database | null = null;
  * 获取工作空间路径（优先从全局对象读取，支持模块重复打包场景）
  */
 function getWorkspacePath(): string {
-  return (globalThis as any)[WORKSPACE_PATH_KEY] || "";
+  const global = globalThis as Record<string, unknown>;
+  const value = global[WORKSPACE_PATH_KEY];
+  return typeof value === "string" ? value : "";
 }
 
 /**
@@ -24,7 +26,7 @@ function getWorkspacePath(): string {
  * @param workspacePath - 工作空间路径
  */
 export function setWorkspacePath(workspacePath: string): void {
-  (globalThis as any)[WORKSPACE_PATH_KEY] = workspacePath;
+  (globalThis as Record<string, unknown>)[WORKSPACE_PATH_KEY] = workspacePath;
 }
 
 /**

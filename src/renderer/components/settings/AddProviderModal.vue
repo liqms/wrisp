@@ -5,7 +5,7 @@
     @update:show="$emit('update:show', $event)">
     <n-form ref="formRef" :model="formData" :rules="rules" label-placement="top">
       <!-- 预设服务商选择（新增时显示） -->
-      <n-form-item :label="t('SETTINGS.AI_SETTINGS.PRESET_PROVIDER')" v-if="!editingProvider">
+      <n-form-item v-if="!editingProvider" :label="t('SETTINGS.AI_SETTINGS.PRESET_PROVIDER')">
         <n-select v-model:value="selectedPresetId" :placeholder="t('SETTINGS.AI_SETTINGS.SELECT_PROVIDER_HINT')"
           :options="presetOptions" clearable @update:value="onPresetChange" />
       </n-form-item>
@@ -28,7 +28,7 @@
       </n-form-item>
 
       <!-- 模型列表 -->
-      <n-form-item :label="t('SETTINGS.AI_SETTINGS.MODELS')" v-if="formData.models.length > 0">
+      <n-form-item v-if="formData.models.length > 0" :label="t('SETTINGS.AI_SETTINGS.MODELS')">
         <n-flex vertical class="model-list">
           <ModelItem v-for="model in formData.models" :key="model.id" :model="model" />
         </n-flex>
@@ -47,7 +47,9 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
+import type { FormInst } from "naive-ui";
 import { PROVIDER } from "@/shared/enums";
+import type { Locale } from "@/shared/enums";
 import type { AIProvider, Model } from "@/shared/types";
 import ModelItem from "./ModelItem.vue";
 
@@ -63,7 +65,7 @@ const emit = defineEmits<{
   (e: "confirm", provider: AIProvider): void;
 }>();
 
-const formRef = ref<any>(null);
+const formRef = ref<FormInst | null>(null);
 const selectedPresetId = ref<string | null>(null);
 
 const presetOptions = computed(() =>
@@ -178,7 +180,7 @@ async function handleConfirm() {
     baseUrl: formData.value.baseUrl,
     websiteUrl: formData.value.websiteUrl || undefined,
     apiKey: formData.value.apiKey,
-    locale: formData.value.locale as any,
+    locale: formData.value.locale as Locale,
     logoPath: formData.value.logoPath || undefined,
     models: formData.value.models,
     enabled: props.editingProvider?.enabled ?? true,

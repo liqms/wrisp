@@ -111,8 +111,8 @@ export const useDownloadStore = defineStore("download", () => {
   let cleanupFns: (() => void)[] = [];
 
   const setupListeners = () => {
-    const onProgress = (progress: DownloadProgress) => {
-      updateFileProgress(progress);
+    const onProgress = (data: unknown) => {
+      updateFileProgress(data as DownloadProgress);
     };
 
     window.electronAPI.on("download:progress", onProgress);

@@ -130,11 +130,11 @@ export function useConfig(options: UseConfigOptions = {}) {
   /**
    * 获取特定配置项的值
    */
-  async function getValue<T = any>(keyPath: string): Promise<T | null> {
+  async function getValue<T = unknown>(keyPath: string): Promise<T | null> {
     if (!(await ensureLoaded())) return null;
 
     try {
-      return await configStore.getConfigValue(keyPath);
+      return (await configStore.getConfigValue(keyPath)) as T;
     } catch (error) {
       logger.error(`获取配置项 ${keyPath} 失败`, { keyPath, error });
       return null;
@@ -144,7 +144,7 @@ export function useConfig(options: UseConfigOptions = {}) {
   /**
    * 设置特定配置项的值
    */
-  async function setValue<T = any>(
+  async function setValue<T = unknown>(
     keyPath: string,
     value: T,
   ): Promise<boolean> {
@@ -287,7 +287,7 @@ export function useConfig(options: UseConfigOptions = {}) {
   /**
    * 监听配置变化
    */
-  function watchConfig<T = any>(
+  function watchConfig<T = unknown>(
     selector: (config: AppConfig | null) => T,
     callback: (newValue: T, oldValue: T) => void,
     options?: { immediate?: boolean; deep?: boolean },
@@ -306,13 +306,19 @@ export function useConfig(options: UseConfigOptions = {}) {
   /**
    * 监听特定配置项变化
    */
-  function watchConfigValue<T = any>(
+  function watchConfigValue<T = unknown>(
     keyPath: string,
     callback: (newValue: T, oldValue: T) => void,
     options?: { immediate?: boolean },
   ) {
-    const getNestedValue = (obj: any, path: string): T | undefined => {
-      return path.split(".").reduce((current, key) => current?.[key], obj);
+    const getNestedValue = (obj: unknown, path: string): T | undefined => {
+      return path
+        .split(".")
+        .reduce(
+          (current, key) =>
+            (current as Record<string, unknown> | undefined)?.[key],
+          obj,
+        ) as T | undefined;
     };
 
     return watch(

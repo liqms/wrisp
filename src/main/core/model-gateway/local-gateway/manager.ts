@@ -3,6 +3,7 @@
  * 单例模式，负责 Worker 线程生命周期管理及消息调度
  */
 import { Worker } from "worker_threads";
+import { join } from "path";
 import { ModelState, EmbeddingConfig, RerankConfig, LocalAiConfig, DEFAULT_EMBEDDING_CONFIG, DEFAULT_RERANK_CONFIG } from "./types";
 import { Logger } from "@/main/utils/logger";
 
@@ -77,7 +78,9 @@ class LocalAiManager {
    */
   private ensureWorker(): Worker {
     if (!this.worker) {
-      this.worker = new Worker(new URL("./worker/index.ts", import.meta.url), { type: "module" } as import("worker_threads").WorkerOptions);
+      // Worker 由 vite 独立打包为 CJS（dist-electron/local-ai-worker.js），
+      // 主进程为 CJS 构建，使用 __dirname 解析其绝对路径（import.meta.url 会编译为 undefined）
+      this.worker = new Worker(join(__dirname, "local-ai-worker.js"));
       this.worker.on("message", this.handleWorkerMessage.bind(this));
       this.worker.on("error", this.handleWorkerError.bind(this));
       this.worker.on("exit", this.handleWorkerExit.bind(this));

@@ -30,7 +30,7 @@ export interface ProjectItem {
   updatedAt: string;
 }
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     title?: string;
     projects?: ProjectItem[];
@@ -41,7 +41,7 @@ const props = withDefaults(
   },
 );
 
-const emit = defineEmits<{
+defineEmits<{
   (e: "select", id: string): void;
 }>();
 </script>

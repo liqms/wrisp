@@ -49,7 +49,7 @@ export const usePageStore = defineStore("page", () => {
         errorMessage.value = handleApiError(response);
         return null;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -97,7 +97,7 @@ export const usePageStore = defineStore("page", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -130,7 +130,7 @@ export const usePageStore = defineStore("page", () => {
         errorMessage.value = handleApiError(response);
         return null;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -162,7 +162,7 @@ export const usePageStore = defineStore("page", () => {
         errorMessage.value = handleApiError(response);
         return null;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -205,7 +205,7 @@ export const usePageStore = defineStore("page", () => {
         errorMessage.value = handleApiError(response);
         return false;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -242,7 +242,7 @@ export const usePageStore = defineStore("page", () => {
         errorMessage.value = handleApiError(response);
         return false;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,

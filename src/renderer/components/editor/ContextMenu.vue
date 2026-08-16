@@ -17,7 +17,7 @@ import type { DropdownOption } from "naive-ui";
 
 const { t } = useI18n();
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     visible?: boolean;
     posX?: number;

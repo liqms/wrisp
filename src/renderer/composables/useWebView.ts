@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import { useWebViewStore } from '@/renderer/store/webview.store'
 import { logger } from '@/renderer/utils/logger.utils'
-import type { WebContentViewOptions } from '@/shared/types'
+import type { ApiResponse, WebContentViewOptions } from '@/shared/types'
 import { ErrorCode } from '@/shared/enums'
 import { handleApiError, getErrorMessage } from '@/renderer/utils/error.utils'
 
@@ -52,7 +52,7 @@ export function useWebView(options: UseWebViewOptions = {}) {
       const viewOptionsCopy = viewOptions ? JSON.parse(JSON.stringify(viewOptions)) : undefined
       logger.info('前端 正在加载 WebView', { url, viewOptions: viewOptionsCopy })
 
-      let response: any = {}
+      let response!: ApiResponse<void>
 
       if (viewOptionsCopy) {
         response = await window.electronAPI.webview.create(url, viewOptionsCopy)
@@ -224,8 +224,8 @@ export function useWebView(options: UseWebViewOptions = {}) {
         logger.warn('获取导航状态失败', { error: getErrorMessage(response.code) })
       }
     } catch (error) {
-        store.setError(ErrorCode.WEBVIEW_GET_NAVIGATION_STATE_FAILED, getErrorMessage(ErrorCode.WEBVIEW_GET_NAVIGATION_STATE_FAILED))
-        logger.warn('获取导航状态失败', { error: String(error) })
+      store.setError(ErrorCode.WEBVIEW_GET_NAVIGATION_STATE_FAILED, getErrorMessage(ErrorCode.WEBVIEW_GET_NAVIGATION_STATE_FAILED))
+      logger.warn('获取导航状态失败', { error: String(error) })
     }
   }
 

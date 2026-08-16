@@ -165,7 +165,7 @@ export abstract class BaseDao<T, C extends object, U extends object> {
       Logger.debug(`执行 SQL: ${sql}`, { values: values.length });
 
       const stmt = this.db.prepare(sql);
-      const result = stmt.run(values);
+      stmt.run(values);
 
       Logger.debug(`创建记录，id: ${enhancedData.id}`, {
         id: enhancedData.id,

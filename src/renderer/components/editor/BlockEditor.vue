@@ -3,8 +3,8 @@
     <!-- 拖拽手柄 -->
     <div
       class="drag-handle"
-      @mousedown="handleDragStart"
       :title="t('EDITOR.BLOCK_EDITOR.DRAG_HANDLE')"
+      @mousedown="handleDragStart"
     >
       <n-icon size="14">
         <BagHandle />
@@ -15,8 +15,8 @@
     <n-checkbox
       v-if="showTodo"
       :checked="todoDone"
-      @update:checked="handleTodoToggle"
       :class="{ 'todo-done': todoDone }"
+      @update:checked="handleTodoToggle"
     />
 
     <!-- 行内编辑区域 -->
@@ -38,7 +38,7 @@ import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     content?: string;
     showTodo?: boolean;

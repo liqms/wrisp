@@ -38,7 +38,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return false;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_GET_CONFIG_FAILED;
             errorMessage.value = getErrorMessage(errorCode.value);
             return false;
@@ -50,11 +50,11 @@ export const useModelStore = defineStore("model", () => {
     /**
      * 获取特定模型配置项的值
      */
-    const getConfigValue = async (keyPath: string): Promise<any> => {
+    const getConfigValue = async (keyPath: string): Promise<unknown> => {
         try {
             const response = (await window.electronAPI.model.getValue(
                 keyPath,
-            )) as ApiResponse<any>;
+            )) as ApiResponse<unknown>;
 
             if (response.success) {
                 return response.data;
@@ -63,7 +63,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return null;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_GET_VALUE_FAILED;
             errorMessage.value = getErrorMessage(errorCode.value);
             return null;
@@ -75,7 +75,7 @@ export const useModelStore = defineStore("model", () => {
      */
     const setConfigValue = async (
         keyPath: string,
-        value: any,
+        value: unknown,
     ): Promise<boolean> => {
         try {
             // 深拷贝以剥离 Vue 响应式 Proxy，确保 IPC 序列化正常
@@ -88,22 +88,33 @@ export const useModelStore = defineStore("model", () => {
             if (response.success) {
                 // 更新本地配置状态
                 if (config.value) {
-                    const updateNestedValue = (obj: any, path: string, val: any): any => {
+                    const updateNestedValue = (
+                        obj: Record<string, unknown>,
+                        path: string,
+                        val: unknown,
+                    ): Record<string, unknown> => {
                         const keys = path.split(".");
                         const currentKey = keys[0];
                         if (keys.length === 1) {
                             return { ...obj, [currentKey]: val };
                         }
+                        const child = obj[currentKey];
                         return {
                             ...obj,
                             [currentKey]: updateNestedValue(
-                                obj[currentKey] || {},
+                                (child && typeof child === "object" && child !== null
+                                    ? child
+                                    : {}) as Record<string, unknown>,
                                 keys.slice(1).join("."),
                                 val,
                             ),
                         };
                     };
-                    config.value = updateNestedValue(config.value, keyPath, value);
+                    config.value = updateNestedValue(
+                        config.value as Record<string, unknown>,
+                        keyPath,
+                        value,
+                    ) as unknown as ModelConfig;
                 }
                 return true;
             } else {
@@ -111,7 +122,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return false;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_SET_VALUE_FAILED;
             errorMessage.value = getErrorMessage(errorCode.value);
             return false;
@@ -138,7 +149,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return false;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_RESET_CONFIG_FAILED;
             errorMessage.value = getErrorMessage(errorCode.value);
             return false;
@@ -167,7 +178,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return null;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_DOWNLOAD_FAILED;
             errorMessage.value = getErrorMessage(errorCode.value);
             return null;
@@ -190,7 +201,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return null;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_CHECK_EXIST_FAILED;
             errorMessage.value = getErrorMessage(errorCode.value);
             return null;
@@ -217,7 +228,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return false;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_REDOWNLOAD_FAILED;
             errorMessage.value = getErrorMessage(errorCode.value);
             return false;
@@ -246,7 +257,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return false;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_CANCEL_DOWNLOAD_FAILED;
             errorMessage.value = getErrorMessage(errorCode.value);
             return false;
@@ -277,7 +288,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return false;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_SET_VALUE_FAILED;
             errorMessage.value = getErrorMessage(errorCode.value);
             return false;
@@ -319,7 +330,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return false;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_SET_VALUE_FAILED;
             errorMessage.value = getErrorMessage(ErrorCode.MODEL_SET_VALUE_FAILED);
             return false;
@@ -358,7 +369,7 @@ export const useModelStore = defineStore("model", () => {
                 errorMessage.value = getErrorMessage(response.code);
                 return false;
             }
-        } catch (error) {
+        } catch {
             errorCode.value = ErrorCode.MODEL_SET_VALUE_FAILED;
             errorMessage.value = getErrorMessage(ErrorCode.MODEL_SET_VALUE_FAILED);
             return false;

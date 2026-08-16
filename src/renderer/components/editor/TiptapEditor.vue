@@ -148,6 +148,8 @@ const editor = useEditor({
     ...props.editorProps,
     attributes: {
       class: "tiptap-editor",
+      // 关闭浏览器拼写检查（红色波浪线消失）
+      spellcheck: 'false',
     },
     handleKeyDown: (view, event) => {
       // 先调用外部传入的 handleKeyDown

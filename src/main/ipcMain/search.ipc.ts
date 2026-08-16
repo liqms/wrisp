@@ -5,7 +5,7 @@ import type { ApiResponse } from "@/shared/types";
 export function registerSearchHandlers(): void {
   ipcMain.handle(
     "search:search",
-    async (_event, keyword: string, limit?: number): Promise<ApiResponse<any[]>> => {
+    async (_event, keyword: string, limit?: number): Promise<ApiResponse<unknown[]>> => {
       return search(keyword, limit);
     },
   );

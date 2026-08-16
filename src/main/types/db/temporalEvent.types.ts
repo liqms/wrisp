@@ -6,7 +6,7 @@ export type EventType = 'belief_change' | 'interest_spike' | 'topic_emergence'
 
 export interface TemporalEvent {
   id: TemporalEventId
-  block_id: Id
+  chunk_id: Id
   event_type: EventType
   event_data: JsonMetadata | null
   temporal_score: number
@@ -16,7 +16,7 @@ export interface TemporalEvent {
 
 export interface TemporalEventCreate {
   id?: TemporalEventId
-  block_id: Id
+  chunk_id: Id
   event_type: EventType
   event_data?: JsonMetadata | null
   temporal_score?: number
@@ -33,17 +33,17 @@ export interface TemporalEventUpdate {
 
 export type StrictTemporalEventCreate = Ensure<TemporalEventCreate, {
   id: NonEmptyString<TemporalEventId>
-  block_id: NonEmptyString<Id>
+  chunk_id: NonEmptyString<Id>
   event_type: EventType
 }>
 
 export interface TemporalEventQuery extends QueryParams {
-  block_id?: Id
+  chunk_id?: Id
   event_type?: EventType
   temporal_score_min?: number
   temporal_score_max?: number
 }
 
 export interface TemporalEventWithBlock extends TemporalEvent {
-  block_content: Content
+  chunk_content: Content
 }

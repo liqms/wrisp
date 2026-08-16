@@ -34,7 +34,7 @@ export const useSystemStore = defineStore('system', () => {
       } else {
         errorCode.value = response.code
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.SYSTEM_GET_INFO_FAILED
     } finally {
       loading.value = false

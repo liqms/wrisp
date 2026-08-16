@@ -22,8 +22,8 @@
 
     <!-- 中部：作品列表 -->
     <n-data-table remote :columns="columnsRef" :data="dataRef" :loading="loading" :pagination="paginationReactive"
-      :scroll-x="scrollX" :min-row-height="48" @update:page="handlePageChange" :bordered="false"
-      class="project-table" />
+      :scroll-x="scrollX" :min-row-height="48" :bordered="false" class="project-table"
+      @update:page="handlePageChange" />
 
     <!-- 新建/编辑对话框 -->
     <n-modal v-model:show="showModal" :title="isEditing ? t('ACTION.EDIT.EDIT_PROJECT') : t('ACTION.NEW.PROJECT')"
@@ -59,7 +59,7 @@ import { useMessage, NButton, NIcon, NTag, NSpace, NPopconfirm } from "naive-ui"
 import { Search, Add, Create, Trash } from "@vicons/ionicons5";
 import { useProject } from "@/renderer/composables/useProject";
 import type { ProjectCreate, ProjectUpdate, ProjectDetail, Tag } from "@/main/types/db";
-import { PROJECT_TYPE } from "@/shared/enums";
+import { PROJECT_TYPE, type ProjectType } from "@/shared/enums";
 import type {
   FormInst, FormRules, DataTableColumn, PaginationInfo
 } from "naive-ui";
@@ -354,7 +354,7 @@ const handleSubmit = async () => {
 
       const updateData: ProjectUpdate = {
         name: formData.value.name,
-        type: formData.value.type as any,
+        type: formData.value.type as ProjectType,
         description: formData.value.description || undefined,
       };
       const success = await updateProject(editingId.value, updateData);
@@ -375,7 +375,7 @@ const handleSubmit = async () => {
 
       const createData: ProjectCreate = {
         name: formData.value.name,
-        type: formData.value.type as any,
+        type: formData.value.type as ProjectType,
         description: formData.value.description || undefined,
       };
       const id = await createProject(createData);

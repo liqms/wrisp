@@ -19,7 +19,7 @@ import type {
 import type { LOG_LEVEL, PageType } from "@/shared/enums";
 import type { LogContext } from "@/main/utils/logger";
 import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
-import type { Project, ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail, Page, PageTree } from "@/main/types/db";
+import type { ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail, Page, PageTree } from "@/main/types/db";
 import type { Tag, TagCreate, TagUpdate, TagQuery, TagDetail, TagId } from "@/shared/types";
 import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
@@ -33,8 +33,8 @@ export interface ElectronAPI {
   // 配置管理
   config: {
     get(): Promise<ApiResponse<AppConfig>>;
-    getValue(keyPath: string): Promise<ApiResponse<any>>;
-    setValue(keyPath: string, value: any): Promise<ApiResponse<void>>;
+    getValue(keyPath: string): Promise<ApiResponse<unknown>>;
+    setValue(keyPath: string, value: unknown): Promise<ApiResponse<void>>;
     reset(): Promise<ApiResponse<void>>;
     setWorkspace(workspacePath: string): Promise<ApiResponse<void>>;
   };
@@ -139,8 +139,8 @@ export interface ElectronAPI {
   // Model 相关
   model: {
     getConfig(): Promise<ApiResponse<ModelConfig>>;
-    getValue(keyPath: string): Promise<ApiResponse<any>>;
-    setValue(keyPath: string, value: any): Promise<ApiResponse<void>>;
+    getValue(keyPath: string): Promise<ApiResponse<unknown>>;
+    setValue(keyPath: string, value: unknown): Promise<ApiResponse<void>>;
     resetConfig(): Promise<ApiResponse<void>>;
     downloadModel(type: ModelType): Promise<ApiResponse<string>>;
     checkModelExist(): Promise<ApiResponse<Record<string, boolean>>>;
@@ -157,7 +157,7 @@ export interface ElectronAPI {
     onChatStreamError(callback: (error: string) => void): () => void;
     getCostSummary(): Promise<ApiResponse<CostSummary>>;
     getCostRecords(count?: number): Promise<ApiResponse<CostRecord[]>>;
-    getProviders(): Promise<ApiResponse<Array<{ providerId: string; providerName: string; models: any[]; isHealthy: boolean; enabled: boolean }>>>;
+    getProviders(): Promise<ApiResponse<Array<{ providerId: string; providerName: string; models: unknown[]; isHealthy: boolean; enabled: boolean }>>>;
     testProviderConnection(providerId: string): Promise<ApiResponse<boolean>>;
     refreshConfig(): Promise<ApiResponse<void>>;
     isLocalAvailable(): Promise<ApiResponse<boolean>>;
@@ -176,7 +176,7 @@ export interface ElectronAPI {
       orderBy?: string;
       orderDir?: "ASC" | "DESC";
       conditions?: TagQuery;
-    }): Promise<ApiResponse<any>>;
+    }): Promise<ApiResponse<unknown>>;
     createTags(data: TagCreate | TagCreate[]): Promise<ApiResponse<string | string[]>>;
     updateTag(items: { id: TagId; data: TagUpdate } | { id: TagId; data: TagUpdate }[]): Promise<ApiResponse<number | number[]>>;
     deleteTag(ids: TagId | TagId[]): Promise<ApiResponse<number>>;
@@ -246,10 +246,11 @@ export interface ElectronAPI {
 
   // 更新相关
   update: UpdateAPI;
+  template: TemplateAPI;
 
   // 通用 IPC 方法（保持向后兼容）
-  send: (channel: string, data: any) => void;
-  on: (channel: string, callback: (data: any) => void) => void;
+  send: (channel: string, data: unknown) => void;
+  on: (channel: string, callback: (data: unknown) => void) => void;
   off: (channel: string) => void;
   onNotification: (
     callback: (notification: NotificationMessage) => void,

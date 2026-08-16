@@ -45,7 +45,7 @@ export class TopicDao extends BaseDao<Topic, TopicCreate, TopicUpdate> {
   }
 
   /**
-   * 获取主题及其详细信息（块数量、概念数量）
+   * 获取主题及其详细信息（chunk 数量、概念数量）
    * @param id 主题 ID
    */
   findWithDetails(id: TopicId): TopicWithDetails | null {
@@ -53,11 +53,11 @@ export class TopicDao extends BaseDao<Topic, TopicCreate, TopicUpdate> {
       SELECT t.*,
              COALESCE(tb.block_count, 0) as block_count,
              COALESCE(tc.concept_count, 0) as concept_count,
-             json_group_array(b.content) as blocks_preview
+             json_group_array(sc.content) as blocks_preview
       FROM ${this.tableName} t
       LEFT JOIN (
         SELECT topic_id, COUNT(*) as block_count
-        FROM topic_blocks
+        FROM topic_chunks
         WHERE topic_id = ?
         GROUP BY topic_id
       ) tb ON t.id = tb.topic_id
@@ -67,8 +67,8 @@ export class TopicDao extends BaseDao<Topic, TopicCreate, TopicUpdate> {
         WHERE topic_id = ?
         GROUP BY topic_id
       ) tc ON t.id = tc.topic_id
-      LEFT JOIN topic_blocks tb2 ON t.id = tb2.topic_id
-      LEFT JOIN blocks b ON tb2.block_id = b.id
+      LEFT JOIN topic_chunks tb2 ON t.id = tb2.topic_id
+      LEFT JOIN semantic_chunks sc ON tb2.chunk_id = sc.id
       WHERE t.id = ?
       GROUP BY t.id
     `
@@ -88,18 +88,18 @@ export class TopicDao extends BaseDao<Topic, TopicCreate, TopicUpdate> {
   }
 
   /**
-   * 根据关联的 Block ID 查询主题列表
-   * @param blockId Block ID
+   * 根据关联的 chunk ID 查询主题列表
+   * @param chunkId chunk ID
    */
-  findByLinkedBlock(blockId: Id): Topic[] {
+  findByLinkedBlock(chunkId: Id): Topic[] {
     const sql = `
       SELECT t.* 
       FROM ${this.tableName} t
-      JOIN topic_blocks tb ON t.id = tb.topic_id
-      WHERE tb.block_id = ?
-      ORDER BY tb.relevance_score DESC
+      JOIN topic_chunks tc ON t.id = tc.topic_id
+      WHERE tc.chunk_id = ?
+      ORDER BY tc.relevance_score DESC
     `
-    return this.query(sql, [blockId])
+    return this.query(sql, [chunkId])
   }
 
   /**

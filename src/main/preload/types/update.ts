@@ -17,6 +17,6 @@ export interface UpdateAPI {
   /** 订阅更新事件 */
   onEvent(
     event: "available" | "download-progress" | "downloaded" | "error",
-    listener: (payload: any) => void,
+    listener: (payload: unknown) => void,
   ): void;
 }

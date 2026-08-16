@@ -1,6 +1,5 @@
-﻿import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { paginate, paginateWithFilter, paginateWithSort, paginateWithFilterAndSort, createPaginator } from '@/shared/utils/pagination'
-import type { PaginationResult } from '@/shared/utils/pagination'
 
 const sampleData = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 

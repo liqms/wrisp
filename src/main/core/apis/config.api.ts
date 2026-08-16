@@ -24,7 +24,7 @@ async function getConfig(): Promise<ApiResponse<AppConfig>> {
  * @param keyPath 配置键路径
  * @returns 配置值
  */
-async function getValue(keyPath: string): Promise<ApiResponse<any>> {
+async function getValue(keyPath: string): Promise<ApiResponse<unknown>> {
   try {
     const value = configService.getValue(keyPath);
     if (value !== undefined) {
@@ -46,7 +46,7 @@ async function getValue(keyPath: string): Promise<ApiResponse<any>> {
  */
 async function setValue(
   keyPath: string,
-  value: any,
+  value: unknown,
 ): Promise<ApiResponse<void>> {
   try {
     configService.setValue(keyPath, value);

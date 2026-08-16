@@ -9,7 +9,7 @@
  * @param name - 参数名称（用于错误消息）
  * @returns ID 有效返回 true，否则返回 false
  */
-export function validateId(id: number | undefined, name: string = 'ID'): boolean {
+export function validateId(id: number | undefined, _name: string = 'ID'): boolean {
   if (id === undefined || id === null) {
     return false
   }
@@ -31,7 +31,7 @@ export function validateId(id: number | undefined, name: string = 'ID'): boolean
  */
 export function validateString(
   value: string | undefined,
-  name: string = '字符串',
+  _name: string = '字符串',
   minLength: number = 1,
   maxLength: number = 1000
 ): boolean {
@@ -115,7 +115,7 @@ export function validateFileExtension(extension: string | undefined, name: strin
  */
 export function validateNumberRange(
   value: number | undefined,
-  name: string = '数字',
+  _name: string = '数字',
   min: number = 0,
   max: number = Number.MAX_SAFE_INTEGER
 ): boolean {
@@ -144,7 +144,7 @@ export function validateNumberRange(
  * @param name - 参数名称（用于错误消息）
  * @returns 布尔值有效返回 true，否则返回 false
  */
-export function validateBoolean(value: boolean | undefined, name: string = '布尔值'): boolean {
+export function validateBoolean(value: boolean | undefined, _name: string = '布尔值'): boolean {
   if (value === undefined || value === null) {
     return false
   }

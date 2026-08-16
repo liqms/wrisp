@@ -17,6 +17,8 @@ import type { TaskAPI } from "./task";
 import type { SearchAPI } from "./search";
 import type { PageAPI } from "./page";
 import type { UpdateAPI } from "./update";
+import type { TemplateAPI } from "./template";
+import type { NotificationMessage } from "@/shared/types";
 
 export interface ElectronAPI {
   config: ConfigAPI;
@@ -29,21 +31,21 @@ export interface ElectronAPI {
   ai: AIAPI;
   skill: SkillAPI;
   model: ModelAPI;
-  think: ThinkAPI;
   tag: TagAPI;
   page: PageAPI;
   smartTask: SmartTaskAPI;
   task: TaskAPI;
   search: SearchAPI;
   update: UpdateAPI;
+  template: TemplateAPI;
 
   // 通用 IPC 方法（保持向后兼容）
-  send: (channel: string, data: any) => void;
-  on: (channel: string, callback: (data: any) => void) => void;
+  send: (channel: string, data: unknown) => void;
+  on: (channel: string, callback: (data: unknown) => void) => void;
   off: (channel: string) => void;
 
   // 通知监听器
-  onNotification: (callback: (notification: any) => void) => () => void;
+  onNotification: (callback: (notification: NotificationMessage) => void) => () => void;
   removeNotificationListener: () => void;
 }
 
@@ -67,4 +69,5 @@ export type {
   SearchAPI,
   PageAPI,
   UpdateAPI,
+  TemplateAPI,
 };

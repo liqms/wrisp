@@ -32,6 +32,13 @@ interface QueueItem {
   fileName?: string;
 }
 
+/** 下载事件名 → 监听器签名映射 */
+interface DownloadServiceEvents {
+  progress: (progress: DownloadProgress) => void;
+  complete: (taskId: string, localPath: string) => void;
+  error: (taskId: string, error: string) => void;
+}
+
 const httpClient = new HttpClient();
 
 /**
@@ -64,40 +71,20 @@ class DownloadService {
   }
 
   /** 监听下载事件（progress / complete / error） */
-  public on(
-    event: "progress",
-    listener: (progress: DownloadProgress) => void,
-  ): this;
-  public on(
-    event: "complete",
-    listener: (taskId: string, localPath: string) => void,
-  ): this;
-  public on(
-    event: "error",
-    listener: (taskId: string, error: string) => void,
-  ): this;
-  /** 事件绑定实现 */
-  public on(event: string, listener: (...args: any[]) => void): this {
-    this.eventEmitter.on(event, listener);
+  public on<K extends keyof DownloadServiceEvents>(
+    event: K,
+    listener: DownloadServiceEvents[K],
+  ): this {
+    this.eventEmitter.on(event, listener as (...args: unknown[]) => void);
     return this;
   }
 
   /** 移除下载事件监听（progress / complete / error） */
-  public off(
-    event: "progress",
-    listener: (progress: DownloadProgress) => void,
-  ): this;
-  public off(
-    event: "complete",
-    listener: (taskId: string, localPath: string) => void,
-  ): this;
-  public off(
-    event: "error",
-    listener: (taskId: string, error: string) => void,
-  ): this;
-  /** 事件移除实现 */
-  public off(event: string, listener: (...args: any[]) => void): this {
-    this.eventEmitter.off(event, listener);
+  public off<K extends keyof DownloadServiceEvents>(
+    event: K,
+    listener: DownloadServiceEvents[K],
+  ): this {
+    this.eventEmitter.off(event, listener as (...args: unknown[]) => void);
     return this;
   }
 

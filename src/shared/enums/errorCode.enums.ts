@@ -48,6 +48,11 @@ export enum ErrorCode {
   TAG_QUERY_FAILED = "ERROR.TAG.QUERY_FAILED",
   TAG_NOT_FOUND = "ERROR.TAG.NOT_FOUND",
 
+  // ============ 模板错误 ============
+  TEMPLATE_GET_FAILED = "ERROR.TEMPLATE.GET_FAILED",
+  TEMPLATE_SAVE_FAILED = "ERROR.TEMPLATE.SAVE_FAILED",
+  TEMPLATE_DELETE_FAILED = "ERROR.TEMPLATE.DELETE_FAILED",
+
   // ============ 下载错误 ============
   DOWNLOAD_FAILED = "ERROR.DOWNLOAD.FAILED",
   DOWNLOAD_CANCELLED = "ERROR.DOWNLOAD.CANCELLED",
@@ -55,6 +60,21 @@ export enum ErrorCode {
   DOWNLOAD_DIR_CREATE_FAILED = "ERROR.DOWNLOAD.DIR_CREATE_FAILED",
   DOWNLOAD_FILE_WRITE_FAILED = "ERROR.DOWNLOAD.FILE_WRITE_FAILED",
   DOWNLOAD_TASK_NOT_FOUND = "ERROR.DOWNLOAD.TASK_NOT_FOUND",
+
+  // ============ 任务队列错误 ============
+  TASK_ENQUEUE_FAILED = "ERROR.TASK.ENQUEUE_FAILED",
+  TASK_GET_FAILED = "ERROR.TASK.GET_FAILED",
+  TASK_GET_GROUP_FAILED = "ERROR.TASK.GET_GROUP_FAILED",
+  TASK_CANCEL_FAILED = "ERROR.TASK.CANCEL_FAILED",
+  TASK_PROGRESS_FAILED = "ERROR.TASK.PROGRESS_FAILED",
+
+  // ============ 智能任务错误 ============
+  SMART_TASK_START_FAILED = "ERROR.SMART_TASK.START_FAILED",
+  SMART_TASK_CANCEL_FAILED = "ERROR.SMART_TASK.CANCEL_FAILED",
+  SMART_TASK_PAUSE_FAILED = "ERROR.SMART_TASK.PAUSE_FAILED",
+  SMART_TASK_RESUME_FAILED = "ERROR.SMART_TASK.RESUME_FAILED",
+  SMART_TASK_STATUS_FAILED = "ERROR.SMART_TASK.STATUS_FAILED",
+  SMART_TASK_HISTORY_FAILED = "ERROR.SMART_TASK.HISTORY_FAILED",
 
   // ============ 日志错误 ============
   LOG_CREATE_FAILED = "ERROR.LOG.CREATE_FAILED",
@@ -145,6 +165,7 @@ export type ErrorCategory =
   | "TEMPORAL_EVENT" // 时间事件错误
   | "AI" // AI 网关错误
   | "UPDATE" // 更新错误
+  | "TEMPLATE" // 模板错误
   | "UNKNOWN" // 未知分类
   | "SUCCESS"; // 成功分类
 
@@ -189,6 +210,8 @@ export function getErrorCategory(errorCode: ErrorCode): ErrorCategory {
       return "AI";
     case "UPDATE":
       return "UPDATE";
+    case "TEMPLATE":
+      return "TEMPLATE";
     case "AGENT":
       return "AGENT";
     case "SUCCESS":
@@ -220,6 +243,7 @@ export function getErrorCategoryMap(): Record<ErrorCategory, ErrorCode[]> {
     TEMPORAL_EVENT: [],
     AI: [],
     UPDATE: [],
+    TEMPLATE: [],
     UNKNOWN: [],
     SUCCESS: [],
   };

@@ -10,7 +10,7 @@
         readonly
         @click="handleBrowse"
       />
-      <n-button @click="handleBrowse" type="primary">
+      <n-button type="primary" @click="handleBrowse">
         {{ t('WELCOME.WORKSPACE.BROWSE') }}
       </n-button>
     </n-input-group>

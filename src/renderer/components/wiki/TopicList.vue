@@ -35,7 +35,7 @@ export interface Topic {
   count: number;
 }
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     title?: string;
     topics?: Topic[];

@@ -18,7 +18,7 @@ export class ResponseWrapper {
   /**
    * 创建成功响应
    */
-  static success<T = any>(
+  static success<T = unknown>(
     data: T,
     options: ResponseOptions = {},
   ): SuccessResponse<T> {
@@ -62,7 +62,7 @@ export class ResponseWrapper {
   /**
    * 创建分页响应
    */
-  static paginated<T = any>(
+  static paginated<T = unknown>(
     data: T[],
     total: number,
     page: number,
@@ -97,7 +97,7 @@ export class ResponseWrapper {
   /**
    * 创建列表响应
    */
-  static list<T = any>(
+  static list<T = unknown>(
     data: T[],
     total: number,
     options: ResponseOptions = {},

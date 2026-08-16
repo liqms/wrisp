@@ -30,7 +30,7 @@ const emit = defineEmits<{
   (e: "deleted", journalId: string): void;
 }>();
 
-const { updateJournal, deleteJournal, updateContentLocally } = useJournal();
+const { updateJournal, updateContentLocally } = useJournal();
 
 const editContent = ref(props.journal.content);
 const lastSavedContent = ref(props.journal.content);
@@ -83,14 +83,6 @@ watch(editContent, () => {
     saveEdit();
   }, 800);
 });
-
-const handleDelete = async () => {
-  if (!window.confirm("确认删除此日志？")) return;
-  const success = await deleteJournal(props.journal.id);
-  if (success) {
-    emit("deleted", props.journal.id);
-  }
-};
 </script>
 
 <style lang="scss" scoped>

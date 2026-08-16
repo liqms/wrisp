@@ -1,7 +1,7 @@
 <template>
   <n-flex class="journal-view" vertical>
     <n-spin v-if="loading" class="loading" />
-    <n-scrollbar ref="scrollbarRef" @scroll="onScroll" v-else>
+    <n-scrollbar v-else ref="scrollbarRef" @scroll="onScroll">
       <template v-for="(journal, index) in recentJournals" :key="journal.id">
         <JournalBlock :journal="journal" />
         <n-divider v-if="index < recentJournals.length - 1" />
@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, nextTick, watch } from "vue";
-import { useDialog } from "naive-ui";
+import { useDialog, type ScrollbarInst } from "naive-ui";
 import JournalBlock from "@/renderer/components/editor/JournalBlock.vue";
 import { useJournal } from "@/renderer/composables/useJournal";
 import { useConfig } from "@/renderer/composables/useConfig";
@@ -25,7 +25,7 @@ const { recentJournals, loading, getRecentDays, createJournal, clearJournals, ch
   useJournal({ recentDays: 5 });
 const { workspace } = useConfig();
 
-const scrollbarRef = ref<any>(null);
+const scrollbarRef = ref<ScrollbarInst | null>(null);
 const scrollTop = ref(0);
 let prevTotalCount = 0;
 

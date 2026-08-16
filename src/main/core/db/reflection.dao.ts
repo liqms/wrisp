@@ -39,23 +39,23 @@ export class ReflectionDao extends BaseDao<Reflection, ReflectionCreate, Reflect
   }
 
   /**
-   * 获取反思及其关联的块信息
+   * 获取反思及其关联的 chunk 信息
    * @param id 反思 ID
    */
   findWithBlocks(id: string): ReflectionWithBlocks | null {
     const sql = `
       SELECT r.*,
              COALESCE(rb.block_count, 0) as block_count,
-             json_group_array(b.content) as blocks_preview
+             json_group_array(sc.content) as blocks_preview
       FROM ${this.tableName} r
       LEFT JOIN (
         SELECT reflection_id, COUNT(*) as block_count
-        FROM reflection_blocks
+        FROM reflection_chunks
         WHERE reflection_id = ?
         GROUP BY reflection_id
       ) rb ON r.id = rb.reflection_id
-      LEFT JOIN reflection_blocks rb2 ON r.id = rb2.reflection_id
-      LEFT JOIN blocks b ON rb2.block_id = b.id
+      LEFT JOIN reflection_chunks rc2 ON r.id = rc2.reflection_id
+      LEFT JOIN semantic_chunks sc ON rc2.chunk_id = sc.id
       WHERE r.id = ?
       GROUP BY r.id
     `
@@ -63,18 +63,18 @@ export class ReflectionDao extends BaseDao<Reflection, ReflectionCreate, Reflect
   }
 
   /**
-   * 根据关联的 Block ID 查询反思列表
-   * @param blockId Block ID
+   * 根据关联的 chunk ID 查询反思列表
+   * @param chunkId chunk ID
    */
-  findByLinkedBlock(blockId: Id): Reflection[] {
+  findByLinkedBlock(chunkId: Id): Reflection[] {
     const sql = `
       SELECT r.* 
       FROM ${this.tableName} r
-      JOIN reflection_blocks rb ON r.id = rb.reflection_id
-      WHERE rb.block_id = ?
-      ORDER BY rb.relevance_score DESC
+      JOIN reflection_chunks rc ON r.id = rc.reflection_id
+      WHERE rc.chunk_id = ?
+      ORDER BY rc.relevance_score DESC
     `
-    return this.query(sql, [blockId])
+    return this.query(sql, [chunkId])
   }
 
   /**

@@ -6,6 +6,7 @@ import { taskQueue } from "@/main/core/task-queue";
 import { response } from "@/main/utils/response";
 import type { ApiResponse } from "@/shared/types";
 import type { Task, EnqueueTaskInput } from "@/shared/types/task.types";
+import { ErrorCode } from "@/shared/enums";
 import { Logger } from "@/main/utils/logger";
 
 async function enqueueTask(input: EnqueueTaskInput): Promise<ApiResponse<string>> {
@@ -14,7 +15,7 @@ async function enqueueTask(input: EnqueueTaskInput): Promise<ApiResponse<string>
     return response.success(id);
   } catch (error) {
     Logger.error("任务入队失败", { error: String(error) });
-    return response.error("TASK_ENQUEUE_FAILED" as any, error as Error);
+    return response.error(ErrorCode.TASK_ENQUEUE_FAILED, error as Error);
   }
 }
 
@@ -24,7 +25,7 @@ async function getTask(taskId: string): Promise<ApiResponse<Task | null>> {
     return response.success(task);
   } catch (error) {
     Logger.error("获取任务失败", { taskId, error: String(error) });
-    return response.error("TASK_GET_FAILED" as any, error as Error);
+    return response.error(ErrorCode.TASK_GET_FAILED, error as Error);
   }
 }
 
@@ -34,7 +35,7 @@ async function getTasksByGroup(groupId: string): Promise<ApiResponse<Task[]>> {
     return response.success(tasks);
   } catch (error) {
     Logger.error("查询分组任务失败", { groupId, error: String(error) });
-    return response.error("TASK_GET_GROUP_FAILED" as any, error as Error);
+    return response.error(ErrorCode.TASK_GET_GROUP_FAILED, error as Error);
   }
 }
 
@@ -44,7 +45,7 @@ async function cancelTask(taskId: string): Promise<ApiResponse<void>> {
     return response.empty();
   } catch (error) {
     Logger.error("取消任务失败", { taskId, error: String(error) });
-    return response.error("TASK_CANCEL_FAILED" as any, error as Error);
+    return response.error(ErrorCode.TASK_CANCEL_FAILED, error as Error);
   }
 }
 
@@ -68,7 +69,7 @@ async function getProgress(groupId: string): Promise<ApiResponse<{
     return response.success(progress);
   } catch (error) {
     Logger.error("获取进度失败", { groupId, error: String(error) });
-    return response.error("TASK_PROGRESS_FAILED" as any, error as Error);
+    return response.error(ErrorCode.TASK_PROGRESS_FAILED, error as Error);
   }
 }
 

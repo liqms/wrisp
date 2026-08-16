@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron'
+import type { NotificationMessage } from '@/shared/types'
 
-type NotificationCallback = (notification: any) => void
+type NotificationCallback = (notification: NotificationMessage) => void
 
 class NotificationListenerManager {
   private listeners = new Map<string, NotificationCallback>()

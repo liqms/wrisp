@@ -58,6 +58,17 @@ export const DEFAULT_WORKSPACE_DIR = "Wrisp" as const;
 /** 作品文件夹 */
 export const PROJECT_DIR = "projects" as const;
 
+// ============ 模板文件夹 ============
+
+/** 模板根文件夹（工作空间下） */
+export const TEMPLATES_DIR = "templates" as const;
+
+/** Slash 模板子文件夹 */
+export const SLASH_TEMPLATES_DIR = "slash" as const;
+
+/** Slash 模板文件名 */
+export const SLASH_TEMPLATES_FILE = "templates.json" as const;
+
 /** 章节文件夹 */
 export const CHAPTER_DIR = "chapters" as const;
 

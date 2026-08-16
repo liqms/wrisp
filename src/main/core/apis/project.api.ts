@@ -2,7 +2,7 @@ import { projectService } from "@/main/core/services/project.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";
-import type { Project, ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail } from "@/main/types/db";
+import type { ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail } from "@/main/types/db";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import { Logger } from "@/main/utils/logger";
 

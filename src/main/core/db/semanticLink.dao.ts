@@ -8,8 +8,8 @@ import {
   LinkType,
 } from '@/main/types/db'
 
-type FindByField = 'source_block_id' | 'target_block_id' | 'link_type'
-type CountByField = 'source_block_id' | 'link_type'
+type FindByField = 'source_chunk_id' | 'target_chunk_id' | 'link_type'
+type CountByField = 'source_chunk_id' | 'link_type'
 
 export class SemanticLinkDao extends BaseDao<SemanticLink, SemanticLinkCreate, SemanticLinkUpdate> {
   constructor() {
@@ -18,7 +18,7 @@ export class SemanticLinkDao extends BaseDao<SemanticLink, SemanticLinkCreate, S
 
   /**
    * 根据指定字段查询语义链接列表
-   * @param field 查询字段 (source_block_id | target_block_id | link_type)
+   * @param field 查询字段 (source_chunk_id | target_chunk_id | link_type)
    * @param value 字段值
    */
   findBy(field: FindByField, value: string | LinkType): SemanticLink[] {
@@ -27,19 +27,28 @@ export class SemanticLinkDao extends BaseDao<SemanticLink, SemanticLinkCreate, S
   }
 
   /**
-   * 获取语义链接及其关联的 Block 内容
-   * @param sourceBlockId 源 Block ID
+   * 根据 chunk ID 查询其作为源的语义链接
+   * @param chunkId chunk ID
    */
-  findWithBlocks(sourceBlockId: string): SemanticLinkWithBlocks[] {
+  findByChunkId(chunkId: string): SemanticLink[] {
+    const sql = `SELECT * FROM ${this.tableName} WHERE source_chunk_id = ? ORDER BY similarity DESC`
+    return this.query(sql, [chunkId])
+  }
+
+  /**
+   * 获取语义链接及其关联的 chunk 内容
+   * @param sourceChunkId 源 chunk ID
+   */
+  findWithChunks(sourceChunkId: string): SemanticLinkWithBlocks[] {
     const sql = `
       SELECT sl.*, source.content AS source_content, target.content AS target_content
       FROM ${this.tableName} sl
-      JOIN blocks source ON sl.source_block_id = source.id
-      JOIN blocks target ON sl.target_block_id = target.id
-      WHERE sl.source_block_id = ?
+      JOIN semantic_chunks source ON sl.source_chunk_id = source.id
+      JOIN semantic_chunks target ON sl.target_chunk_id = target.id
+      WHERE sl.source_chunk_id = ?
       ORDER BY sl.similarity DESC
     `
-    return this.query(sql, [sourceBlockId]) as SemanticLinkWithBlocks[]
+    return this.query(sql, [sourceChunkId]) as SemanticLinkWithBlocks[]
   }
 
   /**
@@ -54,24 +63,24 @@ export class SemanticLinkDao extends BaseDao<SemanticLink, SemanticLinkCreate, S
 
   /**
    * 检查链接是否存在
-   * @param sourceBlockId 源 Block ID
-   * @param targetBlockId 目标 Block ID
+   * @param sourceChunkId 源 chunk ID
+   * @param targetChunkId 目标 chunk ID
    */
-  checkLinkExists(sourceBlockId: string, targetBlockId: string): boolean {
-    const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE source_block_id = ? AND target_block_id = ?) as exists`
+  checkLinkExists(sourceChunkId: string, targetChunkId: string): boolean {
+    const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE source_chunk_id = ? AND target_chunk_id = ?) as exists`
     const stmt = this.db.prepare(sql)
-    const result = stmt.get([sourceBlockId, targetBlockId]) as { exists: number }
+    const result = stmt.get([sourceChunkId, targetChunkId]) as { exists: number }
     return result?.exists === 1
   }
 
   /**
-   * 根据 Block ID 删除所有关联的语义链接
-   * @param blockId Block ID
+   * 根据 chunk ID 删除所有关联的语义链接
+   * @param chunkId chunk ID
    */
-  deleteByBlockId(blockId: string): number {
-    const sql = `DELETE FROM ${this.tableName} WHERE source_block_id = ? OR target_block_id = ?`
+  deleteByChunkId(chunkId: string): number {
+    const sql = `DELETE FROM ${this.tableName} WHERE source_chunk_id = ? OR target_chunk_id = ?`
     const stmt = this.db.prepare(sql)
-    const result = stmt.run([blockId, blockId])
+    const result = stmt.run([chunkId, chunkId])
     return result.changes
   }
 
@@ -89,7 +98,7 @@ export class SemanticLinkDao extends BaseDao<SemanticLink, SemanticLinkCreate, S
 
   /**
    * 根据指定字段统计语义链接数量
-   * @param field 统计字段 (source_block_id | link_type)
+   * @param field 统计字段 (source_chunk_id | link_type)
    * @param value 字段值
    */
   countBy(field: CountByField, value: string | LinkType): number {
@@ -106,13 +115,13 @@ export class SemanticLinkDao extends BaseDao<SemanticLink, SemanticLinkCreate, S
     const conditionsArray: string[] = []
     const values: unknown[] = []
 
-    if (conditions.source_block_id !== undefined) {
-      conditionsArray.push('source_block_id = ?')
-      values.push(conditions.source_block_id)
+    if (conditions.source_chunk_id !== undefined) {
+      conditionsArray.push('source_chunk_id = ?')
+      values.push(conditions.source_chunk_id)
     }
-    if (conditions.target_block_id !== undefined) {
-      conditionsArray.push('target_block_id = ?')
-      values.push(conditions.target_block_id)
+    if (conditions.target_chunk_id !== undefined) {
+      conditionsArray.push('target_chunk_id = ?')
+      values.push(conditions.target_chunk_id)
     }
     if (conditions.link_type !== undefined) {
       conditionsArray.push('link_type = ?')

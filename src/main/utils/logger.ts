@@ -1,4 +1,5 @@
 import { app } from "electron";
+import dotenv from "dotenv";
 import * as winston from "winston";
 import * as path from "path";
 import * as fs from "fs";
@@ -273,7 +274,6 @@ export class Logger {
     // 如果环境变量还没加载，尝试重新加载 dotenv
     if (!process.env.LOG_LEVEL) {
       try {
-        const dotenv = require("dotenv");
         dotenv.config({ encoding: "utf8", override: true });
       } catch (e) {
         console.warn("[Logger] 无法加载 dotenv:", e);
@@ -323,10 +323,10 @@ export class Logger {
     return this.config.format === "json"
       ? winston.format.json()
       : winston.format.printf(({ timestamp, level, message, ...meta }) => {
-          const metaStr =
-            Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : "";
-          return `${timestamp} [${level}]: ${message}${metaStr}`;
-        });
+        const metaStr =
+          Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : "";
+        return `${timestamp} [${level}]: ${message}${metaStr}`;
+      });
   }
 
   private static levelFilter(level: string): winston.Logform.Format {

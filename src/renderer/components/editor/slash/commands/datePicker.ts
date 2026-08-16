@@ -7,7 +7,11 @@ import { formatDate } from "./helpers";
  * 直接在光标附近弹出 Naive UI 的 Date Picker，选中日期后立即返回
  * 选中日期的字符串（YYYY-MM-DD），未选择（点击外部）时返回空字符串。
  */
-export function pickDate(editor: Editor, pos: number): Promise<string> {
+export function pickDate(
+  editor: Editor,
+  pos: number,
+  placeholder = "选择日期",
+): Promise<string> {
   return new Promise((resolve) => {
     const container = document.createElement("div");
     document.body.appendChild(container);
@@ -39,7 +43,7 @@ export function pickDate(editor: Editor, pos: number): Promise<string> {
               h(NDatePicker, {
                 type: "date",
                 style: { width: "230px" },
-                placeholder: "选择日期",
+                placeholder,
                 autofocus: true,
                 "on-update:value": (v: number | null) =>
                   finish(v ? formatDate(new Date(v)) : ""),

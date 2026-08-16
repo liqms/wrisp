@@ -126,7 +126,7 @@ export class HttpClient {
    * @param config axios 请求配置
    * @returns 响应数据
    */
-  async request<T = any>(config: AxiosRequestConfig): Promise<T> {
+  async request<T = unknown>(config: AxiosRequestConfig): Promise<T> {
     const response = await this.instance.request<T>(config);
     return response.data;
   }
@@ -137,7 +137,7 @@ export class HttpClient {
    * @param params 查询参数
    * @returns 响应数据
    */
-  async get<T = any>(
+  async get<T = unknown>(
     url: string,
     params?: Record<string, unknown>,
   ): Promise<T> {
@@ -151,7 +151,7 @@ export class HttpClient {
    * @param config 附加 axios 配置
    * @returns 响应数据
    */
-  async post<T = any>(
+  async post<T = unknown>(
     url: string,
     data?: unknown,
     config?: AxiosRequestConfig,

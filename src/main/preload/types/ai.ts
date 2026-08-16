@@ -9,7 +9,7 @@ export interface AIAPI {
   onChatStreamError(callback: (error: string) => void): () => void;
   getCostSummary(): Promise<ApiResponse<CostSummary>>;
   getCostRecords(count?: number): Promise<ApiResponse<CostRecord[]>>;
-  getProviders(): Promise<ApiResponse<Array<{ providerId: string; providerName: string; models: any[]; isHealthy: boolean; enabled: boolean }>>>;
+  getProviders(): Promise<ApiResponse<Array<{ providerId: string; providerName: string; models: unknown[]; isHealthy: boolean; enabled: boolean }>>>;
   testProviderConnection(providerId: string): Promise<ApiResponse<boolean>>;
   refreshConfig(): Promise<ApiResponse<void>>;
   isLocalAvailable(): Promise<ApiResponse<boolean>>;

@@ -36,11 +36,10 @@ export class ChunkVectorizeExecutor implements TaskExecutor {
 
         const vectors = results.map((r, idx) => ({
           block_id: batch[idx].id,
-          content: texts[idx],
-          vector: r.vector,
+          embedding: r.vector,
         }));
 
-        await vectorService.createBlockEmbeddingBatch(vectors);
+        await vectorService.createBlockEmbeddings(vectors);
 
         for (const b of batch) {
           const update: ChunkUpdate = { last_smart_processed_at: new Date().toISOString() };
@@ -61,14 +60,13 @@ export class ChunkVectorizeExecutor implements TaskExecutor {
 
   private getUnprocessedBlocks(processedUntil: string | null): Chunk[] {
     if (processedUntil) {
-      return this.chunkDao.db
-        .prepare(
-          `SELECT * FROM blocks WHERE (last_smart_processed_at IS NULL OR last_smart_processed_at < updated_at) AND updated_at > ? AND ai_summary IS NOT NULL`,
-        )
-        .all(processedUntil) as Chunk[];
+      return this.chunkDao.query(
+        `SELECT * FROM semantic_chunks WHERE (last_smart_processed_at IS NULL OR last_smart_processed_at < updated_at) AND updated_at > ? AND ai_summary IS NOT NULL`,
+        [processedUntil],
+      ) as Chunk[];
     }
-    return this.chunkDao.db
-      .prepare(`SELECT * FROM blocks WHERE ai_summary IS NOT NULL AND last_smart_processed_at IS NULL`)
-      .all() as Chunk[];
+    return this.chunkDao.query(
+      `SELECT * FROM semantic_chunks WHERE ai_summary IS NOT NULL AND last_smart_processed_at IS NULL`,
+    ) as Chunk[];
   }
 }

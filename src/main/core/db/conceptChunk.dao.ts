@@ -13,7 +13,7 @@ type CountByField = 'concept_id' | 'chunk_id'
 
 export class ConceptChunkDao extends BaseDao<ConceptChunk, ConceptChunkCreate, ConceptChunkUpdate> {
   constructor() {
-    super('concept_blocks')
+    super('concept_chunks')
   }
 
   /**

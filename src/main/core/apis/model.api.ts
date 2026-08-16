@@ -24,7 +24,7 @@ async function getConfig(): Promise<ApiResponse<ModelConfig>> {
  * @param keyPath - 配置键路径（支持点号分隔的嵌套路径）
  * @returns 配置值
  */
-async function getValue(keyPath: string): Promise<ApiResponse<any>> {
+async function getValue(keyPath: string): Promise<ApiResponse<unknown>> {
   try {
     const value = modelService.getValue(keyPath);
     if (value !== undefined) {
@@ -42,7 +42,7 @@ async function getValue(keyPath: string): Promise<ApiResponse<any>> {
  * @param keyPath - 配置键路径
  * @param value - 要设置的值
  */
-async function setValue(keyPath: string, value: any): Promise<ApiResponse<void>> {
+async function setValue(keyPath: string, value: unknown): Promise<ApiResponse<void>> {
   try {
     Logger.debug("设置配置值 ModelApi", { keyPath, value });
     await modelService.setValue(keyPath, value);

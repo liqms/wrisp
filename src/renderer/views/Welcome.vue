@@ -72,7 +72,7 @@
               </n-flex>
               <n-switch :value="enableAiMode" :loading="switching" @update:value="handleToggleAiMode" />
             </n-flex>
-            <n-flex class="welcome-enable-ai-mode-desc-item" v-if="enableAiMode">
+            <n-flex v-if="enableAiMode" class="welcome-enable-ai-mode-desc-item">
               <DownloadButton v-for="model in modelList" :key="model.id" :title="model.label" :desc="model.desc"
                 :progress="model.progress" :localpath="model.localpath" />
             </n-flex>
@@ -96,7 +96,6 @@ import {
 } from "@vicons/ionicons5";
 import { useConfig } from "@/renderer/composables/useConfig";
 import { useModel } from "@/renderer/composables/useModel";
-import { useModelStore } from "@/renderer/store/model.store";
 import { useDownloadStore } from "@/renderer/store/download.store";
 import { ErrorCode } from "@/shared/enums";
 import { logger } from "@/renderer/utils/logger.utils";
@@ -168,9 +167,7 @@ const MODEL_DEFS = [
   { id: "bge-reranker-v2-m3", labelKey: "MODELS.RERANKER", descKey: "MODELS.RERANKER_DESC" },
 ] as const;
 
-const modelStore = useModelStore();
 const downloadStore = useDownloadStore();
-
 // 模型下载状态（从后端查询）
 const modelExistStatus = ref<Record<string, boolean>>({});
 const loadingModelStatus = ref(false);

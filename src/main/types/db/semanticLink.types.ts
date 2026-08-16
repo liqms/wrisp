@@ -6,8 +6,8 @@ export type LinkType = 'semantic' | 'reference' | 'contradiction'
 
 export interface SemanticLink {
   id: SemanticLinkId
-  source_block_id: Id
-  target_block_id: Id
+  source_chunk_id: Id
+  target_chunk_id: Id
   link_type: LinkType
   similarity: number
   ai_explanation: Content | null
@@ -17,8 +17,8 @@ export interface SemanticLink {
 
 export interface SemanticLinkCreate {
   id?: SemanticLinkId
-  source_block_id: Id
-  target_block_id: Id
+  source_chunk_id: Id
+  target_chunk_id: Id
   link_type?: LinkType
   similarity?: number
   ai_explanation?: Content | null
@@ -35,13 +35,13 @@ export interface SemanticLinkUpdate {
 
 export type StrictSemanticLinkCreate = Ensure<SemanticLinkCreate, {
   id: NonEmptyString<SemanticLinkId>
-  source_block_id: NonEmptyString<Id>
-  target_block_id: NonEmptyString<Id>
+  source_chunk_id: NonEmptyString<Id>
+  target_chunk_id: NonEmptyString<Id>
 }>
 
 export interface SemanticLinkQuery extends QueryParams {
-  source_block_id?: Id
-  target_block_id?: Id
+  source_chunk_id?: Id
+  target_chunk_id?: Id
   link_type?: LinkType
   similarity_min?: number
   similarity_max?: number

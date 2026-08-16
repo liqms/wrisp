@@ -15,14 +15,14 @@ import {
   getSkillExecutionStats,
 } from "@/main/core/apis/skill.api";
 import type { ApiResponse } from "@/shared/types";
-import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
+import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillExecuteResult, SkillExecutionRecord, SkillDefinition } from "@/shared/types/skill.types";
 
 export function registerSkillHandlers() {
   ipcMain.handle("skill:getSkills", async (): Promise<ApiResponse<SkillListItem[]>> => {
     return getSkills();
   });
 
-  ipcMain.handle("skill:getSkill", async (_, id: string): Promise<ApiResponse<SkillListItem>> => {
+  ipcMain.handle("skill:getSkill", async (_, id: string): Promise<ApiResponse<SkillListItem | null>> => {
     return getSkill(id);
   });
 
@@ -47,14 +47,14 @@ export function registerSkillHandlers() {
   ipcMain.handle(
     "skill:createCustomSkill",
     async (_, definition: Record<string, unknown>): Promise<ApiResponse<void>> => {
-      return createCustomSkill(definition);
+      return createCustomSkill(definition as unknown as SkillDefinition);
     },
   );
 
   ipcMain.handle(
     "skill:updateCustomSkill",
     async (_, id: string, definition: Record<string, unknown>): Promise<ApiResponse<void>> => {
-      return updateCustomSkill(id, definition);
+      return updateCustomSkill(id, definition as Partial<SkillDefinition>);
     },
   );
 

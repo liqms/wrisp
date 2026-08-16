@@ -11,7 +11,7 @@ import { SQLITE_DIR } from "@/main/constants";
 class BackupService {
   private static instance: BackupService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): BackupService {
     if (!BackupService.instance) {
@@ -50,8 +50,8 @@ class BackupService {
       }
 
       // 备份数据库文件
-      const workspacePath =
-        (globalThis as any).__WRISP_WORKSPACE_PATH__ || "";
+      const workspacePathValue = (globalThis as Record<string, unknown>).__WRISP_WORKSPACE_PATH__;
+      const workspacePath = typeof workspacePathValue === "string" ? workspacePathValue : "";
       if (workspacePath) {
         const dbDir = path.join(workspacePath, SQLITE_DIR);
         if (fs.existsSync(dbDir)) {
@@ -90,8 +90,10 @@ class BackupService {
       // 恢复数据库文件
       const dbBackup = path.join(restorePath, "sqlite");
       if (fs.existsSync(dbBackup)) {
+        const workspacePathValue =
+          (globalThis as Record<string, unknown>).__WRISP_WORKSPACE_PATH__;
         const workspacePath =
-          (globalThis as any).__WRISP_WORKSPACE_PATH__ || "";
+          typeof workspacePathValue === "string" ? workspacePathValue : "";
         if (workspacePath) {
           const dbDir = path.join(workspacePath, "sqlite");
           fs.mkdirSync(dbDir, { recursive: true });

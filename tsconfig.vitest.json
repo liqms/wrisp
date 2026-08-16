@@ -1,4 +1,4 @@
-﻿{
+{
   "extends": "./tsconfig.app.json",
   "compilerOptions": {
     "noUnusedLocals": false,
@@ -6,11 +6,15 @@
     "types": ["vitest/globals"]
   },
   "include": [
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "tests/**/*.vue",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/**/*.test.tsx",
     "src/**/*.spec.tsx",
     "src/**/*.test.vue",
-    "src/**/*.spec.vue"
+    "src/**/*.spec.vue",
+    "src/renderer/types/**/*.d.ts"
   ]
 }

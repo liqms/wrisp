@@ -3,8 +3,8 @@ import type { ModelConfig, ModelType } from '@/shared/types/model.types'
 
 export interface ModelAPI {
   getConfig(): Promise<ApiResponse<ModelConfig>>
-  getValue(keyPath: string): Promise<ApiResponse<any>>
-  setValue(keyPath: string, value: any): Promise<ApiResponse<void>>
+  getValue(keyPath: string): Promise<ApiResponse<unknown>>
+  setValue(keyPath: string, value: unknown): Promise<ApiResponse<void>>
   resetConfig(): Promise<ApiResponse<void>>
   downloadModel(type: ModelType): Promise<ApiResponse<string>>
   checkModelExist(): Promise<ApiResponse<Record<string, boolean>>>

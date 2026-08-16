@@ -35,10 +35,12 @@ export class ConceptExtractExecutor implements TaskExecutor {
 
         for (const conceptName of concepts) {
           // 查找或创建概念
-          let concept = conceptDao.findByName(conceptName);
+          let concept = conceptDao.findByTitle(conceptName);
           if (!concept) {
-            const create: ConceptCreate = { name: conceptName, description: "" };
-            concept = conceptDao.create(create);
+            const create: ConceptCreate = { title: conceptName, evolving_summary: null };
+            const conceptId = conceptDao.create(create);
+            concept = conceptDao.findById(conceptId);
+            if (!concept) continue;
           }
 
           // 建立关联
@@ -78,12 +80,11 @@ export class ConceptExtractExecutor implements TaskExecutor {
 
   private getUnprocessedBlocks(processedUntil: string | null): Chunk[] {
     if (processedUntil) {
-      return this.chunkDao.db
-        .prepare(
-          `SELECT * FROM blocks WHERE updated_at > ?`,
-        )
-        .all(processedUntil) as Chunk[];
+      return this.chunkDao.query(
+        `SELECT * FROM semantic_chunks WHERE updated_at > ?`,
+        [processedUntil],
+      ) as Chunk[];
     }
-    return this.chunkDao.db.prepare(`SELECT * FROM blocks`).all() as Chunk[];
+    return this.chunkDao.query(`SELECT * FROM semantic_chunks`) as Chunk[];
   }
 }

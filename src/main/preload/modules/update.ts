@@ -5,7 +5,9 @@ import type { UpdateAPI } from "@/main/preload/types/update";
 export const updateModule: UpdateAPI = {
   check: () => ipcRenderer.invoke("update:check") as Promise<boolean>,
   download: () => ipcRenderer.invoke("update:download") as Promise<void>,
-  install: () => ipcRenderer.invoke("update:install") as void,
+  install: () => {
+    void ipcRenderer.invoke("update:install");
+  },
   onEvent(event, listener) {
     const channel = `update:${event}`;
     ipcRenderer.on(channel, (_event, payload) => listener(payload));

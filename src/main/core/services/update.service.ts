@@ -60,7 +60,8 @@ class UpdateService {
     }
     if (handlers.onDownloaded) {
       autoUpdater.on("update-downloaded", (info) => {
-        handlers.onDownloaded?.(info.path);
+        // "path"已弃用，使用"downloadedFile"替代获取下载文件路径
+        handlers.onDownloaded?.(info.downloadedFile);
       });
     }
     if (handlers.onError) {

@@ -59,12 +59,12 @@ export class ChunkSummaryExecutor implements TaskExecutor {
   private getUnsummarizedBlocks(processedUntil: string | null): Chunk[] {
     if (processedUntil) {
       return this.chunkDao.query(
-        `SELECT * FROM blocks WHERE (ai_summary IS NULL OR ai_summary = '') AND updated_at > ?`,
+        `SELECT * FROM semantic_chunks WHERE (ai_summary IS NULL OR ai_summary = '') AND updated_at > ?`,
         [processedUntil],
       ) as Chunk[];
     }
     return this.chunkDao.query(
-      `SELECT * FROM blocks WHERE ai_summary IS NULL OR ai_summary = ''`,
+      `SELECT * FROM semantic_chunks WHERE ai_summary IS NULL OR ai_summary = ''`,
     ) as Chunk[];
   }
 }

@@ -7,7 +7,6 @@ import type {
   Topic,
   TopicWithConceptsAndBlocks,
   Reflection,
-  ReflectionWithBlocks,
 } from "@/main/types/db";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import { ErrorCode } from "@/shared/enums";
@@ -39,7 +38,7 @@ export const useWikiStore = defineStore("wiki", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -66,7 +65,7 @@ export const useWikiStore = defineStore("wiki", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -93,7 +92,7 @@ export const useWikiStore = defineStore("wiki", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -120,7 +119,7 @@ export const useWikiStore = defineStore("wiki", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -147,7 +146,7 @@ export const useWikiStore = defineStore("wiki", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,

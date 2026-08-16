@@ -138,11 +138,15 @@ class ModelService {
   public getValue<T>(keyPath: string): T | undefined {
     try {
       const keys = keyPath.split(".");
-      let result: any = this.config!;
+      let result: unknown = this.config!;
 
       for (const key of keys) {
-        if (result && typeof result === "object" && key in result) {
-          result = result[key];
+        if (
+          result !== null &&
+          typeof result === "object" &&
+          key in (result as Record<string, unknown>)
+        ) {
+          result = (result as Record<string, unknown>)[key];
         } else {
           return undefined;
         }
@@ -168,21 +172,25 @@ class ModelService {
     Logger.debug("设置配置值 ModelService", { keyPath, value });
     try {
       // 直接使用 electron-store 的 set 方法，支持点号路径
-      this.store.set(keyPath, value as any);
+      this.store.set(keyPath, value);
       // 自动更新 updatedAt
       this.store.set("updatedAt", TimeUtil.toISOString(Date.now()));
       // 同步更新内存中的配置
       const keys = keyPath.split(".");
-      let target: any = this.config!;
+      let target: unknown = this.config!;
       for (let i = 0; i < keys.length - 1; i++) {
-        if (target && typeof target === "object" && keys[i] in target) {
-          target = target[keys[i]];
+        if (
+          target !== null &&
+          typeof target === "object" &&
+          keys[i] in target
+        ) {
+          target = (target as Record<string, unknown>)[keys[i]];
         } else {
           Logger.error(`ModelConfig 配置键路径不存在: ${keyPath}`);
           return;
         }
       }
-      target[keys[keys.length - 1]] = value;
+      (target as Record<string, unknown>)[keys[keys.length - 1]] = value;
       this.config!.updatedAt = TimeUtil.toISOString(Date.now());
     } catch (error) {
       Logger.error("ModelConfig 设置配置值失败", {

@@ -6,8 +6,7 @@ import {
   resetConfig,
   setWorkspace,
 } from "@/main/core/apis/config.api";
-import type { ApiResponse } from "@/shared/types";
-import type { AppConfig } from "@/main/types";
+import type { ApiResponse, AppConfig } from "@/shared/types";
 
 export function registerConfigHandlers() {
   ipcMain.handle("config:get", async (): Promise<ApiResponse<AppConfig>> => {
@@ -16,14 +15,14 @@ export function registerConfigHandlers() {
 
   ipcMain.handle(
     "config:getValue",
-    async (_, keyPath: string): Promise<ApiResponse<any>> => {
+    async (_, keyPath: string): Promise<ApiResponse<unknown>> => {
       return getValue(keyPath);
     },
   );
 
   ipcMain.handle(
     "config:setValue",
-    async (_, keyPath: string, value: any): Promise<ApiResponse<void>> => {
+    async (_, keyPath: string, value: unknown): Promise<ApiResponse<void>> => {
       return setValue(keyPath, value);
     },
   );

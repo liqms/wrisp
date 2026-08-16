@@ -1,4 +1,4 @@
-import { journalService } from "@/main/core/services/journal.service";
+import { chunkService } from "@/main/core/services/chunk.service";
 import { Logger } from "@/main/utils/logger";
 import { SEARCH_TYPE } from "@/shared/enums";
 import type { RegisteredTool } from "@/shared/types/skill.types";
@@ -36,7 +36,7 @@ export const searchBlocksTool: RegisteredTool = {
         return JSON.stringify({ error: "查询参数 query 不能为空", results: [] });
       }
 
-      const results = await journalService.search(query, limit, SEARCH_TYPE.SEMANTIC);
+      const results = await chunkService.search(query, limit, SEARCH_TYPE.SEMANTIC);
 
       const formatted = results.map((item) => ({
         id: item.id,

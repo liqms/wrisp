@@ -1,5 +1,5 @@
 <template>
-  <n-flex class="quick-actions" v-if="visible">
+  <n-flex v-if="visible" class="quick-actions">
     <n-button quaternary size="tiny" @click="handleContinue">
       <template #icon>
         <n-icon><SparklesOutline /></n-icon>

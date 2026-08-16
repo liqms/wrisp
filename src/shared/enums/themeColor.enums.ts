@@ -181,9 +181,9 @@ export function getThemeThemePrimaryColor(
 // 工具函数：将颜色值转换为 rgba 格式。兼容 #hex 与 rgb(...) 两种输入
 // （Naive UI 的 themeVars 直接返回传入的 primaryColor，可能为 "rgb(24, 160, 88)" 形式）
 export function hexToRgb(color: string, alpha: number = 1): string {
-  let r = 0;
-  let g = 0;
-  let b = 0;
+  let r: number;
+  let g: number;
+  let b: number;
   const rgbMatch = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
   if (rgbMatch) {
     r = Number(rgbMatch[1]);

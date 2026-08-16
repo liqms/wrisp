@@ -2,7 +2,7 @@
   <n-flex class="page-header">
     <!-- 左侧按钮 -->
     <n-flex class="controls-wrapper">
-      <n-button @click="handleMenuClick" class="control-btn" text :title="$t('APP.BASE.MENU')">
+      <n-button class="control-btn" text :title="$t('APP.BASE.MENU')" @click="handleMenuClick">
         <n-icon size="14">
           <MenuOutlined />
         </n-icon>
@@ -34,23 +34,23 @@
         </n-icon>
       </n-button>
       <n-divider vertical />
-      <n-button @click="handleMinimize" class="control-btn" text :title="$t('ACTION.WINDOW.MINIMIZE')">
+      <n-button class="control-btn" text :title="$t('ACTION.WINDOW.MINIMIZE')" @click="handleMinimize">
         <n-icon size="14">
           <MinimizeOutlined />
         </n-icon>
       </n-button>
-      <n-button @click="handleMaximize" class="control-btn" text :title="isMaximized
+      <n-button class="control-btn" text :title="isMaximized
         ? $t('ACTION.WINDOW.RESTORE')
         : $t('ACTION.WINDOW.MAXIMIZE')
-        ">
-        <n-icon size="14" v-if="isMaximized">
+        " @click="handleMaximize">
+        <n-icon v-if="isMaximized" size="14">
           <FullscreenExitOutlined />
         </n-icon>
-        <n-icon size="14" v-else>
+        <n-icon v-else size="14">
           <FullscreenOutlined />
         </n-icon>
       </n-button>
-      <n-button @click="handleClose" class="control-btn" text :title="$t('ACTION.WINDOW.CLOSE')">
+      <n-button class="control-btn" text :title="$t('ACTION.WINDOW.CLOSE')" @click="handleClose">
         <n-icon size="14">
           <CloseOutlined />
         </n-icon>
@@ -75,6 +75,7 @@ import { useI18n } from "vue-i18n";
 import SettingsView from "@/renderer/components/SettingsView.vue";
 import DownloadProgressPanel from "@/renderer/components/base/DownloadProgressPanel.vue";
 import { useDownloadStore } from "@/renderer/store/download.store";
+import { useShortcut } from "@/renderer/composables/useShortcut";
 
 const { t } = useI18n();
 
@@ -96,7 +97,14 @@ const title = computed(() => `${appName.value} - ${slogan.value}`);
 
 // 响应式数据
 const isMaximized = ref(false);
-const showSettings = ref(false);
+// 设置弹窗可见性由 shortcut store 统一管理（设置按钮与快捷键共用）
+const shortcut = useShortcut();
+const showSettings = computed({
+  get: () => shortcut.settingsVisible,
+  set: (value: boolean) => {
+    shortcut.settingsVisible = value;
+  },
+});
 const isElectron = computed(() => {
   return typeof window !== "undefined" && !!window.electronAPI;
 });
@@ -124,11 +132,11 @@ function handleMenuClick(): void {
 }
 
 function handleSettingsClick(): void {
-  showSettings.value = true;
+  shortcut.openSettings();
 }
 
 function handleCloseSettings(): void {
-  showSettings.value = false;
+  shortcut.closeSettings();
 }
 
 async function handleMinimize(): Promise<void> {

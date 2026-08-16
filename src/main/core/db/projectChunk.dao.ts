@@ -14,7 +14,7 @@ type CountByField = 'project_id' | 'chunk_id'
 
 export class ProjectChunkDao extends BaseDao<ProjectChunk, ProjectChunkCreate, ProjectChunkUpdate> {
   constructor() {
-    super('project_blocks')
+    super('project_chunks')
   }
 
   /**
@@ -35,7 +35,7 @@ export class ProjectChunkDao extends BaseDao<ProjectChunk, ProjectChunkCreate, P
     const sql = `
       SELECT pb.*, b.content AS chunk_content, b.created_at AS chunk_created_at
       FROM ${this.tableName} pb
-      JOIN blocks b ON pb.chunk_id = b.id
+      JOIN semantic_chunks b ON pb.chunk_id = b.id
       WHERE pb.project_id = ?
       ORDER BY pb.relevance_score DESC
     `

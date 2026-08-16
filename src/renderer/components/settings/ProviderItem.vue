@@ -5,10 +5,10 @@
       <n-flex align="center" class="provider-info">
         <n-flex align="center" class="provider-title">
           <n-text class="provider-name">{{ props.provider.name }}</n-text>
-          <n-tag type="success" size="tiny" round :bordered="false" v-if="props.provider.enabled">
+          <n-tag v-if="props.provider.enabled" type="success" size="tiny" round :bordered="false">
             ON
           </n-tag>
-          <n-tag size="tiny" round :bordered="false" v-else>
+          <n-tag v-else size="tiny" round :bordered="false">
             OFF
           </n-tag>
         </n-flex>
@@ -17,16 +17,16 @@
       </n-flex>
     </n-flex>
     <n-flex class="action-buttons">
-      <n-button size="small" strong secondary type="tertiary" v-if="props.provider.enabled"
+      <n-button v-if="props.provider.enabled" size="small" strong secondary type="tertiary"
         @click.stop="handleToggle">{{ t('ACTION.COMMON.OFF') }}</n-button>
-      <n-button size="small" strong secondary type="primary" v-else @click.stop="handleToggle">{{ t('ACTION.COMMON.ON')
+      <n-button v-else size="small" strong secondary type="primary" @click.stop="handleToggle">{{ t('ACTION.COMMON.ON')
         }}</n-button>
-      <n-button text size="small" @click.stop="handleEdit" :title="t('ACTION.COMMON.EDIT')">
+      <n-button text size="small" :title="t('ACTION.COMMON.EDIT')" @click.stop="handleEdit">
         <n-icon>
           <CreateOutline />
         </n-icon>
       </n-button>
-      <n-button text size="small" @click.stop="handleDelete" :title="t('ACTION.COMMON.DELETE')">
+      <n-button text size="small" :title="t('ACTION.COMMON.DELETE')" @click.stop="handleDelete">
         <n-icon>
           <TrashOutline />
         </n-icon>

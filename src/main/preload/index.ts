@@ -6,16 +6,16 @@ import type { ElectronAPI } from "./types";
 // 追踪 ipcRenderer.on 的包裹函数，用于 off 时移除
 const listenerWrappers = new Map<
   string,
-  (event: Electron.IpcRendererEvent, ...args: any[]) => void
+  (event: Electron.IpcRendererEvent, ...args: unknown[]) => void
 >();
 
 // 创建通用 IPC 方法
 const genericIPC = {
-  send: (channel: string, data: any) => {
+  send: (channel: string, data: unknown) => {
     ipcRenderer.send(channel, data);
   },
-  on: (channel: string, callback: (data: any) => void) => {
-    const wrapper = (_: Electron.IpcRendererEvent, data: any) => callback(data);
+  on: (channel: string, callback: (data: unknown) => void) => {
+    const wrapper = (_: Electron.IpcRendererEvent, data: unknown) => callback(data);
     listenerWrappers.set(channel, wrapper);
     ipcRenderer.on(channel, wrapper);
   },

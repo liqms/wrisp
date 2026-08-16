@@ -1,7 +1,7 @@
 /**
  * 智能任务执行器类型定义
  */
-import { Id, Timestamp } from "@/shared/types";
+import { Timestamp } from "@/shared/types";
 
 /** 任务执行上下文 */
 export interface TaskContext {

@@ -52,15 +52,15 @@ export function useModel(options: UseModelOptions = {}) {
   /**
    * 获取特定配置项的值
    */
-  async function getValue<T = any>(keyPath: string): Promise<T | null> {
+  async function getValue<T = unknown>(keyPath: string): Promise<T | null> {
     if (!(await ensureLoaded())) return null;
-    return await modelStore.getConfigValue(keyPath);
+    return (await modelStore.getConfigValue(keyPath)) as T;
   }
 
   /**
    * 设置特定配置项的值
    */
-  async function setValue<T = any>(keyPath: string, value: T): Promise<boolean> {
+  async function setValue<T = unknown>(keyPath: string, value: T): Promise<boolean> {
     if (!(await ensureLoaded())) return false;
     return await modelStore.setConfigValue(keyPath, value);
   }

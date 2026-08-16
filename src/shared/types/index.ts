@@ -13,3 +13,4 @@ export * from "./task.types";
 export * from "./llm.types";
 export * from "./tag.types";
 export * from "./page.types";
+export * from "./template.types";

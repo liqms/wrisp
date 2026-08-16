@@ -1,10 +1,10 @@
 <template>
   <n-modal v-model:show="showModal" preset="card" :title="t('APP.BASE.SETTINGS')"
-    :style="{ maxHeight: '80vh', maxWidth: '900px', width: 'calc(100% - 60px)' }" :segmented="{ content: 'soft', footer: 'soft' }"
-    :mask-closable="false" header-style="font-size: 16px;">
+    :style="{ maxHeight: '80vh', maxWidth: '900px', width: 'calc(100% - 60px)' }"
+    :segmented="{ content: 'soft', footer: 'soft' }" :mask-closable="false" header-style="font-size: 16px;">
     <n-flex class="settings-container">
       <div class="settings-sidebar">
-        <n-menu :options="menuOptions" v-model:value="activeMenuKey" />
+        <n-menu v-model:value="activeMenuKey" :options="menuOptions" />
       </div>
       <n-scrollbar class="settings-content">
         <component :is="currentComponent" :config="config" />
@@ -21,7 +21,8 @@ import { useConfig } from "@/renderer/composables/useConfig";
 import GeneralSettings from "@/renderer/components/settings/GeneralSettings.vue";
 import ModelSettings from "@/renderer/components/settings/ModelSettings.vue";
 import KeymapSettings from "@/renderer/components/settings/KeymapSettings.vue";
-import { DiceOutline, OptionsOutline } from "@vicons/ionicons5";
+import TemplateSettings from "@/renderer/components/settings/TemplateSettings.vue";
+import { DiceOutline, DocumentTextOutline, OptionsOutline } from "@vicons/ionicons5";
 
 import { KeyboardAltOutlined } from "@vicons/material";
 
@@ -81,12 +82,18 @@ const menuOptions = computed(() => [
     label: t("SETTINGS.KEYMAP"),
     icon: renderIcon(KeyboardAltOutlined),
   },
+  {
+    key: "template",
+    label: t("SETTINGS.TEMPLATE_SETTINGS.TITLE"),
+    icon: renderIcon(DocumentTextOutline),
+  },
 ]);
 
 const componentMap: Record<string, Component> = {
   general: markRaw(GeneralSettings),
   model: markRaw(ModelSettings),
   keymap: markRaw(KeymapSettings),
+  template: markRaw(TemplateSettings),
 };
 
 const currentComponent = computed<Component | null>(() => {

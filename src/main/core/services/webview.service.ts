@@ -155,7 +155,7 @@ class WebViewService {
   private setupNavigationControl(): void {
     if (!this.webView) return
 
-    this.webView.webContents.on('will-navigate', (event, navigationUrl) => {
+    this.webView.webContents.on('will-navigate', (_event, navigationUrl) => {
       Logger.debug('后端WebView尝试导航到', { url: navigationUrl })
       // 记录用户导航历史
       this.recordNavigation(navigationUrl)

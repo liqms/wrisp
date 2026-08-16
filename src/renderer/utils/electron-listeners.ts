@@ -6,7 +6,7 @@
 /** 监听器注册记录 */
 interface ListenerEntry {
   channel: string;
-  callback: (data: any) => void;
+  callback: (data: unknown) => void;
 }
 
 /** 已注册的监听器映射（channel → entry），用于去重和清理 */
@@ -17,7 +17,7 @@ const registeredListeners = new Map<string, ListenerEntry>();
  * @param channel IPC 频道名
  * @param callback 数据回调
  */
-export function onElectron(channel: string, callback: (data: any) => void): void {
+export function onElectron(channel: string, callback: (data: unknown) => void): void {
   if (typeof window === "undefined" || !window.electronAPI) {
     return;
   }

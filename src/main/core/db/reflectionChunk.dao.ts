@@ -13,7 +13,7 @@ type CountByField = 'reflection_id' | 'chunk_id'
 
 export class ReflectionChunkDao extends BaseDao<ReflectionChunk, ReflectionChunkCreate, ReflectionChunkUpdate> {
   constructor() {
-    super('reflection_blocks')
+    super('reflection_chunks')
   }
 
   /**

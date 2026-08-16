@@ -4,18 +4,13 @@
     <n-flex v-else class="wiki-content" gap="12">
       <!-- 左侧：概念列表 -->
       <n-flex class="wiki-panel wiki-panel-left" vertical>
-        <n-text class="wiki-panel-title" depth="primary">
+        <n-text class="wiki-panel-title" depth="1">
           {{ t("APP.BASE.CONCEPTS") }}
         </n-text>
         <n-divider class="panel-divider" />
         <n-scrollbar class="wiki-list">
-          <n-flex
-            v-for="concept in concepts"
-            :key="concept.id"
-            class="wiki-item"
-            :class="{ active: currentConcept?.id === concept.id }"
-            @click="selectConcept(concept.id)"
-          >
+          <n-flex v-for="concept in concepts" :key="concept.id" class="wiki-item"
+            :class="{ active: currentConcept?.id === concept.id }" @click="selectConcept(concept.id)">
             <n-ellipsis class="wiki-item-text">
               {{ concept.title }}
             </n-ellipsis>
@@ -26,18 +21,13 @@
 
       <!-- 中间：主题详情 -->
       <n-flex class="wiki-panel wiki-panel-middle" vertical>
-        <n-text class="wiki-panel-title" depth="primary">
+        <n-text class="wiki-panel-title" depth="1">
           {{ t("APP.BASE.TOPICS") }}
         </n-text>
         <n-divider class="panel-divider" />
         <n-scrollbar class="wiki-list">
-          <n-flex
-            v-for="topic in topics"
-            :key="topic.id"
-            class="wiki-item"
-            :class="{ active: currentTopic?.id === topic.id }"
-            @click="selectTopic(topic.id)"
-          >
+          <n-flex v-for="topic in topics" :key="topic.id" class="wiki-item"
+            :class="{ active: currentTopic?.id === topic.id }" @click="selectTopic(topic.id)">
             <n-ellipsis class="wiki-item-text">
               {{ topic.title }}
             </n-ellipsis>
@@ -48,24 +38,20 @@
 
       <!-- 右侧：反思时间线 -->
       <n-flex class="wiki-panel wiki-panel-right" vertical>
-        <n-text class="wiki-panel-title" depth="primary">
+        <n-text class="wiki-panel-title" depth="1">
           {{ t("APP.BASE.REFLECTIONS") }}
         </n-text>
         <n-divider class="panel-divider" />
         <n-scrollbar class="wiki-list">
-          <n-flex
-            v-for="reflection in reflections"
-            :key="reflection.id"
-            class="wiki-item wiki-item-reflection"
-          >
+          <n-flex v-for="reflection in reflections" :key="reflection.id" class="wiki-item wiki-item-reflection">
             <n-flex vertical class="wiki-item-reflection-content">
-              <n-text class="reflection-type" depth="tertiary">
+              <n-text class="reflection-type" depth="3">
                 {{ reflection.type }}
               </n-text>
               <n-ellipsis class="wiki-item-text" :line-clamp="2">
                 {{ reflection.title }}
               </n-ellipsis>
-              <n-text class="reflection-date" depth="tertiary">
+              <n-text class="reflection-date" depth="3">
                 {{ reflection.created_at?.slice(0, 10) }}
               </n-text>
             </n-flex>
