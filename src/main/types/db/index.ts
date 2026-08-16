@@ -21,9 +21,6 @@ export * from "./task.types";
 
 export type {
   ChunkId,
-  ContentType,
-  JournalSource,
-  Language,
   Chunk,
   ChunkCreate,
   ChunkUpdate,

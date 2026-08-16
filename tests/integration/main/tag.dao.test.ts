@@ -69,7 +69,6 @@ describe('TagDao', () => {
     const saved = dao.findById(id)
     expect(saved).not.toBeNull()
     expect(saved!.name).toBe('fiction')
-    expect(saved!.color).toBe('#666666')
     expect(saved!.created_at).toBeDefined()
     expect(saved!.updated_at).toBeDefined()
   })
@@ -88,12 +87,11 @@ describe('TagDao', () => {
 
   it('should update a tag (returns row count)', () => {
     const id = dao.create({ name: 'old-name' })
-    const updated = dao.update(id, { name: 'new-name', color: '#ff0000' })
+    const updated = dao.update(id, { name: 'new-name' })
     expect(updated).toBe(1)
 
     const saved = dao.findById(id)
     expect(saved!.name).toBe('new-name')
-    expect(saved!.color).toBe('#ff0000')
   })
 
   it('should delete a tag (returns row count)', () => {

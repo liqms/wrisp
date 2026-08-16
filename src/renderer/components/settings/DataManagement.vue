@@ -12,7 +12,7 @@
           <n-text>{{ t('SETTINGS.DATA_MANAGEMENT.EXPORT') }}</n-text>
           <n-text depth="3" class="action-desc">{{ t('SETTINGS.DATA_MANAGEMENT.EXPORT_DESC') }}</n-text>
         </n-flex>
-        <n-button @click="handleExport" secondary>{{ t('SETTINGS.DATA_MANAGEMENT.EXPORT_BTN') }}</n-button>
+        <n-button secondary @click="handleExport">{{ t('SETTINGS.DATA_MANAGEMENT.EXPORT_BTN') }}</n-button>
       </n-flex>
 
       <!-- 导入数据 -->
@@ -21,7 +21,7 @@
           <n-text>{{ t('SETTINGS.DATA_MANAGEMENT.IMPORT') }}</n-text>
           <n-text depth="3" class="action-desc">{{ t('SETTINGS.DATA_MANAGEMENT.IMPORT_DESC') }}</n-text>
         </n-flex>
-        <n-button @click="handleImport" secondary>{{ t('SETTINGS.DATA_MANAGEMENT.IMPORT_BTN') }}</n-button>
+        <n-button secondary @click="handleImport">{{ t('SETTINGS.DATA_MANAGEMENT.IMPORT_BTN') }}</n-button>
       </n-flex>
 
       <!-- 清除数据 -->
@@ -30,7 +30,7 @@
           <n-text>{{ t('SETTINGS.DATA_MANAGEMENT.CLEAR') }}</n-text>
           <n-text depth="3" class="action-desc">{{ t('SETTINGS.DATA_MANAGEMENT.CLEAR_DESC') }}</n-text>
         </n-flex>
-        <n-button @click="handleClear" type="warning" secondary>
+        <n-button type="warning" secondary @click="handleClear">
           {{ t('SETTINGS.DATA_MANAGEMENT.CLEAR_BTN') }}
         </n-button>
       </n-flex>

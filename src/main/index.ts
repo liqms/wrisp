@@ -34,6 +34,7 @@ import {
   registerSmartTaskHandlers,
   registerTaskHandlers,
   registerUpdateHandlers,
+  registerTemplateHandlers,
 } from "@/main/ipcMain";
 import { databaseMigration } from "@/main/core/migration";
 import { setWorkspacePath } from "@/main/core/db/connection";
@@ -175,6 +176,7 @@ app.whenReady().then(async () => {
   registerSmartTaskHandlers();
   registerTaskHandlers();
   registerUpdateHandlers();
+  registerTemplateHandlers();
 
   // 启动下载事件监听（将 DownloadService 事件桥接到渲染进程）
   setupDownloadListeners();

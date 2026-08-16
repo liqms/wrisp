@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { ApiResponse } from "@/shared/types";
+import type { LLMMessage, LLMResponse } from "@/shared/types";
 import type { SkillListItem } from "@/shared/types/skill.types";
 import { ErrorCode } from "@/shared/enums";
 import { handleApiError } from "@/renderer/utils/error.utils";
@@ -8,7 +9,7 @@ import { handleApiError } from "@/renderer/utils/error.utils";
 export const useAiStore = defineStore("ai", () => {
   const skills = ref<SkillListItem[]>([]);
   const currentAgent = ref<string | null>(null);
-  const chatMessages = ref<{ role: string; content: string }[]>([]);
+  const chatMessages = ref<LLMMessage[]>([]);
   const loading = ref(false);
   const errorCode = ref<ErrorCode | null>(null);
   const errorMessage = ref<string | null>(null);
@@ -27,7 +28,7 @@ export const useAiStore = defineStore("ai", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -48,9 +49,9 @@ export const useAiStore = defineStore("ai", () => {
 
       const response = (await window.electronAPI.ai.chatCompletion({
         messages: chatMessages.value,
-      })) as ApiResponse<any>;
+      })) as ApiResponse<LLMResponse>;
 
-      if (response.success && response.data) {
+      if (response.success && response.data && !Array.isArray(response.data)) {
         chatMessages.value.push({
           role: "assistant",
           content: response.data.content ?? "",
@@ -59,7 +60,7 @@ export const useAiStore = defineStore("ai", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,

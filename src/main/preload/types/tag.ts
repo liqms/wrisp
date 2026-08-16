@@ -21,7 +21,7 @@ export interface TagAPI {
     orderBy?: string;
     orderDir?: "ASC" | "DESC";
     conditions?: TagQuery;
-  }): Promise<ApiResponse<any>>;
+  }): Promise<ApiResponse<unknown>>;
   createTags(
     data: TagCreate | TagCreate[],
   ): Promise<ApiResponse<string | string[]>>;

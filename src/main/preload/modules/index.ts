@@ -17,6 +17,7 @@ import { smartTaskModule } from "./smart-task";
 import { taskModule } from "./task";
 import { searchModule } from "./search";
 import { updateModule } from "./update";
+import { templateModule } from "./template";
 
 export const modules = {
   config: configModule,
@@ -38,4 +39,5 @@ export const modules = {
   task: taskModule,
   search: searchModule,
   update: updateModule,
+  template: templateModule,
 };

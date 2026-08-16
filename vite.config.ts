@@ -6,12 +6,12 @@ import fs from 'fs'
 
 function copyRecursive(src: string, dest: string) {
   const stat = fs.statSync(src)
-  
+
   if (stat.isDirectory()) {
     if (!fs.existsSync(dest)) {
       fs.mkdirSync(dest, { recursive: true })
     }
-    
+
     const files = fs.readdirSync(src)
     files.forEach(file => {
       copyRecursive(path.join(src, file), path.join(dest, file))
@@ -30,7 +30,7 @@ function copySchemas() {
     if (!fs.existsSync(destPath)) {
       fs.mkdirSync(destPath, { recursive: true })
     }
-    
+
     const files = fs.readdirSync(srcPath)
     files.forEach(file => {
       copyRecursive(path.join(srcPath, file), path.join(destPath, file))
@@ -71,7 +71,7 @@ export default defineConfig({
                 format: 'cjs'
               }
             },
-            target: 'node18',
+            target: 'node22',
             lib: {
               entry: 'src/main/index.ts',
               formats: ['cjs'],
@@ -91,11 +91,32 @@ export default defineConfig({
                 format: 'cjs'
               }
             },
-            target: 'node18',
+            target: 'node22',
             lib: {
               entry: 'src/main/preload.ts',
               formats: ['cjs'],
               fileName: () => 'preload.js'
+            }
+          }
+        }
+      },
+      {
+        // Local AI Worker 线程入口，独立打包为 CJS 供 worker_threads 加载
+        entry: 'src/main/core/model-gateway/local-gateway/worker/index.ts',
+        vite: {
+          build: {
+            outDir: 'dist-electron',
+            rollupOptions: {
+              external: ['electron', '@xenova/transformers'],
+              output: {
+                format: 'cjs'
+              }
+            },
+            target: 'node22',
+            lib: {
+              entry: 'src/main/core/model-gateway/local-gateway/worker/index.ts',
+              formats: ['cjs'],
+              fileName: () => 'local-ai-worker.js'
             }
           }
         }

@@ -12,7 +12,7 @@
         </n-flex>
         <n-switch :value="enableAiMode" class="setting-switch" @update:value="updateEnableAiMode" />
       </n-flex>
-      <n-flex class="models-item" v-if="enableAiMode">
+      <n-flex v-if="enableAiMode" class="models-item">
         <DownloadButton v-for="model in modelList" :key="model.id" :title="model.label" :desc="model.desc"
           :progress="model.progress" :localpath="model.localpath" />
       </n-flex>
@@ -30,7 +30,7 @@
         <n-switch :value="enableCloudAi" class="setting-switch" @update:value="updateEnableCloudAi" />
       </n-flex>
     </n-card>
-    <n-card size="medium" :bordered="false" class="setting-card" v-if="enableCloudAi">
+    <n-card v-if="enableCloudAi" size="medium" :bordered="false" class="setting-card">
       <n-flex class="setting-row">
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{

@@ -40,7 +40,7 @@ export class SemanticLinkExecutor implements TaskExecutor {
 
         // Step 2: LanceDB ANN 检索
         const annResults = await vectorService.searchBlockEmbeddings({
-          vector: blockEmbeddings[0].vector,
+          vector: blockEmbeddings[0].embedding,
           topK: ANN_TOP_K,
         });
 
@@ -60,18 +60,18 @@ export class SemanticLinkExecutor implements TaskExecutor {
 
         // Step 4: 取 Top-N 写入 semantic_links
         const topLinks = rerankResults.slice(0, RERANK_TOP_K);
-        const existingLinks = semanticLinkDao.findByBlockId(block.id);
-        const existingTargetIds = new Set(existingLinks.map((l) => l.target_block_id));
+        const existingLinks = semanticLinkDao.findByChunkId(block.id);
+        const existingTargetIds = new Set(existingLinks.map((l) => l.target_chunk_id));
 
         for (const rr of topLinks) {
           const target = candidateBlocks[rr.index];
           if (!target || existingTargetIds.has(target.id)) continue;
 
           const create: SemanticLinkCreate = {
-            source_block_id: block.id,
-            target_block_id: target.id,
-            link_type: "similar",
-            score: rr.score,
+            source_chunk_id: block.id,
+            target_chunk_id: target.id,
+            link_type: "semantic",
+            similarity: rr.score,
           };
 
           try {
@@ -97,14 +97,13 @@ export class SemanticLinkExecutor implements TaskExecutor {
 
   private getVectorizedBlocks(processedUntil: string | null): Chunk[] {
     if (processedUntil) {
-      return this.chunkDao.db
-        .prepare(
-          `SELECT * FROM blocks WHERE updated_at > ? AND ai_summary IS NOT NULL`,
-        )
-        .all(processedUntil) as Chunk[];
+      return this.chunkDao.query(
+        `SELECT * FROM semantic_chunks WHERE updated_at > ? AND ai_summary IS NOT NULL`,
+        [processedUntil],
+      ) as Chunk[];
     }
-    return this.chunkDao.db
-      .prepare(`SELECT * FROM blocks WHERE ai_summary IS NOT NULL`)
-      .all() as Chunk[];
+    return this.chunkDao.query(
+      `SELECT * FROM semantic_chunks WHERE ai_summary IS NOT NULL`,
+    ) as Chunk[];
   }
 }

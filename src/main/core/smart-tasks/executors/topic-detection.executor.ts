@@ -1,10 +1,11 @@
 import { TaskExecutor, TaskContext, TaskResult } from "../types";
 import { conceptDao } from "@/main/core/db/concept.dao";
+import { conceptChunkDao } from "@/main/core/db/conceptChunk.dao";
 import { topicDao } from "@/main/core/db/topic.dao";
 import { topicConceptDao } from "@/main/core/db/topicConcept.dao";
 import { topicChunkDao } from "@/main/core/db/topicChunk.dao";
 import { progressManager } from "@/main/core/smart-tasks/progress.manager";
-import { Concept, TopicCreate, TopicConceptCreate, TopicChunkCreate } from "@/main/types/db";
+import { Concept, TopicCreate } from "@/main/types/db";
 import { Logger } from "@/main/utils/logger";
 
 export class TopicDetectionExecutor implements TaskExecutor {
@@ -31,10 +32,9 @@ export class TopicDetectionExecutor implements TaskExecutor {
 
         if (group.length < 2) continue;
 
-        const topicName = group.map((c) => c.name).slice(0, 3).join(" · ");
+        const topicName = group.map((c) => c.title).slice(0, 3).join(" · ");
         const topicCreate: TopicCreate = {
-          name: topicName,
-          description: "",
+          title: topicName,
           summary: "",
           status: "active",
         };
@@ -42,22 +42,17 @@ export class TopicDetectionExecutor implements TaskExecutor {
 
         for (const concept of group) {
           try {
-            topicConceptDao.create({ topic_id: topic.id, concept_id: concept.id });
+            topicConceptDao.create({ topic_id: topic, concept_id: concept.id });
           } catch { /* 忽略重复 */ }
         }
 
-        // 获取概念关联的 block 并建立 topic_blocks 关联
+        // 获取概念关联的 block 并建立 topic_chunks 关联
         for (const concept of group) {
-          const blocks = concept.dao?.db
-            ?.prepare(`SELECT block_id FROM concept_blocks WHERE concept_id = ?`)
-            .all(concept.id) as { block_id: string }[] | undefined;
-
-          if (blocks) {
-            for (const b of blocks) {
-              try {
-                topicChunkDao.create({ topic_id: topic.id, chunk_id: b.block_id });
-              } catch { /* 忽略重复 */ }
-            }
+          const conceptChunks = conceptChunkDao.findBy('concept_id', concept.id);
+          for (const cc of conceptChunks) {
+            try {
+              topicChunkDao.create({ topic_id: topic, chunk_id: cc.chunk_id });
+            } catch { /* 忽略重复 */ }
           }
         }
 
@@ -76,7 +71,7 @@ export class TopicDetectionExecutor implements TaskExecutor {
   private simpleCluster(concepts: Concept[]): Map<string, Concept[]> {
     const clusters = new Map<string, Concept[]>();
     for (const c of concepts) {
-      const key = c.name.charAt(0).toLowerCase();
+      const key = c.title.charAt(0).toLowerCase();
       if (!clusters.has(key)) clusters.set(key, []);
       clusters.get(key)!.push(c);
     }

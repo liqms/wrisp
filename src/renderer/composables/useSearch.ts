@@ -6,7 +6,7 @@ export function useSearch() {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  const search = async (keyword: string): Promise<void> => {
+  const search = async (_keyword: string): Promise<void> => {
     loading.value = true;
     error.value = null;
 

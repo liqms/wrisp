@@ -176,11 +176,15 @@ class ConfigService {
   public getValue<T>(keyPath: string): T | undefined {
     try {
       const keys = keyPath.split(".");
-      let result: any = this.config!;
+      let result: unknown = this.config!;
 
       for (const key of keys) {
-        if (result && typeof result === "object" && key in result) {
-          result = result[key];
+        if (
+          result !== null &&
+          typeof result === "object" &&
+          key in result
+        ) {
+          result = (result as Record<string, unknown>)[key];
         } else {
           return undefined;
         }
@@ -206,18 +210,22 @@ class ConfigService {
     try {
       const keys = keyPath.split(".");
       const lastKey = keys.pop()!;
-      let target: any = this.config!;
+      let target: unknown = this.config!;
 
       for (const key of keys) {
-        if (target && typeof target === "object" && key in target) {
-          target = target[key];
+        if (
+          target !== null &&
+          typeof target === "object" &&
+          key in target
+        ) {
+          target = (target as Record<string, unknown>)[key];
         } else {
           Logger.error(`AppConfig 配置键路径不存在: ${keyPath}`);
         }
       }
 
-      if (target && typeof target === "object" && lastKey in target) {
-        target[lastKey] = value;
+      if (target !== null && typeof target === "object" && lastKey in target) {
+        (target as Record<string, unknown>)[lastKey] = value;
         this.saveConfig();
       } else {
         Logger.error(`AppConfig 配置键路径不存在: ${keyPath}`);

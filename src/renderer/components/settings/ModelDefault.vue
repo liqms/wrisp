@@ -1,5 +1,5 @@
 <template>
-  <n-card size="medium" :bordered="false" class="setting-card" v-if="enableCloudAi && textModelsOptions.length > 0">
+  <n-card v-if="enableCloudAi && textModelsOptions.length > 0" size="medium" :bordered="false" class="setting-card">
     <n-flex class="setting-row">
       <n-flex align="center" class="setting-content">
         <n-text class="setting-label">{{

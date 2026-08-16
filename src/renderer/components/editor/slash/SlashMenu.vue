@@ -14,6 +14,7 @@
               @mouseenter="selectedIndex = getGlobalIndex(gi, ci)">
               <div class="cmd-icon">
                 <component :is="cmd.icon" v-if="isComponentIcon(cmd.icon)" class="cmd-icon-svg" />
+                <!-- 字符串图标在命令构建时已通过 sanitizeHtml 清洗，此处渲染是安全的 -->
                 <span v-else v-html="cmd.icon"></span>
               </div>
               <div class="cmd-info">
@@ -36,6 +37,8 @@ import type { Editor } from "@tiptap/core";
 import { useConfig } from "@/renderer/composables/useConfig";
 import { getCommandGroups, type CommandGroup } from "./commands/registry";
 import type { SlashCommand } from "./commands/types";
+import { useTemplateStore } from "@/renderer/store/template.store";
+import { PROFESSION } from "@/shared/enums/profession.enums";
 
 const props = defineProps<{
   visible: boolean;
@@ -49,7 +52,13 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { profession } = useConfig();
+const { profession, locale } = useConfig();
+const templateStore = useTemplateStore();
+
+// 打开菜单时确保模板已加载（已加载则跳过）
+onMounted(() => {
+  if (!templateStore.loaded) templateStore.fetch();
+});
 
 const menuRef = ref<HTMLDivElement | null>(null);
 const inputRef = ref<HTMLInputElement | null>(null);
@@ -58,10 +67,19 @@ const selectedIndex = ref(0);
 
 const menuStyle = ref<Record<string, string>>({});
 
-// 命令组来自注册表：通用(日期时间) + 当前职业模板
-const commandGroups = computed<CommandGroup[]>(() =>
-  getCommandGroups(t, profession.value),
-);
+// 命令组 = 通用(日期时间) + 当前职业或通用职业且已启用的模板
+const commandGroups = computed<CommandGroup[]>(() => {
+  const items = templateStore
+    .allTemplates(locale.value)
+    .filter(
+      (item) =>
+        item.enabled &&
+        (item.profession === profession.value ||
+          item.profession === PROFESSION.GENERAL ||
+          item.profession === PROFESSION.CUSTOM),
+    );
+  return getCommandGroups(t, items);
+});
 
 // 判断图标是否为 Vue 组件（@vicons 等）；字符串则走 v-html
 function isComponentIcon(icon: SlashCommand["icon"]): boolean {
@@ -168,12 +186,13 @@ function onKeydown(e: KeyboardEvent) {
       selectedIndex.value = Math.max(selectedIndex.value - 1, 0);
       scrollToSelected();
       break;
-    case "Enter":
+    case "Enter": {
       e.preventDefault();
       const flatCmds = filteredGroups.value.flatMap((g) => g.items);
       const cmd = flatCmds[selectedIndex.value];
       if (cmd) executeCommand(cmd);
       break;
+    }
     case "Escape":
       e.preventDefault();
       emit("close");

@@ -12,7 +12,7 @@ import { Logger } from "@/main/utils/logger";
 async function search(
   keyword: string,
   limit?: number,
-): Promise<ApiResponse<any[]>> {
+): Promise<ApiResponse<unknown[]>> {
   try {
     const results = await searchService.search(keyword, limit);
     return response.success(results);

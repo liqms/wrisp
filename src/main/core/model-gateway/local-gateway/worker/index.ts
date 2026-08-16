@@ -2,6 +2,7 @@
  * Local AI Worker 线程入口
  * 在独立线程中执行模型推理，消息路由到各 handler
  */
+import { parentPort } from "node:worker_threads";
 import * as embeddingHandler from "./embedding-handler";
 import * as rerankHandler from "./rerank-handler";
 import * as llmHandler from "./llm-handler";
@@ -63,8 +64,8 @@ const responseTypeMap: Record<string, string> = {
 };
 
 /** Worker 消息入口 - 根据消息类型路由到对应的 handler */
-self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
-  const { id, type, payload } = event.data;
+parentPort?.on("message", async (event: WorkerMessage) => {
+  const { id, type, payload } = event;
 
   try {
     const handler = handlers[type];
@@ -75,9 +76,9 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
     const result = await handler(payload);
     const responseType = responseTypeMap[type] || type;
 
-    self.postMessage({ id, type: responseType, payload: result } satisfies WorkerResponse);
+    parentPort?.postMessage({ id, type: responseType, payload: result } satisfies WorkerResponse);
   } catch (error) {
     Logger.error("[Worker] 处理消息失败", { type, error: String(error) });
-    self.postMessage({ id, type: "error", error: String(error) } satisfies WorkerResponse);
+    parentPort?.postMessage({ id, type: "error", error: String(error) } satisfies WorkerResponse);
   }
-};
+});

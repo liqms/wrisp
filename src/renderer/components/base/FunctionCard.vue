@@ -25,7 +25,7 @@ interface Props {
   imageUrl: string
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const showMask = ref(false)
 

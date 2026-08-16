@@ -30,7 +30,7 @@ export interface Concept {
   color?: string;
 }
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     title?: string;
     concepts?: Concept[];

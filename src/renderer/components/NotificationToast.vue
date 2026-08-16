@@ -44,7 +44,8 @@ watch(() => notificationStore.notifications.length, () => {
 
 /** 监听未完成任务续传确认 */
 function setupPendingTaskListener(): void {
-  window.electronAPI.on('task:pending', (summary: { count: number; types: string[]; groups: string[] }) => {
+  window.electronAPI.on('task:pending', (data: unknown) => {
+    const summary = data as { count: number; types: string[]; groups: string[] }
     const typeLabels = summary.types.join(', ')
     dialog.warning({
       title: t('NOTIFICATION.DOWNLOAD.TITLE'),

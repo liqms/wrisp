@@ -20,7 +20,7 @@ import { useThemeVars } from "naive-ui";
 
 const themeVars = useThemeVars();
 const iconColor = computed(() => hexToRgb(themeVars.value.primaryColor, 0.5));
-const props = defineProps<{
+defineProps<{
   icon: Component;
   title: string;
   desc: string;

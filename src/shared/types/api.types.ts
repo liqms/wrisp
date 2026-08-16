@@ -7,7 +7,7 @@ import { ErrorCode } from "../enums";
 /**
  * 基础响应接口
  */
-export interface BaseResponse<T = any> {
+export interface BaseResponse<T = unknown> {
   code: ErrorCode; // 状态码
   data?: T; // 数据
   timestamp: string | number; // 时间戳
@@ -17,7 +17,7 @@ export interface BaseResponse<T = any> {
 /**
  * 成功响应
  */
-export interface SuccessResponse<T = any> extends BaseResponse<T> {
+export interface SuccessResponse<T = unknown> extends BaseResponse<T> {
   code: ErrorCode.SUCCESS;
   success: true;
   data: T;
@@ -32,7 +32,7 @@ export interface ErrorResponse extends BaseResponse {
   data?: never;
   error?: {
     type: string; // 错误类型
-    details?: Record<string, any>; // 错误详情
+    details?: Record<string, unknown>; // 错误详情
     stack?: string; // 错误堆栈
   };
 }
@@ -40,7 +40,7 @@ export interface ErrorResponse extends BaseResponse {
 /**
  * 分页响应
  */
-export interface PaginatedResponse<T = any> extends SuccessResponse<T[]> {
+export interface PaginatedResponse<T = unknown> extends SuccessResponse<T[]> {
   pagination: {
     page: number; // 当前页码
     pageSize: number; // 每页数量
@@ -56,7 +56,7 @@ export interface PaginatedResponse<T = any> extends SuccessResponse<T[]> {
 /**
  * 列表响应
  */
-export interface ListResponse<T = any> extends SuccessResponse<T[]> {
+export interface ListResponse<T = unknown> extends SuccessResponse<T[]> {
   total: number; // 总数量
 }
 
@@ -72,13 +72,13 @@ export interface ResponseOptions {
  * 响应创建器类型
  */
 export type ResponseCreator = {
-  success: <T = any>(data: T, options?: ResponseOptions) => SuccessResponse<T>;
+  success: <T = unknown>(data: T, options?: ResponseOptions) => SuccessResponse<T>;
   error: (
     code: ErrorCode,
     error?: Error,
     options?: ResponseOptions,
   ) => ErrorResponse;
-  paginated: <T = any>(
+  paginated: <T = unknown>(
     data: T[],
     total: number,
     page: number,
@@ -90,16 +90,16 @@ export type ResponseCreator = {
     endIndex: number,
     options?: ResponseOptions,
   ) => PaginatedResponse<T>;
-  list: <T = any>(
+  list: <T = unknown>(
     data: T[],
     total: number,
     options?: ResponseOptions,
   ) => ListResponse<T>;
-  created: <T = any>(data: T, options?: ResponseOptions) => SuccessResponse<T>;
+  created: <T = unknown>(data: T, options?: ResponseOptions) => SuccessResponse<T>;
   noContent: (options?: ResponseOptions) => SuccessResponse<null>;
 };
 
-export type ApiResponse<T = any> =
+export type ApiResponse<T = unknown> =
   | SuccessResponse<T>
   | ErrorResponse
   | PaginatedResponse<T>

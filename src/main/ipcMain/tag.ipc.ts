@@ -55,7 +55,7 @@ export function registerTagHandlers(): void {
         orderDir?: "ASC" | "DESC";
         conditions?: TagQuery;
       },
-    ): Promise<ApiResponse<any>> => {
+    ): Promise<ApiResponse<unknown>> => {
       return paginateTags(params);
     },
   );

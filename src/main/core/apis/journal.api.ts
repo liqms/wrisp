@@ -5,7 +5,6 @@ import type {
   JournalFileInfo,
   JournalFileCreate,
   JournalFileUpdate,
-  JournalFileQuery,
   Id,
   ApiResponse,
 } from "@/shared/types";

@@ -5,7 +5,7 @@
 class SearchService {
   private static instance: SearchService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SearchService {
     if (!SearchService.instance) {
@@ -18,7 +18,7 @@ class SearchService {
    * 执行搜索
    * 优先向量搜索，失败时回退到文本搜索
    */
-  public async search(keyword: string, limit?: number): Promise<any[]> {
+  public async search(keyword: string, limit?: number): Promise<unknown[]> {
     try {
       return await this.vectorSearch(keyword, limit);
     } catch {
@@ -29,7 +29,7 @@ class SearchService {
   /**
    * 向量搜索
    */
-  public async vectorSearch(query: string, limit?: number): Promise<any[]> {
+  public async vectorSearch(_query: string, _limit?: number): Promise<unknown[]> {
     // TODO: 接入向量数据库搜索
     return [];
   }
@@ -37,7 +37,7 @@ class SearchService {
   /**
    * 文本搜索 (FTS5)
    */
-  public async textSearch(keyword: string, limit?: number): Promise<any[]> {
+  public async textSearch(_keyword: string, _limit?: number): Promise<unknown[]> {
     // TODO: 接入 FTS5 全文搜索
     return [];
   }

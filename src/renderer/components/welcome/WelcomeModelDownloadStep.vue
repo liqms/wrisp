@@ -42,7 +42,7 @@ export interface ModelOption {
   size: string;
 }
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     availableModels?: ModelOption[];
     downloading?: boolean;
@@ -57,7 +57,7 @@ const props = withDefaults(
 
 const selectedModel = ref("");
 
-const emit = defineEmits<{
+defineEmits<{
   (e: "startDownload", modelId: string): void;
 }>();
 </script>

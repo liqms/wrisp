@@ -3,7 +3,7 @@
     <n-list>
       <n-list-item v-for="item in shortcuts" :key="item.id">
         <n-flex align="center" justify="space-between" class="shortcut-row">
-          <n-text>{{ item.labelKey }}</n-text>
+          <n-text>{{ t(item.labelKey) }}</n-text>
           <n-flex align="center" :size="8">
             <template v-if="recordingId === item.id">
               <n-tag type="info">{{ t('SETTINGS.SHORTCUT_SETTINGS.RECORDING_HINT') }}</n-tag>
@@ -25,33 +25,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { useMessage } from "naive-ui";
 import type { AppConfig } from "@/shared/types";
+import {
+  resolveShortcuts,
+  normalizeKeys,
+  type ShortcutItem,
+} from "@/renderer/store/shortcut.store";
 import { useConfig } from "@/renderer/composables/useConfig";
 
-defineProps<{ config: AppConfig | null }>();
+const props = defineProps<{ config: AppConfig | null }>();
 
 const { t } = useI18n();
-const configStore = useConfig();
+const message = useMessage();
+const { updateShortcuts } = useConfig();
 
-interface ShortcutItem {
-  id: string;
-  labelKey: string;
-  defaultKeys: string;
-  currentKeys: string;
-}
-
-const defaultShortcuts: ShortcutItem[] = [
-  { id: "global.capture", labelKey: "快速记录", defaultKeys: "Ctrl+Shift+C", currentKeys: "Ctrl+Shift+C" },
-  { id: "global.search", labelKey: "搜索", defaultKeys: "Ctrl+Shift+F", currentKeys: "Ctrl+Shift+F" },
-  { id: "global.settings", labelKey: "设置", defaultKeys: "Ctrl+,", currentKeys: "Ctrl+," },
-  { id: "global.copy", labelKey: t("SETTINGS.SHORTCUT_SETTINGS.COPY"), defaultKeys: "Ctrl+C", currentKeys: "Ctrl+C" },
-  { id: "global.paste", labelKey: t("SETTINGS.SHORTCUT_SETTINGS.PASTE"), defaultKeys: "Ctrl+V", currentKeys: "Ctrl+V" },
-];
-
-const shortcuts = ref<ShortcutItem[]>([...defaultShortcuts]);
+const shortcuts = ref<ShortcutItem[]>(resolveShortcuts(props.config?.shortcuts));
 const recordingId = ref<string | null>(null);
+
+// 配置变化（如外部修改 / 重开设置）时同步回显
+watch(
+  () => props.config?.shortcuts,
+  (saved) => {
+    shortcuts.value = resolveShortcuts(saved);
+    recordingId.value = null;
+  },
+  { immediate: true },
+);
 
 const startRecording = (id: string) => {
   recordingId.value = id;
@@ -62,8 +64,9 @@ const cancelRecording = () => {
 };
 
 const isConflict = (keys: string, excludeId: string) => {
+  const normalized = normalizeKeys(keys);
   return shortcuts.value.some(
-    (s) => s.id !== excludeId && s.currentKeys.toLowerCase() === keys.toLowerCase(),
+    (s) => s.id !== excludeId && normalizeKeys(s.currentKeys) === normalized,
   );
 };
 
@@ -83,15 +86,21 @@ const handleKeyDown = async (e: KeyboardEvent) => {
         : e.key;
   if (key) parts.push(key);
   if (parts.length < 2) return;
+
   const newKeys = parts.join("+");
-  if (isConflict(newKeys, recordingId.value)) return;
-  const item = shortcuts.value.find((s) => s.id === recordingId.value);
-  if (item) {
-    item.currentKeys = newKeys;
-    await configStore.setValue(
-      "shortcuts",
-      shortcuts.value.map(({ id, currentKeys }) => ({ id, keys: currentKeys })),
-    );
+  const target = shortcuts.value.find((s) => s.id === recordingId.value);
+  if (!target) return;
+
+  if (isConflict(newKeys, target.id)) {
+    message.warning(t("SETTINGS.SHORTCUT_SETTINGS.CONFLICT_WARNING"));
+    return;
+  }
+
+  target.currentKeys = newKeys;
+  const saved = shortcuts.value.map(({ id, currentKeys }) => ({ id, keys: currentKeys }));
+  const ok = await updateShortcuts(saved);
+  if (!ok) {
+    message.error(t("SETTINGS.SHORTCUT_SETTINGS.SAVE_FAILED"));
   }
   recordingId.value = null;
 };

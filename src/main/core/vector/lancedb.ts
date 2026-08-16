@@ -13,8 +13,9 @@ import {
 } from "@lancedb/lancedb";
 import { join } from "path";
 import fs from "fs";
+import { createRequire } from "node:module";
 import { configService } from "@/main/core/services/config.service";
-import { Id } from "@/main/types";
+import { Id } from "@/shared/types";
 import {
   Schema,
   Field,
@@ -24,9 +25,12 @@ import {
 } from "apache-arrow";
 
 // 延迟导入 Electron，避免非 Electron 环境下的问题
+// 主进程以 CJS 格式构建，`import.meta.url` 会被编译为 undefined，
+// 因此使用 CJS 全局 `__filename` 作为 createRequire 的参数。
+const requireModule = createRequire(__filename);
 let app: typeof import("electron").app | null = null;
 try {
-  app = require("electron").app;
+  app = requireModule("electron").app;
 } catch {
   // 在非 Electron 环境中运行
 }

@@ -50,9 +50,9 @@ export function getExtensions(placeholder?: string): Extensions {
 
   // 内部去重：按扩展 name 去重，避免重复注册同名扩展
   function dedupeExtensions(e: Extensions): Extensions {
-    const map = new Map<string, any>();
+    const map = new Map<string, unknown>();
     for (const ex of e) {
-      const name = (ex as any)?.name || (ex as any)?.options?.name || String(ex);
+      const name = getExtensionName(ex);
       if (!map.has(name)) {
         map.set(name, ex);
       }
@@ -61,6 +61,17 @@ export function getExtensions(placeholder?: string): Extensions {
   }
 
   return dedupeExtensions(exts);
+}
+
+/**
+ * 获取扩展名称，兼容直接 name 属性与 options.name 两种来源
+ */
+function getExtensionName(ex: unknown): string {
+  const ext = ex as Record<string, unknown> | null;
+  const options = ext?.options as Record<string, unknown> | null;
+  const name = typeof ext?.name === "string" ? ext.name : undefined;
+  const optionName = typeof options?.name === "string" ? options.name : undefined;
+  return name || optionName || String(ex);
 }
 
 /**
@@ -73,9 +84,9 @@ export function createEditorExtensions(placeholder?: string, custom?: Extensions
   if (!custom || custom.length === 0) return base;
   const merged = [...base, ...custom];
   // 重用内部去重逻辑 from getExtensions by reusing function: recreate here
-  const map = new Map<string, any>();
+  const map = new Map<string, unknown>();
   for (const ex of merged) {
-    const name = (ex as any)?.name || (ex as any)?.options?.name || String(ex);
+    const name = getExtensionName(ex);
     if (!map.has(name)) map.set(name, ex);
   }
   return Array.from(map.values()) as Extensions;

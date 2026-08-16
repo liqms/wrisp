@@ -43,7 +43,7 @@ export const useConfigStore = defineStore("config", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.CONFIG_GET_FAILED;
       errorMessage.value = handleApiError({
         success: false,
@@ -57,11 +57,11 @@ export const useConfigStore = defineStore("config", () => {
   /**
    * 获取特定配置项的值
    */
-  const getConfigValue = async (keyPath: string): Promise<any> => {
+  const getConfigValue = async (keyPath: string): Promise<unknown> => {
     try {
       const response = (await window.electronAPI.config.getValue(
         keyPath,
-      )) as ApiResponse<any>;
+      )) as ApiResponse<unknown>;
 
       if (response.success) {
         return response.data;
@@ -70,7 +70,7 @@ export const useConfigStore = defineStore("config", () => {
         errorMessage.value = handleApiError(response);
         return null;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.CONFIG_GET_FAILED;
       errorMessage.value = handleApiError({
         success: false,
@@ -85,7 +85,7 @@ export const useConfigStore = defineStore("config", () => {
    */
   const setConfigValue = async (
     keyPath: string,
-    value: any,
+    value: unknown,
   ): Promise<boolean> => {
     try {
       const response = (await window.electronAPI.config.setValue(
@@ -97,17 +97,24 @@ export const useConfigStore = defineStore("config", () => {
         // 更新本地配置状态
         if (config.value) {
           // 使用深拷贝更新嵌套属性
-          const updateNestedValue = (obj: any, path: string, val: any): any => {
+          const updateNestedValue = (
+            obj: Record<string, unknown>,
+            path: string,
+            val: unknown,
+          ): Record<string, unknown> => {
             const keys = path.split(".");
             const currentKey = keys[0];
 
             if (keys.length === 1) {
               return { ...obj, [currentKey]: val };
             } else {
+              const child = obj[currentKey];
               return {
                 ...obj,
                 [currentKey]: updateNestedValue(
-                  obj[currentKey] || {},
+                  (child && typeof child === "object" && child !== null
+                    ? child
+                    : {}) as Record<string, unknown>,
                   keys.slice(1).join("."),
                   val,
                 ),
@@ -115,7 +122,11 @@ export const useConfigStore = defineStore("config", () => {
             }
           };
 
-          config.value = updateNestedValue(config.value, keyPath, value);
+          config.value = updateNestedValue(
+            config.value as Record<string, unknown>,
+            keyPath,
+            value,
+          ) as unknown as AppConfig;
         }
         return true;
       } else {
@@ -123,7 +134,7 @@ export const useConfigStore = defineStore("config", () => {
         errorMessage.value = handleApiError(response);
         return false;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.CONFIG_UPDATE_FAILED;
       errorMessage.value = handleApiError({
         success: false,
@@ -154,7 +165,7 @@ export const useConfigStore = defineStore("config", () => {
         errorMessage.value = handleApiError(response);
         return false;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.CONFIG_RESET_FAILED;
       errorMessage.value = handleApiError({
         success: false,
@@ -188,7 +199,7 @@ export const useConfigStore = defineStore("config", () => {
         errorMessage.value = handleApiError(response);
         return false;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.CONFIG_UPDATE_FAILED;
       errorMessage.value = handleApiError({
         success: false,

@@ -7,7 +7,7 @@ export enum PROJECT_TYPE {
     BOOK = 'book',
     /** 研究项目 */
     RESEARCH = 'research',
-    /** 产品 */
+    /** 产品文档 */
     PRODUCT = 'product',
 }
 

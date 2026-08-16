@@ -5,9 +5,10 @@
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{
             t("SETTINGS.ABOUT_SETTINGS.CURRENT_VERSION")
-            }}</n-text>
+          }}</n-text>
           <n-text class="setting-desc">Wrisp V{{ version }}</n-text>
-          <n-text class="setting-link" @click="openUpdateRecord">{{ t("SETTINGS.GENERAL_SETTINGS.UPDATE_RECORD") }}</n-text>
+          <n-text class="setting-link" @click="openUpdateRecord">{{ t("SETTINGS.GENERAL_SETTINGS.UPDATE_RECORD")
+          }}</n-text>
         </n-flex>
 
         <n-button type="primary" :loading="checkingUpdate" @click="checkUpdate">
@@ -19,7 +20,7 @@
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{
             t("SETTINGS.GENERAL_SETTINGS.THEME")
-            }}</n-text>
+          }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.SELECT_THEME_DESC") }}</n-text>
         </n-flex>
         <n-select v-model:value="themeMode" :options="themeOptions" class="setting-select" />
@@ -29,7 +30,7 @@
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{
             t("SETTINGS.GENERAL_SETTINGS.LOCALE")
-            }}</n-text>
+          }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.SELECT_LOCALE_DESC") }}</n-text>
         </n-flex>
         <n-select v-model:value="locale" :options="localeOptions" class="setting-select" />
@@ -63,7 +64,7 @@
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{
             t("SETTINGS.DATA_MANAGER_SETTINGS.WORKSPACE")
-            }}</n-text>
+          }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.CHOOSE_FOLDER_DESC") }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.CURRENT_FOLDER") }}:&nbsp;
             {{ workspace }}</n-text>
@@ -77,10 +78,10 @@
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{
             t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX")
-            }}</n-text>
+          }}</n-text>
           <n-text class="setting-desc">{{
             t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX_DESC")
-            }}</n-text>
+          }}</n-text>
         </n-flex>
         <n-button size="medium" type="primary" :loading="rebuildingIndex" :disabled="rebuildingIndex"
           @click="rebuildIndex">
@@ -89,16 +90,9 @@
       </n-flex>
     </n-card>
 
-    <UpdatePrompt
-      v-model:visible="updateVisible"
-      :version="updateVersion"
-      :release-notes="updateNotes"
-      :downloading="downloading"
-      :percent="updatePercent"
-      :installed="installed"
-      @update="handleUpdate"
-      @install="handleInstall"
-    />
+    <UpdatePrompt v-model:visible="updateVisible" :version="updateVersion" :release-notes="updateNotes"
+      :downloading="downloading" :percent="updatePercent" :installed="installed" @update="handleUpdate"
+      @later="handleLater" @install="handleInstall" />
   </n-scrollbar>
 </template>
 
@@ -183,9 +177,16 @@ watch(locale, async (newLocale) => {
 
 const profession = ref<Profession>(configProfession.value);
 
-const professionOptions = [
-  { label: t("SETTINGS.PROFESSION.OPTION_PM"), value: PROFESSION.PM },
-];
+const professionOptions = (Object.values(PROFESSION) as Profession[])
+  // GENERAL 与 CUSTOM 为模板归类标签，不作为用户可选职业
+  .filter(
+    (value) =>
+      value !== PROFESSION.GENERAL && value !== PROFESSION.CUSTOM,
+  )
+  .map((value) => ({
+    label: t(`SETTINGS.PROFESSION.OPTION_${value.toUpperCase()}`),
+    value,
+  }));
 
 const onProfessionChange = async (value: Profession) => {
   if (value === profession.value) return;
@@ -245,14 +246,16 @@ const checkUpdate = async (): Promise<void> => {
 };
 
 // 订阅更新事件（可用/进度/下载完成/错误）
-window.electronAPI.update.onEvent("available", (info: { version: string; releaseNotes?: string }) => {
+window.electronAPI.update.onEvent("available", (payload: unknown) => {
+  const info = payload as { version: string; releaseNotes?: string };
   updateVersion.value = info.version;
   updateNotes.value = info.releaseNotes ?? "";
   updateVisible.value = true;
 });
-window.electronAPI.update.onEvent("download-progress", (payload: { percent: number }) => {
+window.electronAPI.update.onEvent("download-progress", (payload: unknown) => {
+  const progress = payload as { percent: number };
   downloading.value = true;
-  updatePercent.value = Math.round(payload.percent);
+  updatePercent.value = Math.round(progress.percent);
 });
 window.electronAPI.update.onEvent("downloaded", () => {
   downloading.value = false;
@@ -267,7 +270,7 @@ window.electronAPI.update.onEvent("error", () => {
 const handleUpdate = async (): Promise<void> => {
   try {
     await window.electronAPI.update.download();
-  } catch (error) {
+  } catch {
     downloading.value = false;
     message.error(t("UPDATE.CHECK_FAILED"));
   }
@@ -275,6 +278,11 @@ const handleUpdate = async (): Promise<void> => {
 
 const handleInstall = (): void => {
   window.electronAPI.update.install();
+};
+
+// 稍后再说：仅关闭弹窗，下次检查时重新提示
+const handleLater = (): void => {
+  updateVisible.value = false;
 };
 
 const openUpdateRecord = async (): Promise<void> => {

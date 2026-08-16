@@ -1,4 +1,4 @@
-import { AppConfig } from "../types";
+import type { AppConfig } from "@/shared/types";
 import {
   THEME_MODE,
   LOCALE,

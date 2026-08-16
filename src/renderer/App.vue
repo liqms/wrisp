@@ -7,6 +7,7 @@
           <n-modal-provider>
             <router-view />
             <notification-toast />
+            <global-search v-model:visible="shortcut.searchVisible" />
           </n-modal-provider>
         </n-dialog-provider>
       </n-notification-provider>
@@ -27,14 +28,17 @@ import {
   GlobalTheme,
 } from "naive-ui";
 import NotificationToast from "@/renderer/components/NotificationToast.vue";
+import GlobalSearch from "@/renderer/components/GlobalSearch.vue";
 import { initI18n } from "@/renderer/plugins/i18n";
 import { useSystem, useConfig, useTheme, useModel } from "@/renderer/composables";
+import { useShortcut } from "@/renderer/composables/useShortcut";
 import { useDownloadStore } from "@/renderer/store/download.store";
 
 const { activeMode, naiveThemeOverrides } = useTheme();
 
 const { locale, isLoaded } = useConfig();
 const downloadStore = useDownloadStore();
+const shortcut = useShortcut();
 
 // 全局主题配置
 // Naive UI 主题对象（配置加载后才应用，避免闪烁）
@@ -64,9 +68,13 @@ onMounted(async () => {
 
   // 启动下载进度监听
   downloadStore.setupListeners();
+
+  // 注册全局快捷键监听
+  shortcut.init();
 });
 
 onUnmounted(() => {
+  shortcut.dispose();
   downloadStore.destroyListeners();
 });
 </script>

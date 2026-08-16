@@ -1,124 +1,131 @@
 # Wrisp
 
-> 专为产品经理打造的 AI 认知工作台  
-> Capture Freely. Crystallize Automatically.
+**English** | [中文](README.zh-CN.md)
 
-Wrisp 是一款 **专为产品经理（PM）定制** 的 AI-native 桌面应用，基于 Electron + Vue 3 + TypeScript 构建，采用 **Local-first** 理念。它将 PM 日常碎片化的需求输入、竞品观察、会议纪要、数据洞察统一沉淀为可追溯的知识体系，并在撰写 PRD、竞品报告、Roadmap 时自动召回相关素材，让每一份产出都有据可依。
+Wrisp is an **AI-native desktop app built specifically for Product Managers (PMs)**, powered by Electron + Vue 3 + TypeScript with a **Local-first** philosophy.
 
-## ✨ 核心卖点
+It was born out of a real struggle shared by an internet product manager: recording fragmented thoughts every day and regularly producing stage deliverables — yet never finding a tool that truly fits. Generic note-taking apps are too loose, while many "AI-does-it-for-you" tools go too far. Handing all your knowledge over to AI may seem effortless, but it leaves your knowledge sitting in the computer instead of taking root in your brain.
 
-| 特性 | 描述 |
-|------|------|
-| **Block First** | 最小单位不是文档，而是 Block（块），碎片输入零组织压力 |
-| **AI Native** | AI 不是插件，而是工作流本身——语义理解、自动关联、聚类、提炼 |
-| **Local-first** | 调研数据、竞品分析、未公开 Roadmap 完全本地存储，隐私安全无忧 |
-| **决策可追溯** | 每个需求、每次砍需、每个方案选择的背后依据，通过语义链接随时召回 |
-| **自动结晶** | 碎片输入自动聚类为主题，随时间累积成知识体系，报告写作从组装开始 |
-| **反思流** | 持续发现需求模式与决策矛盾，成为 PM 的"第二大脑" |
+That's why Wrisp holds to one principle: **AI assists, never replaces**. AI handles understanding, linking, clustering, and retrieval, helping you distill fragmented inputs into a traceable knowledge base — but the processes of organizing, judging, and remembering always remain yours. When you write PRDs, competitive reports, or roadmaps, AI automatically recalls relevant material so every deliverable is grounded in evidence — and every retrieval doubles as an act of active recall.
 
-## 🎯 目标用户
+If you share the same struggle, join us in shaping Wrisp into a knowledge workspace that truly works for people.
 
-**专为产品经理角色定制**，覆盖以下细分场景：
+## ✨ Core Highlights
 
-- **产品经理（PM）**：需求分析、PRD 撰写、用户调研、竞品追踪
-- **产品负责人（PO）**：版本规划、Roadmap 制定、优先级决策
-- **需求分析师**：需求收集、结构化沉淀、跨部门对齐
-- **创业者/决策者**：商业需求沉淀、决策链路追溯、长期思维演化
+| Feature                        | Description                                                                                                                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Block First**                | The smallest unit is not a document but a Block — capture fragments with zero organizing pressure                                                                                                 |
+| **AI Assists, Never Replaces** | AI is deeply embedded in the workflow: it handles understanding, linking, clustering, and retrieval, while judgment and memory stay with you — knowledge enters your mind, not just your computer |
+| **Local-first**                | Research data, competitive analyses, and unreleased roadmaps are stored entirely locally — privacy without compromise                                                                             |
+| **Traceable Decisions**        | The rationale behind every requirement, every cut, and every decision is always one semantic link away                                                                                            |
+| **Auto-crystallization**       | Fragments are automatically clustered into topics and grow into a knowledge system over time; report writing starts from assembly, not from scratch                                               |
+| **Reflection Stream**          | Continuously surfaces requirement patterns and decision contradictions, serving as your "thinking companion"                                                                                      |
 
-## 🚀 核心功能
+## 🎯 Target Users
 
-### Journal 日志输入
-碎片需求、竞品观察、会议纪要、数据洞察，统一以 Block 形式零组织成本输入。
+**Purpose-built for Product Manager roles**, covering the following scenarios:
 
-### Wiki 智能整理
-AI 自动建立语义链接、聚类主题、可视化概念网络，让碎片知识自动成体系。
+- **Product Manager (PM)**: requirement analysis, PRD writing, user research, competitive tracking
+- **Product Owner (PO)**: release planning, roadmap building, prioritization decisions
+- **Business Analyst**: requirement gathering, structured documentation, cross-team alignment
+- **Founder / Decision-maker**: business requirement capture, decision-chain tracing, long-term thinking evolution
 
-### Project 结构化输出
-撰写 PRD、竞品报告、Roadmap 时，AI 召回历史素材，从组装开始而非从零起手。
+## 🚀 Core Features
 
-### Reflection 反思流
-自动发现需求模式、决策矛盾与数据异常归因，成为 PM 的第二大脑。
+### Journal — Daily Input
 
-## 📅 版本路线图
+Capture fragmented requirements, competitive observations, meeting minutes, and data insights as Blocks with zero organizing cost.
 
-| 版本 | 目标 | 核心交付 |
-|------|------|----------|
-| **V1 Journal 输入** | 内容输入与基础组织 | Block 编辑、PM 输入模板、决策块、@提及、全局搜索、日历导航 |
-| **V2 智能整理** | AI 自动整理与知识结晶 | 概念网络、主题聚类、语义链接、跨日期关联、决策/行动项提取 |
-| **V3 输出场景** | 结构化输出与作品交付 | Project 作品空间、AI 周报生成、内联 AI 对话、版本升级 |
+### Wiki — Smart Organization
 
+AI automatically builds semantic links, clusters topics, and visualizes concept networks, so fragmented knowledge organizes itself.
 
-## 🛠️ 技术栈
+### Project — Structured Output
 
-- **前端框架**: Vue 3 + TypeScript + Composition API
-- **构建工具**: Vite
-- **桌面框架**: Electron
-- **状态管理**: Pinia
-- **路由**: Vue Router
-- **UI 组件**: Naive UI
-- **编辑器**: Tiptap 3（块编辑器）
-- **数据库**: SQLite（better-sqlite3）+ LanceDB（向量索引）
-- **AI 网关**: 多 Provider 适配（OpenAI/Claude/DeepSeek/Qwen/本地模型）
-- **代码规范**: ESLint + TypeScript
-- **打包工具**: electron-builder
+When writing PRDs, competitive reports, or roadmaps, AI recalls past material — start from assembly, not from scratch.
 
-## 🚀 快速开始
+### Reflection — Continuous Insight
 
-### 下载安装
+Automatically surfaces requirement patterns, decision contradictions, and data anomalies, becoming the PM's thinking companion.
 
-前往 [Releases 页面](https://github.com/liqms/wrisp/releases) 下载对应平台的安装包：
+## 📅 Roadmap
 
-| 平台 | 安装包 |
-|------|--------|
-| **Windows** | `.exe`（NSIS 安装包）或 `.exe`（便携版） |
-| **macOS** | `.dmg` 或 `.pkg` |
-| **Linux** | `.deb` / `.rpm` / `.AppImage` |
+| Version                   | Goal                                             | Core Deliverables                                                                                         |
+| ------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| **V1 Journal Input**      | Content input & basic organization               | Block editing, PM input templates, decision blocks, @mentions, global search, calendar navigation         |
+| **V2 Smart Organization** | AI auto-organization & knowledge crystallization | Concept networks, topic clustering, semantic links, cross-date relations, decision/action-item extraction |
+| **V3 Output Scenarios**   | Structured output & deliverable production       | Project workspace, AI weekly report generation, inline AI chat, version upgrades                          |
 
-下载后双击安装即可使用。
+## 🛠️ Tech Stack
 
-### 首次使用
+- **Frontend**: Vue 3 + TypeScript + Composition API
+- **Build tool**: Vite
+- **Desktop framework**: Electron
+- **State management**: Pinia
+- **Routing**: Vue Router
+- **UI components**: Naive UI
+- **Editor**: Tiptap 3 (block editor)
+- **Databases**: SQLite (better-sqlite3) + LanceDB (vector index)
+- **AI gateway**: Multi-provider adapters (OpenAI/Claude/DeepSeek/Qwen/local models)
+- **Code quality**: ESLint + TypeScript
+- **Packaging**: electron-builder
 
-1. 启动应用，选择数据存储目录（默认在用户文档下）
-2. 在设置中配置 AI 模型（OpenAI/Claude/DeepSeek/Qwen 或本地模型）
-3. 进入 Journal 页面，开始记录你的第一条需求或想法
+## 🚀 Getting Started
 
+### Download & Install
 
-## 📄 许可证
+Download the installer for your platform from the [Releases page](https://github.com/liqms/wrisp/releases):
 
-### 个人使用
+| Platform    | Installer                                    |
+| ----------- | -------------------------------------------- |
+| **Windows** | `.exe` (NSIS installer) or `.exe` (portable) |
+| **macOS**   | `.dmg` or `.pkg`                             |
+| **Linux**   | `.deb` / `.rpm` / `.AppImage`                |
 
-本项目采用 [GNU Affero General Public License v3.0 (AGPLv3)](LICENSE) 开源。
-你可以自由地：
+Download and double-click to install.
 
-- ✅ 个人使用 - 用于学习、研究、个人项目
-- ✅ 分享 - 在任何媒介以任何形式复制、发行本作品
-- ✅ 修改 - 修改、转换或以本作品为基础进行创作
+### First Run
 
-但需要遵守以下条款：
+1. Launch the app and choose a data storage directory (defaults to your Documents folder)
+2. Configure your AI model in Settings (OpenAI/Claude/DeepSeek/Qwen or a local model)
+3. Open the Journal page and record your first requirement or idea
 
-- 📝 署名 - 必须给出适当的署名，提供指向本协议的链接，同时标明是否对原始作品作了修改
-- 🚫 非商业性使用 - 不得将本作品用于商业目的
-- 🔄 相同方式共享 - 如果你修改、转换或以本作品为基础进行创作，你必须以相同的协议分发你的作品
+## 📄 License
 
-### 商业授权
+### Personal Use
 
-如果你希望将本项目用于商业目的（包括但不限于）：
+This project is open source under the [GNU Affero General Public License v3.0 (AGPLv3)](LICENSE).
+You are free to:
 
-- 提供付费服务
-- 集成到商业产品
-- 作为 SaaS 服务运营
-- 其他盈利性用途
-- 请联系作者获取商业授权：
+- ✅ Use it personally — for learning, research, and personal projects
+- ✅ Share — copy and redistribute the work in any medium or format
+- ✅ Modify — remix, transform, or build upon the work
 
-### 免责声明
+Under the following terms:
 
-本软件按"原样"提供，不提供任何形式的明示或暗示担保，包括但不限于适销性、特定用途的适用性和非侵权性的担保。在任何情况下，作者或版权持有人均不对任何索赔、损害或其他责任负责。
+- 📝 Attribution — you must give appropriate credit, provide a link to the license, and indicate whether changes were made
+- 🚫 Non-commercial — you may not use the work for commercial purposes
+- 🔄 Share-alike — if you remix, transform, or build upon the work, you must distribute your contributions under the same license
 
-## 📞 联系方式
+### Commercial License
 
-- 项目主页: https://github.com/liqms/wrisp
-- 问题反馈: https://github.com/liqms/wrisp/issues
-- 邮箱: liqms@msn.cn
+If you wish to use this project for commercial purposes (including but not limited to):
+
+- Offering paid services
+- Integrating into a commercial product
+- Operating as a SaaS service
+- Any other profit-generating use
+- Please contact the author to obtain a commercial license:
+
+### Disclaimer
+
+This software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the authors or copyright holders be liable for any claim, damages, or other liability.
+
+## 📞 Contact
+
+- Project homepage: https://github.com/liqms/wrisp
+- Issues: https://github.com/liqms/wrisp/issues
+- Email: liqms@msn.cn
 
 ---
 

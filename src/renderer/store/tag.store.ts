@@ -70,7 +70,7 @@ export const useTagStore = defineStore("tag", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -102,7 +102,7 @@ export const useTagStore = defineStore("tag", () => {
         errorMessage.value = handleApiError(response);
         return null;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -138,7 +138,7 @@ export const useTagStore = defineStore("tag", () => {
         errorMessage.value = handleApiError(response);
         return [];
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -169,7 +169,7 @@ export const useTagStore = defineStore("tag", () => {
         errorCode.value = response.code;
         errorMessage.value = handleApiError(response);
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -202,7 +202,7 @@ export const useTagStore = defineStore("tag", () => {
         errorMessage.value = handleApiError(response);
         return null;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -238,7 +238,7 @@ export const useTagStore = defineStore("tag", () => {
         errorMessage.value = handleApiError(response);
         return false;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,
@@ -270,7 +270,7 @@ export const useTagStore = defineStore("tag", () => {
         errorMessage.value = handleApiError(response);
         return false;
       }
-    } catch (error) {
+    } catch {
       errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
       errorMessage.value = handleApiError({
         success: false,

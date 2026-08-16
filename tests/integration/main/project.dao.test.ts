@@ -53,7 +53,7 @@ describe('ProjectDao', () => {
 
   beforeEach(() => {
     const db = getDatabase()
-    for (const t of ['project_blocks', 'pages', 'tagged_items', 'tags', 'projects']) {
+    for (const t of ['pages', 'tagged_items', 'tags', 'projects']) {
       db.exec(`DELETE FROM ${t}`)
     }
     projectDao = new ProjectDao()
@@ -61,7 +61,7 @@ describe('ProjectDao', () => {
   })
 
   it('should create and find a project', () => {
-    const id = projectDao.create({ name: 'My Novel', type: 'novel' })
+    const id = projectDao.create({ name: 'My Novel', type: 'novel', file_path: 'projects/my-novel.md' })
     const saved = projectDao.findById(id)
     expect(saved).not.toBeNull()
     expect(saved!.name).toBe('My Novel')
@@ -70,19 +70,19 @@ describe('ProjectDao', () => {
   })
 
   it('should update a project', () => {
-    const id = projectDao.create({ name: 'Old Name', type: 'story' })
+    const id = projectDao.create({ name: 'Old Name', type: 'series', file_path: 'projects/old-name.md' })
     projectDao.update(id, { name: 'New Name' })
     expect(projectDao.findById(id)!.name).toBe('New Name')
   })
 
   it('should delete a project', () => {
-    const id = projectDao.create({ name: 'Temp', type: 'book' })
+    const id = projectDao.create({ name: 'Temp', type: 'book', file_path: 'projects/temp.md' })
     expect(projectDao.delete(id)).toBe(1)
     expect(projectDao.findById(id)).toBeUndefined()
   })
 
   it('should list all projects with pagination', () => {
-    for (let i = 1; i <= 5; i++) projectDao.create({ name: `Project ${i}`, type: 'novel' })
+    for (let i = 1; i <= 5; i++) projectDao.create({ name: `Project ${i}`, type: 'novel', file_path: `projects/project-${i}.md` })
     const result = projectDao.paginate({ page: 1, pageSize: 2, orderBy: 'name', orderDir: 'ASC' })
     expect(result.data).toHaveLength(2)
     expect(result.total).toBe(5)
@@ -90,23 +90,23 @@ describe('ProjectDao', () => {
   })
 
   it('should find projects by name like', () => {
-    projectDao.create({ name: 'Alpha Project', type: 'product' })
+    projectDao.create({ name: 'Alpha Project', type: 'product', file_path: 'projects/alpha.md' })
     expect(projectDao.findByNameLike('Alpha')).toHaveLength(1)
   })
 
   it('should manage tags via saveTags', () => {
-    const pid = projectDao.create({ name: 'Tagged', type: 'research' })
+    const pid = projectDao.create({ name: 'Tagged', type: 'research', file_path: 'projects/tagged.md' })
     const tid = tagDao.create({ name: 'important' })
     projectDao.saveTags(pid, [tid])
-    const rows = getDatabase().prepare('SELECT * FROM tagged_items WHERE entity_id = ?').all(pid) as any[]
+    const rows = getDatabase().prepare('SELECT * FROM tagged_items WHERE entity_id = ?').all(pid)
     expect(rows).toHaveLength(1)
 
     projectDao.clearTags(pid)
-    expect(getDatabase().prepare('SELECT * FROM tagged_items WHERE entity_id = ?').all(pid) as any[]).toHaveLength(0)
+    expect(getDatabase().prepare('SELECT * FROM tagged_items WHERE entity_id = ?').all(pid)).toHaveLength(0)
   })
 
   it('should check if a project name exists', () => {
-    projectDao.create({ name: 'Unique', type: 'series' })
+    projectDao.create({ name: 'Unique', type: 'series', file_path: 'projects/unique.md' })
     expect(projectDao.checkNameExists('Unique')).toBe(true)
     expect(projectDao.checkNameExists('Nonexistent')).toBe(false)
   })

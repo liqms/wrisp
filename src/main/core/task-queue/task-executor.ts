@@ -1,5 +1,6 @@
 import { TaskQueue } from "./task-queue";
 import type { TaskHandler } from "./types";
+import { TaskDao } from "@/main/core/db/task.dao";
 import { Logger } from "@/main/utils/logger";
 
 const IDLE_TIMEOUT_MS = 5000;
@@ -84,7 +85,6 @@ export class TaskExecutor {
           if (task.retryCount < task.maxRetries) {
             // 重试：重置为 pending，增加 retry_count
             const newRetryCount = task.retryCount + 1;
-            const { TaskDao } = await import("@/main/core/db/task.dao");
             const dao = new TaskDao();
             dao.update(task.id, {
               status: "pending",

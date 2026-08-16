@@ -40,7 +40,7 @@ export function registerAIHandlers() {
     },
   );
 
-  ipcMain.handle("ai:getProviders", async (): Promise<ApiResponse<any[]>> => {
+  ipcMain.handle("ai:getProviders", async (): Promise<ApiResponse<unknown[]>> => {
     return getProviders();
   });
 

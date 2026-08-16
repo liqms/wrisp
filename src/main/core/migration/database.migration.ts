@@ -31,38 +31,20 @@ export class DatabaseMigration {
 
   /**
    * 获取数据库初始化脚本 (init.sql) 的完整文件路径。
-   * 根据 NODE_ENV 区分生产环境与开发环境的路径。
+   * schemas 目录随构建输出到 dist-electron/schemas（打包后位于
+   * app.asar/dist-electron/schemas），因此始终相对 __dirname 解析。
    * @returns init.sql 文件的绝对路径
    */
   private getSchemaFilePath(): string {
-    const isProduction = process.env.NODE_ENV === "production";
-    let basePath = __dirname;
-
-    if (isProduction) {
-      basePath = join(basePath, "..", SCHEMAS_DIR);
-    } else {
-      basePath = join(basePath, SCHEMAS_DIR);
-    }
-
-    return join(basePath, "init.sql");
+    return join(__dirname, SCHEMAS_DIR, "init.sql");
   }
 
   /**
    * 获取迁移文件目录的完整路径。
-   * 根据 NODE_ENV 区分生产环境与开发环境的路径。
    * @returns migrations 目录的绝对路径
    */
   private getMigrationsDir(): string {
-    const isProduction = process.env.NODE_ENV === "production";
-    let basePath = __dirname;
-
-    if (isProduction) {
-      basePath = join(basePath, "..", SCHEMAS_DIR, MIGRATIONS_DIR);
-    } else {
-      basePath = join(basePath, SCHEMAS_DIR, MIGRATIONS_DIR);
-    }
-
-    return basePath;
+    return join(__dirname, SCHEMAS_DIR, MIGRATIONS_DIR);
   }
 
   /**
@@ -319,33 +301,29 @@ export class DatabaseMigration {
           continue;
         }
 
-        try {
-          Logger.debug("执行数据库迁移", { version: migration.version });
+        Logger.debug("执行数据库迁移", { version: migration.version });
 
-          const db = getDatabase();
-          const startTime = Date.now();
+        const db = getDatabase();
+        const startTime = Date.now();
 
-          db.exec(migration.sql_statement);
+        db.exec(migration.sql_statement);
 
-          const executionTime = Date.now() - startTime;
+        const executionTime = Date.now() - startTime;
 
-          const existingMigration = pendingMigrations.find(
-            (pm) => pm.version === migration.version,
-          );
-          if (existingMigration) {
-            this.migrationDbDao.markAsExecuted(
-              existingMigration.id,
-              executionTime,
-            );
-          }
-
-          Logger.debug("数据库迁移完成", {
-            version: migration.version,
+        const existingMigration = pendingMigrations.find(
+          (pm) => pm.version === migration.version,
+        );
+        if (existingMigration) {
+          this.migrationDbDao.markAsExecuted(
+            existingMigration.id,
             executionTime,
-          });
-        } catch (error) {
-          throw error;
+          );
         }
+
+        Logger.debug("数据库迁移完成", {
+          version: migration.version,
+          executionTime,
+        });
       }
 
       Logger.info("数据库迁移完成", { currentVersion, targetVersion });

@@ -41,7 +41,7 @@ export class TopicSummaryExecutor implements TaskExecutor {
   }
 
   private async generateTopicSummary(topic: Topic): Promise<string> {
-    const prompt = `请用1-2句话概括以下主题的核心内容：\n\n主题：${topic.name}\n描述：${topic.description || "暂无"}\n\n摘要：`;
+    const prompt = `请用1-2句话概括以下主题的核心内容：\n\n主题：${topic.title}\n描述：${topic.summary || "暂无"}\n\n摘要：`;
     const result = await localGateway.generate(prompt);
     return result;
   }

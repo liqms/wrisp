@@ -2,14 +2,9 @@
   <n-card :title="title" size="small" class="ai-panel">
     <n-flex vertical>
       <!-- 对话消息区 -->
-      <n-scrollbar class="message-area" ref="scrollbarRef">
+      <n-scrollbar ref="scrollbarRef" class="message-area">
         <n-flex vertical>
-          <div
-            v-for="msg in messages"
-            :key="msg.id"
-            class="message"
-            :class="msg.role"
-          >
+          <div v-for="msg in messages" :key="msg.id" class="message" :class="msg.role">
             <n-markdown :source="msg.content" />
           </div>
         </n-flex>
@@ -17,12 +12,8 @@
 
       <!-- 输入区 -->
       <n-flex class="input-area">
-        <n-input
-          v-model:value="inputText"
-          :placeholder="t('PROJECT.AI_ASSISTANT.PLACEHOLDER')"
-          size="small"
-          @keydown.enter="handleSend"
-        />
+        <n-input v-model:value="inputText" :placeholder="t('PROJECT.AI_ASSISTANT.PLACEHOLDER')" size="small"
+          @keydown.enter="handleSend" />
         <n-button type="primary" size="small" @click="handleSend">
           {{ t('PROJECT.AI_ASSISTANT.SEND') }}
         </n-button>
@@ -33,7 +24,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { NCard, NFlex, NScrollbar, NInput, NButton, NMarkdown } from "naive-ui";
+import { NCard, NFlex, NScrollbar, NInput, NButton } from "naive-ui";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
@@ -44,7 +35,7 @@ export interface ChatMessage {
   content: string;
 }
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     title?: string;
     messages?: ChatMessage[];
@@ -105,6 +96,11 @@ function handleSend(): void {
     background-color: var(--bg-secondary);
     align-self: flex-start;
   }
+}
+
+.message-content {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .input-area {

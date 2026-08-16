@@ -1,9 +1,10 @@
 import { app } from 'electron'
 import path from 'path'
 import * as fs from 'fs'
+import { ZipArchive } from 'archiver'
 import { Logger } from '@/main/utils/logger'
 import { TimeUtil } from '@/shared/utils'
-import { BACKUPS_DIR, CONFIG_DIR} from '@/main/constants'
+import { BACKUPS_DIR, CONFIG_DIR } from '@/main/constants'
 import { getDbPath } from '@/main/core/db/connection'
 import { configService } from '@/main/core/services/config.service'
 import { BackupConfig } from '@/main/constants/auto.constants'
@@ -207,9 +208,8 @@ export class BackupTask {
     }
 
     // 创建压缩包
-    const archiver = require('archiver')
     const output = fs.createWriteStream(backupPath)
-    const archive = archiver('zip', { zlib: { level: 9 } })
+    const archive = new ZipArchive({ zlib: { level: 9 } })
 
     return new Promise((resolve, reject) => {
       output.on('close', async () => {

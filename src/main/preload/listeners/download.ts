@@ -7,7 +7,7 @@ export function setupDownloadListeners(): void {
     BrowserWindow.getAllWindows().forEach((win) => {
       try {
         win.webContents.send("download:progress", progress);
-      } catch (e) {
+      } catch {
         // 忽略发送失败的窗口
       }
     });
@@ -17,7 +17,7 @@ export function setupDownloadListeners(): void {
     BrowserWindow.getAllWindows().forEach((win) => {
       try {
         win.webContents.send("download:complete", { taskId, localPath });
-      } catch (e) {
+      } catch {
         // 忽略发送失败的窗口
       }
     });
@@ -27,7 +27,7 @@ export function setupDownloadListeners(): void {
     BrowserWindow.getAllWindows().forEach((win) => {
       try {
         win.webContents.send("download:error", { taskId, error });
-      } catch (e) {
+      } catch {
         // 忽略发送失败的窗口
       }
     });

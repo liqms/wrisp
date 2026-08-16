@@ -24,7 +24,6 @@
 
 <script setup lang="ts">
 import { watch, onMounted, ref, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { NButton, NResult, NSpace } from 'naive-ui'
 import { useWebView } from '@/renderer/composables/useWebView'
 import { logger } from '@/renderer/utils/logger.utils'
@@ -61,7 +60,6 @@ const webviewBounds = ref<WebContentViewOptions>({
 })
 
 // 路由实例
-const router = useRouter()
 
 // 使用组合函数
 const {
@@ -78,7 +76,7 @@ const {
   webContentViewOptions: webviewBounds.value
 })
 // 更新 webview 位置和大小
-const webviewContainerRef = ref(null)
+const webviewContainerRef = ref<{ $el?: HTMLElement } | null>(null)
 const webviewRef = ref(null)
 let resizeObserver: ResizeObserver | null = null
 function updateWebviewBounds() {
@@ -87,7 +85,7 @@ function updateWebviewBounds() {
   if (!el || !webview) return
 
   // 获取原生 DOM 元素（处理 Vue 组件引用的情况）
-  const domEl = (el as any).$el || el
+  const domEl = el.$el || el
   if (!(domEl instanceof HTMLElement)) return
 
   // 获取区域在视口中的坐标
@@ -130,7 +128,7 @@ onMounted(() => {
   updateWebviewBounds()
 
   // 用 ResizeObserver 监听容器大小/位置变化（侧边栏展开收起等布局变动）
-  const containerEl = (webviewContainerRef.value as any)?.$el || webviewContainerRef.value
+  const containerEl = webviewContainerRef.value?.$el || webviewContainerRef.value
   resizeObserver = new ResizeObserver(() => {
     updateWebviewBounds()
   })

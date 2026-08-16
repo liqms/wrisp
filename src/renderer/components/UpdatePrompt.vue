@@ -2,7 +2,8 @@
   <n-modal v-model:show="visible" preset="card" :title="t('UPDATE.TITLE')" :style="{ maxWidth: '420px' }">
     <n-flex vertical>
       <n-text>{{ t('UPDATE.DESCRIPTION', { version }) }}</n-text>
-      <n-text depth="3" class="release-notes">{{ releaseNotes }}</n-text>
+      <!-- releaseNotesHtml 已通过 sanitizeHtml 清洗，此处渲染是安全的 -->
+      <div class="release-notes markdown-content" v-html="releaseNotesHtml"></div>
     </n-flex>
     <template #footer>
       <n-flex justify="end" align="center">
@@ -10,7 +11,6 @@
         <template v-else>
           <n-button v-if="installed" type="primary" @click="handleInstall">{{ t('UPDATE.INSTALLING') }}</n-button>
           <template v-else>
-            <n-button @click="handleSkip">{{ t('UPDATE.SKIP') }}</n-button>
             <n-button @click="handleLater">{{ t('UPDATE.LATER') }}</n-button>
             <n-button type="primary" @click="handleUpdate">{{ t('UPDATE.UPDATE_NOW') }}</n-button>
           </template>
@@ -21,9 +21,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { NModal, NFlex, NText, NButton } from "naive-ui";
 import { useI18n } from "vue-i18n";
+import { marked } from "marked";
+import { sanitizeHtml } from "@/renderer/utils/sanitize";
 
 const { t } = useI18n();
 
@@ -50,7 +52,6 @@ const emit = defineEmits<{
   (e: "update:visible", value: boolean): void;
   (e: "update"): void;
   (e: "later"): void;
-  (e: "skip"): void;
   (e: "install"): void;
 }>();
 
@@ -59,16 +60,24 @@ const visible = computed({
   set: (val) => emit("update:visible", val),
 });
 
+/** GitHub Release 描述为 Markdown，渲染为富文本 HTML（渲染前清洗防 XSS） */
+const releaseNotesHtml = ref("");
+watch(
+  () => props.releaseNotes,
+  async (md) => {
+    releaseNotesHtml.value = md
+      ? sanitizeHtml(await marked.parse(md, { async: true }))
+      : "";
+  },
+  { immediate: true },
+);
+
 function handleUpdate(): void {
   emit("update");
 }
 
 function handleLater(): void {
   emit("later");
-}
-
-function handleSkip(): void {
-  emit("skip");
 }
 
 function handleInstall(): void {
@@ -82,7 +91,7 @@ function handleInstall(): void {
 .release-notes {
   margin-top: $spacing-sm;
   font-size: $font-xs;
-  white-space: pre-wrap;
+  color: var(--text-secondary);
   max-height: 200px;
   overflow-y: auto;
 }

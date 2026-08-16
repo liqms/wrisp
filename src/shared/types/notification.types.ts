@@ -14,7 +14,7 @@ export interface BaseNotification {
 export interface NotificationAction {
   label: string;
   handler: string;
-  payload?: any;
+  payload?: unknown;
 }
 
 export interface NotificationMessage extends BaseNotification {
@@ -25,6 +25,8 @@ export interface NotificationMessage extends BaseNotification {
   actions?: NotificationAction[];
 }
 
-export interface NotificationOptions extends Partial<Omit<NotificationMessage, 'id' | 'level' | 'content' | 'timestamp'>> { }
+export type NotificationOptions = Partial<
+  Omit<NotificationMessage, 'id' | 'level' | 'content' | 'timestamp'>
+>;
 
 export const NOTIFICATION_CHANNEL = 'notification:show';

@@ -21,8 +21,8 @@ export function registerProtocolHandler(): void {
       const filePath = urlStr.slice('app://'.length)
 
       // 根据路径前缀确定基础目录
-      let basePath = ''
-      let remainingPath = filePath
+      let basePath: string
+      let remainingPath: string
 
       if (filePath.startsWith('cache/')) {
         // 用户缓存资源

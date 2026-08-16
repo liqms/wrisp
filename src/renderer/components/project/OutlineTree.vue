@@ -20,7 +20,7 @@ import type { TreeOption } from "naive-ui";
 
 const { t } = useI18n();
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     title?: string;
     nodes?: TreeOption[];

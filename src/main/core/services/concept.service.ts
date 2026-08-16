@@ -81,18 +81,18 @@ class ConceptService {
           /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T00:00:00.000Z` : d;
         const s = normalize(startDate);
         const e = normalize(endDate);
-        const sql = `SELECT te.*, b.content AS block_content FROM temporal_events te JOIN blocks b ON te.block_id = b.id WHERE te.created_at >= ? AND te.created_at <= ? ORDER BY te.created_at DESC`;
+        const sql = `SELECT te.*, b.content AS chunk_content FROM temporal_events te JOIN semantic_chunks b ON te.chunk_id = b.id WHERE te.created_at >= ? AND te.created_at <= ? ORDER BY te.created_at DESC`;
         events = this.temporalEventDao.query(sql, [s, e]) as TemporalEventWithBlock[];
       } else {
         events = this.temporalEventDao.getRecentEvents(20) as unknown as TemporalEventWithBlock[];
         // Enrich with block content
         if (events.length > 0) {
-          const blockIds = events.map((e) => e.block_id);
+          const blockIds = events.map((e) => e.chunk_id);
           const blocks = this.chunkDao.findByIds(blockIds);
           for (const evt of events) {
-            const block = blocks.find((b) => b.id === evt.block_id);
+            const block = blocks.find((b) => b.id === evt.chunk_id);
             if (block) {
-              evt.block_content = block.content;
+              evt.chunk_content = block.content;
             }
           }
         }

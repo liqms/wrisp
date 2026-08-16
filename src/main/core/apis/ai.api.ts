@@ -54,7 +54,7 @@ async function getCostRecords(count?: number): Promise<ApiResponse<CostRecord[]>
   }
 }
 
-async function getProviders(): Promise<ApiResponse<any[]>> {
+async function getProviders(): Promise<ApiResponse<unknown[]>> {
   try {
     const result = aiService.getProviders();
     return response.success(result);

@@ -67,7 +67,7 @@ async function paginateTags(params: {
   orderBy?: string;
   orderDir?: "ASC" | "DESC";
   conditions?: TagQuery;
-}): Promise<ApiResponse<any>> {
+}): Promise<ApiResponse<unknown>> {
   try {
     const result = tagService.paginateTags(params);
     return response.success(result);

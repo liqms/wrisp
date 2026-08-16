@@ -8,8 +8,8 @@ import {
   TemporalEventWithBlock
 } from '@/main/types/db'
 
-type FindByField = 'block_id' | 'event_type'
-type CountByField = 'block_id' | 'event_type'
+type FindByField = 'chunk_id' | 'event_type'
+type CountByField = 'chunk_id' | 'event_type'
 
 export class TemporalEventDao extends BaseDao<TemporalEvent, TemporalEventCreate, TemporalEventUpdate> {
   constructor() {
@@ -18,7 +18,7 @@ export class TemporalEventDao extends BaseDao<TemporalEvent, TemporalEventCreate
 
   /**
    * 根据指定字段查询时间事件列表
-   * @param field 查询字段 (block_id | event_type)
+   * @param field 查询字段 (chunk_id | event_type)
    * @param value 字段值
    */
   findBy(field: FindByField, value: string | EventType): TemporalEvent[] {
@@ -27,18 +27,18 @@ export class TemporalEventDao extends BaseDao<TemporalEvent, TemporalEventCreate
   }
 
   /**
-   * 获取时间事件及其关联的块内容
-   * @param blockId 块 ID
+   * 获取时间事件及其关联的 chunk 内容
+   * @param chunkId chunk ID
    */
-  findWithBlock(blockId: string): TemporalEventWithBlock[] {
+  findWithChunk(chunkId: string): TemporalEventWithBlock[] {
     const sql = `
-      SELECT te.*, b.content AS block_content
+      SELECT te.*, c.content AS chunk_content
       FROM ${this.tableName} te
-      JOIN blocks b ON te.block_id = b.id
-      WHERE te.block_id = ?
+      JOIN semantic_chunks c ON te.chunk_id = c.id
+      WHERE te.chunk_id = ?
       ORDER BY te.created_at DESC
     `
-    return this.query(sql, [blockId]) as TemporalEventWithBlock[]
+    return this.query(sql, [chunkId]) as TemporalEventWithBlock[]
   }
 
   /**
@@ -61,13 +61,13 @@ export class TemporalEventDao extends BaseDao<TemporalEvent, TemporalEventCreate
   }
 
   /**
-   * 根据块 ID 删除所有关联的时间事件
-   * @param blockId 块 ID
+   * 根据 chunk ID 删除所有关联的时间事件
+   * @param chunkId chunk ID
    */
-  deleteByBlockId(blockId: string): number {
-    const sql = `DELETE FROM ${this.tableName} WHERE block_id = ?`
+  deleteByChunkId(chunkId: string): number {
+    const sql = `DELETE FROM ${this.tableName} WHERE chunk_id = ?`
     const stmt = this.db.prepare(sql)
-    const result = stmt.run(blockId)
+    const result = stmt.run(chunkId)
     return result.changes
   }
 
@@ -102,9 +102,9 @@ export class TemporalEventDao extends BaseDao<TemporalEvent, TemporalEventCreate
     const conditionsArray: string[] = []
     const values: unknown[] = []
 
-    if (conditions.block_id !== undefined) {
-      conditionsArray.push('block_id = ?')
-      values.push(conditions.block_id)
+    if (conditions.chunk_id !== undefined) {
+      conditionsArray.push('chunk_id = ?')
+      values.push(conditions.chunk_id)
     }
     if (conditions.event_type !== undefined) {
       conditionsArray.push('event_type = ?')

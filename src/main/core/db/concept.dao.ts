@@ -54,23 +54,23 @@ export class ConceptDao extends BaseDao<Concept, ConceptCreate, ConceptUpdate> {
   }
 
   /**
-   * 获取概念及其关联的块数量
+   * 获取概念及其关联的 chunk 数量
    * @param id 概念 ID
    */
   findWithBlocks(id: ConceptId): ConceptWithBlocks | null {
     const sql = `
       SELECT c.*, 
              COALESCE(bc.block_count, 0) as block_count,
-             json_group_array(b.content) as linked_block_contents
+             json_group_array(sc.content) as linked_block_contents
       FROM ${this.tableName} c
       LEFT JOIN (
-        SELECT concept_id, block_id, COUNT(*) as block_count
-        FROM concept_blocks
+        SELECT concept_id, chunk_id, COUNT(*) as block_count
+        FROM concept_chunks
         WHERE concept_id = ?
         GROUP BY concept_id
       ) bc ON c.id = bc.concept_id
-      LEFT JOIN concept_blocks cb ON c.id = cb.concept_id
-      LEFT JOIN blocks b ON cb.block_id = b.id
+      LEFT JOIN concept_chunks cc ON c.id = cc.concept_id
+      LEFT JOIN semantic_chunks sc ON cc.chunk_id = sc.id
       WHERE c.id = ?
       GROUP BY c.id
     `
@@ -90,18 +90,18 @@ export class ConceptDao extends BaseDao<Concept, ConceptCreate, ConceptUpdate> {
   }
 
   /**
-   * 根据关联的 Block ID 查询概念列表
-   * @param blockId Block ID
+   * 根据关联的 chunk ID 查询概念列表
+   * @param chunkId chunk ID
    */
-  findByLinkedBlock(blockId: Id): Concept[] {
+  findByLinkedBlock(chunkId: Id): Concept[] {
     const sql = `
       SELECT c.* 
       FROM ${this.tableName} c
-      JOIN concept_blocks cb ON c.id = cb.concept_id
-      WHERE cb.block_id = ?
-      ORDER BY cb.relevance_score DESC
+      JOIN concept_chunks cc ON c.id = cc.concept_id
+      WHERE cc.chunk_id = ?
+      ORDER BY cc.relevance_score DESC
     `
-    return this.query(sql, [blockId])
+    return this.query(sql, [chunkId])
   }
 
   /**

@@ -5,12 +5,7 @@
 import type { Component } from 'vue'
 import {
   ChatbubbleEllipses,
-  LibraryOutline,
-  DocumentsOutline,
-  GlobeOutline,
-  ReaderOutline,
   ClipboardOutline,
-  PeopleOutline,
   ImagesOutline,
   JournalOutline
 } from '@vicons/ionicons5'

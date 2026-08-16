@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { ObjectUtil, objectUtil } from '@/shared/utils/object'
 
 describe('ObjectUtil', () => {
@@ -99,8 +99,9 @@ describe('ObjectUtil', () => {
 
   describe('deepMerge', () => {
     it('should deep merge multiple sources', () => {
+      const base: Record<string, unknown> = { a: 1, b: { x: 1 } }
       const result = ObjectUtil.deepMerge(
-        { a: 1, b: { x: 1 } },
+        base,
         { b: { y: 2 } },
         { c: 3 }
       )

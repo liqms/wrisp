@@ -12,7 +12,7 @@ import { ApiResponse, SystemInfo } from "@/shared/types";
 const supportedLocales = [LOCALE.ZH, LOCALE.EN];
 
 // 语言消息映射
-const localeMessages: Record<string, Record<string, any>> = {
+const localeMessages: Record<string, Record<string, unknown>> = {
   [LOCALE.ZH]: zhCNMessages,
   [LOCALE.EN]: enUSMessages,
 };
@@ -64,7 +64,7 @@ export const i18n: I18n = createI18n({
   // 回退语言
   fallbackLocale: LOCALE.EN,
   // 语言消息映射
-  messages: localeMessages,
+  messages: localeMessages as unknown as Parameters<typeof createI18n>[0]["messages"],
   // 支持的语言列表
   availableLocales: supportedLocales,
   // 启用全局注入，使 useI18n() 返回响应式的 t 函数
@@ -141,12 +141,12 @@ export const initI18n = async (initialLocale?: string): Promise<void> => {
  * @param params 叿换参数
  * @returns 翻译后的字符串
  */
-export const t = (key: string, params?: Record<string, any>): string => {
+export const t = (key: string, params?: Record<string, unknown>): string => {
   try {
     // 使用类型断言避免 TypeScript 类型错误
     const translateFn = i18n.global.t as unknown as (
       key: string,
-      params?: Record<string, any>,
+      params?: Record<string, unknown>,
     ) => string;
     return translateFn(key, params);
   } catch (error) {

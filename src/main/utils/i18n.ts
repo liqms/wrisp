@@ -2,17 +2,21 @@ import zhCNMessages from "@/shared/i18n/locales/zhCN";
 import enUSMessages from "@/shared/i18n/locales/enUS";
 import { configService } from "@/main/core/services/config.service";
 
-const messages: Record<string, Record<string, any>> = {
+const messages: Record<string, Record<string, unknown>> = {
   zhCN: zhCNMessages,
   enUS: enUSMessages,
 };
 
-function getByPath(obj: any, path: string): string {
+function getByPath(obj: Record<string, unknown>, path: string): string {
   const keys = path.split(".");
-  let result = obj;
+  let result: unknown = obj;
   for (const key of keys) {
-    if (result && typeof result === "object" && key in result) {
-      result = result[key];
+    if (
+      result !== null &&
+      typeof result === "object" &&
+      key in (result as Record<string, unknown>)
+    ) {
+      result = (result as Record<string, unknown>)[key];
     } else {
       return path;
     }

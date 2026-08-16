@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import zhCN from '@/shared/i18n/locales/zhCN'
 import enUS from '@/shared/i18n/locales/enUS'
 
@@ -32,8 +32,9 @@ describe('i18n key consistency', () => {
       onlyEn.length ? `Keys only in enUS: ${onlyEn.join(', ')}` : '',
     ].filter(Boolean).join('; ')
 
-    expect(onlyZh).toEqual([] as string[], msg)
-    expect(onlyEn).toEqual([] as string[], msg)
+    expect(onlyZh).toEqual([] as string[])
+    expect(onlyEn).toEqual([] as string[])
+    expect(msg).toBe('')
   })
 })
 

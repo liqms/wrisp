@@ -10,3 +10,4 @@ export * from "./useAIStream";
 export * from "./useSearch";
 export * from "./useWiki";
 export * from "./usePage";
+export * from "./useShortcut";

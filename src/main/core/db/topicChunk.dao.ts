@@ -13,7 +13,7 @@ type CountByField = 'topic_id' | 'chunk_id'
 
 export class TopicChunkDao extends BaseDao<TopicChunk, TopicChunkCreate, TopicChunkUpdate> {
   constructor() {
-    super('topic_blocks')
+    super('topic_chunks')
   }
 
   /**

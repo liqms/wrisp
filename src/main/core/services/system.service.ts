@@ -5,7 +5,6 @@ import {
   OpenDialogReturnValue,
   dialog,
   screen,
-  nativeTheme,
 } from "electron";
 import os from "os";
 import { Logger } from "@/main/utils/logger";

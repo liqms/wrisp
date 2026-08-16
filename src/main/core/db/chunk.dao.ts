@@ -4,53 +4,14 @@ import {
   ChunkCreate,
   ChunkUpdate,
   ChunkQuery,
-  JournalSource,
-  ContentType,
-  Language,
   ChunkId,
   ChunkStatus,
   BooleanFlag,
 } from "@/main/types/db";
 
-type FindByField = "source" | "content_type" | "language" | "status";
-type CountByField = "source" | "content_type";
-
 export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
   constructor() {
-    super("blocks");
-  }
-
-  /**
-   * 根据指定字段查询 Chunk 列表
-   * @param field 查询字段 (source | content_type | language | status)
-   * @param value 字段值
-   */
-  findBy(
-    field: FindByField,
-    value: JournalSource | ContentType | Language | ChunkStatus,
-  ): Chunk[] {
-    const sql = `SELECT * FROM ${this.tableName} WHERE ${field} = ? ORDER BY created_at DESC`;
-    return this.query(sql, [value]);
-  }
-
-  /**
-   * 根据父 Chunk ID 查询子 Chunk 列表
-   * @param parentChunkId 父 Chunk ID
-   */
-  findByParentChunk(parentChunkId: ChunkId): Chunk[] {
-    const sql = `SELECT * FROM ${this.tableName} WHERE parent_chunk_id = ? ORDER BY split_index ASC`;
-    return this.query(sql, [parentChunkId]);
-  }
-
-  /**
-   * 根据多个父 Chunk ID 批量查询子 Chunk 列表
-   * @param parentChunkIds 父 Chunk ID 数组
-   */
-  findByParentChunks(parentChunkIds: ChunkId[]): Chunk[] {
-    if (!parentChunkIds || parentChunkIds.length === 0) return [];
-    const placeholders = parentChunkIds.map(() => "?").join(", ");
-    const sql = `SELECT * FROM ${this.tableName} WHERE parent_chunk_id IN (${placeholders}) ORDER BY parent_chunk_id ASC, split_index ASC`;
-    return this.query(sql, parentChunkIds as unknown[]);
+    super("semantic_chunks");
   }
 
   /**
@@ -67,76 +28,24 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
    * 全文搜索 Chunk
    * @param query 搜索关键词 (FTS5 MATCH 语法)
    * @param limit 返回结果数量限制
-   * @param parentChunkId 可选的父 chunk ID 过滤
-   *   - undefined：搜索所有 chunk
-   *   - null：搜索所有子 chunk（parent_chunk_id IS NOT NULL）
-   *   - 具体 ID：搜索指定父 chunk 下的子 chunk
    */
-  searchFts(
-    query: string,
-    limit: number = 50,
-    parentChunkId?: ChunkId | null,
-  ): Chunk[] {
-    let sql: string;
-    const params: unknown[] = [query];
-
-    if (parentChunkId !== undefined) {
-      if (parentChunkId === null) {
-        sql = `
-          SELECT b.* FROM ${this.tableName} b
-          JOIN blocks_fts f ON b.rowid = f.rowid
-          WHERE f.content MATCH ? AND b.parent_chunk_id IS NOT NULL AND b.status = 'active' ORDER BY b.created_at DESC
-          LIMIT ?
-        `;
-      } else {
-        sql = `
-          SELECT b.* FROM ${this.tableName} b
-          JOIN blocks_fts f ON b.rowid = f.rowid
-          WHERE f.content MATCH ? AND b.parent_chunk_id = ? AND b.status = 'active' ORDER BY b.created_at DESC
-          LIMIT ?
-        `;
-        params.push(parentChunkId);
-      }
-      params.push(limit);
-    } else {
-      sql = `
-        SELECT b.* FROM ${this.tableName} b
-        JOIN blocks_fts f ON b.rowid = f.rowid
-        WHERE f.content MATCH ? AND b.status = 'active' ORDER BY b.created_at DESC
-        LIMIT ?
-      `;
-      params.push(limit);
-    }
-
-    return this.query(sql, params);
+  searchFts(query: string, limit: number = 50): Chunk[] {
+    const sql = `
+      SELECT b.* FROM ${this.tableName} b
+      JOIN semantic_chunks_fts f ON b.rowid = f.rowid
+      WHERE f.content MATCH ? AND b.status = 'active' ORDER BY b.created_at DESC
+      LIMIT ?
+    `;
+    return this.query(sql, [query, limit]);
   }
 
   /**
    * 获取最近的 Chunk 列表
    * @param limit 返回结果数量限制
-   * @param parentChunkId 可选的父 chunk ID 过滤
-   *   - undefined：获取所有 chunk，按 created_at DESC 排序
-   *   - null：获取所有子 chunk，按 created_at ASC, split_index ASC 排序
-   *   - 具体 ID：获取指定父 chunk 下的子 chunk，按 created_at ASC, split_index ASC 排序
    */
-  getRecentChunks(limit: number = 50, parentChunkId?: ChunkId | null): Chunk[] {
-    let sql: string;
-    const params: unknown[] = [];
-
-    if (parentChunkId !== undefined) {
-      if (parentChunkId === null) {
-        sql = `SELECT * FROM ${this.tableName} WHERE parent_chunk_id IS NOT NULL AND status = 'active' ORDER BY created_at ASC, split_index ASC LIMIT ?`;
-      } else {
-        sql = `SELECT * FROM ${this.tableName} WHERE parent_chunk_id = ? AND status = 'active' ORDER BY created_at ASC, split_index ASC LIMIT ?`;
-        params.push(parentChunkId);
-      }
-      params.push(limit);
-    } else {
-      sql = `SELECT * FROM ${this.tableName} WHERE status = 'active' ORDER BY created_at DESC LIMIT ?`;
-      params.push(limit);
-    }
-
-    return this.query(sql, params);
+  getRecentChunks(limit: number = 50): Chunk[] {
+    const sql = `SELECT * FROM ${this.tableName} WHERE status = 'active' ORDER BY created_at DESC LIMIT ?`;
+    return this.query(sql, [limit]);
   }
 
   /**
@@ -157,10 +66,10 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
     const params: unknown[] = [startDate, endDate];
 
     if (status !== undefined) {
-      sql = `SELECT * FROM ${this.tableName} WHERE created_at >= ? AND created_at <= ? AND status = 'active' ORDER BY created_at DESC`;
+      sql = `SELECT * FROM ${this.tableName} WHERE created_at >= ? AND created_at <= ? AND status = ? ORDER BY created_at DESC`;
       params.push(status);
     } else {
-      sql = `SELECT * FROM ${this.tableName} WHERE created_at >= ? AND created_at <= ? AND status = ? ORDER BY created_at DESC`;
+      sql = `SELECT * FROM ${this.tableName} WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC`;
     }
 
     return this.query(sql, params);
@@ -214,7 +123,7 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
   }
 
   /**
-   * 批量设置 Chunk 的归档状态（独立方法，不注册 IPC）
+   * 批量设置 Chunk 的删除状态（独立方法，不注册 IPC）
    * 在事务中执行，确保原子性
    * @param ids Chunk ID 数组
    * @param isDeleted 是否删除 (0 | 1)
@@ -233,17 +142,6 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
   }
 
   /**
-   * 根据指定字段统计 Chunk 数量
-   * @param field 统计字段 (source | content_type)
-   * @param value 字段值
-   */
-  countBy(field: CountByField, value: JournalSource | ContentType): number {
-    const sql = `SELECT COUNT(*) as count FROM ${this.tableName} WHERE ${field} = ?`;
-    const result = this.queryOne(sql, [value]) as unknown as { count: number };
-    return result?.count || 0;
-  }
-
-  /**
    * 构建 WHERE 子句
    * @param conditions 查询条件
    */
@@ -254,25 +152,13 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
     const conditionsArray: string[] = [];
     const values: unknown[] = [];
 
-    if (conditions.source !== undefined) {
-      conditionsArray.push("source = ?");
-      values.push(conditions.source);
+    if (conditions.status !== undefined) {
+      conditionsArray.push("status = ?");
+      values.push(conditions.status);
     }
-    if (conditions.content_type !== undefined) {
-      conditionsArray.push("content_type = ?");
-      values.push(conditions.content_type);
-    }
-    if (conditions.language !== undefined) {
-      conditionsArray.push("language = ?");
-      values.push(conditions.language);
-    }
-    if (conditions.parent_chunk_id !== undefined) {
-      if (conditions.parent_chunk_id === null) {
-        conditionsArray.push("parent_chunk_id IS NULL");
-      } else {
-        conditionsArray.push("parent_chunk_id = ?");
-        values.push(conditions.parent_chunk_id);
-      }
+    if (conditions.is_deleted !== undefined) {
+      conditionsArray.push("is_deleted = ?");
+      values.push(conditions.is_deleted);
     }
     if (conditions.temporal_score_min !== undefined) {
       conditionsArray.push("temporal_score >= ?");

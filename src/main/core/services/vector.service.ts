@@ -1,5 +1,6 @@
 import type { Connection } from "@lancedb/lancedb";
 import type {
+  BlockEmbedding,
   BlockEmbeddingCreate,
   BlockEmbeddingUpdate,
   PageEmbeddingCreate,
@@ -144,6 +145,20 @@ class VectorService {
         count: blockIds.length,
       });
       throw error;
+    }
+  }
+
+  /**
+   * 根据 Block ID 查询向量（返回数组，便于统一处理）
+   */
+  public async findBlockEmbeddingByBlockId(blockId: string): Promise<BlockEmbedding[]> {
+    this.ensureInitialized();
+    try {
+      const result = await this.blockVectorDao!.findByBlockId(blockId);
+      return result ? [result] : [];
+    } catch (error) {
+      Logger.error("[VectorService] 查询 Block 向量失败", { error: String(error), blockId });
+      return [];
     }
   }
 

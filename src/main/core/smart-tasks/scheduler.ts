@@ -1,6 +1,6 @@
 import { TaskExecutor, TaskContext, TaskResult, TaskStatus } from "./types";
 import { progressManager } from "./progress.manager";
-import { MVP_TASK_DAG, TASK_EXECUTION_ORDER } from "./task-dag";
+import { TASK_EXECUTION_ORDER } from "./task-dag";
 import { TaskExecutionDao } from "@/main/core/db/task-execution.dao";
 import { ChunkDao } from "@/main/core/db";
 import { TaskExecutionCreate, TaskExecutionUpdate, Chunk } from "@/main/types/db";

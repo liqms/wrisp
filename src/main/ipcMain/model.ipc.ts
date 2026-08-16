@@ -19,14 +19,14 @@ export function registerModelHandlers() {
 
   ipcMain.handle(
     "model:getValue",
-    async (_, keyPath: string): Promise<ApiResponse<any>> => {
+    async (_, keyPath: string): Promise<ApiResponse<unknown>> => {
       return getValue(keyPath);
     },
   );
 
   ipcMain.handle(
     "model:setValue",
-    async (_, keyPath: string, value: any): Promise<ApiResponse<void>> => {
+    async (_, keyPath: string, value: unknown): Promise<ApiResponse<void>> => {
       return setValue(keyPath, value);
     },
   );

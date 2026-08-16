@@ -1,5 +1,7 @@
-﻿import { vi } from 'vitest'
+import { vi } from 'vitest'
+import { ErrorCode } from '@/shared/enums'
 import type { ApiResponse } from '@/shared/types'
+import type { ElectronAPI } from '@/renderer/types/electron'
 
 // Guard: only define window.electronAPI in DOM-like environments (happy-dom/jsdom)
 if (typeof window !== 'undefined') {
@@ -15,7 +17,12 @@ if (typeof window !== 'undefined') {
   }
 
   function createApiResponse<T>(data: T): ApiResponse<T> {
-    return { success: true, data, code: undefined, message: undefined }
+    return {
+      success: true,
+      data,
+      code: ErrorCode.SUCCESS,
+      timestamp: Date.now(),
+    }
   }
 
   window.electronAPI = {
@@ -80,5 +87,5 @@ if (typeof window !== 'undefined') {
       chat: vi.fn(),
       streamChat: vi.fn(),
     },
-  }
+  } as unknown as ElectronAPI
 }

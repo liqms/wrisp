@@ -4,7 +4,6 @@ import type {
   Tag,
   TagCreate,
   TagUpdate,
-  TagQuery,
   TagDetail,
   TagId,
   ApiResponse,
@@ -27,7 +26,7 @@ export const tagModule: TagAPI = {
       ApiResponse<TagDetail[]>
     >,
   paginateTags: (params) =>
-    ipcRenderer.invoke("tag:paginate", params) as Promise<ApiResponse<any>>,
+    ipcRenderer.invoke("tag:paginate", params) as Promise<ApiResponse<unknown>>,
   createTags: (data: TagCreate | TagCreate[]) =>
     ipcRenderer.invoke("tag:create", data) as Promise<
       ApiResponse<string | string[]>

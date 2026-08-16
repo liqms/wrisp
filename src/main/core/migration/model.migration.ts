@@ -14,7 +14,7 @@ export class ModelConfigMigration {
     this.addMigration({
       version: '0.1.0',
       description: '初始版本迁移',
-      migrate: (config: any) => {
+      migrate: (config: Record<string, unknown>) => {
         if (!config.aiProviders) {
           config.aiProviders = []
         }
@@ -47,13 +47,13 @@ export class ModelConfigMigration {
   }
 
   public getMigrationsToExecute(currentVersion: string, targetVersion: string): Migration[] {
-    return this.migrations.filter(migration => 
+    return this.migrations.filter(migration =>
       compareVersions(currentVersion, migration.version) === VersionComparison.OLDER &&
       compareVersions(migration.version, targetVersion) !== VersionComparison.NEWER
     )
   }
 
-  public migrateConfig(config: any, currentVersion: string, targetVersion: string): any {
+  public migrateConfig<T extends object>(config: T, currentVersion: string, targetVersion: string): T {
     if (!needsMigration(currentVersion, targetVersion)) {
       Logger.debug('无需迁移，版本相同或更新', { currentVersion, targetVersion })
       return config
@@ -66,24 +66,24 @@ export class ModelConfigMigration {
       return config
     }
 
-    Logger.info('开始执行模型配置迁移', { 
-      currentVersion, 
-      targetVersion, 
-      migrationCount: migrationsToExecute.length 
+    Logger.info('开始执行模型配置迁移', {
+      currentVersion,
+      targetVersion,
+      migrationCount: migrationsToExecute.length
     })
 
-    let migratedConfig = { ...config }
+    let migratedConfig: Record<string, unknown> = { ...(config as Record<string, unknown>) }
 
     for (const migration of migrationsToExecute) {
       try {
-        Logger.debug('执行迁移', { 
-          version: migration.version, 
-          description: migration.description 
+        Logger.debug('执行迁移', {
+          version: migration.version,
+          description: migration.description
         })
-        
+
         migratedConfig = migration.migrate(migratedConfig)
         migratedConfig.version = migration.version
-        
+
         Logger.debug('迁移完成', { version: migration.version })
       } catch (error) {
         Logger.error('迁移执行失败', {
@@ -98,12 +98,12 @@ export class ModelConfigMigration {
     migratedConfig.version = targetVersion
     migratedConfig.updatedAt = TimeUtil.toISOString(Date.now())
 
-    Logger.info('模型配置迁移完成', { 
-      originalVersion: currentVersion, 
-      newVersion: targetVersion 
+    Logger.info('模型配置迁移完成', {
+      originalVersion: currentVersion,
+      newVersion: targetVersion
     })
 
-    return migratedConfig
+    return migratedConfig as T
   }
 }
 
