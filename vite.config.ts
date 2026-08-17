@@ -64,7 +64,6 @@ export default defineConfig({
                 /@lancedb\/.*/,
                 'apache-arrow',
                 '@xenova/transformers',
-                'archiver',
                 'electron-updater',
               ],
               output: {
