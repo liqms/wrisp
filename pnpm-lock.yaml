@@ -84,9 +84,6 @@ importers:
       apache-arrow:
         specifier: ^21.1.0
         version: 21.2.0
-      archiver:
-        specifier: ^8.0.0
-        version: 8.0.0
       axios:
         specifier: ^1.16.1
         version: 1.19.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -169,6 +166,9 @@ importers:
       '@vue/test-utils':
         specifier: ^2.4.11
         version: 2.4.11(@vue/compiler-dom@3.5.41)(@vue/server-renderer@3.5.41)(vue@3.5.41(typescript@6.0.3))
+      archiver:
+        specifier: ^8.0.0
+        version: 8.0.0
       dotenv:
         specifier: ^17.4.1
         version: 17.4.2

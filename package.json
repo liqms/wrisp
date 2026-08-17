@@ -1,6 +1,6 @@
 {
   "name": "wrisp",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Crisp writing, pure soul.",
   "type": "commonjs",
   "author": "Wrisp Team",
@@ -47,7 +47,6 @@
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "apache-arrow": "^21.1.0",
-    "archiver": "^8.0.0",
     "axios": "^1.16.1",
     "better-sqlite3": "^12.9.0",
     "electron-store": "^11.0.2",
@@ -77,6 +76,7 @@
     "@vitest/coverage-v8": "^4.1.8",
     "@vue/eslint-config-typescript": "^14.7.0",
     "@vue/test-utils": "^2.4.11",
+    "archiver": "^8.0.0",
     "dotenv": "^17.4.1",
     "electron": "41.1.1",
     "electron-builder": "^26.8.1",
