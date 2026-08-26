@@ -7,7 +7,7 @@ import {
 } from "@/renderer/components/editor/slash/commands/templates";
 import { mergeTemplates } from "@/renderer/components/editor/slash/commands/template-merge";
 import { getCommandGroups } from "@/renderer/components/editor/slash/commands/registry";
-import type { SlashTemplateItem } from "@/shared/types/template.types";
+import type { TemplateItem } from "@/shared/types/template.types";
 
 const t = (key: string) => key;
 
@@ -39,7 +39,7 @@ describe("Slash 内置模板", () => {
   });
 
   it("buildTemplateGroup 为非空条目返回命令组，命令带可执行 action", () => {
-    const items: SlashTemplateItem[] = mergeTemplates(
+    const items: TemplateItem[] = mergeTemplates(
       builtinTemplates,
       null,
       LOCALE.ZH,

@@ -8,13 +8,13 @@ import {
 import type { ApiResponse } from "@/shared/types";
 import type {
   CustomTemplate,
-  SlashTemplateFile,
+  TemplateFile,
 } from "@/shared/types/template.types";
 
 export function registerTemplateHandlers() {
   ipcMain.handle(
     "template:getFile",
-    async (): Promise<ApiResponse<SlashTemplateFile>> => {
+    async (): Promise<ApiResponse<TemplateFile>> => {
       return getFile();
     },
   );
@@ -24,14 +24,14 @@ export function registerTemplateHandlers() {
     async (
       _,
       tpl: CustomTemplate,
-    ): Promise<ApiResponse<SlashTemplateFile>> => {
+    ): Promise<ApiResponse<TemplateFile>> => {
       return upsertCustom(tpl);
     },
   );
 
   ipcMain.handle(
     "template:deleteCustom",
-    async (_, id: string): Promise<ApiResponse<SlashTemplateFile>> => {
+    async (_, id: string): Promise<ApiResponse<TemplateFile>> => {
       return deleteCustom(id);
     },
   );
@@ -43,7 +43,7 @@ export function registerTemplateHandlers() {
       id: string,
       builtIn: boolean,
       enabled: boolean,
-    ): Promise<ApiResponse<SlashTemplateFile>> => {
+    ): Promise<ApiResponse<TemplateFile>> => {
       return setEnabled(id, builtIn, enabled);
     },
   );

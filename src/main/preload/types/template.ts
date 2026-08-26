@@ -1,18 +1,18 @@
 import type { ApiResponse } from "@/shared/types";
 import type {
   CustomTemplate,
-  SlashTemplateFile,
+  TemplateFile,
 } from "@/shared/types/template.types";
 
 export interface TemplateAPI {
-  getFile: () => Promise<ApiResponse<SlashTemplateFile>>;
+  getFile: () => Promise<ApiResponse<TemplateFile>>;
   upsertCustom: (
     tpl: CustomTemplate,
-  ) => Promise<ApiResponse<SlashTemplateFile>>;
-  deleteCustom: (id: string) => Promise<ApiResponse<SlashTemplateFile>>;
+  ) => Promise<ApiResponse<TemplateFile>>;
+  deleteCustom: (id: string) => Promise<ApiResponse<TemplateFile>>;
   setEnabled: (
     id: string,
     builtIn: boolean,
     enabled: boolean,
-  ) => Promise<ApiResponse<SlashTemplateFile>>;
+  ) => Promise<ApiResponse<TemplateFile>>;
 }

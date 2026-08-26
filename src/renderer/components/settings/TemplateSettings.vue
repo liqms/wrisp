@@ -21,7 +21,7 @@
     </n-flex>
 
     <n-data-table :columns="columns" :data="filteredTemplates" :bordered="false"
-      :row-key="(row: SlashTemplateItem) => row.id" :max-height="tableMaxHeight" />
+      :row-key="(row: TemplateItem) => row.id" :max-height="tableMaxHeight" />
   </n-flex>
 
   <TemplateEditModal v-model:show="editVisible" :template="editingTemplate" @save="onSave" />
@@ -38,7 +38,7 @@ import { useConfig } from "@/renderer/composables/useConfig";
 import { useTemplateStore } from "@/renderer/store/template.store";
 import type {
   CustomTemplate,
-  SlashTemplateItem,
+  TemplateItem,
 } from "@/shared/types/template.types";
 import TemplateEditModal from "./TemplateEditModal.vue";
 
@@ -62,11 +62,11 @@ const professionOptions = (Object.values(PROFESSION) as Profession[]).map(
   }),
 );
 
-const allTemplates = computed<SlashTemplateItem[]>(() =>
+const allTemplates = computed<TemplateItem[]>(() =>
   store.allTemplates(locale.value),
 );
 
-const filteredTemplates = computed<SlashTemplateItem[]>(() => {
+const filteredTemplates = computed<TemplateItem[]>(() => {
   const list = allTemplates.value;
   if (!filterProfession.value) return list;
   return list.filter((item) => item.profession === filterProfession.value);
@@ -83,7 +83,7 @@ function openCreate() {
   editVisible.value = true;
 }
 
-function openEdit(row: SlashTemplateItem) {
+function openEdit(row: TemplateItem) {
   editingTemplate.value = {
     id: row.id,
     title: row.title,
@@ -102,19 +102,19 @@ async function onSave(tpl: CustomTemplate) {
   else message.error(t("ERROR.TEMPLATE.SAVE_FAILED"));
 }
 
-async function onDelete(row: SlashTemplateItem) {
+async function onDelete(row: TemplateItem) {
   // 仅「自定义」职业的模板有删除入口，直接移除自定义模板
   const ok = await store.removeCustom(row.id);
   if (ok) message.success(t("SETTINGS.TEMPLATE_SETTINGS.DELETED"));
   else message.error(t("ERROR.TEMPLATE.DELETE_FAILED"));
 }
 
-async function onToggle(row: SlashTemplateItem, enabled: boolean) {
+async function onToggle(row: TemplateItem, enabled: boolean) {
   const ok = await store.setEnabled(row.id, row.builtIn, enabled);
   if (!ok) message.error(t("ERROR.TEMPLATE.SAVE_FAILED"));
 }
 
-const columns: DataTableColumns<SlashTemplateItem> = [
+const columns: DataTableColumns<TemplateItem> = [
   {
     title: t("SETTINGS.TEMPLATE_SETTINGS.NAME"),
     key: "title",

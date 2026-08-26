@@ -4,11 +4,11 @@ import { ErrorCode } from "@/shared/enums";
 import type {
   ApiResponse,
   CustomTemplate,
-  SlashTemplateFile,
+  TemplateFile,
 } from "@/shared/types";
 import { Logger } from "@/main/utils/logger";
 
-async function getFile(): Promise<ApiResponse<SlashTemplateFile>> {
+async function getFile(): Promise<ApiResponse<TemplateFile>> {
   try {
     return response.success(templateService.getSlashTemplatesFile());
   } catch (error) {
@@ -19,7 +19,7 @@ async function getFile(): Promise<ApiResponse<SlashTemplateFile>> {
 
 async function upsertCustom(
   tpl: CustomTemplate,
-): Promise<ApiResponse<SlashTemplateFile>> {
+): Promise<ApiResponse<TemplateFile>> {
   try {
     return response.success(templateService.upsertCustomTemplate(tpl));
   } catch (error) {
@@ -30,7 +30,7 @@ async function upsertCustom(
 
 async function deleteCustom(
   id: string,
-): Promise<ApiResponse<SlashTemplateFile>> {
+): Promise<ApiResponse<TemplateFile>> {
   try {
     return response.success(templateService.deleteCustomTemplate(id));
   } catch (error) {
@@ -43,7 +43,7 @@ async function setEnabled(
   id: string,
   builtIn: boolean,
   enabled: boolean,
-): Promise<ApiResponse<SlashTemplateFile>> {
+): Promise<ApiResponse<TemplateFile>> {
   try {
     return response.success(
       templateService.setTemplateEnabled(id, builtIn, enabled),

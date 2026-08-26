@@ -8,7 +8,7 @@ import {
 } from "@/main/constants/folder.constants";
 import type {
   CustomTemplate,
-  SlashTemplateFile,
+  TemplateFile,
 } from "@/shared/types/template.types";
 import { PROFESSION } from "@/shared/enums";
 import {
@@ -17,7 +17,7 @@ import {
 } from "@/shared/enums/template.enums";
 import { Logger } from "@/main/utils/logger";
 
-const DEFAULT_FILE: SlashTemplateFile = {
+const DEFAULT_FILE: TemplateFile = {
   customTemplates: [],
   disabledTemplateIds: [],
 };
@@ -51,12 +51,12 @@ class TemplateService {
   }
 
   /** 读取 slash 模板文件；文件缺失或损坏时返回默认值 */
-  public getSlashTemplatesFile(): SlashTemplateFile {
+  public getSlashTemplatesFile(): TemplateFile {
     const filePath = this.getFilePath();
     try {
       if (!fs.existsSync(filePath)) return { ...DEFAULT_FILE };
       const raw = fs.readFileSync(filePath, "utf-8");
-      const data = JSON.parse(raw) as SlashTemplateFile;
+      const data = JSON.parse(raw) as TemplateFile;
       return {
         customTemplates: Array.isArray(data.customTemplates)
           ? data.customTemplates.map((c) => ({
@@ -83,14 +83,14 @@ class TemplateService {
   }
 
   /** 原子写入 slash 模板文件 */
-  public saveSlashTemplatesFile(file: SlashTemplateFile): void {
+  public saveSlashTemplatesFile(file: TemplateFile): void {
     const filePath = this.getFilePath();
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, JSON.stringify(file, null, 2), "utf-8");
   }
 
   /** 新增或按 id 更新自定义模板，返回最新文件 */
-  public upsertCustomTemplate(tpl: CustomTemplate): SlashTemplateFile {
+  public upsertCustomTemplate(tpl: CustomTemplate): TemplateFile {
     const file = this.getSlashTemplatesFile();
     const idx = file.customTemplates.findIndex((c) => c.id === tpl.id);
     if (idx >= 0) file.customTemplates[idx] = tpl;
@@ -100,7 +100,7 @@ class TemplateService {
   }
 
   /** 按 id 删除自定义模板，返回最新文件 */
-  public deleteCustomTemplate(id: string): SlashTemplateFile {
+  public deleteCustomTemplate(id: string): TemplateFile {
     const file = this.getSlashTemplatesFile();
     file.customTemplates = file.customTemplates.filter((c) => c.id !== id);
     this.saveSlashTemplatesFile(file);
@@ -112,7 +112,7 @@ class TemplateService {
     id: string,
     builtIn: boolean,
     enabled: boolean,
-  ): SlashTemplateFile {
+  ): TemplateFile {
     const file = this.getSlashTemplatesFile();
     if (builtIn) {
       const disabled = new Set(file.disabledTemplateIds);
