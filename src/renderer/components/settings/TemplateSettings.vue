@@ -1,5 +1,5 @@
 <template>
-  <n-flex vertical size="large">
+  <n-flex vertical size="large" class="template-settings">
     <n-flex justify="space-between" align="center">
       <div>
         <div class="title">{{ t("SETTINGS.TEMPLATE_SETTINGS.TITLE") }}</div>
@@ -90,8 +90,9 @@ const filteredTemplates = computed<TemplateItem[]>(() => {
   return list.filter((item) => item.profession === filterProfession.value);
 });
 
-// 仅让表格内部滚动（表头固定），避免整个设置页滚动
-const tableMaxHeight = computed(() => "calc(60vh - 150px)");
+// 仅让表格内部滚动（表头固定），避免整个设置页滚动。
+// 高度需预留头部/Tab/职业筛选行与间距（约 200px），否则内容超出 60vh 触发外层滚动条
+const tableMaxHeight = computed(() => "calc(60vh - 200px)");
 
 const editVisible = ref(false);
 const editingTemplate = ref<CustomTemplate | null>(null);
@@ -213,6 +214,11 @@ const columns: DataTableColumns<TemplateItem> = [
 </script>
 
 <style scoped lang="scss">
+/* 避开外层 n-scrollbar 的悬浮滚动条轨道，防止「新建」按钮被遮挡 */
+.template-settings {
+  padding-right: 12px;
+}
+
 .title {
   font-size: 16px;
   font-weight: 600;
@@ -220,7 +226,7 @@ const columns: DataTableColumns<TemplateItem> = [
 
 .desc {
   font-size: 12px;
-  color: var(--text-color-3);
+  color: var(--text-third);
   margin-top: 4px;
 }
 </style>
