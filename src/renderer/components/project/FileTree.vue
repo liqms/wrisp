@@ -3,10 +3,10 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { Add } from "@vicons/ionicons5";
 import type { PageTree } from "@/main/types/db";
-import { PAGE_TYPE } from "@/shared/enums";
 import { usePage } from "@/renderer/composables/usePage";
 import FileTreeNode from "./FileTreeNode.vue";
 import PageOperationModal from "./PageOperationModal.vue";
+import PageCreateModal from "./PageCreateModal.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -23,24 +23,25 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { createPage, deletePage, movePage } = usePage();
+const { deletePage, movePage } = usePage();
 
 const operationVisible = ref(false);
 const operationPage = ref<PageTree | null>(null);
 
-async function createPageNode(parentId: string | null) {
-  const id = await createPage({
-    projectId: props.projectId,
-    parentId,
-    pageType: PAGE_TYPE.PROJECT_CHAPTER,
-    title: t("TIPS.PAGE.NEW_CHAPTER"),
-    content: "",
-  });
-  if (id) {
-    emit("changed");
-    // 新建页面后自动进入新页面编辑
-    emit("select", id);
-  }
+// 新建页面弹窗状态
+const createVisible = ref(false);
+const createParentId = ref<string | null>(null);
+
+function createPageNode(parentId: string | null) {
+  createParentId.value = parentId;
+  createVisible.value = true;
+}
+
+function handleCreated(pageId: string) {
+  createVisible.value = false;
+  emit("changed");
+  // 新建页面后自动进入新页面编辑
+  emit("select", pageId);
 }
 
 function handleMore(node: PageTree) {
@@ -80,6 +81,8 @@ async function handleDeleted(pageId: string) {
     </n-scrollbar>
     <PageOperationModal :show="operationVisible" :page="operationPage" :tree-nodes="nodes" :project-id="projectId"
       @update:show="operationVisible = $event" @moved="handleMoved" @deleted="handleDeleted" />
+    <PageCreateModal :show="createVisible" :project-id="projectId" :parent-id="createParentId"
+      @update:show="createVisible = $event" @created="handleCreated" />
   </n-flex>
 </template>
 
