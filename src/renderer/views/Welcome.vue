@@ -343,11 +343,6 @@ watch(enableAiMode, (val) => {
   border-radius: 8px;
 }
 
-.welcome-workspace-icon,
-.welcome-enable-ai-mode-icon {
-  color: var(--primary-color);
-}
-
 .welcome-workspace-desc-wrapper,
 .welcome-enable-ai-mode-desc-wrapper {
   margin-left: $spacing-md;

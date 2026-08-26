@@ -139,10 +139,6 @@ onMounted(async () => {
   padding: $spacing-xl $spacing-md;
 }
 
-.empty {
-  padding: calc($spacing-2xl * 2) 0;
-}
-
 .loading {
   padding: calc($spacing-2xl * 2) 0;
 }

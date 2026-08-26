@@ -84,7 +84,7 @@ const show = computed({
 
 .template-view-desc {
   font-size: 12px;
-  color: var(--text-color-3);
+  color: var(--text-third);
   line-height: 1.3;
   margin-top: 2px;
 }

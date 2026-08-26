@@ -139,10 +139,4 @@ const handleOpenLink = async (): Promise<void> => {
 .provider-item:hover .action-buttons {
   opacity: 1;
 }
-
-.status-button {
-  font-size: 10px;
-  padding: 0 8px;
-  height: 22px;
-}
 </style>

@@ -244,11 +244,5 @@ onMounted(() => {
     justify-content: center;
     padding: $spacing-md 0;
   }
-
-  .no-more {
-    display: flex;
-    justify-content: center;
-    padding: $spacing-md 0;
-  }
 }
 </style>

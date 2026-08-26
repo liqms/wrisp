@@ -1,6 +1,6 @@
 <template>
-  <n-modal :show="show" preset="card" :title="t('TIPS.PAGE.CREATE_TITLE')" style="width: 520px"
-    :mask-closable="false" @update:show="handleUpdateShow">
+  <n-modal :show="show" preset="card" :title="t('TIPS.PAGE.CREATE_TITLE')" style="width: 520px" :mask-closable="false"
+    @update:show="handleUpdateShow">
     <n-form ref="formRef" :model="formData" :rules="formRules" label-placement="top">
       <n-form-item :label="t('TIPS.PAGE.PAGE_TITLE')" path="title">
         <n-input v-model:value="formData.title" :placeholder="t('TIPS.PAGE.INPUT_PAGE_TITLE')"
@@ -8,8 +8,8 @@
       </n-form-item>
       <n-form-item :label="t('TIPS.PAGE.SELECT_TEMPLATE')">
         <div class="template-list">
-          <button type="button" class="template-item"
-            :class="{ 'is-selected': selectedTemplateId === '' }" @click="selectTemplate('')">
+          <button type="button" class="template-item" :class="{ 'is-selected': selectedTemplateId === '' }"
+            @click="selectTemplate('')">
             <div class="template-item-icon">
               <n-icon size="20">
                 <Add />
@@ -153,12 +153,13 @@ async function handleSubmit() {
 </script>
 
 <style scoped lang="scss">
+@use "@/renderer/styles/_variables" as *;
+
 .template-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: $spacing-sm;
   width: 100%;
-  max-height: 280px;
   overflow-y: auto;
 }
 
@@ -166,14 +167,16 @@ async function handleSubmit() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: $spacing-sm;
+  min-width: 0;
   padding: 14px 10px;
   text-align: center;
+  color: var(--text-color);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: $radius-md;
   background: transparent;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all $transition-fast ease;
 
   &:hover {
     border-color: var(--primary-color);
@@ -191,7 +194,7 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: $radius-md;
   background: var(--bg-secondary);
   flex-shrink: 0;
 }
@@ -208,14 +211,14 @@ async function handleSubmit() {
 
 .template-item-title {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: $font-medium;
   color: var(--text-color);
   line-height: 1.4;
 }
 
 .template-item-desc {
-  font-size: 12px;
-  color: var(--text-color-3);
+  font-size: $font-xs;
+  color: var(--text-third);
   line-height: 1.3;
   margin-top: 2px;
   overflow: hidden;
