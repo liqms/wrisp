@@ -8,7 +8,7 @@ import FileTreeNode from "./FileTreeNode.vue";
 import PageOperationModal from "./PageOperationModal.vue";
 import PageCreateModal from "./PageCreateModal.vue";
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     projectId: string;
     nodes: PageTree[];
