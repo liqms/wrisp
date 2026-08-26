@@ -263,6 +263,7 @@ export default {
       SAVE: "保存",
       CANCEL: "取消",
       DELETE: "删除",
+      VIEW: "查看",
       SAVED: "模板已保存",
       DELETED: "模板已删除",
     },

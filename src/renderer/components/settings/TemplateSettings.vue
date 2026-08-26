@@ -32,6 +32,7 @@
   </n-flex>
 
   <TemplateEditModal v-model:show="editVisible" :template="editingTemplate" @save="onSave" />
+  <TemplateViewModal v-model:show="viewVisible" :template="viewingTemplate" />
 </template>
 
 <script setup lang="ts">
@@ -52,6 +53,7 @@ import {
   type TemplateType,
 } from "@/shared/enums/template.enums";
 import TemplateEditModal from "./TemplateEditModal.vue";
+import TemplateViewModal from "./TemplateViewModal.vue";
 
 // 设置页通过 SettingsView 统一传入 config（本组件使用 store 读取配置，此处声明以接收该 prop）
 defineProps<{ config?: AppConfig | null }>();
@@ -93,6 +95,15 @@ const tableMaxHeight = computed(() => "calc(60vh - 150px)");
 
 const editVisible = ref(false);
 const editingTemplate = ref<CustomTemplate | null>(null);
+
+// 内置模板只读查看弹窗状态
+const viewVisible = ref(false);
+const viewingTemplate = ref<TemplateItem | null>(null);
+
+function onView(row: TemplateItem) {
+  viewingTemplate.value = row;
+  viewVisible.value = true;
+}
 
 function openCreate() {
   editingTemplate.value = null;
@@ -189,7 +200,14 @@ const columns: DataTableColumns<TemplateItem> = [
             { default: () => t("SETTINGS.TEMPLATE_SETTINGS.DELETE") },
           ),
         ]
-        : null,
+        : [
+          // 内置模板仅支持查看（只读）
+          h(
+            NButton,
+            { size: "small", quaternary: true, onClick: () => onView(row) },
+            { default: () => t("SETTINGS.TEMPLATE_SETTINGS.VIEW") },
+          ),
+        ],
   },
 ];
 </script>

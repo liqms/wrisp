@@ -265,6 +265,7 @@ export default {
       SAVE: "Save",
       CANCEL: "Cancel",
       DELETE: "Delete",
+      VIEW: "View",
       SAVED: "Template saved",
       DELETED: "Template deleted",
     },
