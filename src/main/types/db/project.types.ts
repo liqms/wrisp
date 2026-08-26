@@ -18,6 +18,7 @@ export interface Project {
   ai_summary: Content | null
   structure: JsonMetadata | null
   metadata: JsonMetadata
+  is_pinned: boolean
 }
 
 export interface ProjectCreate {
@@ -30,6 +31,7 @@ export interface ProjectCreate {
   ai_summary?: Content | null
   structure?: JsonMetadata | null
   metadata?: JsonMetadata
+  is_pinned?: boolean
   tags?: TagId[]
   created_at?: Timestamp
   updated_at?: Timestamp
@@ -44,6 +46,7 @@ export interface ProjectUpdate {
   ai_summary?: Content | null
   structure?: JsonMetadata | null
   metadata?: JsonMetadata
+  is_pinned?: boolean
   tags?: TagId[]
   updated_at?: Timestamp
 }

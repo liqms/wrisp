@@ -74,6 +74,16 @@ async function initializeDatabase(): Promise<void> {
     const targetVersion = databaseMigration.getTargetVersion();
     await databaseMigration.executeDatabaseMigration(targetVersion);
 
+    // 幂等补齐旧库缺失的 schema 字段
+    databaseMigration.ensureProjectPinnedColumn();
+    databaseMigration.ensurePageTypeColumn();
+
+    // 幂等修复历史数据：pages.status 被旧版 updatePage 写为 NULL 的记录
+    databaseMigration.repairPagesNullStatus();
+
+    // 幂等移除 pages 表遗留的 is_container 字段（v1 容器页设计，已废弃）
+    databaseMigration.dropPagesContainerColumn();
+
     Logger.info("数据库初始化完成");
   } catch (error) {
     Logger.error("数据库初始化失败:", { error: String(error) });

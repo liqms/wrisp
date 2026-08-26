@@ -230,6 +230,48 @@ export const useProjectStore = defineStore("project", () => {
     };
 
     /**
+     * 设置作品置顶状态
+     */
+    const setPinned = async (
+        id: string,
+        isPinned: boolean,
+    ): Promise<boolean> => {
+        loading.value = true;
+        errorCode.value = null;
+        errorMessage.value = null;
+
+        try {
+            const response = (await window.electronAPI.project.setPinned(
+                id,
+                isPinned,
+            )) as ApiResponse<number>;
+
+            if (response.success && response.data && response.data as number > 0) {
+                projects.value = projects.value.map((p) =>
+                    p.id === id ? { ...p, is_pinned: isPinned } : p,
+                );
+                if (currentProject.value && currentProject.value.id === id) {
+                    currentProject.value = { ...currentProject.value, is_pinned: isPinned };
+                }
+                return true;
+            } else {
+                errorCode.value = response.code;
+                errorMessage.value = handleApiError(response);
+                return false;
+            }
+        } catch {
+            errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
+            errorMessage.value = handleApiError({
+                success: false,
+                code: errorCode.value,
+            });
+            return false;
+        } finally {
+            loading.value = false;
+        }
+    };
+
+    /**
      * 检查作品名称是否已存在
      */
     const checkNameExists = async (
@@ -279,6 +321,7 @@ export const useProjectStore = defineStore("project", () => {
         createProject,
         updateProject,
         deleteProject,
+        setPinned,
         checkNameExists,
     };
 });

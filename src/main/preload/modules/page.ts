@@ -10,4 +10,5 @@ export const pageModule: PageAPI = {
   create: (data) => ipcRenderer.invoke("page:create", data),
   update: (data) => ipcRenderer.invoke("page:update", data),
   delete: (id: string) => ipcRenderer.invoke("page:delete", id),
+  move: (data) => ipcRenderer.invoke("page:move", data),
 };

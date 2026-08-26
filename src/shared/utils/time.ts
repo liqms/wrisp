@@ -5,6 +5,7 @@
 export class TimeUtil {
   /**
    * 格式化日期时间
+   * 支持占位符：YYYY / MMMM / MMM / MM / DD / D / HH / mm / ss / SSS
    * @param date - 日期对象或时间戳
    * @param format - 格式化模板
    * @returns 格式化后的字符串
@@ -18,11 +19,25 @@ export class TimeUtil {
     const minutes = d.getMinutes()
     const seconds = d.getSeconds()
     const milliseconds = d.getMilliseconds()
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ]
+    const monthShortNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ]
+    const monthShort = monthShortNames[d.getMonth()]
+    const monthFull = monthNames[d.getMonth()]
 
+    // 按占位符长度从长到短替换，避免子串冲突（如 MMM 需先于 MM 处理）
     return format
+      .replace('MMMM', monthFull)
+      .replace('MMM', monthShort)
       .replace('YYYY', year.toString())
       .replace('MM', month.toString().padStart(2, '0'))
       .replace('DD', day.toString().padStart(2, '0'))
+      .replace('D', day.toString())
       .replace('HH', hours.toString().padStart(2, '0'))
       .replace('mm', minutes.toString().padStart(2, '0'))
       .replace('ss', seconds.toString().padStart(2, '0'))

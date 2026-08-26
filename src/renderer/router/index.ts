@@ -30,6 +30,11 @@ const routes: RouteRecordRaw[] = [
         name: "Projects",
         component: ProjectView,
       },
+      {
+        path: "projects/:projectId",
+        name: "Page",
+        component: () => import("../views/PageView.vue"),
+      },
     ],
   },
 ];

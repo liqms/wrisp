@@ -29,6 +29,11 @@ export default {
       COLOR: "Color",
       NONE: "None",
       ROW_INDEX: "Index",
+      CATALOG: "Contents",
+      MORE: "More",
+      MOVE_TO: "Move to",
+      ROOT: "Root",
+      OUTLINE: "Outline",
     },
     PROJECT_TYPE: {
       NOVEL: "Novel",
@@ -74,6 +79,7 @@ export default {
       OFF: "Disable",
       LOAD: "Load",
       OVERWRITE: "Overwrite",
+      NO_MORE_DATA: "No more data",
     },
     WINDOW: {
       MINIMIZE: "Minimize",
@@ -137,6 +143,17 @@ export default {
       PROJECT_NAME_LENGTH_LIMIT:
         "Project name length must be between 1 and 20 characters",
       DEFAULT_COVER_TIP: "Default cover, can be modified in creation settings",
+      NO_PROJECT: "No project found",
+      PROJECT_SETTINGS: "Project Settings",
+      OUTLINE: {
+        EMPTY: "No files yet",
+      },
+    },
+    PAGE: {
+      NO_PAGE_SELECTED: "Select a chapter from the file tree to start writing",
+      NEW_CHAPTER: "New Chapter",
+      CONFIRM_DELETE: "Delete this page? This cannot be undone.",
+      CATALOG_EMPTY: "No catalog yet",
     },
     AGENT: {
       CREATING: "Creating...",
@@ -166,6 +183,8 @@ export default {
     },
   },
   EDITOR: {
+    PLACEHOLDER: "Start typing...",
+    PAGE_TITLE_PLACEHOLDER: "Enter title...",
     SLASH: {
       DATETIME: {
         GROUP_LABEL: "Date and Time",
@@ -181,6 +200,8 @@ export default {
         DATE_PICKER_DESC: "Pick a custom date to insert",
         DATE_PICKER_PLACEHOLDER: "Pick a date",
       },
+      PLACEHOLDER: "Type a command...",
+      EMPTY: "No matching command",
       TEMPLATE: {
         GROUP_LABEL: "Templates",
       },
@@ -189,7 +210,6 @@ export default {
       CUT: "Cut",
       COPY: "Copy",
       PASTE: "Paste",
-      DELETE: "Delete",
       SELECT_ALL: "Select All",
       EDIT: "Edit",
       COPIED: "Copied",
@@ -262,6 +282,8 @@ export default {
       SELECT_LOCALE_DESC: "Change interface language",
       SELECT_LOCALE: "Select Language",
       SELECT_THEME: "Select Theme",
+      JOURNAL_DATE_FORMAT: "Journal Date Format",
+      JOURNAL_DATE_FORMAT_DESC: "Set the display format of date titles on the journal page",
       CHOOSE_FOLDER: "Choose Folder",
       CHOOSE_FOLDER_TITLE:
         "First, you need to choose a folder as your workspace.",
@@ -485,6 +507,7 @@ export default {
       CREATE_FAILED: "Failed to create page",
       UPDATE_FAILED: "Failed to update page",
       DELETE_FAILED: "Failed to delete page",
+      MOVE_FAILED: "Failed to move page",
       QUERY_FAILED: "Failed to query page",
       COUNT_FAILED: "Failed to get page count",
     },
@@ -536,6 +559,6 @@ export default {
     DOWNLOADED: "Update downloaded. Click to install.",
     NO_UPDATE: "You're up to date",
     CHECK_FAILED: "Failed to check for updates. Please retry later.",
-    INSTALLING: "Installing update…",
+    INSTALL_NOW: "Install Now",
   },
 };

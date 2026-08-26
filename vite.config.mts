@@ -23,8 +23,8 @@ function copyRecursive(src: string, dest: string) {
 }
 
 function copySchemas() {
-  const srcPath = path.resolve(__dirname, 'src/main/schemas')
-  const destPath = path.resolve(__dirname, 'dist-electron/schemas')
+  const srcPath = path.resolve(import.meta.dirname, 'src/main/schemas')
+  const destPath = path.resolve(import.meta.dirname, 'dist-electron/schemas')
 
   if (fs.existsSync(srcPath)) {
     if (!fs.existsSync(destPath)) {
@@ -124,7 +124,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(import.meta.dirname, './src')
     }
   },
   server: {

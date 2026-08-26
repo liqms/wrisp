@@ -11,8 +11,11 @@
           }}</n-text>
         </n-flex>
 
-        <n-button type="primary" :loading="checkingUpdate" @click="checkUpdate">
-          {{ t("SETTINGS.ABOUT_SETTINGS.CHECK_UPDATE") }}
+        <n-button type="primary" :loading="checkingUpdate || downloading" :disabled="downloading"
+          @click="handleUpdateButtonClick">
+          <template v-if="downloading">{{ t("UPDATE.DOWNLOADING", { percent: updatePercent }) }}</template>
+          <template v-else-if="installed">{{ t("UPDATE.INSTALL_NOW") }}</template>
+          <template v-else>{{ t("SETTINGS.ABOUT_SETTINGS.CHECK_UPDATE") }}</template>
         </n-button>
       </n-flex>
       <n-divider />
@@ -23,7 +26,8 @@
           }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.SELECT_THEME_DESC") }}</n-text>
         </n-flex>
-        <n-select v-model:value="themeMode" :options="themeOptions" class="setting-select" />
+        <n-select v-model:value="themeMode" :options="themeOptions" class="setting-select"
+          :menu-props="{ class: 'setting-select-menu' }" />
       </n-flex>
       <n-divider />
       <n-flex align="center" class="setting-row">
@@ -33,7 +37,19 @@
           }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.SELECT_LOCALE_DESC") }}</n-text>
         </n-flex>
-        <n-select v-model:value="locale" :options="localeOptions" class="setting-select" />
+        <n-select v-model:value="locale" :options="localeOptions" class="setting-select"
+          :menu-props="{ class: 'setting-select-menu' }" />
+      </n-flex>
+      <n-divider />
+      <n-flex align="center" class="setting-row">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.GENERAL_SETTINGS.JOURNAL_DATE_FORMAT")
+          }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.JOURNAL_DATE_FORMAT_DESC") }}</n-text>
+        </n-flex>
+        <n-select v-model:value="journalDateFormat" :options="dateFormatOptions" class="setting-select"
+          :menu-props="{ class: 'setting-select-menu' }" />
       </n-flex>
       <n-divider />
       <n-flex align="center" class="setting-row">
@@ -44,7 +60,7 @@
           <n-text class="setting-desc">{{ t("SETTINGS.PROFESSION.DESC") }}</n-text>
         </n-flex>
         <n-select :value="profession" :options="professionOptions" class="setting-select"
-          @update:value="onProfessionChange" />
+          :menu-props="{ class: 'setting-select-menu' }" @update:value="onProfessionChange" />
       </n-flex>
       <n-divider />
       <n-flex align="center" class="setting-row">
@@ -132,9 +148,11 @@ const {
   themeColor,
   locale: configLocale,
   profession: configProfession,
+  journalDateFormat: configJournalDateFormat,
   updateThemeMode,
   updateLocale,
   updateThemeColor,
+  updateJournalDateFormat,
   updateWorkspace,
 } = configStore;
 
@@ -172,6 +190,32 @@ watch(locale, async (newLocale) => {
   if (newLocale && newLocale !== configLocale.value) {
     await setLocale(newLocale);
     updateLocale(newLocale);
+  }
+});
+
+const journalDateFormat = ref<string>("YYYY-MM-DD");
+
+const dateFormatOptions = [
+  { label: "YYYY-MM-DD", value: "YYYY-MM-DD" },
+  { label: "YYYY年MM月DD日", value: "YYYY年MM月DD日" },
+  { label: "YYYY/MM/DD", value: "YYYY/MM/DD" },
+  { label: "YYYY.MM.DD", value: "YYYY.MM.DD" },
+  { label: "MM月DD日", value: "MM月DD日" },
+  { label: "MM-DD", value: "MM-DD" },
+  { label: "MM/DD/YYYY", value: "MM/DD/YYYY" },
+  { label: "DD/MM/YYYY", value: "DD/MM/YYYY" },
+  { label: "MMM D, YYYY", value: "MMM D, YYYY" },
+  { label: "D MMM YYYY", value: "D MMM YYYY" },
+];
+
+onMounted(() => {
+  journalDateFormat.value = configJournalDateFormat.value;
+});
+
+watch(journalDateFormat, (newVal) => {
+  if (newVal && newVal !== configJournalDateFormat.value) {
+    logger.debug("更新日志日期格式", { newDateFormat: newVal });
+    updateJournalDateFormat(newVal);
   }
 });
 
@@ -280,6 +324,15 @@ const handleInstall = (): void => {
   window.electronAPI.update.install();
 };
 
+// 更新按钮点击：已下载则触发安装，否则执行检查更新（下载中按钮禁用不可点击）
+const handleUpdateButtonClick = (): void => {
+  if (installed.value) {
+    handleInstall();
+    return;
+  }
+  void checkUpdate();
+};
+
 // 稍后再说：仅关闭弹窗，下次检查时重新提示
 const handleLater = (): void => {
   updateVisible.value = false;
@@ -378,7 +431,10 @@ const selectWorkspace = async () => {
 
 
 .setting-select {
-  width: 150px;
+  width: fit-content;
+  min-width: 100px;
+  max-width: 230px;
+  flex-shrink: 0;
 }
 
 .setting-value {
@@ -390,5 +446,13 @@ const selectWorkspace = async () => {
 .theme-color-space {
   align-items: center;
   justify-content: flex-start;
+}
+</style>
+
+<style lang="scss">
+/* 下拉弹出菜单渲染在 body 下（teleport），需非 scoped 样式；
+   通过 menu-props 传入的类名限定，使菜单宽度自适应最长选项 */
+.setting-select-menu {
+  min-width: max-content;
 }
 </style>

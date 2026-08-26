@@ -1,6 +1,6 @@
 import { computed } from "vue";
 import { usePageStore } from "@/renderer/store/page.store";
-import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
+import type { CreatePageInput, UpdatePageInput, PageQuery, MovePageInput } from "@/shared/types/page.types";
 import type { Page, PageTree } from "@/main/types/db";
 import type { PageType } from "@/shared/enums";
 import { logger } from "@/renderer/utils/logger.utils";
@@ -122,6 +122,22 @@ export function usePage() {
   };
 
   /**
+   * 移动页面
+   */
+  const movePage = async (data: MovePageInput): Promise<boolean> => {
+    try {
+      const success = await store.movePage(data);
+      if (success) {
+        logger.info("移动页面成功", { id: data.id, parentId: data.parentId });
+      }
+      return success;
+    } catch (error) {
+      logger.error("移动页面失败", { error, data });
+      return false;
+    }
+  };
+
+  /**
    * 清空错误状态
    */
   const clearError = () => {
@@ -147,6 +163,7 @@ export function usePage() {
     createPage,
     updatePage,
     deletePage,
+    movePage,
     clearError,
   };
 }

@@ -21,7 +21,7 @@ import type { LogContext } from "@/main/utils/logger";
 import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
 import type { ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail, Page, PageTree } from "@/main/types/db";
 import type { Tag, TagCreate, TagUpdate, TagQuery, TagDetail, TagId } from "@/shared/types";
-import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
+import type { CreatePageInput, UpdatePageInput, MovePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import type { ModelType } from "@/shared/types/model.types";
 import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
@@ -115,6 +115,7 @@ export interface ElectronAPI {
     create(data: ProjectCreate): Promise<ApiResponse<string>>;
     update(id: string, data: ProjectUpdate): Promise<ApiResponse<number>>;
     delete(id: string): Promise<ApiResponse<number>>;
+    setPinned(id: string, isPinned: boolean): Promise<ApiResponse<number>>;
     checkNameExists(
       name: string,
       excludeId?: string,
@@ -134,6 +135,7 @@ export interface ElectronAPI {
     create(data: CreatePageInput): Promise<ApiResponse<string>>;
     update(data: UpdatePageInput): Promise<ApiResponse<number>>;
     delete(id: string): Promise<ApiResponse<number>>;
+    move(data: MovePageInput): Promise<ApiResponse<number>>;
   };
 
   // Model 相关

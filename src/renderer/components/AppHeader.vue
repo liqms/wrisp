@@ -198,5 +198,6 @@ onMounted(async () => {
 
 .control-btn {
   font-size: $font-sm;
+  -webkit-app-region: no-drag;
 }
 </style>

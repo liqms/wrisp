@@ -10,6 +10,7 @@ import {
 } from "@/main/types/db";
 import { PaginationResult } from "@/shared/utils/pagination";
 import { TimeUtil } from "@/shared/utils";
+import { PAGE_TYPE } from "@/shared/enums";
 
 export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
   constructor() {
@@ -65,7 +66,7 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
       LEFT JOIN (
         SELECT project_id, COUNT(*) AS page_count
         FROM pages
-        WHERE status = 'active'
+        WHERE status = 'active' AND page_type = '${PAGE_TYPE.PROJECT_CHAPTER}'
         GROUP BY project_id
       ) pg ON pg.project_id = p.id
       LEFT JOIN tagged_items ti ON p.id = ti.entity_id AND ti.entity_type = 'project'
@@ -111,7 +112,7 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
       LEFT JOIN (
         SELECT project_id, COUNT(*) AS page_count
         FROM pages
-        WHERE status = 'active'
+        WHERE status = 'active' AND page_type = '${PAGE_TYPE.PROJECT_CHAPTER}'
         GROUP BY project_id
       ) pg ON pg.project_id = p.id
       LEFT JOIN tagged_items ti ON p.id = ti.entity_id AND ti.entity_type = 'project'
@@ -188,7 +189,7 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
       LEFT JOIN (
         SELECT project_id, COUNT(*) AS page_count
         FROM pages
-        WHERE status = 'active'
+        WHERE status = 'active' AND page_type = '${PAGE_TYPE.PROJECT_CHAPTER}'
         GROUP BY project_id
       ) pg ON pg.project_id = p.id
       LEFT JOIN tagged_items ti ON p.id = ti.entity_id AND ti.entity_type = 'project'

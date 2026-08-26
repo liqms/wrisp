@@ -228,6 +228,7 @@ CREATE TABLE IF NOT EXISTS projects (
     ai_summary TEXT DEFAULT '',
     structure TEXT DEFAULT '',
     metadata TEXT DEFAULT '{}',
+    is_pinned INTEGER NOT NULL DEFAULT 0,
     CHECK (status IN ('active', 'deleted'))
 );
 
@@ -251,15 +252,14 @@ CREATE TABLE IF NOT EXISTS pages (
     file_path TEXT NOT NULL,
     order_index INTEGER DEFAULT 0,
     parent_page_id TEXT REFERENCES pages(id) ON DELETE CASCADE,
-    is_container INTEGER DEFAULT 0,
     word_count INTEGER DEFAULT 0,
     ai_summary TEXT,
+    page_type TEXT NOT NULL DEFAULT 'project_chapter',
     metadata TEXT DEFAULT '{}',
     status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    CHECK (status IN ('active', 'deleted')),
-    CHECK (is_container IN (0, 1))
+    CHECK (status IN ('active', 'deleted'))
 );
 
 -- ==================== 基础设施表 ====================
@@ -388,7 +388,6 @@ CREATE INDEX IF NOT EXISTS idx_project_chunks_chunk ON  project_chunks(chunk_id)
 CREATE INDEX IF NOT EXISTS idx_pages_project ON pages(project_id);
 CREATE INDEX IF NOT EXISTS idx_pages_order ON pages(project_id, order_index);
 CREATE INDEX IF NOT EXISTS idx_pages_parent ON pages(parent_page_id);
-CREATE INDEX IF NOT EXISTS idx_pages_container ON pages(project_id, is_container, order_index);
 CREATE INDEX IF NOT EXISTS idx_pages_summary ON pages(ai_summary);
 
 -- 迁移表索引

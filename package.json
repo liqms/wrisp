@@ -1,6 +1,6 @@
 {
   "name": "wrisp",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Crisp writing, pure soul.",
   "type": "commonjs",
   "author": "Wrisp Team",
@@ -14,6 +14,7 @@
     "start": "electron .",
     "bump": "node scripts/bump-version.mjs",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "rebuild:node": "cd node_modules/better-sqlite3 && prebuild-install",
     "prod": "vite build && electron-builder",
     "lint": "eslint . --fix",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",

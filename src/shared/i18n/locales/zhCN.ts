@@ -28,6 +28,11 @@ export default {
       COLOR: "颜色",
       NONE: "无",
       ROW_INDEX: "序号",
+      CATALOG: "目录",
+      MORE: "更多",
+      MOVE_TO: "移动到",
+      ROOT: "根目录",
+      OUTLINE: "大纲",
     },
     PROJECT_TYPE: {
       NOVEL: "小说",
@@ -73,6 +78,7 @@ export default {
       OFF: "停用",
       LOAD: "加载",
       OVERWRITE: "覆盖",
+      NO_MORE_DATA: "没有更多数据了",
     },
     WINDOW: {
       MINIMIZE: "最小化",
@@ -135,6 +141,17 @@ export default {
       INPUT_PROJECT_DESCRIPTION: "请输入作品简介",
       PROJECT_NAME_LENGTH_LIMIT: "作品名称长度在 1 到 20 个字符",
       DEFAULT_COVER_TIP: "默认封面，可以在作品设置中修改",
+      NO_PROJECT: "暂无作品",
+      PROJECT_SETTINGS: "作品设置",
+      OUTLINE: {
+        EMPTY: "暂无文件",
+      },
+    },
+    PAGE: {
+      NO_PAGE_SELECTED: "请在左侧文件树中选择章节开始创作",
+      NEW_CHAPTER: "新章节",
+      CONFIRM_DELETE: "确定删除该页面？删除后不可恢复",
+      CATALOG_EMPTY: "暂无目录",
     },
     AGENT: {
       CREATING: "正在创作...",
@@ -164,6 +181,8 @@ export default {
     },
   },
   EDITOR: {
+    PLACEHOLDER: "开始输入...",
+    PAGE_TITLE_PLACEHOLDER: "输入标题...",
     SLASH: {
       DATETIME: {
         GROUP_LABEL: "日期和时间",
@@ -179,6 +198,8 @@ export default {
         DATE_PICKER_DESC: "选择自定义日期插入",
         DATE_PICKER_PLACEHOLDER: "选择日期",
       },
+      PLACEHOLDER: "输入命令...",
+      EMPTY: "没有匹配的命令",
       TEMPLATE: {
         GROUP_LABEL: "模板",
       },
@@ -187,7 +208,6 @@ export default {
       CUT: "剪切",
       COPY: "复制",
       PASTE: "粘贴",
-      DELETE: "删除",
       SELECT_ALL: "全选",
       EDIT: "编辑",
       COPIED: "已复制",
@@ -260,6 +280,8 @@ export default {
       SELECT_LOCALE_DESC: "更改界面语言",
       SELECT_LOCALE: "选择语言",
       SELECT_THEME: "选择主题",
+      JOURNAL_DATE_FORMAT: "日志日期格式",
+      JOURNAL_DATE_FORMAT_DESC: "设置日志页面日期标题行的显示格式",
       CHOOSE_FOLDER: "选择文件夹",
       CHOOSE_FOLDER_TITLE: "首先，你需要选择一个文件夹作为你的工作空间。",
       CHOOSE_FOLDER_DESC:
@@ -477,6 +499,7 @@ export default {
       CREATE_FAILED: "创建页面失败",
       UPDATE_FAILED: "更新页面失败",
       DELETE_FAILED: "删除页面失败",
+      MOVE_FAILED: "移动页面失败",
       QUERY_FAILED: "查询页面失败",
       COUNT_FAILED: "获取页面数量失败",
     },
@@ -528,6 +551,6 @@ export default {
     DOWNLOADED: "更新包已下载，点击安装",
     NO_UPDATE: "当前已是最新版本",
     CHECK_FAILED: "检查更新失败，请稍后重试",
-    INSTALLING: "正在安装更新…",
+    INSTALL_NOW: "立即安装",
   },
 };

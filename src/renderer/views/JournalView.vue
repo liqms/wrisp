@@ -21,19 +21,30 @@ import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 const dialog = useDialog();
-const { recentJournals, loading, getRecentDays, createJournal, clearJournals, checkTodayJournalExists, syncLocalFiles } =
+const { recentJournals, loading, loadingMore, hasMore, getRecentDays, loadMore, createJournal, clearJournals, checkTodayJournalExists, syncLocalFiles } =
   useJournal({ recentDays: 5 });
 const { workspace } = useConfig();
 
 const scrollbarRef = ref<ScrollbarInst | null>(null);
 const scrollTop = ref(0);
+/** 已累计加载的天数，滚动到底部时每次再增加 5 天 */
+const loadedDays = ref(5);
 let prevTotalCount = 0;
 
 function onScroll(e: Event) {
-  const target = e.target as EventTarget;
-  if (target) {
-    scrollTop.value = (target as HTMLElement).scrollTop;
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  scrollTop.value = target.scrollTop;
+  // 滚动到接近底部时自动加载更早的 5 天日志
+  if (target.scrollHeight - target.scrollTop - target.clientHeight < 40) {
+    loadMoreJournals();
   }
+}
+
+async function loadMoreJournals() {
+  if (loading.value || loadingMore.value || !hasMore.value) return;
+  loadedDays.value += 5;
+  await loadMore(loadedDays.value);
 }
 
 async function ensureTodayJournal() {
@@ -75,6 +86,7 @@ async function ensureTodayJournal() {
 }
 
 async function loadData() {
+  loadedDays.value = 5;
   await getRecentDays(5);
   await ensureTodayJournal();
   prevTotalCount = recentJournals.value.length;
@@ -114,10 +126,17 @@ onMounted(async () => {
 @use "@/renderer/styles/_variables" as *;
 
 .journal-view {
+  height: 100%;
+}
+
+/* 滚动容器通栏，滚动条位于页面最右侧；内容居中并限制在 800px */
+.journal-view :deep(.n-scrollbar-content) {
+  width: 100%;
+  min-width: 0;
+  /* 覆盖 naive-ui 的 min-width: 100%，使 max-width 生效 */
   max-width: 800px;
   margin: 0 auto;
   padding: $spacing-xl $spacing-md;
-  height: 100%;
 }
 
 .empty {

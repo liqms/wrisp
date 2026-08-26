@@ -3,13 +3,14 @@
     <!-- 日期标题行 -->
     <n-flex class="date-header" align="center" justify="space-between">
       <n-text class="date-title" depth="secondary">
-        {{ journal.date }}
+        {{ displayDate }}
       </n-text>
     </n-flex>
 
     <!-- 编辑器 -->
-    <TiptapEditor ref="editorRef" v-model:model-value="editContent" :min-height="editorMinHeight" :max-height="500"
-      :slash-command="true" :enable-bubble-menu="false" class="journal-editor" @enter="saveEdit" />
+    <TiptapEditor ref="editorRef" v-model:model-value="editContent" :min-height="editorMinHeight"
+      :max-height="editorMaxHeight" :slash-command="true" :enable-bubble-menu="false" class="journal-editor"
+      @enter="saveEdit" />
 
   </n-flex>
 </template>
@@ -19,6 +20,7 @@ import { ref, computed, watch } from "vue";
 import TiptapEditor from "./TiptapEditor.vue";
 import type { JournalFileInfo } from "@/shared/types";
 import { useJournal } from "@/renderer/composables/useJournal";
+import { useConfig } from "@/renderer/composables/useConfig";
 import { TimeUtil } from "@/shared/utils";
 
 const props = defineProps<{
@@ -31,6 +33,7 @@ const emit = defineEmits<{
 }>();
 
 const { updateJournal, updateContentLocally } = useJournal();
+const { journalDateFormat } = useConfig();
 
 const editContent = ref(props.journal.content);
 const lastSavedContent = ref(props.journal.content);
@@ -39,6 +42,22 @@ const editorRef = ref<InstanceType<typeof TiptapEditor> | null>(null);
 const todayStr = TimeUtil.getLocalDateString();
 const isToday = computed(() => props.journal.date === todayStr);
 const editorMinHeight = computed(() => (isToday.value ? 300 : 200));
+/** 最大高度接近无上限，让日志块随内容自适应伸展，由外层滚动条负责整页滚动 */
+const editorMaxHeight = 10000;
+
+/**
+ * 按配置的日期格式显示日期标题
+ * journal.date 为 YYYY-MM-DD 字符串，拆分为本地时间构造 Date，避免 ISO 字符串按 UTC 解析产生时区偏移
+ */
+const displayDate = computed(() => {
+  const dateStr = props.journal.date || "";
+  const parts = dateStr.split("-").map((p) => Number(p));
+  if (parts.length !== 3 || parts.some((p) => Number.isNaN(p))) {
+    return dateStr;
+  }
+  const date = new Date(parts[0], parts[1] - 1, parts[2]);
+  return TimeUtil.format(date, journalDateFormat.value || "YYYY-MM-DD");
+});
 
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let isSyncingFromProp = false;

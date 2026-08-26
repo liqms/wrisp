@@ -13,6 +13,9 @@ import { handleApiError } from "@/renderer/utils/error.utils";
 export const useJournalStore = defineStore("journal", () => {
   const recentJournals = ref<JournalFileInfo[]>([]);
   const loading = ref(false);
+  const loadingMore = ref(false);
+  /** 是否还有更早的日志可加载 */
+  const hasMore = ref(true);
   const errorCode = ref<ErrorCode | null>(null);
   const errorMessage = ref<string | null>(null);
 
@@ -109,6 +112,40 @@ export const useJournalStore = defineStore("journal", () => {
     }
   };
 
+  /**
+   * 加载更多历史日志：按日期倒序取前 days 条，与已有记录合并去重后追加到列表末尾
+   * @param days 累计加载的总天数
+   * @returns 是否新增了记录
+   */
+  const loadMore = async (days: number): Promise<boolean> => {
+    if (loadingMore.value || !hasMore.value) return false;
+    loadingMore.value = true;
+
+    try {
+      const response = (await window.electronAPI.journal.getRecentDays(
+        days,
+      )) as ApiResponse<JournalFileInfo[]>;
+
+      if (response.success && response.data) {
+        const data = response.data as JournalFileInfo[];
+        const existingIds = new Set(recentJournals.value.map((r) => r.id));
+        const newRecords = data.filter((r) => !existingIds.has(r.id));
+        if (newRecords.length > 0) {
+          recentJournals.value = [...recentJournals.value, ...newRecords];
+          return true;
+        }
+      }
+      // 无新增记录，说明已加载全部
+      hasMore.value = false;
+      return false;
+    } catch {
+      hasMore.value = false;
+      return false;
+    } finally {
+      loadingMore.value = false;
+    }
+  };
+
   const deleteJournal = async (id: Id): Promise<boolean> => {
     loading.value = true;
     errorCode.value = null;
@@ -192,11 +229,14 @@ export const useJournalStore = defineStore("journal", () => {
 
   const clearJournals = () => {
     recentJournals.value = [];
+    hasMore.value = true;
   };
 
   return {
     recentJournals,
     loading,
+    loadingMore,
+    hasMore,
     errorCode,
     errorMessage,
     hasError,
@@ -205,6 +245,7 @@ export const useJournalStore = defineStore("journal", () => {
     updateJournal,
     updateContentLocally,
     getRecentDays,
+    loadMore,
     deleteJournal,
     checkTodayJournalExists,
     syncLocalFiles,

@@ -2,8 +2,8 @@
   <Teleport to="body">
     <div v-if="visible" ref="menuRef" class="slash-menu" :style="menuStyle" @mousedown.prevent>
       <div class="slash-search">
-        <input ref="inputRef" v-model="searchText" type="text" class="slash-input" placeholder="输入命令..."
-          @keydown="onKeydown" />
+        <input ref="inputRef" v-model="searchText" type="text" class="slash-input"
+          :placeholder="t('EDITOR.SLASH.PLACEHOLDER')" @keydown="onKeydown" />
       </div>
       <div class="slash-commands">
         <template v-if="filteredGroups.length > 0">
@@ -24,7 +24,7 @@
             </div>
           </div>
         </template>
-        <div v-else class="slash-empty">没有匹配的命令</div>
+        <div v-else class="slash-empty">{{ t('EDITOR.SLASH.EMPTY') }}</div>
       </div>
     </div>
   </Teleport>

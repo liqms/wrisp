@@ -43,7 +43,7 @@ export function getExtensions(placeholder?: string): Extensions {
       nested: true,
     }),
     Placeholder.configure({
-      placeholder: placeholder || "开始输入...",
+      placeholder: placeholder || "",
     }),
     Markdown,
   ];

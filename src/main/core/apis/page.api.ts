@@ -3,7 +3,7 @@ import { response } from "@/main/utils/response";
 import { ErrorCode, type PageType } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";
 import type { Page, PageTree } from "@/main/types/db";
-import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
+import type { CreatePageInput, UpdatePageInput, PageQuery, MovePageInput } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import { Logger } from "@/main/utils/logger";
 
@@ -95,6 +95,20 @@ async function deletePage(id: string): Promise<ApiResponse<number>> {
   }
 }
 
+async function movePage(data: MovePageInput): Promise<ApiResponse<number>> {
+  try {
+    const changes = pageService.movePage(data);
+    if (changes > 0) {
+      return response.success(changes);
+    } else {
+      return response.error(ErrorCode.PAGE_NOT_FOUND);
+    }
+  } catch (error) {
+    Logger.error("移动页面失败", { error: JSON.stringify(error), data });
+    return response.error(ErrorCode.PAGE_MOVE_FAILED, error as Error);
+  }
+}
+
 export {
   getPage,
   paginatePages,
@@ -102,4 +116,5 @@ export {
   createPage,
   updatePage,
   deletePage,
+  movePage,
 };

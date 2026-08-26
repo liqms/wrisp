@@ -6,10 +6,11 @@ import {
   createPage,
   updatePage,
   deletePage,
+  movePage,
 } from "@/main/core/apis/page.api";
 import type { ApiResponse } from "@/shared/types";
 import type { Page, PageTree } from "@/main/types/db";
-import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
+import type { CreatePageInput, UpdatePageInput, PageQuery, MovePageInput } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import type { PageType } from "@/shared/enums";
 
@@ -65,6 +66,13 @@ export function registerPageHandlers() {
     "page:delete",
     async (_, id: string): Promise<ApiResponse<number>> => {
       return deletePage(id);
+    },
+  );
+
+  ipcMain.handle(
+    "page:move",
+    async (_, data: MovePageInput): Promise<ApiResponse<number>> => {
+      return movePage(data);
     },
   );
 }

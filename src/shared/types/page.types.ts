@@ -23,7 +23,6 @@ export interface PageInfo {
   orderIndex: number;
   wordCount: number;
   summary: Content | null;
-  isContainer: boolean;
   metadata: JsonMetadata;
   status: PageStatus;
   pageType: PageType;
@@ -44,9 +43,16 @@ export interface CreatePageInput {
 /** 修改页面入参 */
 export interface UpdatePageInput {
   id: Id;
+  title?: Name;
   content?: Content;
   status?: PageStatus;
   metadata?: JsonMetadata;
+}
+
+/** 移动页面入参（parentId 为 null 表示移到根） */
+export interface MovePageInput {
+  id: Id;
+  parentId: Id | null;
 }
 
 /** 查询页面入参 */
@@ -61,4 +67,12 @@ export interface PageQuery extends QueryParams {
 /** 页面树节点 */
 export interface PageTreeNode extends PageInfo {
   children?: PageTreeNode[];
+}
+
+/** 目录条目（1-3 级标题） */
+export interface PageCatalogItem {
+  level: 1 | 2 | 3;
+  text: string;
+  /** 在文档中的位置，用于滚动定位 */
+  pos: number;
 }

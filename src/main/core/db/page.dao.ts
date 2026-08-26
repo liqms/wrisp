@@ -53,16 +53,6 @@ export class PageDao extends BaseDao<Page, PageCreate, PageUpdate> {
   }
 
   /**
-   * 查询容器页面或普通页面
-   * @param projectId 项目 ID
-   * @param isContainer 是否容器页面
-   */
-  findByContainerType(projectId: string, isContainer: boolean): Page[] {
-    const sql = `SELECT * FROM ${this.tableName} WHERE project_id = ? AND is_container = ? ORDER BY order_index ASC`
-    return this.query(sql, [projectId, isContainer ? 1 : 0])
-  }
-
-  /**
    * 获取项目页面树
    * @param projectId 项目 ID
    */
@@ -178,10 +168,6 @@ export class PageDao extends BaseDao<Page, PageCreate, PageUpdate> {
         conditionsArray.push('parent_page_id = ?')
         values.push(conditions.parent_page_id)
       }
-    }
-    if (conditions.is_container !== undefined) {
-      conditionsArray.push('is_container = ?')
-      values.push(conditions.is_container ? 1 : 0)
     }
     if (conditions.status !== undefined) {
       conditionsArray.push('status = ?')

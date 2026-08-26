@@ -7,6 +7,8 @@ export const projectModule: ProjectAPI = {
   create: (data) => ipcRenderer.invoke("project:create", data),
   update: (id: string, data) => ipcRenderer.invoke("project:update", id, data),
   delete: (id: string) => ipcRenderer.invoke("project:delete", id),
+  setPinned: (id: string, isPinned: boolean) =>
+    ipcRenderer.invoke("project:setPinned", id, isPinned),
   checkNameExists: (name: string, excludeId?: string) =>
     ipcRenderer.invoke("project:checkNameExists", name, excludeId),
 };
