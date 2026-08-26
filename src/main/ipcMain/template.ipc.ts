@@ -6,6 +6,7 @@ import {
   setEnabled,
 } from "@/main/core/apis/template.api";
 import type { ApiResponse } from "@/shared/types";
+import type { TemplateType } from "@/shared/enums/template.enums";
 import type {
   CustomTemplate,
   TemplateFile,
@@ -14,8 +15,8 @@ import type {
 export function registerTemplateHandlers() {
   ipcMain.handle(
     "template:getFile",
-    async (): Promise<ApiResponse<TemplateFile>> => {
-      return getFile();
+    async (_, type: TemplateType): Promise<ApiResponse<TemplateFile>> => {
+      return getFile(type);
     },
   );
 
@@ -23,16 +24,21 @@ export function registerTemplateHandlers() {
     "template:upsertCustom",
     async (
       _,
+      type: TemplateType,
       tpl: CustomTemplate,
     ): Promise<ApiResponse<TemplateFile>> => {
-      return upsertCustom(tpl);
+      return upsertCustom(type, tpl);
     },
   );
 
   ipcMain.handle(
     "template:deleteCustom",
-    async (_, id: string): Promise<ApiResponse<TemplateFile>> => {
-      return deleteCustom(id);
+    async (
+      _,
+      type: TemplateType,
+      id: string,
+    ): Promise<ApiResponse<TemplateFile>> => {
+      return deleteCustom(type, id);
     },
   );
 
@@ -40,11 +46,12 @@ export function registerTemplateHandlers() {
     "template:setEnabled",
     async (
       _,
+      type: TemplateType,
       id: string,
       builtIn: boolean,
       enabled: boolean,
     ): Promise<ApiResponse<TemplateFile>> => {
-      return setEnabled(id, builtIn, enabled);
+      return setEnabled(type, id, builtIn, enabled);
     },
   );
 }

@@ -39,6 +39,7 @@ import { getCommandGroups, type CommandGroup } from "./commands/registry";
 import type { SlashCommand } from "./commands/types";
 import { useTemplateStore } from "@/renderer/store/template.store";
 import { PROFESSION } from "@/shared/enums/profession.enums";
+import { TEMPLATE_TYPE } from "@/shared/enums/template.enums";
 
 const props = defineProps<{
   visible: boolean;
@@ -55,9 +56,11 @@ const { t } = useI18n();
 const { profession, locale } = useConfig();
 const templateStore = useTemplateStore();
 
-// 打开菜单时确保模板已加载（已加载则跳过）
+// 打开菜单时确保 slash 模板已加载（已加载则跳过）
 onMounted(() => {
-  if (!templateStore.loaded) templateStore.fetch();
+  if (!templateStore.isLoaded(TEMPLATE_TYPE.SLASH)) {
+    templateStore.fetch(TEMPLATE_TYPE.SLASH);
+  }
 });
 
 const menuRef = ref<HTMLDivElement | null>(null);
@@ -70,7 +73,7 @@ const menuStyle = ref<Record<string, string>>({});
 // 命令组 = 通用(日期时间) + 当前职业或通用职业且已启用的模板
 const commandGroups = computed<CommandGroup[]>(() => {
   const items = templateStore
-    .allTemplates(locale.value)
+    .allTemplates(TEMPLATE_TYPE.SLASH, locale.value)
     .filter(
       (item) =>
         item.enabled &&

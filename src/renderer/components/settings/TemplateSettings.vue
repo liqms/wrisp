@@ -40,6 +40,7 @@ import type {
   CustomTemplate,
   TemplateItem,
 } from "@/shared/types/template.types";
+import { TEMPLATE_TYPE } from "@/shared/enums/template.enums";
 import TemplateEditModal from "./TemplateEditModal.vue";
 
 // 设置页通过 SettingsView 统一传入 config（本组件使用 store 读取配置，此处声明以接收该 prop）
@@ -50,8 +51,8 @@ const message = useMessage();
 const { locale } = useConfig();
 const store = useTemplateStore();
 
-// 确保进入设置时已加载模板文件
-if (!store.loaded) store.fetch();
+// 确保进入设置时已加载 slash 模板文件（页面模板 Tab 在 Task 5 加入后按需懒加载）
+if (!store.isLoaded(TEMPLATE_TYPE.SLASH)) store.fetch(TEMPLATE_TYPE.SLASH);
 
 const filterProfession = ref<Profession | "">("");
 
@@ -63,7 +64,7 @@ const professionOptions = (Object.values(PROFESSION) as Profession[]).map(
 );
 
 const allTemplates = computed<TemplateItem[]>(() =>
-  store.allTemplates(locale.value),
+  store.allTemplates(TEMPLATE_TYPE.SLASH, locale.value),
 );
 
 const filteredTemplates = computed<TemplateItem[]>(() => {
@@ -97,20 +98,25 @@ function openEdit(row: TemplateItem) {
 }
 
 async function onSave(tpl: CustomTemplate) {
-  const ok = await store.saveCustom(tpl);
+  const ok = await store.saveCustom(TEMPLATE_TYPE.SLASH, tpl);
   if (ok) message.success(t("SETTINGS.TEMPLATE_SETTINGS.SAVED"));
   else message.error(t("ERROR.TEMPLATE.SAVE_FAILED"));
 }
 
 async function onDelete(row: TemplateItem) {
   // 仅「自定义」职业的模板有删除入口，直接移除自定义模板
-  const ok = await store.removeCustom(row.id);
+  const ok = await store.removeCustom(TEMPLATE_TYPE.SLASH, row.id);
   if (ok) message.success(t("SETTINGS.TEMPLATE_SETTINGS.DELETED"));
   else message.error(t("ERROR.TEMPLATE.DELETE_FAILED"));
 }
 
 async function onToggle(row: TemplateItem, enabled: boolean) {
-  const ok = await store.setEnabled(row.id, row.builtIn, enabled);
+  const ok = await store.setEnabled(
+    TEMPLATE_TYPE.SLASH,
+    row.id,
+    row.builtIn,
+    enabled,
+  );
   if (!ok) message.error(t("ERROR.TEMPLATE.SAVE_FAILED"));
 }
 
