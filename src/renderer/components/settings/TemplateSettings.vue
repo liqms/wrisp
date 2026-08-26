@@ -10,6 +10,13 @@
       </n-button>
     </n-flex>
 
+    <n-tabs v-model:value="activeType" type="line" size="small">
+      <n-tab :name="TEMPLATE_TYPE.SLASH"
+        :tab="t('SETTINGS.TEMPLATE_SETTINGS.TYPE_SLASH')" />
+      <n-tab :name="TEMPLATE_TYPE.PAGE"
+        :tab="t('SETTINGS.TEMPLATE_SETTINGS.TYPE_PAGE')" />
+    </n-tabs>
+
     <n-flex align="center" :size="8">
       <n-button size="small" :type="filterProfession === '' ? 'primary' : 'default'" @click="filterProfession = ''">
         {{ t("SETTINGS.TEMPLATE_SETTINGS.ALL") }}
@@ -28,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h } from "vue";
+import { ref, computed, h, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { NButton, NSwitch, useMessage } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
@@ -40,7 +47,10 @@ import type {
   CustomTemplate,
   TemplateItem,
 } from "@/shared/types/template.types";
-import { TEMPLATE_TYPE } from "@/shared/enums/template.enums";
+import {
+  TEMPLATE_TYPE,
+  type TemplateType,
+} from "@/shared/enums/template.enums";
 import TemplateEditModal from "./TemplateEditModal.vue";
 
 // 设置页通过 SettingsView 统一传入 config（本组件使用 store 读取配置，此处声明以接收该 prop）
@@ -51,8 +61,13 @@ const message = useMessage();
 const { locale } = useConfig();
 const store = useTemplateStore();
 
-// 确保进入设置时已加载 slash 模板文件（页面模板 Tab 在 Task 5 加入后按需懒加载）
-if (!store.isLoaded(TEMPLATE_TYPE.SLASH)) store.fetch(TEMPLATE_TYPE.SLASH);
+// 当前管理的模板类型（slash / page），切换时按需懒加载
+const activeType = ref<TemplateType>(TEMPLATE_TYPE.SLASH);
+
+if (!store.isLoaded(activeType.value)) store.fetch(activeType.value);
+watch(activeType, (type) => {
+  if (!store.isLoaded(type)) store.fetch(type);
+});
 
 const filterProfession = ref<Profession | "">("");
 
@@ -64,7 +79,7 @@ const professionOptions = (Object.values(PROFESSION) as Profession[]).map(
 );
 
 const allTemplates = computed<TemplateItem[]>(() =>
-  store.allTemplates(TEMPLATE_TYPE.SLASH, locale.value),
+  store.allTemplates(activeType.value, locale.value),
 );
 
 const filteredTemplates = computed<TemplateItem[]>(() => {
@@ -98,21 +113,21 @@ function openEdit(row: TemplateItem) {
 }
 
 async function onSave(tpl: CustomTemplate) {
-  const ok = await store.saveCustom(TEMPLATE_TYPE.SLASH, tpl);
+  const ok = await store.saveCustom(activeType.value, tpl);
   if (ok) message.success(t("SETTINGS.TEMPLATE_SETTINGS.SAVED"));
   else message.error(t("ERROR.TEMPLATE.SAVE_FAILED"));
 }
 
 async function onDelete(row: TemplateItem) {
-  // 仅「自定义」职业的模板有删除入口，直接移除自定义模板
-  const ok = await store.removeCustom(TEMPLATE_TYPE.SLASH, row.id);
+  // 仅「自定义」职业的模板有删除入口，直接移除当前类型下的自定义模板
+  const ok = await store.removeCustom(activeType.value, row.id);
   if (ok) message.success(t("SETTINGS.TEMPLATE_SETTINGS.DELETED"));
   else message.error(t("ERROR.TEMPLATE.DELETE_FAILED"));
 }
 
 async function onToggle(row: TemplateItem, enabled: boolean) {
   const ok = await store.setEnabled(
-    TEMPLATE_TYPE.SLASH,
+    activeType.value,
     row.id,
     row.builtIn,
     enabled,
