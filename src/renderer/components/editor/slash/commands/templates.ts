@@ -1,23 +1,10 @@
 import type { CommandGroup, SlashCommand } from "./types";
-import type { Profession } from "@/shared/enums/profession.enums";
-import type { TemplateIconName } from "@/shared/enums/template.enums";
 import type {
-  LocalizedText,
-  SlashTemplateItem,
+  BuiltInTemplateDef,
+  TemplateItem,
 } from "@/shared/types/template.types";
 import { insertMarkdownTemplate } from "./helpers";
 import { resolveTemplateIcon } from "./template-icons";
-
-/** 内置模板的纯数据定义（双语） */
-export interface BuiltInTemplateDef {
-  id: string;
-  profession: Profession;
-  title: LocalizedText;
-  description: LocalizedText;
-  /** 图标键（@vicons/material Filled 变体），见 shared/enums/template.enums.ts */
-  icon: TemplateIconName;
-  markdown: LocalizedText;
-}
 
 /**
  * 内置模板清单。
@@ -453,7 +440,7 @@ export const builtinTemplates: BuiltInTemplateDef[] = [
 /** 由模板条目数组构建 Slash 命令组；空数组返回 null */
 export function buildTemplateGroup(
   t: (key: string) => string,
-  items: SlashTemplateItem[],
+  items: TemplateItem[],
 ): CommandGroup | null {
   if (items.length === 0) return null;
   const commands: SlashCommand[] = items.map((tpl) => ({

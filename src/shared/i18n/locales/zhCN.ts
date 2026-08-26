@@ -2,7 +2,7 @@ export default {
   APP: {
     BASE: {
       NAME: "Wrisp",
-      SLOGAN: "写干净的字，做纯粹的人",
+      SLOGAN: "Crisp writing, pure soul.",
       WELCOME: "欢迎来到",
       WELCOME_DESC:
         "Wrisp 让记录、思考、创造如此简单。记录，无需整理；思考，自动关联；创造，随手调用。",
@@ -152,6 +152,12 @@ export default {
       NEW_CHAPTER: "新章节",
       CONFIRM_DELETE: "确定删除该页面？删除后不可恢复",
       CATALOG_EMPTY: "暂无目录",
+      CREATE_TITLE: "新建页面",
+      PAGE_TITLE: "页面标题",
+      INPUT_PAGE_TITLE: "请输入页面标题",
+      SELECT_TEMPLATE: "选择模板",
+      NO_TEMPLATE: "新建空白文档",
+      NO_TEMPLATE_DESC: "创建空白页面",
     },
     AGENT: {
       CREATING: "正在创作...",
@@ -238,7 +244,7 @@ export default {
     },
     TEMPLATE_SETTINGS: {
       TITLE: "模板",
-      DESC: "管理 Slash 菜单中展示的模板，内置模板支持中英双语",
+      DESC: "管理 Slash 菜单与新建页面使用的模板，内置模板支持中英双语",
       ADD: "新建",
       EDIT: "编辑",
       NAME: "名称",
@@ -247,6 +253,8 @@ export default {
       MARKDOWN: "模板内容",
       PROFESSION: "适用职业",
       TYPE: "类型",
+      TYPE_SLASH: "Slash 模板",
+      TYPE_PAGE: "页面模板",
       BUILT_IN: "内置",
       CUSTOM: "自定义",
       ENABLED: "启用",
@@ -255,6 +263,7 @@ export default {
       SAVE: "保存",
       CANCEL: "取消",
       DELETE: "删除",
+      VIEW: "查看",
       SAVED: "模板已保存",
       DELETED: "模板已删除",
     },

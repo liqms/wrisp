@@ -69,6 +69,12 @@ export const SLASH_TEMPLATES_DIR = "slash" as const;
 /** Slash 模板文件名 */
 export const SLASH_TEMPLATES_FILE = "templates.json" as const;
 
+/** Page 模板子文件夹 */
+export const PAGE_TEMPLATES_DIR = "page" as const;
+
+/** Page 模板文件名 */
+export const PAGE_TEMPLATES_FILE = "templates.json" as const;
+
 /** 章节文件夹 */
 export const CHAPTER_DIR = "chapters" as const;
 

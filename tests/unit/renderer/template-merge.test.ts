@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { LOCALE } from "@/shared/enums/config.enums";
 import { builtinTemplates } from "@/renderer/components/editor/slash/commands/templates";
 import { mergeTemplates } from "@/renderer/components/editor/slash/commands/template-merge";
-import type { SlashTemplateFile } from "@/shared/types/template.types";
+import type { TemplateFile } from "@/shared/types/template.types";
 
-const FILE: SlashTemplateFile = {
+const FILE: TemplateFile = {
   customTemplates: [
     {
       id: "custom_1",

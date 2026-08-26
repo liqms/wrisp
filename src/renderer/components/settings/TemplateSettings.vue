@@ -1,5 +1,5 @@
 <template>
-  <n-flex vertical size="large">
+  <n-flex vertical size="large" class="template-settings">
     <n-flex justify="space-between" align="center">
       <div>
         <div class="title">{{ t("SETTINGS.TEMPLATE_SETTINGS.TITLE") }}</div>
@@ -9,6 +9,13 @@
         {{ t("SETTINGS.TEMPLATE_SETTINGS.ADD") }}
       </n-button>
     </n-flex>
+
+    <n-tabs v-model:value="activeType" type="line" size="small">
+      <n-tab :name="TEMPLATE_TYPE.SLASH"
+        :tab="t('SETTINGS.TEMPLATE_SETTINGS.TYPE_SLASH')" />
+      <n-tab :name="TEMPLATE_TYPE.PAGE"
+        :tab="t('SETTINGS.TEMPLATE_SETTINGS.TYPE_PAGE')" />
+    </n-tabs>
 
     <n-flex align="center" :size="8">
       <n-button size="small" :type="filterProfession === '' ? 'primary' : 'default'" @click="filterProfession = ''">
@@ -21,14 +28,15 @@
     </n-flex>
 
     <n-data-table :columns="columns" :data="filteredTemplates" :bordered="false"
-      :row-key="(row: SlashTemplateItem) => row.id" :max-height="tableMaxHeight" />
+      :row-key="(row: TemplateItem) => row.id" :max-height="tableMaxHeight" />
   </n-flex>
 
   <TemplateEditModal v-model:show="editVisible" :template="editingTemplate" @save="onSave" />
+  <TemplateViewModal v-model:show="viewVisible" :template="viewingTemplate" />
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h } from "vue";
+import { ref, computed, h, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { NButton, NSwitch, useMessage } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
@@ -38,9 +46,14 @@ import { useConfig } from "@/renderer/composables/useConfig";
 import { useTemplateStore } from "@/renderer/store/template.store";
 import type {
   CustomTemplate,
-  SlashTemplateItem,
+  TemplateItem,
 } from "@/shared/types/template.types";
+import {
+  TEMPLATE_TYPE,
+  type TemplateType,
+} from "@/shared/enums/template.enums";
 import TemplateEditModal from "./TemplateEditModal.vue";
+import TemplateViewModal from "./TemplateViewModal.vue";
 
 // 设置页通过 SettingsView 统一传入 config（本组件使用 store 读取配置，此处声明以接收该 prop）
 defineProps<{ config?: AppConfig | null }>();
@@ -50,8 +63,13 @@ const message = useMessage();
 const { locale } = useConfig();
 const store = useTemplateStore();
 
-// 确保进入设置时已加载模板文件
-if (!store.loaded) store.fetch();
+// 当前管理的模板类型（slash / page），切换时按需懒加载
+const activeType = ref<TemplateType>(TEMPLATE_TYPE.SLASH);
+
+if (!store.isLoaded(activeType.value)) store.fetch(activeType.value);
+watch(activeType, (type) => {
+  if (!store.isLoaded(type)) store.fetch(type);
+});
 
 const filterProfession = ref<Profession | "">("");
 
@@ -62,28 +80,38 @@ const professionOptions = (Object.values(PROFESSION) as Profession[]).map(
   }),
 );
 
-const allTemplates = computed<SlashTemplateItem[]>(() =>
-  store.allTemplates(locale.value),
+const allTemplates = computed<TemplateItem[]>(() =>
+  store.allTemplates(activeType.value, locale.value),
 );
 
-const filteredTemplates = computed<SlashTemplateItem[]>(() => {
+const filteredTemplates = computed<TemplateItem[]>(() => {
   const list = allTemplates.value;
   if (!filterProfession.value) return list;
   return list.filter((item) => item.profession === filterProfession.value);
 });
 
-// 仅让表格内部滚动（表头固定），避免整个设置页滚动
-const tableMaxHeight = computed(() => "calc(60vh - 150px)");
+// 仅让表格内部滚动（表头固定），避免整个设置页滚动。
+// 高度需预留头部/Tab/职业筛选行与间距（约 200px），否则内容超出 60vh 触发外层滚动条
+const tableMaxHeight = computed(() => "calc(60vh - 200px)");
 
 const editVisible = ref(false);
 const editingTemplate = ref<CustomTemplate | null>(null);
+
+// 内置模板只读查看弹窗状态
+const viewVisible = ref(false);
+const viewingTemplate = ref<TemplateItem | null>(null);
+
+function onView(row: TemplateItem) {
+  viewingTemplate.value = row;
+  viewVisible.value = true;
+}
 
 function openCreate() {
   editingTemplate.value = null;
   editVisible.value = true;
 }
 
-function openEdit(row: SlashTemplateItem) {
+function openEdit(row: TemplateItem) {
   editingTemplate.value = {
     id: row.id,
     title: row.title,
@@ -97,24 +125,29 @@ function openEdit(row: SlashTemplateItem) {
 }
 
 async function onSave(tpl: CustomTemplate) {
-  const ok = await store.saveCustom(tpl);
+  const ok = await store.saveCustom(activeType.value, tpl);
   if (ok) message.success(t("SETTINGS.TEMPLATE_SETTINGS.SAVED"));
   else message.error(t("ERROR.TEMPLATE.SAVE_FAILED"));
 }
 
-async function onDelete(row: SlashTemplateItem) {
-  // 仅「自定义」职业的模板有删除入口，直接移除自定义模板
-  const ok = await store.removeCustom(row.id);
+async function onDelete(row: TemplateItem) {
+  // 仅「自定义」职业的模板有删除入口，直接移除当前类型下的自定义模板
+  const ok = await store.removeCustom(activeType.value, row.id);
   if (ok) message.success(t("SETTINGS.TEMPLATE_SETTINGS.DELETED"));
   else message.error(t("ERROR.TEMPLATE.DELETE_FAILED"));
 }
 
-async function onToggle(row: SlashTemplateItem, enabled: boolean) {
-  const ok = await store.setEnabled(row.id, row.builtIn, enabled);
+async function onToggle(row: TemplateItem, enabled: boolean) {
+  const ok = await store.setEnabled(
+    activeType.value,
+    row.id,
+    row.builtIn,
+    enabled,
+  );
   if (!ok) message.error(t("ERROR.TEMPLATE.SAVE_FAILED"));
 }
 
-const columns: DataTableColumns<SlashTemplateItem> = [
+const columns: DataTableColumns<TemplateItem> = [
   {
     title: t("SETTINGS.TEMPLATE_SETTINGS.NAME"),
     key: "title",
@@ -168,12 +201,24 @@ const columns: DataTableColumns<SlashTemplateItem> = [
             { default: () => t("SETTINGS.TEMPLATE_SETTINGS.DELETE") },
           ),
         ]
-        : null,
+        : [
+          // 内置模板仅支持查看（只读）
+          h(
+            NButton,
+            { size: "small", quaternary: true, onClick: () => onView(row) },
+            { default: () => t("SETTINGS.TEMPLATE_SETTINGS.VIEW") },
+          ),
+        ],
   },
 ];
 </script>
 
 <style scoped lang="scss">
+/* 避开外层 n-scrollbar 的悬浮滚动条轨道，防止「新建」按钮被遮挡 */
+.template-settings {
+  padding-right: 12px;
+}
+
 .title {
   font-size: 16px;
   font-weight: 600;
@@ -181,7 +226,7 @@ const columns: DataTableColumns<SlashTemplateItem> = [
 
 .desc {
   font-size: 12px;
-  color: var(--text-color-3);
+  color: var(--text-third);
   margin-top: 4px;
 }
 </style>

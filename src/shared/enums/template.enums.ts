@@ -1,4 +1,32 @@
 /**
+ * 模板类型枚举。
+ * slash=斜杠命令模板（编辑器 Slash 菜单插入）；page=页面模板（新建页面时的文档初始内容）。
+ * 模板文件（templates.json）中存的是这里的键名（字符串），按类型分文件存储。
+ */
+export const TEMPLATE_TYPE = {
+  /** 斜杠命令模板：在编辑器 Slash 菜单中选中后插入正文 */
+  SLASH: "slash",
+  /** 页面模板：新建页面时作为文档初始内容 */
+  PAGE: "page",
+} as const;
+
+export type TemplateType = (typeof TEMPLATE_TYPE)[keyof typeof TEMPLATE_TYPE];
+
+/** 全部模板类型（用于遍历/校验） */
+export const TEMPLATE_TYPES: readonly TemplateType[] = [
+  TEMPLATE_TYPE.SLASH,
+  TEMPLATE_TYPE.PAGE,
+];
+
+/** 判断值是否为合法的模板类型 */
+export function isTemplateType(value: unknown): value is TemplateType {
+  return (
+    typeof value === "string" &&
+    (TEMPLATE_TYPES as readonly string[]).includes(value)
+  );
+}
+
+/**
  * 模板图标键枚举。
  * 内置模板与自定义模板共用同一套 @vicons/material（Filled 变体）图标；
  * 模板文件（templates.json）中存的是这里的键名（字符串），

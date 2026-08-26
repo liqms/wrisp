@@ -51,6 +51,8 @@ import {
   NPopconfirm,
   NTooltip,
   NDataTable,
+  NTabs,
+  NTab,
 } from "naive-ui";
 
 // 创建 Naive UI 实例
@@ -108,6 +110,8 @@ const naive = create({
     NPopconfirm,
     NTooltip,
     NDataTable,
+    NTabs,
+    NTab,
   ],
 });
 

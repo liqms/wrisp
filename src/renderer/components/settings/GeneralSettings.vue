@@ -437,12 +437,6 @@ const selectWorkspace = async () => {
   flex-shrink: 0;
 }
 
-.setting-value {
-  margin: 0;
-  color: var(--text-color-2);
-  font-size: $font-sm;
-}
-
 .theme-color-space {
   align-items: center;
   justify-content: flex-start;

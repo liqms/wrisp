@@ -1,7 +1,7 @@
 import type { CommandGroup } from "./types";
 import { buildDateTimeGroup } from "./dateTime.commands";
 import { buildTemplateGroup } from "./templates";
-import type { SlashTemplateItem } from "@/shared/types/template.types";
+import type { TemplateItem } from "@/shared/types/template.types";
 
 export type { SlashCommand, CommandGroup, SlashCommandContext } from "./types";
 
@@ -12,7 +12,7 @@ export type { SlashCommand, CommandGroup, SlashCommandContext } from "./types";
  */
 export function getCommandGroups(
   t: (key: string) => string,
-  templateItems: SlashTemplateItem[],
+  templateItems: TemplateItem[],
 ): CommandGroup[] {
   const groups: CommandGroup[] = [buildDateTimeGroup(t)];
   const templateGroup = buildTemplateGroup(t, templateItems);
