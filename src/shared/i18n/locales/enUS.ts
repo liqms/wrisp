@@ -158,7 +158,7 @@ export default {
       PAGE_TITLE: "Page Title",
       INPUT_PAGE_TITLE: "Please enter a page title",
       SELECT_TEMPLATE: "Template",
-      NO_TEMPLATE: "No Template",
+      NO_TEMPLATE: "New Blank Document",
       NO_TEMPLATE_DESC: "Create a blank page",
     },
     AGENT: {

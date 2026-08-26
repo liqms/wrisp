@@ -2,7 +2,7 @@ export default {
   APP: {
     BASE: {
       NAME: "Wrisp",
-      SLOGAN: "写干净的字，做纯粹的人",
+      SLOGAN: "Crisp writing, pure soul.",
       WELCOME: "欢迎来到",
       WELCOME_DESC:
         "Wrisp 让记录、思考、创造如此简单。记录，无需整理；思考，自动关联；创造，随手调用。",
@@ -156,7 +156,7 @@ export default {
       PAGE_TITLE: "页面标题",
       INPUT_PAGE_TITLE: "请输入页面标题",
       SELECT_TEMPLATE: "选择模板",
-      NO_TEMPLATE: "不使用模板",
+      NO_TEMPLATE: "新建空白文档",
       NO_TEMPLATE_DESC: "创建空白页面",
     },
     AGENT: {

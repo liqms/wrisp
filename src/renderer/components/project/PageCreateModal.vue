@@ -11,7 +11,7 @@
           <button type="button" class="template-item"
             :class="{ 'is-selected': selectedTemplateId === '' }" @click="selectTemplate('')">
             <div class="template-item-icon">
-              <n-icon size="18">
+              <n-icon size="20">
                 <Add />
               </n-icon>
             </div>
@@ -154,20 +154,21 @@ async function handleSubmit() {
 
 <style scoped lang="scss">
 .template-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   width: 100%;
-  max-height: 240px;
+  max-height: 280px;
   overflow-y: auto;
 }
 
 .template-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  text-align: left;
+  gap: 8px;
+  padding: 14px 10px;
+  text-align: center;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background: transparent;
@@ -185,23 +186,23 @@ async function handleSubmit() {
 }
 
 .template-item-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--bg-secondary);
   flex-shrink: 0;
 }
 
 .template-item-svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .template-item-info {
-  flex: 1;
+  width: 100%;
   min-width: 0;
 }
 
@@ -216,6 +217,7 @@ async function handleSubmit() {
   font-size: 12px;
   color: var(--text-color-3);
   line-height: 1.3;
+  margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
