@@ -84,7 +84,7 @@ export function useConfig(options: UseConfigOptions = {}) {
 
   // 日志日期标题显示格式
   const journalDateFormat = computed(
-    () => general.value?.journalDateFormat ?? "YYYY-MM-DD",
+    () => general.value?.journalDateFormat ?? "yyyy-MM-dd",
   );
 
   // 职业（决定 Slash Menu 展示的模板）

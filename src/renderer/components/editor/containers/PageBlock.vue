@@ -16,7 +16,7 @@
 <script setup lang="ts">
 import { ref, watch, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
-import TiptapEditor from "./TiptapEditor.vue";
+import TiptapEditor from "../TiptapEditor.vue";
 import { usePage } from "@/renderer/composables/usePage";
 import type { PageCatalogItem } from "@/shared/types/page.types";
 

@@ -86,3 +86,14 @@ export const PROJECT_ASSETS_DIR = "assets" as const;
 
 /** 作品设定文件夹 */
 export const PROJECT_SETTINGS_DIR = "settings" as const;
+
+// ============ 附件文件夹（工作空间下） ============
+
+/** 附件根文件夹 */
+export const ATTACHMENTS_DIR = "attachments" as const;
+
+/** 附件-图片子文件夹 */
+export const ATTACHMENTS_IMAGES_DIR = "images" as const;
+
+/** 附件-文件子文件夹 */
+export const ATTACHMENTS_FILES_DIR = "files" as const;

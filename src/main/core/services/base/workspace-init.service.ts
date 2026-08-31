@@ -2,7 +2,13 @@ import fs from "fs";
 import path from "path";
 import { Logger } from "@/main/utils/logger";
 import { configService } from "@/main/core/services/config.service";
-import { SQLITE_DIR, MAIN_DB_FILE } from "@/main/constants/";
+import {
+  SQLITE_DIR,
+  MAIN_DB_FILE,
+  ATTACHMENTS_DIR,
+  ATTACHMENTS_IMAGES_DIR,
+  ATTACHMENTS_FILES_DIR,
+} from "@/main/constants/";
 
 /**
  * 工作空间初始化服务
@@ -11,7 +17,7 @@ import { SQLITE_DIR, MAIN_DB_FILE } from "@/main/constants/";
 class WorkspaceInitService {
   private static instance: WorkspaceInitService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): WorkspaceInitService {
     if (!WorkspaceInitService.instance) {
@@ -39,6 +45,15 @@ class WorkspaceInitService {
 
     try {
       fs.mkdirSync(path.join(workspacePath, "sqlite"), { recursive: true });
+      // 附件目录：attachments/images（图片附件）+ attachments/files（普通文件附件）
+      fs.mkdirSync(
+        path.join(workspacePath, ATTACHMENTS_DIR, ATTACHMENTS_IMAGES_DIR),
+        { recursive: true },
+      );
+      fs.mkdirSync(
+        path.join(workspacePath, ATTACHMENTS_DIR, ATTACHMENTS_FILES_DIR),
+        { recursive: true },
+      );
       Logger.info("工作空间已就绪", { workspacePath });
     } catch (error) {
       Logger.error("确保工作空间就绪失败", {

@@ -8,6 +8,7 @@
             <router-view />
             <notification-toast />
             <global-search v-model:visible="shortcut.searchVisible" />
+            <block-edit-host />
           </n-modal-provider>
         </n-dialog-provider>
       </n-notification-provider>
@@ -29,6 +30,7 @@ import {
 } from "naive-ui";
 import NotificationToast from "@/renderer/components/NotificationToast.vue";
 import GlobalSearch from "@/renderer/components/GlobalSearch.vue";
+import BlockEditHost from "@/renderer/components/editor/blocks/components/BlockEditHost.vue";
 import { initI18n } from "@/renderer/plugins/i18n";
 import { useSystem, useConfig, useTheme, useModel } from "@/renderer/composables";
 import { useShortcut } from "@/renderer/composables/useShortcut";

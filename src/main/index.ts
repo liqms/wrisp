@@ -7,6 +7,9 @@ import { windowService } from "@/main/core/services/window.service";
 import { scheduler } from '@/main/core/scheduler'
 import { DIST_RENDERER_DIR } from "@/main/constants";
 
+// 调试：开启远程调试端口（Chrome DevTools Protocol）
+app.commandLine.appendSwitch("remote-debugging-port", "9223");
+
 // 设置控制台编码为 UTF-8（Windows 系统）
 if (process.platform === "win32") {
   process.env.CHCP = "65001";
@@ -35,6 +38,7 @@ import {
   registerTaskHandlers,
   registerUpdateHandlers,
   registerTemplateHandlers,
+  registerAttachmentHandlers,
 } from "@/main/ipcMain";
 import { databaseMigration } from "@/main/core/migration";
 import { setWorkspacePath } from "@/main/core/db/connection";
@@ -45,6 +49,7 @@ import { trayService } from "@/main/core/services/tray.service";
 import { taskQueue, taskExecutor } from "@/main/core/task-queue";
 import { downloadService } from "@/main/core/services/download.service";
 import { setupDownloadListeners } from "@/main/preload/listeners/download";
+import { workspaceInitService } from "@/main/core/services/base/workspace-init.service";
 
 // 使用传统的 Node.js 路径处理方式
 const __dirname = path.dirname(__filename || process.argv[1] || ".");
@@ -140,6 +145,8 @@ function createWindow(): BrowserWindow {
 
 app.whenReady().then(async () => {
   await initializeDatabase();
+  // 幂等补齐工作空间目录结构（sqlite + attachments/images + attachments/files）
+  await workspaceInitService.ensureWorkspace();
   registerProtocolHandler();
   skillManager.initialize();
 
@@ -187,6 +194,7 @@ app.whenReady().then(async () => {
   registerTaskHandlers();
   registerUpdateHandlers();
   registerTemplateHandlers();
+  registerAttachmentHandlers();
 
   // 启动下载事件监听（将 DownloadService 事件桥接到渲染进程）
   setupDownloadListeners();

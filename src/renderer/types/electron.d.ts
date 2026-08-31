@@ -15,6 +15,7 @@ import type {
   LLMStreamChunk,
   CostRecord,
   CostSummary,
+  ImportedImage,
 } from "@/shared/types";
 import type { LOG_LEVEL, PageType } from "@/shared/enums";
 import type { LogContext } from "@/main/utils/logger";
@@ -249,6 +250,12 @@ export interface ElectronAPI {
   // 更新相关
   update: UpdateAPI;
   template: TemplateAPI;
+
+  // 附件相关
+  attachment: {
+    /** 导入图片附件（选择→复制到 attachments/images→返回 app:// URL）；取消时 data 为 null */
+    importImage(): Promise<ApiResponse<ImportedImage | null>>;
+  };
 
   // 通用 IPC 方法（保持向后兼容）
   send: (channel: string, data: unknown) => void;

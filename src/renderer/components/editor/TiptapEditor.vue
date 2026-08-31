@@ -3,6 +3,7 @@
     :style="wrapperStyle" @click="focus" @contextmenu="onContextMenu">
     <EditorContent :editor="editor" class="tiptap-editor markdown-content" />
     <BubbleMenu v-if="editor && enableBubbleMenu" :editor="editor" />
+    <ImageBubbleMenu v-if="editor && enableBubbleMenu" :editor="editor" />
     <SlashMenu v-if="slashCommand && editor" :visible="showSlashMenu" :editor="editor" :start-pos="slashStartPos"
       :query="slashQuery" @close="closeSlashMenu" />
     <ContextMenu :visible="contextVisible" :pos-x="contextX" :pos-y="contextY" :has-selection="contextHasSelection"
@@ -20,8 +21,9 @@ import type { Extensions, EditorOptions } from "@tiptap/core";
 import { marked } from "marked";
 import type { PageCatalogItem } from "@/shared/types/page.types";
 import SlashMenu from "./slash/SlashMenu.vue";
-import BubbleMenu from "./BubbleMenu.vue";
-import ContextMenu from "./ContextMenu.vue";
+import BubbleMenu from "./menus/BubbleMenu.vue";
+import ImageBubbleMenu from "./features/image/ImageBubbleMenu.vue";
+import ContextMenu from "./menus/ContextMenu.vue";
 
 /** Markdown → HTML（异步，marked 返回 Promise<string>） */
 async function mdToHtml(md: string): Promise<string> {

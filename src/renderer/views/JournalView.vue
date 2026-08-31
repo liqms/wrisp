@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { onMounted, ref, nextTick, watch } from "vue";
 import { useDialog, type ScrollbarInst } from "naive-ui";
-import JournalBlock from "@/renderer/components/editor/JournalBlock.vue";
+import JournalBlock from "@/renderer/components/editor/containers/JournalBlock.vue";
 import { useJournal } from "@/renderer/composables/useJournal";
 import { useConfig } from "@/renderer/composables/useConfig";
 import { TimeUtil } from "@/shared/utils";

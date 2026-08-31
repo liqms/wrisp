@@ -49,6 +49,13 @@ export function formatDateTime(d: Date): string {
   return `${formatDate(d)} ${h}:${min}:${s}`;
 }
 
+/** 格式化时间为 HH:mm */
+export function formatTime(d: Date): string {
+  const h = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${h}:${min}`;
+}
+
 /**
  * 将 Markdown 模板转为 HTML 并插入编辑器光标位置。
  * 先删除 /查询词，再插入模板内容。

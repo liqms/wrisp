@@ -15,7 +15,7 @@
               <div class="cmd-icon">
                 <component :is="cmd.icon" v-if="isComponentIcon(cmd.icon)" class="cmd-icon-svg" />
                 <!-- 字符串图标在命令构建时已通过 sanitizeHtml 清洗，此处渲染是安全的 -->
-                <span v-else v-html="cmd.icon"></span>
+                <span v-else class="cmd-icon-text" v-html="cmd.icon"></span>
               </div>
               <div class="cmd-info">
                 <div class="cmd-title">{{ cmd.title }}</div>
@@ -316,6 +316,13 @@ onBeforeUnmount(() => {
   .cmd-icon-svg {
     width: 18px;
     height: 18px;
+  }
+
+  // 文本徽标图标（H1/H2/H3 等）：与 BubbleMenu 块类型面板的 icon-h1 字重一致
+  .cmd-icon-text {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: -apple-system, "Segoe UI", sans-serif;
   }
 
   .cmd-info {

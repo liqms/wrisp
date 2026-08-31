@@ -2,7 +2,7 @@ import type { CommandGroup, SlashCommand } from "./types";
 import type { Editor } from "@tiptap/core";
 import type { Component } from "vue";
 import { TodayFilled, ChevronLeftFilled, ChevronRightFilled, AccessTimeFilled, EventFilled } from "@vicons/material";
-import { deleteSlashText, formatDate, formatDateTime } from "./helpers";
+import { deleteSlashText, formatDate, formatTime } from "./helpers";
 import { pickDate } from "./datePicker";
 
 /** 构建单个日期/时间命令，标题与描述使用 i18n 键翻译 */
@@ -72,7 +72,7 @@ export function buildDateTimeGroup(t: (key: string) => string): CommandGroup {
         "EDITOR.SLASH.DATETIME.CURRENT_TIME_TITLE",
         "EDITOR.SLASH.DATETIME.CURRENT_TIME_DESC",
         AccessTimeFilled,
-        () => formatDateTime(new Date()),
+        () => formatTime(new Date()),
       ),
       dt(
         t,

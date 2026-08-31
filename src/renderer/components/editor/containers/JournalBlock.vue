@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import TiptapEditor from "./TiptapEditor.vue";
+import TiptapEditor from "../TiptapEditor.vue";
 import type { JournalFileInfo } from "@/shared/types";
 import { useJournal } from "@/renderer/composables/useJournal";
 import { useConfig } from "@/renderer/composables/useConfig";
@@ -56,7 +56,7 @@ const displayDate = computed(() => {
     return dateStr;
   }
   const date = new Date(parts[0], parts[1] - 1, parts[2]);
-  return TimeUtil.format(date, journalDateFormat.value || "YYYY-MM-DD");
+  return TimeUtil.format(date, journalDateFormat.value || "yyyy-MM-dd");
 });
 
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;

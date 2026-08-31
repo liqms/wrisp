@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTheme } from '@/renderer/composables/useTheme'
 import { useConfigStore } from '@/renderer/store/config.store'
@@ -61,6 +61,38 @@ describe('useTheme', () => {
     const theme = useTheme()
     expect(theme.naiveThemeOverrides.value.common.primaryColor).toBeDefined()
     expect(typeof theme.naiveThemeOverrides.value.common.primaryColor).toBe('string')
+  })
+
+  it('should apply graphite theme color when config sets themeColor to graphite', async () => {
+    // 模拟用户在设置中选择石墨灰后的配置状态
+    const { THEME_COLOR } = await import('@/shared/enums/config.enums')
+    const graphiteOverrides = (await import('@/shared/enums/themeColor.enums'))
+      .THEME_OVERRIDES.light[THEME_COLOR.GRAPHITE]
+
+    vi.mocked(window.electronAPI.config.get).mockResolvedValue({
+      success: true,
+      data: {
+        general: {
+          themeMode: 'light',
+          themeColor: 'graphite',
+          locale: 'zh-CN',
+        },
+        workspace: '/mock/workspace',
+        currentProjectId: '',
+        version: '1.0.0',
+      },
+      code: 0,
+      timestamp: Date.now(),
+    } as never)
+
+    const store = useConfigStore()
+    await store.fetchConfig()
+
+    const theme = useTheme()
+    expect(theme.themeColor.value).toBe('graphite')
+    expect(theme.naiveThemeOverrides.value.common.primaryColor).toBe(
+      graphiteOverrides.primaryColor,
+    )
   })
 })
 

@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { TimeUtil, time } from '@/shared/utils/time'
 
 describe('TimeUtil', () => {
@@ -16,6 +16,37 @@ describe('TimeUtil', () => {
     it('should handle string input', () => {
       const result = TimeUtil.format('2024-06-15', 'YYYY-MM-DD')
       expect(result).toBe('2024-06-15')
+    })
+
+    it('should support lowercase yyyy/dd tokens', () => {
+      const date = new Date(2026, 7, 28)
+      expect(TimeUtil.format(date, 'yyyy-MM-dd')).toBe('2026-08-28')
+      expect(TimeUtil.format(date, 'yyyyMMdd')).toBe('20260828')
+      expect(TimeUtil.format(date, 'yyyy_MM_dd')).toBe('2026_08_28')
+      expect(TimeUtil.format(date, 'MM_dd_yyyy')).toBe('08_28_2026')
+      expect(TimeUtil.format(date, 'yyyy年MM月dd日')).toBe('2026年08月28日')
+    })
+
+    it('should support weekday tokens E/EEE/EEEE', () => {
+      const friday = new Date(2026, 7, 28) // 2026-08-28 是周五
+      expect(TimeUtil.format(friday, 'E, MM/dd/yyyy')).toBe('Fri, 08/28/2026')
+      expect(TimeUtil.format(friday, 'EEE, dd-MM-yyyy')).toBe('Fri, 28-08-2026')
+      expect(TimeUtil.format(friday, 'EEEE, dd.MM.yyyy')).toBe('Friday, 28.08.2026')
+      expect(TimeUtil.format(friday, 'E, yyyy/MM/dd')).toBe('Fri, 2026/08/28')
+      expect(TimeUtil.format(friday, 'yyyy-MM-dd EEEE')).toBe('2026-08-28 Friday')
+    })
+
+    it('should support ordinal day token do', () => {
+      expect(TimeUtil.format(new Date(2026, 7, 28), 'MMM do, yyyy')).toBe('Aug 28th, 2026')
+      expect(TimeUtil.format(new Date(2026, 7, 21), 'do MMM yyyy')).toBe('21st Aug 2026')
+      expect(TimeUtil.format(new Date(2026, 7, 2), 'do MMMM yyyy')).toBe('2nd August 2026')
+      expect(TimeUtil.format(new Date(2026, 7, 3), 'do MMMM yyyy')).toBe('3rd August 2026')
+      expect(TimeUtil.format(new Date(2026, 7, 11), 'do MMMM yyyy')).toBe('11th August 2026')
+    })
+
+    it('should not corrupt month names containing D (e.g. Dec)', () => {
+      const date = new Date(2024, 11, 25)
+      expect(TimeUtil.format(date, 'MMM D, YYYY')).toBe('Dec 25, 2024')
     })
   })
 

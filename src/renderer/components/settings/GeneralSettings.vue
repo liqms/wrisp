@@ -193,19 +193,35 @@ watch(locale, async (newLocale) => {
   }
 });
 
-const journalDateFormat = ref<string>("YYYY-MM-DD");
+const journalDateFormat = ref<string>("yyyy-MM-dd");
 
 const dateFormatOptions = [
-  { label: "YYYY-MM-DD", value: "YYYY-MM-DD" },
-  { label: "YYYY年MM月DD日", value: "YYYY年MM月DD日" },
-  { label: "YYYY/MM/DD", value: "YYYY/MM/DD" },
-  { label: "YYYY.MM.DD", value: "YYYY.MM.DD" },
-  { label: "MM月DD日", value: "MM月DD日" },
-  { label: "MM-DD", value: "MM-DD" },
-  { label: "MM/DD/YYYY", value: "MM/DD/YYYY" },
-  { label: "DD/MM/YYYY", value: "DD/MM/YYYY" },
-  { label: "MMM D, YYYY", value: "MMM D, YYYY" },
-  { label: "D MMM YYYY", value: "D MMM YYYY" },
+  { label: "E, MM/dd/yyyy", value: "E, MM/dd/yyyy" },
+  { label: "E, dd-MM-yyyy", value: "E, dd-MM-yyyy" },
+  { label: "E, dd.MM.yyyy", value: "E, dd.MM.yyyy" },
+  { label: "E, yyyy/MM/dd", value: "E, yyyy/MM/dd" },
+  { label: "EEE, MM/dd/yyyy", value: "EEE, MM/dd/yyyy" },
+  { label: "EEE, dd-MM-yyyy", value: "EEE, dd-MM-yyyy" },
+  { label: "EEE, dd.MM.yyyy", value: "EEE, dd.MM.yyyy" },
+  { label: "EEE, yyyy/MM/dd", value: "EEE, yyyy/MM/dd" },
+  { label: "EEEE, MM/dd/yyyy", value: "EEEE, MM/dd/yyyy" },
+  { label: "EEEE, dd-MM-yyyy", value: "EEEE, dd-MM-yyyy" },
+  { label: "EEEE, dd.MM.yyyy", value: "EEEE, dd.MM.yyyy" },
+  { label: "EEEE, yyyy/MM/dd", value: "EEEE, yyyy/MM/dd" },
+  { label: "MM-dd-yyyy", value: "MM-dd-yyyy" },
+  { label: "MM/dd/yyyy", value: "MM/dd/yyyy" },
+  { label: "MMM do, yyyy", value: "MMM do, yyyy" },
+  { label: "MMMM do, yyyy", value: "MMMM do, yyyy" },
+  { label: "MM_dd_yyyy", value: "MM_dd_yyyy" },
+  { label: "dd-MM-yyyy", value: "dd-MM-yyyy" },
+  { label: "do MMM yyyy", value: "do MMM yyyy" },
+  { label: "do MMMM yyyy", value: "do MMMM yyyy" },
+  { label: "yyyy-MM-dd", value: "yyyy-MM-dd" },
+  { label: "yyyy-MM-dd EEEE", value: "yyyy-MM-dd EEEE" },
+  { label: "yyyy/MM/dd", value: "yyyy/MM/dd" },
+  { label: "yyyyMMdd", value: "yyyyMMdd" },
+  { label: "yyyy_MM_dd", value: "yyyy_MM_dd" },
+  { label: "yyyy年MM月dd日", value: "yyyy年MM月dd日" },
 ];
 
 onMounted(() => {

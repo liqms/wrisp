@@ -14,7 +14,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     themeColor: THEME_COLOR.GREEN,
     locale: LOCALE.ZH,
     updateChannel: UPDATE_CHANNEL.STABLE,
-    journalDateFormat: "YYYY-MM-DD",
+    journalDateFormat: "yyyy-MM-dd",
   },
   userInfo: {
     nickname: "",

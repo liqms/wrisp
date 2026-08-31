@@ -53,7 +53,7 @@ import { useProject } from "@/renderer/composables/useProject";
 import { usePage } from "@/renderer/composables/usePage";
 import FileTree from "@/renderer/components/project/FileTree.vue";
 import CatalogTree from "@/renderer/components/project/CatalogTree.vue";
-import PageBlock from "@/renderer/components/editor/PageBlock.vue";
+import PageBlock from "@/renderer/components/editor/containers/PageBlock.vue";
 
 const { t } = useI18n();
 const route = useRoute();

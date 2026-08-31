@@ -40,6 +40,7 @@ export const THEME_COLOR = {
   PURPLE: "purple",
   PINK: "pink",
   BROWN: "brown",
+  GRAPHITE: "graphite",
 };
 export type ThemeColor = (typeof THEME_COLOR)[keyof typeof THEME_COLOR];
 

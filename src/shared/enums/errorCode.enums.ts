@@ -144,6 +144,11 @@ export enum ErrorCode {
   UPDATE_CHECK_FAILED = "ERROR.UPDATE.CHECK_FAILED",
   UPDATE_DOWNLOAD_FAILED = "ERROR.UPDATE.DOWNLOAD_FAILED",
   UPDATE_INSTALL_FAILED = "ERROR.UPDATE.INSTALL_FAILED",
+
+  // ============ 附件错误 ============
+  ATTACHMENT_IMPORT_IMAGE_FAILED = "ERROR.ATTACHMENT.IMPORT_IMAGE_FAILED",
+  ATTACHMENT_INVALID_IMAGE_FORMAT = "ERROR.ATTACHMENT.INVALID_IMAGE_FORMAT",
+  ATTACHMENT_FILE_COPY_FAILED = "ERROR.ATTACHMENT.FILE_COPY_FAILED",
 }
 
 /**
@@ -167,6 +172,7 @@ export type ErrorCategory =
   | "AI" // AI 网关错误
   | "UPDATE" // 更新错误
   | "TEMPLATE" // 模板错误
+  | "ATTACHMENT" // 附件错误
   | "UNKNOWN" // 未知分类
   | "SUCCESS"; // 成功分类
 
@@ -213,6 +219,8 @@ export function getErrorCategory(errorCode: ErrorCode): ErrorCategory {
       return "UPDATE";
     case "TEMPLATE":
       return "TEMPLATE";
+    case "ATTACHMENT":
+      return "ATTACHMENT";
     case "AGENT":
       return "AGENT";
     case "SUCCESS":
@@ -245,6 +253,7 @@ export function getErrorCategoryMap(): Record<ErrorCategory, ErrorCode[]> {
     AI: [],
     UPDATE: [],
     TEMPLATE: [],
+    ATTACHMENT: [],
     UNKNOWN: [],
     SUCCESS: [],
   };
