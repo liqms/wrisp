@@ -10,6 +10,9 @@
 /** SQLite 数据库文件夹 */
 export const SQLITE_DIR = "sqlite" as const;
 
+/** 远程资源目录（工作空间下，内置+远程同步的统一存储） */
+export const RESOURCES_DIR = "resources" as const;
+
 /** 主数据库文件名 */
 export const MAIN_DB_FILE = "wrisp.db" as const;
 

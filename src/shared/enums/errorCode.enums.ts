@@ -149,6 +149,11 @@ export enum ErrorCode {
   ATTACHMENT_IMPORT_IMAGE_FAILED = "ERROR.ATTACHMENT.IMPORT_IMAGE_FAILED",
   ATTACHMENT_INVALID_IMAGE_FORMAT = "ERROR.ATTACHMENT.INVALID_IMAGE_FORMAT",
   ATTACHMENT_FILE_COPY_FAILED = "ERROR.ATTACHMENT.FILE_COPY_FAILED",
+
+  // ============ 资源同步错误 ============
+  RESOURCE_SYNC_FAILED = "ERROR.RESOURCE.SYNC_FAILED",
+  RESOURCE_MANIFEST_FETCH_FAILED = "ERROR.RESOURCE.MANIFEST_FETCH_FAILED",
+  RESOURCE_FILE_DOWNLOAD_FAILED = "ERROR.RESOURCE.FILE_DOWNLOAD_FAILED",
 }
 
 /**
@@ -173,6 +178,7 @@ export type ErrorCategory =
   | "UPDATE" // 更新错误
   | "TEMPLATE" // 模板错误
   | "ATTACHMENT" // 附件错误
+  | "RESOURCE" // 资源同步错误
   | "UNKNOWN" // 未知分类
   | "SUCCESS"; // 成功分类
 
@@ -254,6 +260,7 @@ export function getErrorCategoryMap(): Record<ErrorCategory, ErrorCode[]> {
     UPDATE: [],
     TEMPLATE: [],
     ATTACHMENT: [],
+    RESOURCE: [],
     UNKNOWN: [],
     SUCCESS: [],
   };
