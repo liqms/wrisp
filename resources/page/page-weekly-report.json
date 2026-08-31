@@ -1,0 +1,14 @@
+{
+  "id": "page-weekly-report",
+  "version": "1.0.0",
+  "title": { "zh": "项目周报", "en": "Weekly Report" },
+  "description": { "zh": "周进展与风险汇报骨架", "en": "Weekly progress and risk report skeleton" },
+  "icon": "summarize",
+  "markdown": {
+    "zh": "# 项目周报\n\n- 周期：{起始日期} ~ {结束日期}\n- 汇报人：\n\n## 本周进展\n\n| 事项 | 状态 | 说明 |\n| --- | --- | --- |\n|  | 进行中 |  |\n\n## 数据与指标\n\n## 问题与风险\n\n- 风险：\n- 需要的支持：\n\n## 下周计划\n\n- [ ] \n\n## 备注\n",
+    "en": "# Weekly Report\n\n- Period: {start date} ~ {end date}\n- Reporter:\n\n## Progress This Week\n\n| Item | Status | Notes |\n| --- | --- | --- |\n|  | In progress |  |\n\n## Metrics\n\n## Issues & Risks\n\n- Risks:\n- Support needed:\n\n## Plan for Next Week\n\n- [ ] \n\n## Notes\n"
+  },
+  "profession": ["general"],
+  "tags": ["report", "weekly"],
+  "enabled": true
+}

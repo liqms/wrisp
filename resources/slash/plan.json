@@ -1,0 +1,14 @@
+{
+  "id": "plan",
+  "version": "1.0.0",
+  "title": { "zh": "工作计划", "en": "Work Plan" },
+  "description": { "zh": "插入工作计划框架", "en": "Insert work plan skeleton" },
+  "icon": "calendar_month",
+  "markdown": {
+    "zh": "## 工作计划 - {主题}\n- 周期：{起止时间}\n- 目标：\n- 任务：\n  - [ ] {任务1}\n  - [ ] {任务2}\n- 风险与依赖：\n",
+    "en": "## Work Plan - {topic}\n- Period: {start–end}\n- Goals:\n- Tasks:\n  - [ ] {task 1}\n  - [ ] {task 2}\n- Risks & dependencies:\n"
+  },
+  "profession": ["pm"],
+  "tags": ["plan", "work"],
+  "enabled": true
+}

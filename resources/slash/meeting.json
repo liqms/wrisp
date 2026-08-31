@@ -1,0 +1,14 @@
+{
+  "id": "meeting",
+  "version": "1.0.0",
+  "title": { "zh": "会议纪要", "en": "Meeting Notes" },
+  "description": { "zh": "插入会议纪要框架", "en": "Insert meeting notes skeleton" },
+  "icon": "edit_note",
+  "markdown": {
+    "zh": "## 会议纪要 - {标题}\n- 时间：\n- 参会：\n- 决策：\n- 行动项：\n",
+    "en": "## Meeting Notes - {title}\n- Time:\n- Attendees:\n- Decisions:\n- Action items:\n"
+  },
+  "profession": ["pm"],
+  "tags": ["meeting", "notes"],
+  "enabled": true
+}

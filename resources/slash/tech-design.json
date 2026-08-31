@@ -1,0 +1,14 @@
+{
+  "id": "tech-design",
+  "version": "1.0.0",
+  "title": { "zh": "技术方案", "en": "Technical Design" },
+  "description": { "zh": "插入技术方案框架", "en": "Insert technical design skeleton" },
+  "icon": "extension",
+  "markdown": {
+    "zh": "## 技术方案 - {主题}\n- 背景与目标：\n- 方案对比：\n- 选型理由：\n- 架构图：\n- 风险与回滚：\n",
+    "en": "## Technical Design - {topic}\n- Background & goals:\n- Options compared:\n- Decision rationale:\n- Architecture:\n- Risks & rollback:\n"
+  },
+  "profession": ["developer"],
+  "tags": ["tech", "design"],
+  "enabled": true
+}

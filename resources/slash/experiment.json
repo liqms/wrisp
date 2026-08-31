@@ -1,0 +1,14 @@
+{
+  "id": "experiment",
+  "version": "1.0.0",
+  "title": { "zh": "实验记录", "en": "Experiment Log" },
+  "description": { "zh": "插入实验记录框架", "en": "Insert experiment log skeleton" },
+  "icon": "biotech",
+  "markdown": {
+    "zh": "## 实验记录 - {实验名}\n- 假设：\n- 方法：\n- 变量：\n- 结果：\n- 结论：\n",
+    "en": "## Experiment Log - {experiment}\n- Hypothesis:\n- Method:\n- Variables:\n- Results:\n- Conclusion:\n"
+  },
+  "profession": ["researcher"],
+  "tags": ["research", "experiment"],
+  "enabled": true
+}

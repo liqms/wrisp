@@ -1,0 +1,14 @@
+{
+  "id": "review-outline",
+  "version": "1.0.0",
+  "title": { "zh": "复习提纲", "en": "Study Outline" },
+  "description": { "zh": "插入复习提纲框架", "en": "Insert study outline skeleton" },
+  "icon": "library_books",
+  "markdown": {
+    "zh": "## 复习提纲 - {科目}\n- 章节：\n- 重点概念：\n- 公式/定义：\n- 易错点：\n- 自测题：\n",
+    "en": "## Study Outline - {subject}\n- Chapters:\n- Key concepts:\n- Formulas/definitions:\n- Common mistakes:\n- Practice questions:\n"
+  },
+  "profession": ["student"],
+  "tags": ["study", "review"],
+  "enabled": true
+}

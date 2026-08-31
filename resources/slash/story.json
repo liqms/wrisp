@@ -1,0 +1,14 @@
+{
+  "id": "story",
+  "version": "1.0.0",
+  "title": { "zh": "故事梗概", "en": "Story Outline" },
+  "description": { "zh": "插入故事梗概框架", "en": "Insert story outline skeleton" },
+  "icon": "auto_stories",
+  "markdown": {
+    "zh": "## 故事梗概 - {标题}\n- 人物：\n- 设定：\n- 冲突：\n- 情节推进：\n- 结局：\n",
+    "en": "## Story Outline - {title}\n- Characters:\n- Setting:\n- Conflict:\n- Plot progression:\n- Ending:\n"
+  },
+  "profession": ["writer"],
+  "tags": ["writing", "story"],
+  "enabled": true
+}

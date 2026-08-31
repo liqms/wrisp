@@ -1,0 +1,14 @@
+{
+  "id": "page-tech-design",
+  "version": "1.0.0",
+  "title": { "zh": "技术设计文档", "en": "Technical Design Document" },
+  "description": { "zh": "技术方案与接口设计骨架", "en": "Technical solution and API design skeleton" },
+  "icon": "code",
+  "markdown": {
+    "zh": "# 技术设计文档\n\n## 背景与目标\n\n- 需求：\n- 目标：\n\n## 总体方案\n\n- 方案概述：\n- 备选方案对比：\n\n## 详细设计\n\n### 模块划分\n\n### 数据结构\n\n### 接口设计\n\n| 接口 | 方法 | 入参 | 出参 | 说明 |\n| --- | --- | --- | --- | --- |\n|  |  |  |  |  |\n\n### 关键流程\n\n## 异常与兼容\n\n- 异常处理：\n- 兼容性：\n\n## 测试计划\n\n- [ ] 单元测试：\n- [ ] 集成测试：\n\n## 上线计划\n",
+    "en": "# Technical Design Document\n\n## Background & Goals\n\n- Requirement:\n- Goals:\n\n## Overall Solution\n\n- Summary:\n- Alternatives:\n\n## Detailed Design\n\n### Modules\n\n### Data Structures\n\n### API Design\n\n| API | Method | Input | Output | Notes |\n| --- | --- | --- | --- | --- |\n|  |  |  |  |  |\n\n### Key Flows\n\n## Errors & Compatibility\n\n- Error handling:\n- Compatibility:\n\n## Test Plan\n\n- [ ] Unit tests:\n- [ ] Integration tests:\n\n## Release Plan\n"
+  },
+  "profession": ["developer"],
+  "tags": ["document", "tech-design"],
+  "enabled": true
+}

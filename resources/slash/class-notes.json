@@ -1,0 +1,14 @@
+{
+  "id": "class-notes",
+  "version": "1.0.0",
+  "title": { "zh": "课堂笔记", "en": "Class Notes" },
+  "description": { "zh": "插入课堂笔记框架", "en": "Insert class notes skeleton" },
+  "icon": "school",
+  "markdown": {
+    "zh": "## 课堂笔记 - {课程}\n- 日期：\n- 知识点：\n- 例子：\n- 疑问：\n",
+    "en": "## Class Notes - {course}\n- Date:\n- Key points:\n- Examples:\n- Questions:\n"
+  },
+  "profession": ["student"],
+  "tags": ["study", "notes"],
+  "enabled": true
+}
