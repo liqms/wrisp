@@ -11,6 +11,41 @@
           <div class="template-view-desc">{{ template.description }}</div>
         </div>
       </div>
+      <div class="template-view-fields">
+        <div class="field-row">
+          <span class="field-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.META_ID") }}</span>
+          <span class="field-value field-mono">{{ template.id }}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.TYPE") }}</span>
+          <n-tag size="small" :bordered="false" :type="template.builtIn ? 'info' : 'warning'">
+            {{ template.builtIn
+              ? t("SETTINGS.TEMPLATE_SETTINGS.BUILT_IN")
+              : t("SETTINGS.TEMPLATE_SETTINGS.CUSTOM") }}
+          </n-tag>
+        </div>
+        <div class="field-row">
+          <span class="field-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.VERSION") }}</span>
+          <span class="field-value">{{ template.version || "—" }}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.PROFESSION") }}</span>
+          <n-flex :size="4" align="center" class="field-tags">
+            <n-tag v-for="p in template.professions" :key="p" size="small" :bordered="false">
+              {{ t(`SETTINGS.PROFESSION.OPTION_${p.toUpperCase()}`) }}
+            </n-tag>
+          </n-flex>
+        </div>
+        <div v-if="template.tags.length > 0" class="field-row">
+          <span class="field-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.META_TAGS") }}</span>
+          <n-flex :size="4" align="center" class="field-tags">
+            <n-tag v-for="tag in template.tags" :key="tag" size="small" :bordered="false"
+              type="primary">
+              {{ tag }}
+            </n-tag>
+          </n-flex>
+        </div>
+      </div>
       <n-input :value="template.markdown" type="textarea" :rows="12" readonly />
     </div>
     <template #footer>
@@ -87,5 +122,43 @@ const show = computed({
   color: var(--text-third);
   line-height: 1.3;
   margin-top: 2px;
+}
+
+.template-view-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.field-label {
+  flex-shrink: 0;
+  width: 56px;
+  color: var(--text-third);
+}
+
+.field-value {
+  color: var(--text-color);
+  min-width: 0;
+  word-break: break-all;
+}
+
+.field-mono {
+  font-family: var(--font-mono, monospace);
+}
+
+.field-tags {
+  min-width: 0;
 }
 </style>

@@ -146,14 +146,18 @@ function hideHandleOnScroll(): void {
   block.editor.view.dispatch(block.editor.state.tr.setMeta("hideDragHandle", true));
 }
 
-/** 手柄与块左缘的水平间距（px） */
-const HANDLE_GAP = 12;
-
 /**
  * 接管官方扩展的手柄定位：官方 computePosition 以 absolute 策略计算，
  * 但本项目 Naive UI 滚动布局下手柄 wrapper 的 offsetParent 参照链错乱，
  * 实测手柄会偏移一个滚动量。这里改用 fixed 视口坐标直接对齐块：
- * 顶边与块顶对齐、右缘与块左缘保持 {@link HANDLE_GAP} 间距。
+ * 顶边与块顶对齐、右缘（含 .drag-handle 的 padding-right 透明桥接区）紧贴块左缘。
+ *
+ * 间距由 .drag-handle 的 padding-right（12px）实现而非在此处留间隙：
+ * 早期版本用 `rect.left - offsetWidth - 12` 留间隙，间隙下方是官方扩展 wrapper
+ * （pointer-events: none），鼠标从块移到手柄时 mouseleave 的 relatedTarget
+ * 穿透 wrapper 指向 parentElement，官方判定 !wrapper.contains(relatedTarget)
+ * 为 true 直接隐藏手柄，手柄无法选中。改为 padding-right 后，element 可命中区
+ * 与块左缘连续相接，relatedTarget 恒为 element（wrapper 的 DOM 子节点），不触发隐藏。
  */
 function takeoverPosition(element: HTMLElement): void {
   const block = hoveredBlock;
@@ -162,7 +166,8 @@ function takeoverPosition(element: HTMLElement): void {
   if (!dom || dom.nodeType !== 1) return;
   const rect = (dom as HTMLElement).getBoundingClientRect();
   element.style.position = "fixed";
-  element.style.left = `${Math.round(rect.left - element.offsetWidth - HANDLE_GAP)}px`;
+  // element.offsetWidth 含 padding-right（透明桥接区），右缘紧贴块左缘
+  element.style.left = `${Math.round(rect.left - element.offsetWidth)}px`;
   element.style.top = `${Math.round(rect.top)}px`;
 }
 

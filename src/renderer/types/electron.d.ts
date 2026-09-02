@@ -25,9 +25,11 @@ import type { Tag, TagCreate, TagUpdate, TagQuery, TagDetail, TagId } from "@/sh
 import type { CreatePageInput, UpdatePageInput, MovePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import type { ModelType } from "@/shared/types/model.types";
-import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
+import type { SkillListItem, CategoryNode, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
 import type { Concept, ConceptWithBlocks, Topic, TopicWithConceptsAndBlocks, Reflection, ReflectionWithBlocks, TemporalEventWithBlock } from "@/main/types/db";
 import type { UpdateAPI } from "@/main/preload/types/update";
+import type { TemplateAPI } from "@/main/preload/types/template";
+import type { ResourceAPI } from "@/main/preload/types/resource";
 
 // 定义 IPC API 接口类型（与 preload.ts 保持一致）
 export interface ElectronAPI {
@@ -196,8 +198,6 @@ export interface ElectronAPI {
     updateCustomSkill(id: string, definition: Record<string, unknown>): Promise<ApiResponse<void>>;
     deleteCustomSkill(id: string): Promise<ApiResponse<void>>;
     setSkillEnabled(id: string, enabled: boolean): Promise<ApiResponse<void>>;
-    checkSkillUpdates(): Promise<ApiResponse<SkillUpdateItem[]>>;
-    applySkillUpdates(): Promise<ApiResponse<void>>;
     getSkillExecutions(skillId?: string, limit?: number): Promise<ApiResponse<SkillExecutionRecord[]>>;
     getSkillExecutionStats(skillId?: string): Promise<ApiResponse<{ total: number; succeeded: number; failed: number; avgTimeMs: number }>>;
   };
@@ -250,6 +250,9 @@ export interface ElectronAPI {
   // 更新相关
   update: UpdateAPI;
   template: TemplateAPI;
+
+  // 资源同步
+  resource: ResourceAPI;
 
   // 附件相关
   attachment: {

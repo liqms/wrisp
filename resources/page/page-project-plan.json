@@ -1,14 +1,32 @@
 {
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
   "id": "page-project-plan",
   "version": "1.0.0",
-  "title": { "zh": "项目计划书", "en": "Project Plan" },
-  "description": { "zh": "项目目标、里程碑与分工骨架", "en": "Project goals, milestones and staffing skeleton" },
+  "title": {
+    "zh": "项目计划书",
+    "en": "Project Plan"
+  },
+  "description": {
+    "zh": "项目目标、里程碑与分工骨架",
+    "en": "Project goals, milestones and staffing skeleton"
+  },
   "icon": "task_alt",
   "markdown": {
     "zh": "# 项目计划书\n\n## 项目概述\n\n- 项目名称：\n- 项目目标：\n- 关键成功指标：\n\n## 范围\n\n- 包含：\n- 不包含：\n\n## 里程碑计划\n\n| 里程碑 | 交付物 | 截止日期 | 负责人 |\n| --- | --- | --- | --- |\n| M1 |  |  |  |\n\n## 资源与分工\n\n| 成员 | 职责 |\n| --- | --- |\n|  |  |\n\n## 风险与应对\n\n| 风险 | 影响 | 应对措施 |\n| --- | --- | --- |\n|  |  |  |\n\n## 沟通机制\n\n- 周会：\n- 文档：\n",
     "en": "# Project Plan\n\n## Overview\n\n- Project name:\n- Goals:\n- Key success metrics:\n\n## Scope\n\n- In scope:\n- Out of scope:\n\n## Milestones\n\n| Milestone | Deliverable | Due Date | Owner |\n| --- | --- | --- | --- |\n| M1 |  |  |  |\n\n## Team & Responsibilities\n\n| Member | Responsibility |\n| --- | --- |\n|  |  |\n\n## Risks & Mitigation\n\n| Risk | Impact | Mitigation |\n| --- | --- | --- |\n|  |  |  |\n\n## Communication\n\n- Weekly meeting:\n- Documentation:\n"
   },
-  "profession": ["pm"],
-  "tags": ["plan", "project"],
+  "profession": [
+    "pm"
+  ],
+  "tags": [
+    {
+      "zh": "计划",
+      "en": "plan"
+    },
+    {
+      "zh": "项目",
+      "en": "project"
+    }
+  ],
   "enabled": true
 }

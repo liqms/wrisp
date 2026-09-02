@@ -19,6 +19,7 @@ import { searchModule } from "./search";
 import { updateModule } from "./update";
 import { templateModule } from "./template";
 import { attachmentModule } from "./attachment";
+import { resourceModule } from "./resource";
 
 export const modules = {
   config: configModule,
@@ -42,4 +43,5 @@ export const modules = {
   update: updateModule,
   template: templateModule,
   attachment: attachmentModule,
+  resource: resourceModule,
 };

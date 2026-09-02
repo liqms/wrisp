@@ -178,7 +178,7 @@ function setAlign(val: "left" | "center" | "right" | null) {
 function editCaption() {
   const ed = props.editor;
   const info = getTargetImage(ed);
-  // eslint-disable-next-line no-console
+   
   console.log("[img-debug] editCaption 触发:", {
     hasEditor: !!ed,
     targetPos: info?.pos ?? null,

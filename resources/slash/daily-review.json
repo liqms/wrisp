@@ -1,14 +1,32 @@
 {
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
   "id": "daily-review",
   "version": "1.0.0",
-  "title": { "zh": "每日回顾", "en": "Daily Review" },
-  "description": { "zh": "插入每日回顾框架", "en": "Insert daily review skeleton" },
+  "title": {
+    "zh": "每日回顾",
+    "en": "Daily Review"
+  },
+  "description": {
+    "zh": "插入每日回顾框架",
+    "en": "Insert daily review skeleton"
+  },
   "icon": "wb_sunny",
   "markdown": {
     "zh": "## 每日回顾 - {日期}\n- 今日完成：\n- 遇到的问题：\n- 明日计划：\n",
     "en": "## Daily Review - {date}\n- Done today:\n- Blockers:\n- Plan for tomorrow:\n"
   },
-  "profession": ["general"],
-  "tags": ["review", "daily"],
+  "profession": [
+    "general"
+  ],
+  "tags": [
+    {
+      "zh": "复盘",
+      "en": "review"
+    },
+    {
+      "zh": "日常",
+      "en": "daily"
+    }
+  ],
   "enabled": true
 }

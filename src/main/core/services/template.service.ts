@@ -7,12 +7,15 @@ import {
   SLASH_TEMPLATES_FILE,
   PAGE_TEMPLATES_DIR,
   PAGE_TEMPLATES_FILE,
+  RESOURCES_DIR,
 } from "@/main/constants/folder.constants";
 import type {
   CustomTemplate,
   TemplateFile,
+  TemplateResourceFile,
 } from "@/shared/types/template.types";
 import type { TemplateType } from "@/shared/enums/template.enums";
+import type { Profession } from "@/shared/enums/profession.enums";
 import { PROFESSION } from "@/shared/enums";
 import {
   DEFAULT_TEMPLATE_ICON,
@@ -21,6 +24,7 @@ import {
   TEMPLATE_TYPE,
 } from "@/shared/enums/template.enums";
 import { Logger } from "@/main/utils/logger";
+import { templateSchemaValidator } from "./template.schema.validator";
 
 const DEFAULT_FILE: TemplateFile = {
   customTemplates: [],
@@ -96,6 +100,62 @@ class TemplateService {
       });
       return { ...DEFAULT_FILE };
     }
+  }
+
+  /**
+   * 加载内置模板（从工作区 resources/{type}/ 目录扫描）。
+   * 文件缺失或损坏时返回空数组。
+   */
+  public getBuiltInTemplates(type: TemplateType): TemplateResourceFile[] {
+    this.assertValidType(type);
+    const dir = type === TEMPLATE_TYPE.SLASH ? SLASH_TEMPLATES_DIR : PAGE_TEMPLATES_DIR;
+    const resourcesDir = path.join(this.getWorkspacePath(), RESOURCES_DIR, dir);
+    if (!fs.existsSync(resourcesDir)) return [];
+
+    let files: string[];
+    try {
+      files = fs.readdirSync(resourcesDir).filter((f) => f.endsWith(".json"));
+    } catch (err) {
+      Logger.warn("读取内置模板目录失败", { dir: resourcesDir, error: String(err) });
+      return [];
+    }
+
+    const result: TemplateResourceFile[] = [];
+    for (const file of files) {
+      try {
+        const data = JSON.parse(
+          fs.readFileSync(path.join(resourcesDir, file), "utf-8"),
+        ) as Partial<TemplateResourceFile>;
+        if (!data.id || typeof data.id !== "string") continue;
+        const tpl: TemplateResourceFile = {
+          id: data.id,
+          version: typeof data.version === "string" ? data.version : "0.0.0",
+          title: data.title ?? { zh: data.id, en: data.id },
+          description: data.description ?? { zh: "", en: "" },
+          icon: isTemplateIconName(data.icon) ? data.icon : DEFAULT_TEMPLATE_ICON,
+          markdown: data.markdown ?? { zh: "", en: "" },
+          profession: Array.isArray(data.profession)
+            ? data.profession.filter(
+                (p): p is Profession => typeof p === "string" && p !== PROFESSION.CUSTOM,
+              )
+            : [PROFESSION.GENERAL],
+          tags: Array.isArray(data.tags) ? data.tags : [],
+          enabled: data.enabled !== false,
+        };
+        // schema 校验失败的文件跳过加载（与 skill 加载行为一致），避免坏数据进入模板列表
+        if (!templateSchemaValidator.validate(tpl)) {
+          Logger.warn("内置模板文件 schema 校验失败，已跳过", {
+            file,
+            errors: templateSchemaValidator.getErrors(),
+          });
+          continue;
+        }
+        result.push(tpl);
+      } catch (err) {
+        Logger.warn("解析内置模板文件失败", { file, error: String(err) });
+      }
+    }
+    return result;
   }
 
   /** 写入指定类型的模板文件 */

@@ -48,7 +48,31 @@ export interface TemplateItem {
   icon: string;
   markdown: string;
   profession: Profession;
+  /** 适用职业完整列表（内置模板可为多职业；自定义模板为单元素数组） */
+  professions: Profession[];
+  /** 版本号（内置模板来自资源文件；自定义模板为空字符串，展示时显示占位符） */
+  version: string;
+  /** 类型标签（内置模板来自资源文件；自定义模板为空数组） */
+  tags: string[];
   /** true=内置模板，false=自定义模板 */
   builtIn: boolean;
+  enabled: boolean;
+}
+
+/**
+ * 单个 slash/page 模板资源文件（resources/{slash|page}/{id}.json）。
+ * 内置模板从工作区 resources/ 加载，与远程同步统一存储。
+ * profession 为数组（支持多职业），含 version/tags/enabled 字段。
+ */
+export interface TemplateResourceFile {
+  id: string;
+  version: string;
+  title: LocalizedText;
+  description: LocalizedText;
+  icon: TemplateIconName;
+  markdown: LocalizedText;
+  profession: Profession[];
+  /** 类型标签（双语，渲染层按当前语言解析） */
+  tags: LocalizedText[];
   enabled: boolean;
 }

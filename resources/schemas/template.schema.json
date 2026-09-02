@@ -1,0 +1,148 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
+  "title": "Template",
+  "description": "Wrisp 内置模板定义规范（slash/page 通用）",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "title",
+    "description",
+    "icon",
+    "markdown",
+    "profession",
+    "tags",
+    "enabled"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "description": "Schema 引用地址（编辑器智能提示用）"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "模板唯一标识（小写字母开头，允许数字/下划线/连字符）"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "语义化版本号"
+    },
+    "title": {
+      "$ref": "#/definitions/LocalizedText",
+      "description": "模板名称（双语）"
+    },
+    "description": {
+      "$ref": "#/definitions/LocalizedText",
+      "description": "模板描述（双语）"
+    },
+    "icon": {
+      "enum": [
+        "check_circle",
+        "wb_sunny",
+        "tips_and_updates",
+        "push_pin",
+        "forum",
+        "manage_search",
+        "insights",
+        "edit_note",
+        "calendar_month",
+        "extension",
+        "edit",
+        "auto_stories",
+        "lightbulb",
+        "school",
+        "library_books",
+        "menu_book",
+        "science",
+        "biotech",
+        "description",
+        "notes",
+        "task_alt",
+        "event_note",
+        "sticky_note",
+        "summarize",
+        "psychology",
+        "auto_awesome",
+        "rocket_launch",
+        "code",
+        "star",
+        "flag",
+        "bookmark",
+        "folder",
+        "fact_check",
+        "assignment",
+        "question_answer",
+        "format_list_bulleted",
+        "rule",
+        "bolt",
+        "verified",
+        "account_balance",
+        "text_snippet",
+        "note_alt",
+        "event",
+        "draw",
+        "history",
+        "favorite"
+      ],
+      "description": "图标键名（@vicons/material Filled 变体，渲染层解析）"
+    },
+    "markdown": {
+      "$ref": "#/definitions/LocalizedText",
+      "description": "模板正文（Markdown，双语）"
+    },
+    "profession": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "general",
+          "pm",
+          "student",
+          "writer",
+          "researcher",
+          "developer"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "description": "适用职业（内置模板不使用 custom）"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LocalizedText"
+      },
+      "maxItems": 16,
+      "description": "类型标签（双语）"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "默认启用状态"
+    }
+  },
+  "definitions": {
+    "LocalizedText": {
+      "type": "object",
+      "required": ["zh", "en"],
+      "properties": {
+        "zh": {
+          "type": "string",
+          "minLength": 1
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "description": "双语文本：zh 为简体中文，en 为英文"
+    }
+  }
+}

@@ -1,14 +1,32 @@
 {
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
   "id": "competitor",
   "version": "1.0.0",
-  "title": { "zh": "竞品观察", "en": "Competitor Observation" },
-  "description": { "zh": "插入竞品观察框架", "en": "Insert competitor observation skeleton" },
+  "title": {
+    "zh": "竞品观察",
+    "en": "Competitor Observation"
+  },
+  "description": {
+    "zh": "插入竞品观察框架",
+    "en": "Insert competitor observation skeleton"
+  },
   "icon": "manage_search",
   "markdown": {
     "zh": "## 竞品观察 - {竞品名}\n- 动态：\n- 影响：\n",
     "en": "## Competitor Observation - {product}\n- Update:\n- Impact:\n"
   },
-  "profession": ["pm"],
-  "tags": ["research", "competitor"],
+  "profession": [
+    "pm"
+  ],
+  "tags": [
+    {
+      "zh": "调研",
+      "en": "research"
+    },
+    {
+      "zh": "竞品",
+      "en": "competitor"
+    }
+  ],
   "enabled": true
 }

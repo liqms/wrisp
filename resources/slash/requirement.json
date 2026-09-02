@@ -1,14 +1,32 @@
 {
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
   "id": "requirement",
   "version": "1.0.0",
-  "title": { "zh": "用户需求", "en": "User Requirement" },
-  "description": { "zh": "插入用户需求框架", "en": "Insert user requirement skeleton" },
+  "title": {
+    "zh": "用户需求",
+    "en": "User Requirement"
+  },
+  "description": {
+    "zh": "插入用户需求框架",
+    "en": "Insert user requirement skeleton"
+  },
   "icon": "push_pin",
   "markdown": {
     "zh": "- 需求：\n- 用户故事：作为一名{角色}，我希望{功能}，以便{价值}\n- 优先级：P0/P1/P2\n",
     "en": "- Requirement:\n- User story: As a {role}, I want {feature}, so that {value}\n- Priority: P0/P1/P2\n"
   },
-  "profession": ["pm"],
-  "tags": ["requirement", "pm"],
+  "profession": [
+    "pm"
+  ],
+  "tags": [
+    {
+      "zh": "需求",
+      "en": "requirement"
+    },
+    {
+      "zh": "产品",
+      "en": "pm"
+    }
+  ],
   "enabled": true
 }

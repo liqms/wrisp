@@ -1,25 +1,62 @@
 {
-  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/skill.schema.json",
   "id": "grammar",
-  "name": "语法修正",
-  "description": "检查并修正文本中的语法、标点、用词和句式错误，确保文本规范正确",
+  "name": {
+    "zh": "语法修正",
+    "en": "Grammar Check"
+  },
+  "description": {
+    "zh": "检查并修正文本中的语法、标点、用词和句式错误，确保文本规范正确",
+    "en": "Detect and correct grammar, punctuation, word choice, and sentence structure errors to ensure the text is correct and well-formed"
+  },
   "icon": "📝",
   "version": "1.0.0",
   "author": "Wrisp Team",
-  "category": ["editing", "polish"],
-  "tags": ["grammar", "correction", "proofread", "spelling"],
+  "category": [
+    "editing",
+    "polish"
+  ],
+  "tags": [
+    {
+      "zh": "语法",
+      "en": "grammar"
+    },
+    {
+      "zh": "修正",
+      "en": "correction"
+    },
+    {
+      "zh": "校对",
+      "en": "proofread"
+    },
+    {
+      "zh": "拼写",
+      "en": "spelling"
+    }
+  ],
   "enabled": true,
-  "promptTemplate": "请检查并修正以下文本中的语法、标点、用词和句式错误：\n\n{{text}}\n\n要求：\n1. 只输出修正后的结果，不要添加任何解释\n2. 保持原文的风格和语气不变\n3. 如果原文没有错误，请原样输出",
-  "systemPrompt": "你是一个专业的文本校对助手，擅长发现和修正中文语法、标点、用词和句式错误。",
+  "promptTemplate": {
+    "zh": "请检查并修正以下文本中的语法、标点、用词和句式错误：\n\n{{text}}\n\n要求：\n1. 只输出修正后的结果，不要添加任何解释\n2. 保持原文的风格和语气不变\n3. 如果原文没有错误，请原样输出",
+    "en": "Please check and correct any grammar, punctuation, word choice, and sentence structure errors in the following text:\n\n{{text}}\n\nRequirements:\n1. Output only the corrected result, without any explanation\n2. Keep the original style and tone unchanged\n3. If the original text has no errors, output it as is"
+  },
+  "systemPrompt": {
+    "zh": "你是一个专业的文本校对助手，擅长发现和修正中文语法、标点、用词和句式错误。",
+    "en": "You are a professional proofreading assistant skilled at detecting and correcting grammar, punctuation, word choice, and sentence structure errors."
+  },
   "input": {
     "type": "object",
     "properties": {
       "text": {
         "type": "string",
-        "description": "需要修正语法的文本"
+        "description": {
+          "zh": "需要修正语法的文本",
+          "en": "The text to correct"
+        }
       }
     },
-    "required": ["text"]
+    "required": [
+      "text"
+    ]
   },
   "output": {
     "type": "text"
@@ -30,9 +67,17 @@
     }
   ],
   "example": {
-    "input": {
-      "text": "他很快的跑到了学校，但是已经迟到了。"
+    "zh": {
+      "input": {
+        "text": "他很快的跑到了学校，但是已经迟到了。"
+      },
+      "output": "他很快地跑到了学校，但是已经迟到了。"
     },
-    "output": "他很快地跑到了学校，但是已经迟到了。"
+    "en": {
+      "input": {
+        "text": "He runned to the school very quick, but he was already late."
+      },
+      "output": "He ran to school very quickly, but he was already late."
+    }
   }
 }

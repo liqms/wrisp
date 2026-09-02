@@ -3,6 +3,7 @@ import type { TemplateAPI } from "../types/template";
 
 export const templateModule: TemplateAPI = {
   getFile: (type) => ipcRenderer.invoke("template:getFile", type),
+  getBuiltIn: (type) => ipcRenderer.invoke("template:getBuiltIn", type),
   upsertCustom: (type, tpl) =>
     ipcRenderer.invoke("template:upsertCustom", type, tpl),
   deleteCustom: (type, id) =>

@@ -50,6 +50,7 @@ import { taskQueue, taskExecutor } from "@/main/core/task-queue";
 import { downloadService } from "@/main/core/services/download.service";
 import { setupDownloadListeners } from "@/main/preload/listeners/download";
 import { workspaceInitService } from "@/main/core/services/base/workspace-init.service";
+import { resourceSyncService } from "@/main/core/services/resource-sync.service";
 
 // 使用传统的 Node.js 路径处理方式
 const __dirname = path.dirname(__filename || process.argv[1] || ".");
@@ -222,6 +223,11 @@ app.whenReady().then(async () => {
   } catch (error) {
     Logger.error("向量数据库服务初始化失败", { error: String(error) });
   }
+
+  // 异步触发资源同步（不阻塞启动；失败静默，使用本地缓存）
+  resourceSyncService.checkAndSync().catch((err) => {
+    Logger.error("资源同步启动失败", { error: String(err) });
+  });
 
   // 初始化定时任务调度器
   scheduler.startAll()

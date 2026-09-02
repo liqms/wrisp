@@ -35,7 +35,9 @@ function walk(dir, base = "") {
     const abs = path.join(dir, name);
     const rel = base ? `${base}/${name}` : name;
     if (fs.statSync(abs).isDirectory()) out.push(...walk(abs, rel));
-    else if (name.endsWith(".json") && name !== "manifest.json" && name !== "skill.schema.json")
+    // manifest 自身与 *.schema.json 不纳入清单：schema 是应用规范（validator 从应用包读取），
+    // 数据资源才走远程同步；schema 升级随应用版本发布
+    else if (name.endsWith(".json") && name !== "manifest.json" && !name.endsWith(".schema.json"))
       out.push({ absPath: abs, relPath: rel });
   }
   return out;

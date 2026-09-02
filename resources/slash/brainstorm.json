@@ -1,14 +1,32 @@
 {
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
   "id": "brainstorm",
   "version": "1.0.0",
-  "title": { "zh": "头脑风暴", "en": "Brainstorm" },
-  "description": { "zh": "插入头脑风暴框架", "en": "Insert brainstorm skeleton" },
+  "title": {
+    "zh": "头脑风暴",
+    "en": "Brainstorm"
+  },
+  "description": {
+    "zh": "插入头脑风暴框架",
+    "en": "Insert brainstorm skeleton"
+  },
   "icon": "tips_and_updates",
   "markdown": {
     "zh": "## 头脑风暴 - {主题}\n- 想法：\n- 评估：\n- 下一步：\n",
     "en": "## Brainstorm - {topic}\n- Ideas:\n- Assessment:\n- Next steps:\n"
   },
-  "profession": ["general"],
-  "tags": ["ideation", "brainstorm"],
+  "profession": [
+    "general"
+  ],
+  "tags": [
+    {
+      "zh": "创意",
+      "en": "ideation"
+    },
+    {
+      "zh": "头脑风暴",
+      "en": "brainstorm"
+    }
+  ],
   "enabled": true
 }

@@ -1,6 +1,7 @@
 import type { TaskType } from "@/shared/enums";
+import type { LocalizedText } from "./template.types";
 
-export type SkillSource = "built-in" | "custom" | "remote";
+export type SkillSource = "built-in" | "custom";
 
 export type SkillParamUI = "dropdown" | "input" | "textarea" | "toggle" | "slider";
 
@@ -18,7 +19,8 @@ export interface SkillInputSchema {
 
 export interface SkillInputProperty {
   type: "string" | "number" | "boolean" | "array" | "object";
-  description?: string;
+  /** 参数说明（双语，展示层按当前语言解析） */
+  description?: LocalizedText;
   enum?: string[];
   default?: unknown;
 }
@@ -100,9 +102,16 @@ export interface SkillInputMapping {
   [paramName: string]: string;
 }
 
-export interface SkillExample {
+/** 单语言的示例数据（input 为参数名→示例值，output 为示例输出） */
+export interface SkillExampleData {
   input: Record<string, unknown>;
   output: string;
+}
+
+/** 双语示例（按语言分组的完整示例数据） */
+export interface SkillExample {
+  zh: SkillExampleData;
+  en: SkillExampleData;
 }
 
 // ==================== Skill 定义 ====================
@@ -110,17 +119,21 @@ export interface SkillExample {
 export interface SkillDefinition {
   $schema?: string;
   id: string;
-  name: string;
-  description: string;
+  /** 显示名称（双语，展示层按当前语言解析） */
+  name: LocalizedText;
+  /** 功能描述（双语，展示层按当前语言解析） */
+  description: LocalizedText;
   icon: string;
   version: string;
   author: string;
   category: string[];
-  tags?: string[];
+  /** 类型标签（双语，展示层按当前语言解析） */
+  tags?: LocalizedText[];
   enabled: boolean;
   taskType?: TaskType;
-  promptTemplate: string;
-  systemPrompt?: string;
+  /** Prompt 模板（双语，执行时按当前语言选择），使用 {{变量名}} 进行参数插值 */
+  promptTemplate: LocalizedText;
+  systemPrompt?: LocalizedText;
   /** 输入参数（JSON Schema 格式，优先于 parameters） */
   input?: SkillInputSchema;
   /** 输出类型定义 */
@@ -139,6 +152,7 @@ export interface SkillDefinition {
   parameters?: SkillParameter[];
   inputMapping?: SkillInputMapping;
   postProcess?: SkillPostProcess;
+  /** 使用示例（双语） */
   example?: SkillExample;
 }
 
@@ -201,6 +215,20 @@ export type SkillSettings = SkillSettingsV2;
 
 // ==================== 列表项 ====================
 
+/** 列表项的参数定义（description 已按当前语言解析为字符串） */
+export interface SkillListItemInputProperty
+  extends Omit<SkillInputProperty, "description"> {
+  description?: string;
+}
+
+/** 列表项的输入定义（参数说明已按当前语言解析） */
+export interface SkillListItemInputSchema {
+  type: "object";
+  properties: Record<string, SkillListItemInputProperty>;
+  required?: string[];
+}
+
+/** 列表项：name/description/tags/input 描述/example 已按当前语言解析为字符串 */
 export interface SkillListItem {
   id: string;
   name: string;
@@ -213,8 +241,9 @@ export interface SkillListItem {
   enabled: boolean;
   source: SkillSource;
   level: "L1" | "L2";
-  input?: SkillInputSchema;
-  example?: SkillExample;
+  input?: SkillListItemInputSchema;
+  /** 使用示例（已按当前语言解析） */
+  example?: SkillExampleData;
 }
 
 export interface CategoryNode {

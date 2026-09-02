@@ -1,31 +1,77 @@
 {
-  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/skill.schema.json",
   "id": "rewrite",
-  "name": "改写",
-  "description": "用不同的表达方式重写文本，保留原意的同时改变措辞和句式结构",
+  "name": {
+    "zh": "改写",
+    "en": "Rewrite"
+  },
+  "description": {
+    "zh": "用不同的表达方式重写文本，保留原意的同时改变措辞和句式结构",
+    "en": "Rewrite the text with different expressions, preserving the original meaning while changing the wording and sentence structure"
+  },
   "icon": "🔄",
   "version": "1.0.0",
   "author": "Wrisp Team",
-  "category": ["editing", "rewrite"],
-  "tags": ["rewrite", "rephrase", "paraphrase", "style"],
+  "category": [
+    "editing",
+    "rewrite"
+  ],
+  "tags": [
+    {
+      "zh": "改写",
+      "en": "rewrite"
+    },
+    {
+      "zh": "重述",
+      "en": "rephrase"
+    },
+    {
+      "zh": "释义",
+      "en": "paraphrase"
+    },
+    {
+      "zh": "风格",
+      "en": "style"
+    }
+  ],
   "enabled": true,
-  "promptTemplate": "请改写以下文本，使其风格更{{style}}：\n\n{{text}}\n\n要求：\n1. 保留原文的核心意思\n2. 只输出改写后的结果，不要添加任何解释",
-  "systemPrompt": "你是一个专业的文本改写助手，擅长用不同的方式表达相同的意思。",
+  "promptTemplate": {
+    "zh": "请改写以下文本，使其风格更{{style}}：\n\n{{text}}\n\n要求：\n1. 保留原文的核心意思\n2. 只输出改写后的结果，不要添加任何解释",
+    "en": "Please rewrite the following text in a more {{style}} style:\n\n{{text}}\n\nRequirements:\n1. Preserve the core meaning of the original\n2. Output only the rewritten result, without any explanation"
+  },
+  "systemPrompt": {
+    "zh": "你是一个专业的文本改写助手，擅长用不同的方式表达相同的意思。",
+    "en": "You are a professional rewriting assistant skilled at expressing the same meaning in different ways."
+  },
   "input": {
     "type": "object",
     "properties": {
       "text": {
         "type": "string",
-        "description": "需要改写的文本"
+        "description": {
+          "zh": "需要改写的文本",
+          "en": "The text to rewrite"
+        }
       },
       "style": {
         "type": "string",
-        "enum": ["professional", "concise", "vivid", "formal", "casual"],
+        "enum": [
+          "professional",
+          "concise",
+          "vivid",
+          "formal",
+          "casual"
+        ],
         "default": "professional",
-        "description": "改写风格"
+        "description": {
+          "zh": "改写风格",
+          "en": "Rewrite style"
+        }
       }
     },
-    "required": ["text"]
+    "required": [
+      "text"
+    ]
   },
   "output": {
     "type": "text"
@@ -36,10 +82,19 @@
     }
   ],
   "example": {
-    "input": {
-      "text": "这个项目需要更多的时间来完成。",
-      "style": "formal"
+    "zh": {
+      "input": {
+        "text": "这个项目需要更多的时间来完成。",
+        "style": "formal"
+      },
+      "output": "本项目在时间安排上有进一步延展的必要。"
     },
-    "output": "本项目在时间安排上有进一步延展的必要。"
+    "en": {
+      "input": {
+        "text": "This project needs more time to finish.",
+        "style": "formal"
+      },
+      "output": "The project schedule requires further extension to reach completion."
+    }
   }
 }

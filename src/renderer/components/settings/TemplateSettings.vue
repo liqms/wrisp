@@ -5,9 +5,18 @@
         <div class="title">{{ t("SETTINGS.TEMPLATE_SETTINGS.TITLE") }}</div>
         <div class="desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.DESC") }}</div>
       </div>
-      <n-button type="primary" @click="openCreate">
-        {{ t("SETTINGS.TEMPLATE_SETTINGS.ADD") }}
-      </n-button>
+      <n-flex align="center" :size="8">
+        <!-- 新建支持选择命令/页面模板类型 -->
+        <n-dropdown trigger="click" :options="createOptions" @select="openCreate">
+          <n-button type="primary">
+            {{ t("SETTINGS.TEMPLATE_SETTINGS.ADD") }}
+            <n-icon style="margin-left: 4px"><ChevronDown /></n-icon>
+          </n-button>
+        </n-dropdown>
+        <n-button :loading="syncing" @click="onSyncNow">
+          {{ t("SETTINGS.TEMPLATE_SETTINGS.SYNC_NOW") }}
+        </n-button>
+      </n-flex>
     </n-flex>
 
     <n-tabs v-model:value="activeType" type="line" size="small">
@@ -36,12 +45,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, watch } from "vue";
+import { ref, computed, h, watch, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { NButton, NSwitch, useMessage } from "naive-ui";
+import { NButton, NSwitch, NTag, useMessage } from "naive-ui";
+import type { DropdownOption } from "naive-ui";
+import { ChevronDown } from "@vicons/ionicons5";
 import type { DataTableColumns } from "naive-ui";
 import { PROFESSION, type Profession } from "@/shared/enums";
 import type { AppConfig } from "@/shared/types";
+import type { SyncResult } from "@/shared/types/resource.types";
 import { useConfig } from "@/renderer/composables/useConfig";
 import { useTemplateStore } from "@/renderer/store/template.store";
 import type {
@@ -62,6 +74,61 @@ const { t } = useI18n();
 const message = useMessage();
 const { locale } = useConfig();
 const store = useTemplateStore();
+
+// 监听 resource:updated 事件，刷新 store
+const syncing = ref(false);
+let offUpdated: (() => void) | null = null;
+
+async function onSyncNow() {
+  if (syncing.value) return;
+  syncing.value = true;
+  try {
+    const res = await window.electronAPI.resource.syncNow();
+    // ApiResponse 为联合类型（含 ListResponse），先排除数组形态再取 SyncResult
+    const result = (res.data && !Array.isArray(res.data) ? res.data : null) as SyncResult | null;
+    if (!res.success || !result) {
+      message.error(t("SETTINGS.TEMPLATE_SETTINGS.SYNC_FAILED"));
+      return;
+    }
+    if (!result.success) {
+      message.error(
+        `${t("SETTINGS.TEMPLATE_SETTINGS.SYNC_FAILED")}${result.error ? `: ${result.error}` : ""}`,
+      );
+      return;
+    }
+    if (result.added.length + result.updated.length === 0) {
+      message.success(t("SETTINGS.TEMPLATE_SETTINGS.SYNC_UP_TO_DATE"));
+    } else {
+      message.success(
+        t("SETTINGS.TEMPLATE_SETTINGS.SYNC_UPDATED", {
+          added: result.added.length,
+          updated: result.updated.length,
+        }),
+      );
+    }
+  } catch {
+    message.error(t("SETTINGS.TEMPLATE_SETTINGS.SYNC_FAILED"));
+  } finally {
+    syncing.value = false;
+  }
+}
+
+onMounted(() => {
+  offUpdated = window.electronAPI.resource.onUpdated((changedTypes) => {
+    // 把 ResourceType 映射到 TemplateType 并失效缓存
+    const types: TemplateType[] = [];
+    if (changedTypes.includes("slash" as never)) types.push(TEMPLATE_TYPE.SLASH);
+    if (changedTypes.includes("page" as never)) types.push(TEMPLATE_TYPE.PAGE);
+    if (types.length > 0) {
+      store.invalidate(types);
+      for (const t of types) store.fetch(t);
+    }
+  });
+});
+
+onUnmounted(() => {
+  offUpdated?.();
+});
 
 // 当前管理的模板类型（slash / page），切换时按需懒加载
 const activeType = ref<TemplateType>(TEMPLATE_TYPE.SLASH);
@@ -106,12 +173,30 @@ function onView(row: TemplateItem) {
   viewVisible.value = true;
 }
 
-function openCreate() {
+// 新建模板类型选择（命令模板 / 页面模板）
+const createOptions = computed<DropdownOption[]>(() => [
+  {
+    label: t("SETTINGS.TEMPLATE_SETTINGS.CREATE_SLASH"),
+    key: TEMPLATE_TYPE.SLASH,
+  },
+  {
+    label: t("SETTINGS.TEMPLATE_SETTINGS.CREATE_PAGE"),
+    key: TEMPLATE_TYPE.PAGE,
+  },
+]);
+
+// 待保存的模板类型：新建时由下拉选择决定，编辑时为当前 Tab 类型
+let pendingType: TemplateType = TEMPLATE_TYPE.SLASH;
+
+function openCreate(type: string | number) {
+  pendingType = type as TemplateType;
   editingTemplate.value = null;
   editVisible.value = true;
 }
 
 function openEdit(row: TemplateItem) {
+  // 编辑仅针对当前 Tab 列表中的自定义模板
+  pendingType = activeType.value;
   editingTemplate.value = {
     id: row.id,
     title: row.title,
@@ -125,7 +210,7 @@ function openEdit(row: TemplateItem) {
 }
 
 async function onSave(tpl: CustomTemplate) {
-  const ok = await store.saveCustom(activeType.value, tpl);
+  const ok = await store.saveCustom(pendingType, tpl);
   if (ok) message.success(t("SETTINGS.TEMPLATE_SETTINGS.SAVED"));
   else message.error(t("ERROR.TEMPLATE.SAVE_FAILED"));
 }
@@ -151,7 +236,7 @@ const columns: DataTableColumns<TemplateItem> = [
   {
     title: t("SETTINGS.TEMPLATE_SETTINGS.NAME"),
     key: "title",
-    render: (row) => row.title,
+    minWidth: 140,
   },
   {
     title: t("SETTINGS.TEMPLATE_SETTINGS.PROFESSION"),
@@ -160,13 +245,26 @@ const columns: DataTableColumns<TemplateItem> = [
     render: (row) => t(`SETTINGS.PROFESSION.OPTION_${row.profession.toUpperCase()}`),
   },
   {
-    title: t("SETTINGS.TEMPLATE_SETTINGS.TYPE"),
-    key: "builtIn",
-    width: 90,
+    title: t("SETTINGS.TEMPLATE_SETTINGS.META_TAGS"),
+    key: "tags",
+    width: 150,
     render: (row) =>
-      row.builtIn
-        ? t("SETTINGS.TEMPLATE_SETTINGS.BUILT_IN")
-        : t("SETTINGS.TEMPLATE_SETTINGS.CUSTOM"),
+      row.tags.length === 0
+        ? "—"
+        : h(
+            "div",
+            // 多标签间距 + 允许换行（窄列下长标签自动折行）
+            { style: "display: flex; flex-wrap: wrap; gap: 4px; row-gap: 4px;" },
+            row.tags.map((tag) =>
+              h(NTag, { size: "small", bordered: false }, { default: () => tag }),
+            ),
+          ),
+  },
+  {
+    title: t("SETTINGS.TEMPLATE_SETTINGS.VERSION"),
+    key: "version",
+    width: 80,
+    render: (row) => row.version || "—",
   },
   {
     title: t("SETTINGS.TEMPLATE_SETTINGS.ENABLED"),

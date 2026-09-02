@@ -1,31 +1,77 @@
 {
-  "$schema": "https://trywrisp.com/schemas/skill.schema.json",
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/skill.schema.json",
   "id": "translate",
-  "name": "翻译",
-  "description": "将中文文本翻译为其他语言，提供准确、自然、流畅的翻译结果",
+  "name": {
+    "zh": "翻译",
+    "en": "Translate"
+  },
+  "description": {
+    "zh": "将中文文本翻译为其他语言，提供准确、自然、流畅的翻译结果",
+    "en": "Translate Chinese text into other languages with accurate, natural, and fluent results"
+  },
   "icon": "🌐",
   "version": "1.0.0",
   "author": "Wrisp Team",
-  "category": ["conversion", "language"],
-  "tags": ["translate", "language", "localization", "convert"],
+  "category": [
+    "conversion",
+    "language"
+  ],
+  "tags": [
+    {
+      "zh": "翻译",
+      "en": "translate"
+    },
+    {
+      "zh": "语言",
+      "en": "language"
+    },
+    {
+      "zh": "本地化",
+      "en": "localization"
+    },
+    {
+      "zh": "转换",
+      "en": "convert"
+    }
+  ],
   "enabled": true,
-  "promptTemplate": "请将以下中文文本翻译为{{targetLanguage}}：\n\n{{text}}\n\n要求：\n1. 翻译准确、自然、流畅\n2. 保持原文的语气和风格\n3. 只输出翻译结果，不要添加任何解释",
-  "systemPrompt": "你是一个专业的翻译助手，擅长将中文准确自然地翻译为其他语言。",
+  "promptTemplate": {
+    "zh": "请将以下中文文本翻译为{{targetLanguage}}：\n\n{{text}}\n\n要求：\n1. 翻译准确、自然、流畅\n2. 保持原文的语气和风格\n3. 只输出翻译结果，不要添加任何解释",
+    "en": "Please translate the following Chinese text into {{targetLanguage}}:\n\n{{text}}\n\nRequirements:\n1. The translation must be accurate, natural, and fluent\n2. Keep the tone and style of the original\n3. Output only the translation, without any explanation"
+  },
+  "systemPrompt": {
+    "zh": "你是一个专业的翻译助手，擅长将中文准确自然地翻译为其他语言。",
+    "en": "You are a professional translation assistant skilled at translating Chinese into other languages accurately and naturally."
+  },
   "input": {
     "type": "object",
     "properties": {
       "text": {
         "type": "string",
-        "description": "需要翻译的中文文本"
+        "description": {
+          "zh": "需要翻译的中文文本",
+          "en": "The Chinese text to translate"
+        }
       },
       "targetLanguage": {
         "type": "string",
-        "enum": ["英文", "日文", "韩文", "法文", "德文"],
-        "default": "英文",
-        "description": "目标语言"
+        "enum": [
+          "english",
+          "japanese",
+          "korean",
+          "french",
+          "german"
+        ],
+        "default": "english",
+        "description": {
+          "zh": "目标语言",
+          "en": "Target language"
+        }
       }
     },
-    "required": ["text"]
+    "required": [
+      "text"
+    ]
   },
   "output": {
     "type": "text"
@@ -36,10 +82,19 @@
     }
   ],
   "example": {
-    "input": {
-      "text": "知识就是力量。",
-      "targetLanguage": "英文"
+    "zh": {
+      "input": {
+        "text": "知识就是力量。",
+        "targetLanguage": "english"
+      },
+      "output": "Knowledge is power."
     },
-    "output": "Knowledge is power."
+    "en": {
+      "input": {
+        "text": "知识就是力量。",
+        "targetLanguage": "english"
+      },
+      "output": "Knowledge is power."
+    }
   }
 }

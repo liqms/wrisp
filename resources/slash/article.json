@@ -1,14 +1,32 @@
 {
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
   "id": "article",
   "version": "1.0.0",
-  "title": { "zh": "文章大纲", "en": "Article Outline" },
-  "description": { "zh": "插入文章大纲框架", "en": "Insert article outline skeleton" },
+  "title": {
+    "zh": "文章大纲",
+    "en": "Article Outline"
+  },
+  "description": {
+    "zh": "插入文章大纲框架",
+    "en": "Insert article outline skeleton"
+  },
   "icon": "edit",
   "markdown": {
     "zh": "## 文章大纲 - {主题}\n- 核心观点：\n- 读者对象：\n- 结构：\n  - 引言：\n  - 正文要点：\n  - 结论：\n- 素材/引用：\n",
     "en": "## Article Outline - {topic}\n- Core thesis:\n- Target readers:\n- Structure:\n  - Intro:\n  - Key points:\n  - Conclusion:\n- Materials/citations:\n"
   },
-  "profession": ["writer"],
-  "tags": ["writing", "outline"],
+  "profession": [
+    "writer"
+  ],
+  "tags": [
+    {
+      "zh": "写作",
+      "en": "writing"
+    },
+    {
+      "zh": "大纲",
+      "en": "outline"
+    }
+  ],
   "enabled": true
 }
