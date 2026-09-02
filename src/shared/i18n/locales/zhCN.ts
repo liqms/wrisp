@@ -381,9 +381,9 @@ export default {
       WORKSPACE: "工作空间",
       SELECT_WORKSPACE: "选择工作空间",
       REBUILD_INDEX: "重建索引",
-      REBUILD_INDEX_DESC: "读取本地 Journal 文件并重新构建数据索引",
+      REBUILD_INDEX_DESC: "读取本地 Journal 与作品文件，重新构建数据索引",
       REBUILD_INDEX_LOADING: "重建中...",
-      REBUILD_INDEX_SUCCESS: "索引重建完成，共 {count} 条记录",
+      REBUILD_INDEX_SUCCESS: "索引重建完成：日志 {journals} 条，作品 {projects} 个，页面 {pages} 个",
     },
     AI_SETTINGS: {
       INTELLIGENT: "智能",

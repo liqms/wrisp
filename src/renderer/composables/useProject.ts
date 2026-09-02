@@ -5,6 +5,7 @@ import type {
   ProjectUpdate,
   ProjectQuery,
   ProjectDetail,
+  ProjectReloadResult,
 } from "@/main/types/db";
 import { logger } from "@/renderer/utils/logger.utils";
 
@@ -148,6 +149,22 @@ export function useProject() {
     }
   };
 
+  /**
+   * 重置 projects/pages 表（从磁盘 project.json/pages.json 重载）
+   */
+  const resetProjectTable = async (): Promise<ProjectReloadResult | null> => {
+    try {
+      const result = await store.resetProjectTable();
+      if (result) {
+        logger.info("projects/pages 表重置完成", { ...result });
+      }
+      return result;
+    } catch (error) {
+      logger.error("重置 projects/pages 表失败", { error });
+      return null;
+    }
+  };
+
   return {
     // 状态
     projects,
@@ -166,5 +183,6 @@ export function useProject() {
     deleteProject,
     setPinned,
     checkNameExists,
+    resetProjectTable,
   };
 }

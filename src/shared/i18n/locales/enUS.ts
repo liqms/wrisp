@@ -384,9 +384,9 @@ export default {
       WORKSPACE: "Workspace",
       SELECT_WORKSPACE: "Select Workspace",
       REBUILD_INDEX: "Rebuild Index",
-      REBUILD_INDEX_DESC: "Read local Journal files and rebuild the data index",
+      REBUILD_INDEX_DESC: "Read local Journal and project files, then rebuild the data index",
       REBUILD_INDEX_LOADING: "Rebuilding...",
-      REBUILD_INDEX_SUCCESS: "Index rebuilt, {count} records total",
+      REBUILD_INDEX_SUCCESS: "Index rebuilt: {journals} journals, {projects} projects, {pages} pages",
     },
     AI_SETTINGS: {
       INTELLIGENT: "Intelligent",
