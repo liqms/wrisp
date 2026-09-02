@@ -1,0 +1,83 @@
+{
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/skill.schema.json",
+  "id": "outline",
+  "name": {
+    "zh": "大纲生成",
+    "en": "Outline Generation"
+  },
+  "description": {
+    "zh": "根据主题或内容自动生成结构化的文章大纲，涵盖主要章节和关键要点",
+    "en": "Automatically generate a structured article outline based on a topic or content, covering main sections and key points"
+  },
+  "icon": "📑",
+  "version": "1.0.0",
+  "author": "Wrisp Team",
+  "category": [
+    "generation",
+    "outline"
+  ],
+  "tags": [
+    {
+      "zh": "大纲",
+      "en": "outline"
+    },
+    {
+      "zh": "结构",
+      "en": "structure"
+    },
+    {
+      "zh": "组织",
+      "en": "organize"
+    },
+    {
+      "zh": "规划",
+      "en": "plan"
+    }
+  ],
+  "enabled": true,
+  "promptTemplate": {
+    "zh": "请根据以下主题或内容生成一个结构化的文章大纲：\n\n{{text}}\n\n要求：\n1. 大纲应层次分明，包含主要章节和关键子要点\n2. 使用层级编号（如 1、1.1、1.1.1）\n3. 每个要点简洁明了\n4. 只输出大纲，不要添加额外解释",
+    "en": "Please generate a structured article outline based on the following topic or content:\n\n{{text}}\n\nRequirements:\n1. The outline should have a clear hierarchy, including main sections and key sub-points\n2. Use hierarchical numbering (e.g., 1, 1.1, 1.1.1)\n3. Keep each point concise and clear\n4. Output only the outline, without extra explanation"
+  },
+  "systemPrompt": {
+    "zh": "你是一个专业的大纲生成助手，擅长将主题或内容组织成结构清晰、层次分明的文章大纲。",
+    "en": "You are a professional outline generation assistant skilled at organizing topics or content into clear, well-structured article outlines."
+  },
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": {
+          "zh": "需要生成大纲的主题或内容",
+          "en": "The topic or content to generate an outline for"
+        }
+      }
+    },
+    "required": [
+      "text"
+    ]
+  },
+  "output": {
+    "type": "text"
+  },
+  "preProcess": [
+    {
+      "type": "trim"
+    }
+  ],
+  "example": {
+    "zh": {
+      "input": {
+        "text": "远程办公的利与弊"
+      },
+      "output": "1. 引言\n  1.1 远程办公的定义\n  1.2 远程办公的兴起背景\n2. 远程办公的优势\n  2.1 灵活的工作时间和地点\n  2.2 减少通勤成本和时间\n  2.3 提高工作自主性和效率\n3. 远程办公的挑战\n  3.1 沟通协作的障碍\n  3.2 工作与生活的界限模糊\n  3.3 团队凝聚力的下降\n4. 成功实施远程办公的关键要素\n  4.1 有效的工具和平台\n  4.2 明确的工作流程和规范\n  4.3 定期的沟通与反馈机制\n5. 结语\n  5.1 远程办公的未来趋势\n  5.2 对企业和个人的建议"
+    },
+    "en": {
+      "input": {
+        "text": "The pros and cons of remote work"
+      },
+      "output": "1. Introduction\n  1.1 Definition of remote work\n  1.2 Background of its rise\n2. Advantages of remote work\n  2.1 Flexible working hours and location\n  2.2 Reduced commuting costs and time\n  2.3 Greater autonomy and efficiency\n3. Challenges of remote work\n  3.1 Barriers to communication and collaboration\n  3.2 Blurred boundaries between work and life\n  3.3 Weakened team cohesion\n4. Key elements for successful remote work\n  4.1 Effective tools and platforms\n  4.2 Clear workflows and norms\n  4.3 Regular communication and feedback\n5. Conclusion\n  5.1 Future trends of remote work\n  5.2 Advice for companies and individuals"
+    }
+  }
+}

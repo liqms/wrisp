@@ -98,11 +98,6 @@ function handleSend(): void {
   }
 }
 
-.message-content {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
 .input-area {
   gap: $spacing-xs;
 }

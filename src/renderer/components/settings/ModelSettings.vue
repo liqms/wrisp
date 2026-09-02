@@ -201,10 +201,6 @@ watch(enableAiMode, (val) => {
   flex-wrap: wrap;
 }
 
-.config-list {
-  gap: 0 !important;
-}
-
 .setting-row {
   margin-bottom: $spacing-md;
   align-items: center;
@@ -238,9 +234,5 @@ watch(enableAiMode, (val) => {
 .setting-desc {
   font-size: $font-xs;
   color: var(--text-third);
-}
-
-.setting-select {
-  width: 280px;
 }
 </style>

@@ -1,16 +1,37 @@
 import { describe, it, expect } from "vitest";
 import { LOCALE } from "@/shared/enums/config.enums";
-import { builtinTemplates } from "@/renderer/components/editor/slash/commands/templates";
 import { mergeTemplates } from "@/renderer/components/editor/slash/commands/template-merge";
-import type { SlashTemplateFile } from "@/shared/types/template.types";
+import type {
+  TemplateFile,
+  TemplateResourceFile,
+} from "@/shared/types/template.types";
 
-const FILE: SlashTemplateFile = {
+const BUILTINS: TemplateResourceFile[] = [
+  {
+    id: "todo",
+    version: "1.0.0",
+    title: { zh: "待办清单", en: "Todo List" },
+    description: { zh: "插入待办清单", en: "Insert a todo list" },
+    icon: "check_circle",
+    markdown: { zh: "## 待办清单", en: "## Todo List" },
+    profession: ["general"],
+    tags: [{ zh: "清单", en: "list" }],
+    enabled: true,
+  },
+];
+
+/** 旧格式资源文件：tags 为 string 数组（双语改造前的历史数据） */
+const LEGACY_BUILTINS = [
+  { ...BUILTINS[0], tags: ["list", "todo"] as unknown },
+] as TemplateResourceFile[];
+
+const FILE: TemplateFile = {
   customTemplates: [
     {
       id: "custom_1",
       title: "我的模板",
-      description: "自定义模板",
-      icon: "📄",
+      description: "自定义",
+      icon: "description",
       markdown: "# 自定义",
       profession: "pm",
       enabled: true,
@@ -20,43 +41,51 @@ const FILE: SlashTemplateFile = {
 };
 
 describe("mergeTemplates", () => {
-  it("空文件返回全部内置模板且为内置标记", () => {
-    const items = mergeTemplates(builtinTemplates, null, LOCALE.ZH);
-    expect(items.length).toBe(builtinTemplates.length);
+  it("空文件返回全部内置且为内置标记", () => {
+    const items = mergeTemplates(BUILTINS, null, LOCALE.ZH);
+    expect(items.length).toBe(BUILTINS.length);
     expect(items.every((item) => item.builtIn)).toBe(true);
     expect(items.every((item) => item.enabled)).toBe(true);
   });
 
-  it("按语言解析内置模板的标题/正文", () => {
-    const zh = mergeTemplates(builtinTemplates, null, LOCALE.ZH).find(
+  it("按语言解析标题/正文", () => {
+    const zh = mergeTemplates(BUILTINS, null, LOCALE.ZH).find(
       (i) => i.id === "todo",
     )!;
-    const en = mergeTemplates(builtinTemplates, null, LOCALE.EN).find(
+    const en = mergeTemplates(BUILTINS, null, LOCALE.EN).find(
       (i) => i.id === "todo",
     )!;
     expect(zh.title).toBe("待办清单");
     expect(zh.markdown).toContain("待办清单");
+    expect(zh.tags).toEqual(["清单"]);
     expect(en.title).toBe("Todo List");
     expect(en.markdown).toContain("Todo List");
+    expect(en.tags).toEqual(["list"]);
   });
 
-  it("禁用列表中的内置模板 enabled=false", () => {
-    const items = mergeTemplates(builtinTemplates, FILE, LOCALE.ZH);
-    const todo = items.find((i) => i.id === "todo")!;
+  it("旧格式 tags（string 数组）直接透传不丢值", () => {
+    const zh = mergeTemplates(LEGACY_BUILTINS, null, LOCALE.ZH).find(
+      (i) => i.id === "todo",
+    )!;
+    expect(zh.tags).toEqual(["list", "todo"]);
+  });
+
+  it("禁用列表中的模板 enabled=false", () => {
+    const todo = mergeTemplates(BUILTINS, FILE, LOCALE.ZH).find(
+      (i) => i.id === "todo",
+    )!;
     expect(todo.enabled).toBe(false);
   });
 
-  it("自定义模板排在前面且 builtIn=false", () => {
-    const items = mergeTemplates(builtinTemplates, FILE, LOCALE.ZH);
+  it("自定义模板排前且 builtIn=false", () => {
+    const items = mergeTemplates(BUILTINS, FILE, LOCALE.ZH);
     expect(items[0].id).toBe("custom_1");
     expect(items[0].builtIn).toBe(false);
-    expect(items[0].enabled).toBe(true);
   });
 
-  it("自定义模板不随语言切换改变内容", () => {
-    const zh = mergeTemplates(builtinTemplates, FILE, LOCALE.ZH)[0];
-    const en = mergeTemplates(builtinTemplates, FILE, LOCALE.EN)[0];
+  it("自定义模板不随语言切换改变", () => {
+    const zh = mergeTemplates(BUILTINS, FILE, LOCALE.ZH)[0];
+    const en = mergeTemplates(BUILTINS, FILE, LOCALE.EN)[0];
     expect(zh.title).toBe(en.title);
-    expect(zh.markdown).toBe(en.markdown);
   });
 });

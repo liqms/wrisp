@@ -9,13 +9,11 @@ import {
   updateCustomSkill,
   deleteCustomSkill,
   setSkillEnabled,
-  checkSkillUpdates,
-  applySkillUpdates,
   getSkillExecutions,
   getSkillExecutionStats,
 } from "@/main/core/apis/skill.api";
 import type { ApiResponse } from "@/shared/types";
-import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillExecuteResult, SkillExecutionRecord, SkillDefinition } from "@/shared/types/skill.types";
+import type { SkillListItem, CategoryNode, SkillExecuteResult, SkillExecutionRecord, SkillDefinition } from "@/shared/types/skill.types";
 
 export function registerSkillHandlers() {
   ipcMain.handle("skill:getSkills", async (): Promise<ApiResponse<SkillListItem[]>> => {
@@ -71,14 +69,6 @@ export function registerSkillHandlers() {
       return setSkillEnabled(id, enabled);
     },
   );
-
-  ipcMain.handle("skill:checkSkillUpdates", async (): Promise<ApiResponse<SkillUpdateItem[]>> => {
-    return checkSkillUpdates();
-  });
-
-  ipcMain.handle("skill:applySkillUpdates", async (): Promise<ApiResponse<void>> => {
-    return applySkillUpdates();
-  });
 
   ipcMain.handle(
     "skill:getSkillExecutions",

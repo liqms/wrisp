@@ -2,8 +2,8 @@
   <Teleport to="body">
     <div v-if="visible" ref="menuRef" class="slash-menu" :style="menuStyle" @mousedown.prevent>
       <div class="slash-search">
-        <input ref="inputRef" v-model="searchText" type="text" class="slash-input" placeholder="输入命令..."
-          @keydown="onKeydown" />
+        <input ref="inputRef" v-model="searchText" type="text" class="slash-input"
+          :placeholder="t('EDITOR.SLASH.PLACEHOLDER')" @keydown="onKeydown" />
       </div>
       <div class="slash-commands">
         <template v-if="filteredGroups.length > 0">
@@ -15,7 +15,7 @@
               <div class="cmd-icon">
                 <component :is="cmd.icon" v-if="isComponentIcon(cmd.icon)" class="cmd-icon-svg" />
                 <!-- 字符串图标在命令构建时已通过 sanitizeHtml 清洗，此处渲染是安全的 -->
-                <span v-else v-html="cmd.icon"></span>
+                <span v-else class="cmd-icon-text" v-html="cmd.icon"></span>
               </div>
               <div class="cmd-info">
                 <div class="cmd-title">{{ cmd.title }}</div>
@@ -24,7 +24,7 @@
             </div>
           </div>
         </template>
-        <div v-else class="slash-empty">没有匹配的命令</div>
+        <div v-else class="slash-empty">{{ t('EDITOR.SLASH.EMPTY') }}</div>
       </div>
     </div>
   </Teleport>
@@ -38,7 +38,7 @@ import { useConfig } from "@/renderer/composables/useConfig";
 import { getCommandGroups, type CommandGroup } from "./commands/registry";
 import type { SlashCommand } from "./commands/types";
 import { useTemplateStore } from "@/renderer/store/template.store";
-import { PROFESSION } from "@/shared/enums/profession.enums";
+import { TEMPLATE_TYPE } from "@/shared/enums/template.enums";
 
 const props = defineProps<{
   visible: boolean;
@@ -52,12 +52,14 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { profession, locale } = useConfig();
+const { locale } = useConfig();
 const templateStore = useTemplateStore();
 
-// 打开菜单时确保模板已加载（已加载则跳过）
+// 打开菜单时确保 slash 模板已加载（已加载则跳过）
 onMounted(() => {
-  if (!templateStore.loaded) templateStore.fetch();
+  if (!templateStore.isLoaded(TEMPLATE_TYPE.SLASH)) {
+    templateStore.fetch(TEMPLATE_TYPE.SLASH);
+  }
 });
 
 const menuRef = ref<HTMLDivElement | null>(null);
@@ -67,17 +69,11 @@ const selectedIndex = ref(0);
 
 const menuStyle = ref<Record<string, string>>({});
 
-// 命令组 = 通用(日期时间) + 当前职业或通用职业且已启用的模板
+// 命令组 = 通用(日期时间) + 已启用的模板
 const commandGroups = computed<CommandGroup[]>(() => {
   const items = templateStore
-    .allTemplates(locale.value)
-    .filter(
-      (item) =>
-        item.enabled &&
-        (item.profession === profession.value ||
-          item.profession === PROFESSION.GENERAL ||
-          item.profession === PROFESSION.CUSTOM),
-    );
+    .allTemplates(TEMPLATE_TYPE.SLASH, locale.value)
+    .filter((item) => item.enabled);
   return getCommandGroups(t, items);
 });
 
@@ -320,6 +316,13 @@ onBeforeUnmount(() => {
   .cmd-icon-svg {
     width: 18px;
     height: 18px;
+  }
+
+  // 文本徽标图标（H1/H2/H3 等）：与 BubbleMenu 块类型面板的 icon-h1 字重一致
+  .cmd-icon-text {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: -apple-system, "Segoe UI", sans-serif;
   }
 
   .cmd-info {

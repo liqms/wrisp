@@ -7,6 +7,9 @@ import { windowService } from "@/main/core/services/window.service";
 import { scheduler } from '@/main/core/scheduler'
 import { DIST_RENDERER_DIR } from "@/main/constants";
 
+// 调试：开启远程调试端口（Chrome DevTools Protocol）
+app.commandLine.appendSwitch("remote-debugging-port", "9223");
+
 // 设置控制台编码为 UTF-8（Windows 系统）
 if (process.platform === "win32") {
   process.env.CHCP = "65001";
@@ -35,6 +38,7 @@ import {
   registerTaskHandlers,
   registerUpdateHandlers,
   registerTemplateHandlers,
+  registerAttachmentHandlers,
 } from "@/main/ipcMain";
 import { databaseMigration } from "@/main/core/migration";
 import { setWorkspacePath } from "@/main/core/db/connection";
@@ -45,6 +49,8 @@ import { trayService } from "@/main/core/services/tray.service";
 import { taskQueue, taskExecutor } from "@/main/core/task-queue";
 import { downloadService } from "@/main/core/services/download.service";
 import { setupDownloadListeners } from "@/main/preload/listeners/download";
+import { workspaceInitService } from "@/main/core/services/base/workspace-init.service";
+import { resourceSyncService } from "@/main/core/services/resource-sync.service";
 
 // 使用传统的 Node.js 路径处理方式
 const __dirname = path.dirname(__filename || process.argv[1] || ".");
@@ -73,6 +79,16 @@ async function initializeDatabase(): Promise<void> {
     // 未初始化时 executeDatabaseMigration 内部会先执行 initDatabaseSchema。
     const targetVersion = databaseMigration.getTargetVersion();
     await databaseMigration.executeDatabaseMigration(targetVersion);
+
+    // 幂等补齐旧库缺失的 schema 字段
+    databaseMigration.ensureProjectPinnedColumn();
+    databaseMigration.ensurePageTypeColumn();
+
+    // 幂等修复历史数据：pages.status 被旧版 updatePage 写为 NULL 的记录
+    databaseMigration.repairPagesNullStatus();
+
+    // 幂等移除 pages 表遗留的 is_container 字段（v1 容器页设计，已废弃）
+    databaseMigration.dropPagesContainerColumn();
 
     Logger.info("数据库初始化完成");
   } catch (error) {
@@ -130,6 +146,8 @@ function createWindow(): BrowserWindow {
 
 app.whenReady().then(async () => {
   await initializeDatabase();
+  // 幂等补齐工作空间目录结构（sqlite + attachments/images + attachments/files）
+  await workspaceInitService.ensureWorkspace();
   registerProtocolHandler();
   skillManager.initialize();
 
@@ -177,6 +195,7 @@ app.whenReady().then(async () => {
   registerTaskHandlers();
   registerUpdateHandlers();
   registerTemplateHandlers();
+  registerAttachmentHandlers();
 
   // 启动下载事件监听（将 DownloadService 事件桥接到渲染进程）
   setupDownloadListeners();
@@ -204,6 +223,11 @@ app.whenReady().then(async () => {
   } catch (error) {
     Logger.error("向量数据库服务初始化失败", { error: String(error) });
   }
+
+  // 异步触发资源同步（不阻塞启动；失败静默，使用本地缓存）
+  resourceSyncService.checkAndSync().catch((err) => {
+    Logger.error("资源同步启动失败", { error: String(err) });
+  });
 
   // 初始化定时任务调度器
   scheduler.startAll()

@@ -9,7 +9,7 @@
       <n-flex justify="end" align="center">
         <n-text v-if="downloading" depth="3">{{ t('UPDATE.DOWNLOADING', { percent }) }}</n-text>
         <template v-else>
-          <n-button v-if="installed" type="primary" @click="handleInstall">{{ t('UPDATE.INSTALLING') }}</n-button>
+          <n-button v-if="installed" type="primary" @click="handleInstall">{{ t('UPDATE.INSTALL_NOW') }}</n-button>
           <template v-else>
             <n-button @click="handleLater">{{ t('UPDATE.LATER') }}</n-button>
             <n-button type="primary" @click="handleUpdate">{{ t('UPDATE.UPDATE_NOW') }}</n-button>

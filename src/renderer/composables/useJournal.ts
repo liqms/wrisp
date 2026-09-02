@@ -18,6 +18,8 @@ export function useJournal(options: UseJournalOptions = {}) {
 
   const recentJournals = computed(() => store.recentJournals);
   const loading = computed(() => store.loading);
+  const loadingMore = computed(() => store.loadingMore);
+  const hasMore = computed(() => store.hasMore);
   const errorCode = computed(() => store.errorCode);
   const errorMessage = computed(() => store.errorMessage);
   const hasError = computed(() => store.hasError);
@@ -59,6 +61,15 @@ export function useJournal(options: UseJournalOptions = {}) {
       logger.info("获取最近日志成功", { count: recentJournals.value.length });
     } catch (error) {
       logger.error("获取最近日志失败", { error });
+    }
+  };
+
+  const loadMore = async (days: number): Promise<boolean> => {
+    try {
+      return await store.loadMore(days);
+    } catch (error) {
+      logger.error("加载更多日志失败", { error });
+      return false;
     }
   };
 
@@ -123,6 +134,8 @@ export function useJournal(options: UseJournalOptions = {}) {
   return {
     recentJournals,
     loading,
+    loadingMore,
+    hasMore,
     errorCode,
     errorMessage,
     hasError,
@@ -130,6 +143,7 @@ export function useJournal(options: UseJournalOptions = {}) {
     createJournal,
     updateJournal,
     getRecentDays,
+    loadMore,
     deleteJournal,
     checkTodayJournalExists,
     syncLocalFiles,

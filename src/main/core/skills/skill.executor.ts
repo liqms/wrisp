@@ -2,6 +2,7 @@ import { aiService } from '@/main/core/services/ai.service';
 import { skillManager } from './skill.manager';
 import { toolRegistry } from './tool.registry';
 import { Logger } from '@/main/utils/logger';
+import { configService } from '@/main/core/services/config.service';
 import type {
   SkillDefinition,
   SkillPreProcess,
@@ -15,6 +16,13 @@ import { OUTPUT_MODEL_TYPE } from '@/shared/enums';
 const DEFAULT_MAX_STEPS = 5;
 const DEFAULT_L2_TIMEOUT_MS = 60_000;
 const MAX_CONCURRENT_L2 = 1;
+
+/** 按当前语言解析双语文本（prompt 为旧格式 string 时直接透传） */
+function resolveLocalized(value: { zh: string; en: string } | string): string {
+  if (typeof value === 'string') return value;
+  const useEn = configService.getValue<string>('general.locale') === 'enUS';
+  return useEn ? value.en : value.zh;
+}
 
 export class SkillExecutor {
   private l2Semaphore = 0;
@@ -94,12 +102,12 @@ export class SkillExecutor {
     startTime: number,
   ): Promise<SkillExecuteResult> {
     const validatedInputs = this.validateInputs(skill, inputs);
-    const renderedPrompt = this.renderPrompt(skill.promptTemplate, validatedInputs);
+    const renderedPrompt = this.renderPrompt(resolveLocalized(skill.promptTemplate), validatedInputs);
     const preProcessed = this.applyPreProcess(renderedPrompt, skill.preProcess);
 
     const messages: LLMMessage[] = [];
     if (skill.systemPrompt) {
-      messages.push({ role: 'system', content: skill.systemPrompt });
+      messages.push({ role: 'system', content: resolveLocalized(skill.systemPrompt) });
     }
     messages.push({ role: 'user', content: preProcessed });
 
@@ -133,7 +141,7 @@ export class SkillExecutor {
   ): Promise<SkillExecuteResult> {
     const maxSteps = skill.maxSteps || DEFAULT_MAX_STEPS;
     const validatedInputs = this.validateInputs(skill, inputs);
-    const renderedPrompt = this.renderPrompt(skill.promptTemplate, validatedInputs);
+    const renderedPrompt = this.renderPrompt(resolveLocalized(skill.promptTemplate), validatedInputs);
     const preProcessed = this.applyPreProcess(renderedPrompt, skill.preProcess);
 
     // 解析工具，提前验证是否有可用的已注册工具
@@ -145,7 +153,7 @@ export class SkillExecutor {
 
     const messages: LLMMessage[] = [];
     if (skill.systemPrompt) {
-      messages.push({ role: 'system', content: skill.systemPrompt });
+      messages.push({ role: 'system', content: resolveLocalized(skill.systemPrompt) });
     }
     messages.push({ role: 'user', content: preProcessed });
 

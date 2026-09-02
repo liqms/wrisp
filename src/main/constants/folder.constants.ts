@@ -10,6 +10,9 @@
 /** SQLite 数据库文件夹 */
 export const SQLITE_DIR = "sqlite" as const;
 
+/** 远程资源目录（工作空间下，内置+远程同步的统一存储） */
+export const RESOURCES_DIR = "resources" as const;
+
 /** 主数据库文件名 */
 export const MAIN_DB_FILE = "wrisp.db" as const;
 
@@ -69,6 +72,12 @@ export const SLASH_TEMPLATES_DIR = "slash" as const;
 /** Slash 模板文件名 */
 export const SLASH_TEMPLATES_FILE = "templates.json" as const;
 
+/** Page 模板子文件夹 */
+export const PAGE_TEMPLATES_DIR = "page" as const;
+
+/** Page 模板文件名 */
+export const PAGE_TEMPLATES_FILE = "templates.json" as const;
+
 /** 章节文件夹 */
 export const CHAPTER_DIR = "chapters" as const;
 
@@ -80,3 +89,14 @@ export const PROJECT_ASSETS_DIR = "assets" as const;
 
 /** 作品设定文件夹 */
 export const PROJECT_SETTINGS_DIR = "settings" as const;
+
+// ============ 附件文件夹（工作空间下） ============
+
+/** 附件根文件夹 */
+export const ATTACHMENTS_DIR = "attachments" as const;
+
+/** 附件-图片子文件夹 */
+export const ATTACHMENTS_IMAGES_DIR = "images" as const;
+
+/** 附件-文件子文件夹 */
+export const ATTACHMENTS_FILES_DIR = "files" as const;

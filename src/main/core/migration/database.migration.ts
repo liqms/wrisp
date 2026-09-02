@@ -154,6 +154,154 @@ export class DatabaseMigration {
   }
 
   /**
+   * 确保 projects 表存在 is_pinned 字段（幂等）。
+   * 旧版数据库没有该字段，且 init.sql 的 CREATE TABLE IF NOT EXISTS 不会为
+   * 已存在的表补齐新列，因此在每次迁移完成后调用此方法补齐 schema。
+   */
+  public ensureProjectPinnedColumn(): void {
+    try {
+      const db = getDatabase();
+      const columns = db
+        .prepare("PRAGMA table_info(projects)")
+        .all() as { name: string }[];
+
+      if (columns.some((col) => col.name === "is_pinned")) {
+        return;
+      }
+
+      db.exec("ALTER TABLE projects ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0");
+      Logger.info("已为 projects 表新增 is_pinned 字段");
+    } catch (error) {
+      Logger.error("为 projects 表新增 is_pinned 字段失败:", {
+        dbPath: getDbPath(),
+        error: String(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 确保 pages 表存在 page_type 字段（幂等）。
+   * 旧版数据库没有该字段（init.sql 的 CREATE TABLE IF NOT EXISTS 不会为
+   * 已存在的表补齐新列），因此在每次迁移完成后调用此方法补齐 schema。
+   */
+  public ensurePageTypeColumn(): void {
+    try {
+      const db = getDatabase();
+      const columns = db
+        .prepare("PRAGMA table_info(pages)")
+        .all() as { name: string }[];
+
+      if (columns.some((col) => col.name === "page_type")) {
+        return;
+      }
+
+      db.exec(
+        "ALTER TABLE pages ADD COLUMN page_type TEXT NOT NULL DEFAULT 'project_chapter'",
+      );
+      Logger.info("已为 pages 表新增 page_type 字段");
+    } catch (error) {
+      Logger.error("为 pages 表新增 page_type 字段失败:", {
+        dbPath: getDbPath(),
+        error: String(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 移除 pages 表的 is_container 字段（幂等）。
+   * 该字段为 v1「容器页」设计遗留，现已无任何代码引用。
+   * 由于字段被 CHECK 约束与 idx_pages_container 索引引用，无法直接 DROP COLUMN，
+   * 需按新 schema 重建表并回填数据；外键开关须在事务外设置。
+   */
+  public dropPagesContainerColumn(): void {
+    try {
+      const db = getDatabase();
+      const columns = db
+        .prepare("PRAGMA table_info(pages)")
+        .all() as { name: string }[];
+
+      if (!columns.some((col) => col.name === "is_container")) {
+        return;
+      }
+
+      Logger.info("移除 pages 表 is_container 字段（重建表）");
+
+      // PRAGMA foreign_keys 在事务内是 no-op，必须在事务外关闭/恢复
+      db.pragma("foreign_keys = OFF");
+      try {
+        db.transaction(() => {
+          db.exec(`
+            CREATE TABLE pages_migrate_new (
+                id TEXT PRIMARY KEY,
+                project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
+                title TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                order_index INTEGER DEFAULT 0,
+                parent_page_id TEXT REFERENCES pages(id) ON DELETE CASCADE,
+                word_count INTEGER DEFAULT 0,
+                ai_summary TEXT,
+                page_type TEXT NOT NULL DEFAULT 'project_chapter',
+                metadata TEXT DEFAULT '{}',
+                status TEXT DEFAULT 'active',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                CHECK (status IN ('active', 'deleted'))
+            )
+          `);
+          db.exec(`
+            INSERT INTO pages_migrate_new
+              (id, project_id, title, file_path, order_index, parent_page_id,
+               word_count, ai_summary, page_type, metadata, status, created_at, updated_at)
+            SELECT
+              id, project_id, title, file_path, order_index, parent_page_id,
+              word_count, ai_summary, page_type, metadata, status, created_at, updated_at
+            FROM pages
+          `);
+          db.exec("DROP TABLE pages");
+          db.exec("ALTER TABLE pages_migrate_new RENAME TO pages");
+          // 重建 pages 表全部索引（idx_pages_container 不再创建）
+          db.exec("CREATE INDEX IF NOT EXISTS idx_pages_project ON pages(project_id)");
+          db.exec("CREATE INDEX IF NOT EXISTS idx_pages_order ON pages(project_id, order_index)");
+          db.exec("CREATE INDEX IF NOT EXISTS idx_pages_parent ON pages(parent_page_id)");
+          db.exec("CREATE INDEX IF NOT EXISTS idx_pages_summary ON pages(ai_summary)");
+        })();
+      } finally {
+        db.pragma("foreign_keys = ON");
+      }
+
+      Logger.info("pages 表 is_container 字段移除完成");
+    } catch (error) {
+      Logger.error("移除 pages 表 is_container 字段失败", {
+        error: String(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 修复 pages 表 status 为 NULL 的历史数据（幂等）。
+   * 旧版 PageService.updatePage 将未传入的 status/metadata 无条件写入 NULL，
+   * 导致编辑保存后页面状态丢失，此处统一修复为 'active'。
+   */
+  public repairPagesNullStatus(): void {
+    try {
+      const db = getDatabase();
+      const result = db
+        .prepare("UPDATE pages SET status = 'active' WHERE status IS NULL")
+        .run();
+
+      if (result.changes > 0) {
+        Logger.info("已修复 pages 表 NULL 状态记录", { count: result.changes });
+      }
+    } catch (error) {
+      Logger.error("修复 pages 表 NULL 状态失败", { error: String(error) });
+      throw error;
+    }
+  }
+
+  /**
    * 检查数据库是否已完成初始化。
    * 通过查询 sqlite_master 中是否存在 migrations_db 表来判断。
    * @returns 已初始化返回 true，否则返回 false
@@ -200,14 +348,25 @@ export class DatabaseMigration {
 
   /**
    * 获取数据库迁移的目标版本号。
-   * 取「迁移文件 + 待执行迁移记录」中的最高版本号；两者都为空时返回 "0.0.0"（无需迁移）。
+   * 取「当前已执行版本 + 迁移文件 + 待执行迁移记录」中的最高版本号。
+   * 以当前数据库版本为下限：init.sql 写入的基线迁移（0.1.0）已记录为 executed，
+   * 若只取「迁移文件 + 待执行迁移记录」，无迁移文件时目标版本会退化为 "0.0.0"，
+   * 导致 currentVersion(0.1.0) > targetVersion(0.0.0) 误报"当前数据库版本高于目标版本"。
+   * 数据库尚未初始化时（migrations_db 不存在）返回 "0.0.0"（无需迁移）。
    * 作为 executeDatabaseMigration 的目标版本，替代原先对 .env SQLITE_DB_VERSION 的依赖。
    * @returns 目标版本号
    */
   public getTargetVersion(): string {
     const migrationFiles = this.loadMigrationFiles();
 
+    // 数据库尚未初始化（migrations_db 表不存在）时，查询当前版本必然失败，
+    // 会抛出 "no such table: migrations_db" 并产生误导性错误日志。
+    // 此时直接从迁移文件派生目标版本（无迁移文件时为 0.0.0），
+    // executeDatabaseMigration 内部会先执行 initDatabaseSchema。
     let target = "0.0.0";
+    if (this.isDatabaseInitialized()) {
+      target = this.getDatabaseVersion() || "0.0.0";
+    }
 
     for (const file of migrationFiles) {
       if (compareVersions(file.version, target) === VersionComparison.NEWER) {
@@ -215,9 +374,6 @@ export class DatabaseMigration {
       }
     }
 
-    // 数据库尚未初始化时不存在 migrations_db 表，无法查询待执行迁移记录，
-    // 此时直接以迁移文件中的最高版本作为目标版本。
-    // executeDatabaseMigration 内部会先执行 initDatabaseSchema 完成初始化。
     if (this.isDatabaseInitialized()) {
       const pendingMigrations = this.migrationDbDao.findPendingMigrations();
 

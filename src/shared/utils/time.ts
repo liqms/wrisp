@@ -5,6 +5,12 @@
 export class TimeUtil {
   /**
    * 格式化日期时间
+   * 支持占位符（大小写敏感）：
+   *   年：YYYY / yyyy
+   *   月：MMMM / MMM / MM
+   *   日：DD / dd / D / do（序数日，如 1st、2nd、3rd）
+   *   星期：EEEE（全称）/ EEE / EE / E（简称）
+   *   时间：HH / mm / ss / SSS
    * @param date - 日期对象或时间戳
    * @param format - 格式化模板
    * @returns 格式化后的字符串
@@ -18,15 +24,53 @@ export class TimeUtil {
     const minutes = d.getMinutes()
     const seconds = d.getSeconds()
     const milliseconds = d.getMilliseconds()
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ]
+    const monthShortNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ]
+    const weekdayNames = [
+      'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
+    ]
+    const weekdayShortNames = [
+      'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
+    ]
+    const monthShort = monthShortNames[d.getMonth()]
+    const monthFull = monthNames[d.getMonth()]
+    const weekdayFull = weekdayNames[d.getDay()]
+    const weekdayShort = weekdayShortNames[d.getDay()]
+    const ordinalSuffixes = ['th', 'st', 'nd', 'rd']
+    const dayRemainder = day % 100
+    const ordinalDay = `${day}${ordinalSuffixes[(dayRemainder - 20) % 10] || ordinalSuffixes[dayRemainder] || ordinalSuffixes[0]}`
 
-    return format
-      .replace('YYYY', year.toString())
-      .replace('MM', month.toString().padStart(2, '0'))
-      .replace('DD', day.toString().padStart(2, '0'))
-      .replace('HH', hours.toString().padStart(2, '0'))
-      .replace('mm', minutes.toString().padStart(2, '0'))
-      .replace('ss', seconds.toString().padStart(2, '0'))
-      .replace('SSS', milliseconds.toString().padStart(3, '0'))
+    const tokens: Record<string, string> = {
+      MMMM: monthFull,
+      MMM: monthShort,
+      MM: month.toString().padStart(2, '0'),
+      do: ordinalDay,
+      dd: day.toString().padStart(2, '0'),
+      DD: day.toString().padStart(2, '0'),
+      D: day.toString(),
+      yyyy: year.toString(),
+      YYYY: year.toString(),
+      HH: hours.toString().padStart(2, '0'),
+      mm: minutes.toString().padStart(2, '0'),
+      ss: seconds.toString().padStart(2, '0'),
+      SSS: milliseconds.toString().padStart(3, '0'),
+      EEEE: weekdayFull,
+      EEE: weekdayShort,
+      EE: weekdayShort,
+      E: weekdayShort,
+    }
+
+    // 单次正则扫描替换所有占位符（按长度从长到短匹配，避免 MMMM/EEE 等被短占位符截断）
+    return format.replace(
+      /MMMM|MMM|MM|do|dd|DD|D|yyyy|YYYY|HH|mm|ss|SSS|EEEE|EEE|EE|E/g,
+      (token) => tokens[token],
+    )
   }
 
   /**

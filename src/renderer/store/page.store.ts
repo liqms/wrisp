@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { ApiResponse } from "@/shared/types";
-import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
+import type { CreatePageInput, UpdatePageInput, PageQuery, MovePageInput } from "@/shared/types/page.types";
 import type { Page, PageTree } from "@/main/types/db";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import { ErrorCode, type PageType } from "@/shared/enums";
@@ -255,6 +255,38 @@ export const usePageStore = defineStore("page", () => {
   };
 
   /**
+   * 移动页面
+   */
+  const movePage = async (data: MovePageInput): Promise<boolean> => {
+    loading.value = true;
+    errorCode.value = null;
+    errorMessage.value = null;
+
+    try {
+      const response = (await window.electronAPI.page.move(
+        data,
+      )) as ApiResponse<number>;
+
+      if (response.success && response.data && (response.data as number) > 0) {
+        return true;
+      } else {
+        errorCode.value = response.code;
+        errorMessage.value = handleApiError(response);
+        return false;
+      }
+    } catch {
+      errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
+      errorMessage.value = handleApiError({
+        success: false,
+        code: errorCode.value,
+      });
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
    * 清空错误状态
    */
   const clearError = () => {
@@ -281,6 +313,7 @@ export const usePageStore = defineStore("page", () => {
     createPage,
     updatePage,
     deletePage,
+    movePage,
     clearError,
   };
 });

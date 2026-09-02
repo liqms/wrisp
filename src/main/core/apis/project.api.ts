@@ -76,6 +76,20 @@ async function deleteProject(id: string): Promise<ApiResponse<number>> {
   }
 }
 
+async function setProjectPinned(id: string, isPinned: boolean): Promise<ApiResponse<number>> {
+  try {
+    const changes = projectService.setProjectPinned(id, isPinned);
+    if (changes > 0) {
+      return response.success(changes);
+    } else {
+      return response.error(ErrorCode.PROJECT_NOT_FOUND);
+    }
+  } catch (error) {
+    Logger.error("更新作品置顶状态失败", { error: JSON.stringify(error), id, isPinned });
+    return response.error(ErrorCode.PROJECT_UPDATE_FAILED, error as Error);
+  }
+}
+
 async function checkProjectNameExists(name: string, excludeId?: string): Promise<ApiResponse<boolean>> {
   try {
     const exists = projectService.checkProjectNameExists(name, excludeId);
@@ -92,5 +106,6 @@ export {
   createProject,
   updateProject,
   deleteProject,
+  setProjectPinned,
   checkProjectNameExists,
 }

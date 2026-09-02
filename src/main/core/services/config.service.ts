@@ -124,9 +124,17 @@ class ConfigService {
           configVersion,
           appVersion,
         );
-      }
 
-      this.config = mergedConfig;
+        // 无论是否执行了具体的迁移项，升级后都同步配置文件中的版本号为当前应用版本并持久化，
+        // 保证升级安装后配置文件中的版本号与最新版本一致
+        mergedConfig.version = appVersion;
+        mergedConfig.updatedAt = TimeUtil.toISOString(new Date());
+
+        this.config = mergedConfig;
+        this.saveConfig();
+      } else {
+        this.config = mergedConfig;
+      }
 
       Logger.debug("AppConfig 加载配置成功");
     } catch (error) {

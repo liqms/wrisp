@@ -11,6 +11,8 @@ export interface General {
   themeColor: ThemeColor;
   locale: Locale;
   updateChannel: UpdateChannel;
+  /** 日志页面日期标题行的显示格式（TimeUtil 模板，如 YYYY-MM-DD） */
+  journalDateFormat: string;
 }
 
 export interface UserInfo {

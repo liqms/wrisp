@@ -1,6 +1,6 @@
 import type { ApiResponse } from "@/shared/types";
 import type { Page, PageTree } from "@/main/types/db";
-import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
+import type { CreatePageInput, UpdatePageInput, PageQuery, MovePageInput } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import type { PageType } from "@/shared/enums";
 
@@ -17,4 +17,5 @@ export interface PageAPI {
   create(data: CreatePageInput): Promise<ApiResponse<string>>;
   update(data: UpdatePageInput): Promise<ApiResponse<number>>;
   delete(id: string): Promise<ApiResponse<number>>;
+  move(data: MovePageInput): Promise<ApiResponse<number>>;
 }

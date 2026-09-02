@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
+  "id": "page-reading-notes",
+  "version": "1.0.0",
+  "title": {
+    "zh": "阅读笔记",
+    "en": "Reading Notes"
+  },
+  "description": {
+    "zh": "书籍阅读记录与摘录骨架",
+    "en": "Book notes with excerpts skeleton"
+  },
+  "icon": "note_alt",
+  "markdown": {
+    "zh": "# 阅读笔记：《{书名}》\n\n- 作者：\n- 阅读日期：\n- 评分：⭐⭐⭐⭐⭐\n\n## 一句话总结\n\n## 核心观点\n\n1. \n2. \n3. \n\n## 摘录与批注\n\n> {原文摘录}\n\n批注：\n\n## 读后感\n\n## 行动清单\n\n- [ ] \n",
+    "en": "# Reading Notes: {Book Title}\n\n- Author:\n- Date:\n- Rating: ⭐⭐⭐⭐⭐\n\n## One-Sentence Summary\n\n## Key Ideas\n\n1. \n2. \n3. \n\n## Excerpts & Comments\n\n> {excerpt}\n\nComment:\n\n## Reflections\n\n## Action Items\n\n- [ ] \n"
+  },
+  "profession": [
+    "general"
+  ],
+  "tags": [
+    {
+      "zh": "笔记",
+      "en": "note"
+    },
+    {
+      "zh": "阅读",
+      "en": "reading"
+    }
+  ],
+  "enabled": true
+}

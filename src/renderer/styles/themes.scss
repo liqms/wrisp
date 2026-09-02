@@ -64,6 +64,15 @@
   --shadow-xl:
     0 6px 16px -9px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05),
     0 12px 48px 16px rgba(0, 0, 0, 0.03);
+  // 代码高亮（highlight.js 语义色，浅色参考 GitHub Light）
+  --hl-comment: #6e7781;
+  --hl-keyword: #cf222e;
+  --hl-string: #0a3069;
+  --hl-number: #0550ae;
+  --hl-function: #8250df;
+  --hl-attr: #953800;
+  --hl-tag: #116329;
+  --hl-meta: #57606a;
 }
 
 html[data-theme="dark"] {
@@ -72,10 +81,6 @@ html[data-theme="dark"] {
   --primary-color-hover: #7fe7c4;
   --primary-color-pressed: #5acea7;
   --primary-color-suppl: rgb(42, 148, 125);
-  --color-info: #2d8cff;
-  --color-success: #18a058;
-  --color-warning: #f0a020;
-  --color-error: #d03050;
   // 按钮颜色
   --info-color: #70c0e8;
   --info-hover: #8acbec;
@@ -136,4 +141,13 @@ html[data-theme="dark"] {
   --shadow-xl:
     0 6px 16px -9px rgba(0, 0, 0, 0.32), 0 9px 28px 0 rgba(0, 0, 0, 0.2),
     0 12px 48px 16px rgba(0, 0, 0, 0.12);
+  // 代码高亮（highlight.js 语义色，深色参考 GitHub Dark）
+  --hl-comment: #8b949e;
+  --hl-keyword: #ff7b72;
+  --hl-string: #a5d6ff;
+  --hl-number: #79c0ff;
+  --hl-function: #d2a8ff;
+  --hl-attr: #ffa657;
+  --hl-tag: #7ee787;
+  --hl-meta: #8b949e;
 }

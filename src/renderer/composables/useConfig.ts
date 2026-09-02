@@ -82,6 +82,11 @@ export function useConfig(options: UseConfigOptions = {}) {
   // 多语言相关
   const locale = computed(() => general.value?.locale ?? LOCALE.ZH);
 
+  // 日志日期标题显示格式
+  const journalDateFormat = computed(
+    () => general.value?.journalDateFormat ?? "yyyy-MM-dd",
+  );
+
   // 职业（决定 Slash Menu 展示的模板）
   const profession = computed(() => {
     return userInfo.value?.preferences?.profession ?? PROFESSION.PM;
@@ -189,6 +194,14 @@ export function useConfig(options: UseConfigOptions = {}) {
    */
   async function updateThemeColor(newColor: string): Promise<boolean> {
     return await setValue("general.themeColor", newColor);
+  }
+
+  /**
+   * 更新日志日期标题显示格式
+   */
+  async function updateJournalDateFormat(newFormat: string): Promise<boolean> {
+    if (newFormat === journalDateFormat.value) return true;
+    return await setValue("general.journalDateFormat", newFormat);
   }
 
   /**
@@ -372,6 +385,7 @@ export function useConfig(options: UseConfigOptions = {}) {
     themeMode,
     themeColor,
     locale,
+    journalDateFormat,
     profession,
     version,
     shortcuts,
@@ -383,6 +397,7 @@ export function useConfig(options: UseConfigOptions = {}) {
     setValue,
     updateThemeMode,
     updateThemeColor,
+    updateJournalDateFormat,
     updateLocale,
     updateNickname,
     updateAvatar,

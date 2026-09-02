@@ -24,6 +24,7 @@ import {
   NTag,
   NInputGroup,
   NEmpty,
+  NEllipsis,
   NImage,
   NList,
   NListItem,
@@ -50,6 +51,8 @@ import {
   NPopconfirm,
   NTooltip,
   NDataTable,
+  NTabs,
+  NTab,
 } from "naive-ui";
 
 // 创建 Naive UI 实例
@@ -80,6 +83,7 @@ const naive = create({
     NTag,
     NInputGroup,
     NEmpty,
+    NEllipsis,
     NImage,
     NList,
     NListItem,
@@ -106,6 +110,8 @@ const naive = create({
     NPopconfirm,
     NTooltip,
     NDataTable,
+    NTabs,
+    NTab,
   ],
 });
 

@@ -19,5 +19,6 @@ export interface ProjectAPI {
   create(data: ProjectCreate): Promise<ApiResponse<string>>;
   update(id: string, data: ProjectUpdate): Promise<ApiResponse<number>>;
   delete(id: string): Promise<ApiResponse<number>>;
+  setPinned(id: string, isPinned: boolean): Promise<ApiResponse<number>>;
   checkNameExists(name: string, excludeId?: string): Promise<ApiResponse<boolean>>;
 }

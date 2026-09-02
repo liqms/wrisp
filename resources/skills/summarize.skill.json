@@ -1,0 +1,98 @@
+{
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/skill.schema.json",
+  "id": "summarize",
+  "name": {
+    "zh": "摘要",
+    "en": "Summarize"
+  },
+  "description": {
+    "zh": "提取文本的核心要点，生成简洁精炼的摘要，帮助快速把握文本主旨",
+    "en": "Extract the core points of the text and generate a concise summary to help quickly grasp its main idea"
+  },
+  "icon": "📋",
+  "version": "1.0.0",
+  "author": "Wrisp Team",
+  "category": [
+    "editing",
+    "rewrite"
+  ],
+  "tags": [
+    {
+      "zh": "摘要",
+      "en": "summarize"
+    },
+    {
+      "zh": "总结",
+      "en": "summary"
+    },
+    {
+      "zh": "提要",
+      "en": "abstract"
+    },
+    {
+      "zh": "浓缩",
+      "en": "condense"
+    }
+  ],
+  "enabled": true,
+  "promptTemplate": {
+    "zh": "请为以下文本生成摘要，摘要长度为{{length}}：\n\n{{text}}\n\n要求：\n1. 提取文本的核心要点和关键信息\n2. 只输出摘要结果，不要添加任何解释",
+    "en": "Please generate a summary of the following text at {{length}} length:\n\n{{text}}\n\nRequirements:\n1. Extract the core points and key information\n2. Output only the summary, without any explanation"
+  },
+  "systemPrompt": {
+    "zh": "你是一个专业的文本摘要助手，擅长提取关键信息并生成简洁准确的摘要。",
+    "en": "You are a professional summarization assistant skilled at extracting key information and generating concise, accurate summaries."
+  },
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": {
+          "zh": "需要生成摘要的文本",
+          "en": "The text to summarize"
+        }
+      },
+      "length": {
+        "type": "string",
+        "enum": [
+          "short",
+          "medium",
+          "detailed"
+        ],
+        "default": "short",
+        "description": {
+          "zh": "摘要长度",
+          "en": "Summary length"
+        }
+      }
+    },
+    "required": [
+      "text"
+    ]
+  },
+  "output": {
+    "type": "text"
+  },
+  "preProcess": [
+    {
+      "type": "trim"
+    }
+  ],
+  "example": {
+    "zh": {
+      "input": {
+        "text": "人工智能（AI）是计算机科学的一个分支，它旨在创建能够模拟人类智能的系统。这些系统可以执行诸如学习、推理、问题解决、感知和语言理解等任务。近年来，随着深度学习技术的发展，AI在图像识别、自然语言处理和自动驾驶等领域取得了突破性进展。许多科技公司正在大量投资AI研究，推动其在医疗、金融、教育等行业的应用。然而，AI的快速发展也引发了关于隐私、就业和伦理等方面的讨论。",
+        "length": "short"
+      },
+      "output": "人工智能旨在模拟人类智能，近年来借助深度学习在图像识别、自然语言处理等领域取得突破，广泛应用的同时也引发了隐私和伦理等讨论。"
+    },
+    "en": {
+      "input": {
+        "text": "Artificial intelligence (AI) is a branch of computer science that aims to create systems capable of simulating human intelligence. These systems can perform tasks such as learning, reasoning, problem solving, perception, and language understanding. In recent years, with the development of deep learning, AI has made breakthroughs in image recognition, natural language processing, and autonomous driving. Many tech companies are investing heavily in AI research, driving its application in healthcare, finance, and education. However, the rapid development of AI has also raised discussions about privacy, employment, and ethics.",
+        "length": "short"
+      },
+      "output": "Artificial intelligence aims to simulate human intelligence. In recent years, powered by deep learning, it has achieved breakthroughs in areas such as image recognition and natural language processing. While widely applied, it has also sparked discussions on privacy and ethics."
+    }
+  }
+}

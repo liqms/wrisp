@@ -114,6 +114,25 @@ export function useProject() {
   };
 
   /**
+   * 设置作品置顶状态
+   */
+  const setPinned = async (
+    id: string,
+    isPinned: boolean,
+  ): Promise<boolean> => {
+    try {
+      const success = await store.setPinned(id, isPinned);
+      if (success) {
+        logger.info("更新作品置顶状态成功", { id, isPinned });
+      }
+      return success;
+    } catch (error) {
+      logger.error("更新作品置顶状态失败", { error, id, isPinned });
+      return false;
+    }
+  };
+
+  /**
    * 检查作品名称是否已存在
    */
   const checkNameExists = async (
@@ -145,6 +164,7 @@ export function useProject() {
     createProject,
     updateProject,
     deleteProject,
+    setPinned,
     checkNameExists,
   };
 }

@@ -1,4 +1,4 @@
-import { Id, Timestamp, Ensure, NonEmptyString, Name, Content, QueryParams, JsonMetadata, BooleanFlag } from '@/shared/types'
+import { Id, Timestamp, Ensure, NonEmptyString, Name, Content, QueryParams, JsonMetadata } from '@/shared/types'
 import type { PageType } from '@/shared/enums'
 
 export type PageId = Id
@@ -13,7 +13,6 @@ export interface Page {
   file_path: string
   order_index: number
   parent_page_id: PageId | null
-  is_container: BooleanFlag
   word_count: number
   ai_summary: Content | null
   metadata: JsonMetadata
@@ -31,7 +30,6 @@ export interface PageCreate {
   content?: Content | null
   order_index?: number
   parent_page_id?: PageId | null
-  is_container?: BooleanFlag
   word_count?: number
   ai_summary?: Content | null
   metadata?: JsonMetadata
@@ -48,7 +46,6 @@ export interface PageUpdate {
   content?: Content | null
   order_index?: number
   parent_page_id?: PageId | null
-  is_container?: BooleanFlag
   word_count?: number
   ai_summary?: Content | null
   metadata?: JsonMetadata
@@ -65,7 +62,6 @@ export type StrictPageCreate = Ensure<PageCreate, {
 export interface PageQuery extends QueryParams {
   project_id?: Id | null
   parent_page_id?: PageId | null
-  is_container?: BooleanFlag
   status?: PageStatus
   title?: Name
 }

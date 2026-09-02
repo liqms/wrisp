@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
+  "id": "interview",
+  "version": "1.0.0",
+  "title": {
+    "zh": "用户访谈",
+    "en": "User Interview"
+  },
+  "description": {
+    "zh": "插入用户访谈框架",
+    "en": "Insert user interview skeleton"
+  },
+  "icon": "forum",
+  "markdown": {
+    "zh": "## 用户访谈 - {对象}\n- 背景：\n- 原话：\n- 痛点：\n",
+    "en": "## User Interview - {subject}\n- Background:\n- Quotes:\n- Pain points:\n"
+  },
+  "profession": [
+    "pm"
+  ],
+  "tags": [
+    {
+      "zh": "调研",
+      "en": "research"
+    },
+    {
+      "zh": "访谈",
+      "en": "interview"
+    }
+  ],
+  "enabled": true
+}

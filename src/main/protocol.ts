@@ -11,6 +11,7 @@ import { configService } from '@/main/core/services/config.service'
  * 使用方式:
  * - app://xxx -> 访问应用静态资源
  * - app://cache/xxx  -> 访问用户缓存资源
+ * - app://workspace/xxx -> 访问工作空间文件（含 attachments 附件）
  */
 export function registerProtocolHandler(): void {
   try {
@@ -28,6 +29,22 @@ export function registerProtocolHandler(): void {
         // 用户缓存资源
         basePath = configService.getStaticPath('userData')
         remainingPath = filePath.slice('cache/'.length)
+      } else if (filePath.startsWith('workspace/')) {
+        // 工作空间文件（附件等）。URL 中非 ASCII 文件名会被百分号编码，需解码。
+        basePath = configService.getWorkspacePath()
+        if (!basePath) {
+          Logger.warn('app://workspace 访问失败：工作空间未配置')
+          return new Response('Not Found', {
+            status: 404,
+            headers: { 'content-type': 'text/plain' }
+          })
+        }
+        try {
+          remainingPath = decodeURIComponent(filePath.slice('workspace/'.length))
+        } catch {
+          // 非法编码序列：按原样使用
+          remainingPath = filePath.slice('workspace/'.length)
+        }
       } else {
         // 默认使用应用静态资源
         basePath = configService.getStaticPath()

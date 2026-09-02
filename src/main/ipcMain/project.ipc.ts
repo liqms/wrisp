@@ -5,6 +5,7 @@ import {
   createProject,
   updateProject,
   deleteProject,
+  setProjectPinned,
   checkProjectNameExists,
 } from "@/main/core/apis/project.api";
 import type { ApiResponse } from "@/shared/types";
@@ -62,6 +63,17 @@ export function registerProjectHandlers() {
     "project:delete",
     async (_, id: string): Promise<ApiResponse<number>> => {
       return deleteProject(id);
+    },
+  );
+
+  ipcMain.handle(
+    "project:setPinned",
+    async (
+      _,
+      id: string,
+      isPinned: boolean,
+    ): Promise<ApiResponse<number>> => {
+      return setProjectPinned(id, isPinned);
     },
   );
 

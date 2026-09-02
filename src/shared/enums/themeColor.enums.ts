@@ -82,6 +82,13 @@ export const THEME_OVERRIDES: Record<
       primaryColorSuppl: "rgb(166, 124, 82)",
       backgroundColor: "#fcfcfc",
     },
+    [THEME_COLOR.GRAPHITE]: {
+      primaryColor: "#5c6670",
+      primaryColorHover: "#74808b",
+      primaryColorPressed: "#49525b",
+      primaryColorSuppl: "rgb(92, 102, 112)",
+      backgroundColor: "#fcfcfc",
+    },
   },
   [THEME_MODE.DARK]: {
     [THEME_COLOR.RED]: {
@@ -145,6 +152,13 @@ export const THEME_OVERRIDES: Record<
       primaryColorHover: "#d2b48c",
       primaryColorPressed: "#8b5e3c",
       primaryColorSuppl: "rgb(166, 124, 82)",
+      backgroundColor: "#1c1c1f",
+    },
+    [THEME_COLOR.GRAPHITE]: {
+      primaryColor: "#a8b3bd",
+      primaryColorHover: "#c0cad3",
+      primaryColorPressed: "#939ea8",
+      primaryColorSuppl: "rgb(168, 179, 189)",
       backgroundColor: "#1c1c1f",
     },
   },

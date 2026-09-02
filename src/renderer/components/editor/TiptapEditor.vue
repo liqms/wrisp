@@ -3,22 +3,27 @@
     :style="wrapperStyle" @click="focus" @contextmenu="onContextMenu">
     <EditorContent :editor="editor" class="tiptap-editor markdown-content" />
     <BubbleMenu v-if="editor && enableBubbleMenu" :editor="editor" />
+    <ImageBubbleMenu v-if="editor && enableBubbleMenu" :editor="editor" />
     <SlashMenu v-if="slashCommand && editor" :visible="showSlashMenu" :editor="editor" :start-pos="slashStartPos"
       :query="slashQuery" @close="closeSlashMenu" />
-    <ContextMenu :visible="contextVisible" :pos-x="contextX" :pos-y="contextY" @update:visible="contextVisible = $event"
-      @cut="handleCut" @copy="handleCopy" @paste="handlePaste" @delete="handleDelete" @select-all="handleSelectAll" />
+    <ContextMenu :visible="contextVisible" :pos-x="contextX" :pos-y="contextY" :has-selection="contextHasSelection"
+      @update:visible="contextVisible = $event" @cut="handleCut" @copy="handleCopy" @paste="handlePaste"
+      @select-all="handleSelectAll" />
   </n-flex>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { useEditor, EditorContent } from "@tiptap/vue-3";
 import { createEditorExtensions } from "./extensions";
 import type { Extensions, EditorOptions } from "@tiptap/core";
 import { marked } from "marked";
+import type { PageCatalogItem } from "@/shared/types/page.types";
 import SlashMenu from "./slash/SlashMenu.vue";
-import BubbleMenu from "./BubbleMenu.vue";
-import ContextMenu from "./ContextMenu.vue";
+import BubbleMenu from "./menus/BubbleMenu.vue";
+import ImageBubbleMenu from "./features/image/ImageBubbleMenu.vue";
+import ContextMenu from "./menus/ContextMenu.vue";
 
 /** Markdown → HTML（异步，marked 返回 Promise<string>） */
 async function mdToHtml(md: string): Promise<string> {
@@ -93,11 +98,14 @@ const slashQuery = ref("");
 const contextVisible = ref(false);
 const contextX = ref(0);
 const contextY = ref(0);
+/** 右键时编辑器是否已有选中文本，用于区分上下文菜单可选项 */
+const contextHasSelection = ref(false);
 
 function onContextMenu(e: MouseEvent): void {
   e.preventDefault();
   contextX.value = e.clientX;
   contextY.value = e.clientY;
+  contextHasSelection.value = editor.value ? !editor.value.state.selection.empty : false;
   contextVisible.value = true;
 }
 
@@ -120,11 +128,6 @@ function handlePaste(): void {
   document.execCommand("paste");
 }
 
-function handleDelete(): void {
-  focusEditor();
-  editor.value?.commands?.deleteSelection?.();
-}
-
 function handleSelectAll(): void {
   focusEditor();
   editor.value?.commands?.selectAll?.();
@@ -137,9 +140,12 @@ function closeSlashMenu() {
 }
 
 // 使用公用扩展工厂 createEditorExtensions（已在工厂内自动去重）
+// 未显式传入 placeholder 时使用 i18n 文案，避免硬编码中文
+const { t } = useI18n();
+const resolvedPlaceholder = props.placeholder || t("EDITOR.PLACEHOLDER");
 const finalExtensions = (props.extensions && props.extensions.length > 0)
-  ? createEditorExtensions(props.placeholder, props.extensions)
-  : createEditorExtensions(props.placeholder);
+  ? createEditorExtensions(resolvedPlaceholder, props.extensions)
+  : createEditorExtensions(resolvedPlaceholder);
 
 const editor = useEditor({
   content: "", // 初始为空，由 watch 通过 Markdown 异步设置
@@ -267,6 +273,27 @@ const getMarkdown = (): string => {
   return editor.value?.getMarkdown() ?? "";
 };
 
+/**
+ * 提取 1-3 级标题目录（编辑器就绪后调用）。
+ * 通过 doc.descendants 遍历任意嵌套位置，pos 为标题在文档中的真实偏移，
+ * 供上层"点击目录定位到对应位置"使用。
+ */
+function getCatalog(): PageCatalogItem[] {
+  const ed = editor.value;
+  if (!ed) return [];
+  const items: PageCatalogItem[] = [];
+  ed.state.doc.descendants((node, pos) => {
+    if (node.type.name === "heading" && node.attrs.level <= 3) {
+      items.push({
+        level: node.attrs.level as 1 | 2 | 3,
+        text: node.textContent,
+        pos,
+      });
+    }
+  });
+  return items;
+}
+
 /** 监听 modelValue 变化（Markdown → HTML 后设置到编辑器，含初始化） */
 watch(
   (): string | undefined => props.modelValue,
@@ -300,7 +327,7 @@ onBeforeUnmount(() => {
   editor.value?.destroy();
 });
 
-defineExpose({ focus, clear, getHTML, getMarkdown, getText, editor });
+defineExpose({ focus, clear, getHTML, getMarkdown, getText, getCatalog, editor });
 </script>
 
 <style scoped lang="scss">

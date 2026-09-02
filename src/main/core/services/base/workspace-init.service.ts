@@ -1,8 +1,16 @@
 import fs from "fs";
 import path from "path";
+import { app } from "electron";
 import { Logger } from "@/main/utils/logger";
 import { configService } from "@/main/core/services/config.service";
-import { SQLITE_DIR, MAIN_DB_FILE } from "@/main/constants/";
+import {
+  SQLITE_DIR,
+  MAIN_DB_FILE,
+  ATTACHMENTS_DIR,
+  ATTACHMENTS_IMAGES_DIR,
+  ATTACHMENTS_FILES_DIR,
+  RESOURCES_DIR,
+} from "@/main/constants/";
 
 /**
  * 工作空间初始化服务
@@ -11,7 +19,7 @@ import { SQLITE_DIR, MAIN_DB_FILE } from "@/main/constants/";
 class WorkspaceInitService {
   private static instance: WorkspaceInitService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): WorkspaceInitService {
     if (!WorkspaceInitService.instance) {
@@ -39,6 +47,17 @@ class WorkspaceInitService {
 
     try {
       fs.mkdirSync(path.join(workspacePath, "sqlite"), { recursive: true });
+      // 附件目录：attachments/images（图片附件）+ attachments/files（普通文件附件）
+      fs.mkdirSync(
+        path.join(workspacePath, ATTACHMENTS_DIR, ATTACHMENTS_IMAGES_DIR),
+        { recursive: true },
+      );
+      fs.mkdirSync(
+        path.join(workspacePath, ATTACHMENTS_DIR, ATTACHMENTS_FILES_DIR),
+        { recursive: true },
+      );
+      // 首次启动：从打包 resources 复制到工作区
+      await this.ensureResourcesCopied(workspacePath);
       Logger.info("工作空间已就绪", { workspacePath });
     } catch (error) {
       Logger.error("确保工作空间就绪失败", {
@@ -58,6 +77,45 @@ class WorkspaceInitService {
       return true;
     }
     return !fs.existsSync(path.join(workspacePath, SQLITE_DIR, MAIN_DB_FILE));
+  }
+
+  /**
+   * 首次启动（<workspace>/resources/ 不存在）时从打包的 resources 整体复制。
+   * 后续启动不覆盖（由 resource-sync 负责增量更新）。
+   */
+  private async ensureResourcesCopied(workspacePath: string): Promise<void> {
+    const targetDir = path.join(workspacePath, RESOURCES_DIR);
+    if (fs.existsSync(targetDir)) return;
+
+    const isDev = !!process.env.VITE_DEV_SERVER_URL;
+    const sourceDir = isDev
+      ? path.resolve(app.getAppPath(), "resources")
+      : path.join(__dirname, "..", "resources");
+
+    if (!fs.existsSync(sourceDir)) {
+      Logger.warn("打包 resources 目录不存在，跳过首次复制", { sourceDir });
+      return;
+    }
+    try {
+      fs.mkdirSync(targetDir, { recursive: true });
+      this.copyDirectory(sourceDir, targetDir);
+      Logger.info("首次启动已复制 resources 到工作区", { sourceDir, targetDir });
+    } catch (error) {
+      Logger.error("复制 resources 失败", { error: String(error), sourceDir, targetDir });
+    }
+  }
+
+  private copyDirectory(src: string, dest: string): void {
+    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      if (entry.isDirectory()) {
+        fs.mkdirSync(destPath, { recursive: true });
+        this.copyDirectory(srcPath, destPath);
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
   }
 }
 

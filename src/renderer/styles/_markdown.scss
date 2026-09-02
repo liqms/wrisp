@@ -1,4 +1,4 @@
-@use './fonts' as *;
+@use "./fonts" as *;
 
 .markdown-content {
   width: 100%;
@@ -12,7 +12,7 @@
   h6 {
     margin: 14px 0 8px 0;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.5;
   }
 
   h1 {
@@ -26,7 +26,7 @@
   h3 {
     font-size: 14px;
   }
-  
+
   p {
     margin: 8px 0;
   }
@@ -67,7 +67,7 @@
     background-color: var(--bg-secondary);
     padding: 2px 6px;
     border-radius: 4px;
-    font-family: $font-family-base;
+    font-family: $font-family-mono;
     font-size: 14px;
   }
 
@@ -81,6 +81,80 @@
     code {
       background-color: transparent;
       padding: 0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    // lowlight/highlight.js 语法高亮（主题变量见 themes.scss 的 --hl-*）
+    code .hljs-comment,
+    code .hljs-quote {
+      color: var(--hl-comment);
+      font-style: italic;
+    }
+
+    code .hljs-keyword,
+    code .hljs-selector-tag,
+    code .hljs-literal,
+    code .hljs-doctag,
+    code .hljs-template-tag {
+      color: var(--hl-keyword);
+    }
+
+    code .hljs-string,
+    code .hljs-regexp,
+    code .hljs-addition {
+      color: var(--hl-string);
+    }
+
+    code .hljs-number,
+    code .hljs-symbol,
+    code .hljs-bullet,
+    code .hljs-variable,
+    code .hljs-template-variable,
+    code .hljs-link,
+    code .hljs-selector-attr {
+      color: var(--hl-number);
+    }
+
+    code .hljs-title,
+    code .hljs-title.class_,
+    code .hljs-title.function_,
+    code .hljs-built_in {
+      color: var(--hl-function);
+    }
+
+    code .hljs-attr,
+    code .hljs-attribute,
+    code .hljs-property,
+    code .hljs-selector-pseudo,
+    code .hljs-selector-class,
+    code .hljs-selector-id {
+      color: var(--hl-attr);
+    }
+
+    code .hljs-tag,
+    code .hljs-name {
+      color: var(--hl-tag);
+    }
+
+    code .hljs-meta,
+    code .hljs-subst,
+    code .hljs-section,
+    code .hljs-params,
+    code .hljs-type {
+      color: var(--hl-meta);
+    }
+
+    code .hljs-deletion {
+      color: var(--error-color);
+    }
+
+    code .hljs-emphasis {
+      font-style: italic;
+    }
+
+    code .hljs-strong {
+      font-weight: 600;
     }
   }
 
@@ -91,12 +165,112 @@
     color: var(--text-secondary);
   }
 
+  // 提示块（admonition）：左边框卡片，类型色映射主题变量（明暗主题自动适配）
+  [data-admonition] {
+    --admonition-color: var(--primary-color);
+    margin: 12px 0;
+    padding: 10px 14px;
+    border-left: 3px solid var(--admonition-color);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--admonition-color) 7%, transparent);
+
+    &[data-type="tip"] {
+      --admonition-color: var(--success-color);
+    }
+    &[data-type="info"] {
+      --admonition-color: var(--info-color);
+    }
+    &[data-type="warning"] {
+      --admonition-color: var(--warning-color);
+    }
+    &[data-type="danger"] {
+      --admonition-color: var(--error-color);
+    }
+
+    // 类型标题行（编辑态与阅读态共用）
+    &::before {
+      content: "笔记";
+      display: block;
+      font-weight: 600;
+      font-size: 0.9em;
+      margin-bottom: 4px;
+      color: var(--admonition-color);
+    }
+
+    &[data-type="tip"]::before {
+      content: "提示";
+    }
+    &[data-type="info"]::before {
+      content: "信息";
+    }
+    &[data-type="warning"]::before {
+      content: "警告";
+    }
+    &[data-type="danger"]::before {
+      content: "危险";
+    }
+
+    // 嵌套时收紧内层边距，避免视觉上过度膨胀
+    [data-admonition] {
+      margin: 8px 0;
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+  }
+
   a {
     color: var(--primary-color);
     text-decoration: none;
 
     &:hover {
       text-decoration: underline;
+    }
+  }
+
+  // Ruby 注音：<ruby>汉<rt>hàn</rt></ruby>
+  ruby {
+    rt {
+      font-size: 0.55em;
+      line-height: 1;
+      color: var(--text-tertiary);
+      letter-spacing: 0.02em;
+    }
+  }
+
+  // @ 提及：<span data-type="mention">@页面</span>
+  .mention-node {
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+    font-weight: 500;
+    cursor: default;
+  }
+
+  // 数学公式（KaTeX 渲染节点）
+  .tiptap-mathematics-render {
+    &--editable {
+      cursor: pointer;
+
+      &:hover {
+        background: var(--bg-hover);
+        border-radius: 4px;
+      }
+    }
+
+    &[data-type="block-math"] {
+      display: block;
+      margin: 8px 0;
+      text-align: center;
+      overflow-x: auto;
+    }
+
+    &.block-math-error,
+    &.inline-math-error {
+      color: var(--text-tertiary);
+      font-family: monospace;
     }
   }
 
@@ -131,4 +305,74 @@
   em {
     font-style: italic;
   }
+}
+
+/* ===== 块拖拽排序（drag-reorder）===== */
+
+// 拖拽手柄：悬停块时浮现在左侧（显隐由 @tiptap/extension-drag-handle 控制，
+// 定位由 drag-reorder 的接管逻辑改为 fixed 视口坐标：顶边对齐块顶、
+// 右缘与块左缘保持 12px 间距）
+// 手柄集群：[＋ 添加块] [⠿ 拖拽]，各自独立悬停反馈
+.drag-handle {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  color: var(--text-quaternary);
+  user-select: none;
+  // 透明桥接区：覆盖手柄按钮与块左缘之间的 12px 视觉间距，使 element 的可命中区
+  // 与块左缘连续相接。鼠标从块向左移到手柄时，mouseleave 的 relatedTarget 恒为
+  // element（padding 属于 element 的一部分），官方扩展判定 wrapper.contains(element)
+  // 为 true，不隐藏手柄。若改用外部 margin/left 间隙，间隙下方是官方 wrapper
+  // （pointer-events: none），relatedTarget 穿透 wrapper 导致手柄被误隐藏、无法选中。
+  padding-right: 12px;
+
+  // 拖拽进行中：手柄置灰反馈
+  &[data-dragging="true"] {
+    opacity: 0.4;
+  }
+}
+
+// 手柄内的按钮（添加块 / 拖拽图标）公共样式
+.drag-handle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+
+  &:hover {
+    color: var(--text-third);
+    background: var(--bg-hover);
+  }
+}
+
+// ＋ 添加块
+.drag-handle__add {
+  cursor: pointer;
+}
+
+// ⠿ 拖拽
+.drag-handle__grip {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// 拖拽落点插入线（fixed 定位，left/top/width 由 DropLine 插件内联更新）
+.wrisp-drop-line {
+  position: fixed;
+  display: none;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--primary-color);
+  transform: translateY(-1px);
+  pointer-events: none;
+  z-index: 20;
 }

@@ -14,6 +14,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     themeColor: THEME_COLOR.GREEN,
     locale: LOCALE.ZH,
     updateChannel: UPDATE_CHANNEL.STABLE,
+    journalDateFormat: "yyyy-MM-dd",
   },
   userInfo: {
     nickname: "",
@@ -31,7 +32,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       profession: PROFESSION.PM,
     },
   },
-  version: "0.1.2",
+  version: "0.1.5",
   workspace: "",
   currentProjectId: "",
   isFirstLaunch: true,
@@ -44,7 +45,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     cooldownMs: 30000,
   },
   skillsConfig: {
-    remoteUpdateEnabled: true,
+    remoteUpdateEnabled: false,
     remoteUpdateUrl: "",
   },
   shortcuts: [],

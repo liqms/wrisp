@@ -229,6 +229,26 @@ class ProjectService {
   }
 
   /**
+   * 设置作品置顶状态
+   * @param id 作品 ID
+   * @param isPinned 是否置顶
+   * @returns 受影响的行数
+   */
+  public setProjectPinned(id: string, isPinned: boolean): number {
+    try {
+      const changes = this.projectDao.update(id, { is_pinned: isPinned } as ProjectUpdate);
+      if (changes > 0) {
+        this.syncProjectJson(id);
+        Logger.info("更新作品置顶状态成功", { id, isPinned });
+      }
+      return changes;
+    } catch (error) {
+      Logger.error("更新作品置顶状态失败", { id, isPinned, error: String(error) });
+      throw error;
+    }
+  }
+
+  /**
    * 检查作品名称是否已存在
    * @param name 作品名称
    * @param excludeId 需要排除的作品 ID（更新时使用）

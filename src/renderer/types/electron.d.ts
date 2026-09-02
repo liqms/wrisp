@@ -15,18 +15,21 @@ import type {
   LLMStreamChunk,
   CostRecord,
   CostSummary,
+  ImportedImage,
 } from "@/shared/types";
 import type { LOG_LEVEL, PageType } from "@/shared/enums";
 import type { LogContext } from "@/main/utils/logger";
 import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
 import type { ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail, Page, PageTree } from "@/main/types/db";
 import type { Tag, TagCreate, TagUpdate, TagQuery, TagDetail, TagId } from "@/shared/types";
-import type { CreatePageInput, UpdatePageInput, PageQuery } from "@/shared/types/page.types";
+import type { CreatePageInput, UpdatePageInput, MovePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import type { ModelType } from "@/shared/types/model.types";
-import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
+import type { SkillListItem, CategoryNode, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
 import type { Concept, ConceptWithBlocks, Topic, TopicWithConceptsAndBlocks, Reflection, ReflectionWithBlocks, TemporalEventWithBlock } from "@/main/types/db";
 import type { UpdateAPI } from "@/main/preload/types/update";
+import type { TemplateAPI } from "@/main/preload/types/template";
+import type { ResourceAPI } from "@/main/preload/types/resource";
 
 // 定义 IPC API 接口类型（与 preload.ts 保持一致）
 export interface ElectronAPI {
@@ -115,6 +118,7 @@ export interface ElectronAPI {
     create(data: ProjectCreate): Promise<ApiResponse<string>>;
     update(id: string, data: ProjectUpdate): Promise<ApiResponse<number>>;
     delete(id: string): Promise<ApiResponse<number>>;
+    setPinned(id: string, isPinned: boolean): Promise<ApiResponse<number>>;
     checkNameExists(
       name: string,
       excludeId?: string,
@@ -134,6 +138,7 @@ export interface ElectronAPI {
     create(data: CreatePageInput): Promise<ApiResponse<string>>;
     update(data: UpdatePageInput): Promise<ApiResponse<number>>;
     delete(id: string): Promise<ApiResponse<number>>;
+    move(data: MovePageInput): Promise<ApiResponse<number>>;
   };
 
   // Model 相关
@@ -193,8 +198,6 @@ export interface ElectronAPI {
     updateCustomSkill(id: string, definition: Record<string, unknown>): Promise<ApiResponse<void>>;
     deleteCustomSkill(id: string): Promise<ApiResponse<void>>;
     setSkillEnabled(id: string, enabled: boolean): Promise<ApiResponse<void>>;
-    checkSkillUpdates(): Promise<ApiResponse<SkillUpdateItem[]>>;
-    applySkillUpdates(): Promise<ApiResponse<void>>;
     getSkillExecutions(skillId?: string, limit?: number): Promise<ApiResponse<SkillExecutionRecord[]>>;
     getSkillExecutionStats(skillId?: string): Promise<ApiResponse<{ total: number; succeeded: number; failed: number; avgTimeMs: number }>>;
   };
@@ -247,6 +250,15 @@ export interface ElectronAPI {
   // 更新相关
   update: UpdateAPI;
   template: TemplateAPI;
+
+  // 资源同步
+  resource: ResourceAPI;
+
+  // 附件相关
+  attachment: {
+    /** 导入图片附件（选择→复制到 attachments/images→返回 app:// URL）；取消时 data 为 null */
+    importImage(): Promise<ApiResponse<ImportedImage | null>>;
+  };
 
   // 通用 IPC 方法（保持向后兼容）
   send: (channel: string, data: unknown) => void;

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/skill.schema.json",
+  "id": "sentiment",
+  "name": {
+    "zh": "情感分析",
+    "en": "Sentiment Analysis"
+  },
+  "description": {
+    "zh": "分析文本的情感倾向和情绪色彩，识别作者的态度、情绪和立场",
+    "en": "Analyze the emotional tendency and tone of the text, identifying the author's attitude, emotions, and stance"
+  },
+  "icon": "💭",
+  "version": "1.0.0",
+  "author": "Wrisp Team",
+  "category": [
+    "analysis",
+    "sentiment"
+  ],
+  "tags": [
+    {
+      "zh": "情感",
+      "en": "sentiment"
+    },
+    {
+      "zh": "情绪",
+      "en": "emotion"
+    },
+    {
+      "zh": "分析",
+      "en": "analysis"
+    },
+    {
+      "zh": "语气",
+      "en": "tone"
+    }
+  ],
+  "enabled": true,
+  "promptTemplate": {
+    "zh": "请分析以下文本的情感倾向和情绪色彩：\n\n{{text}}\n\n要求：\n1. 识别文本的整体情感倾向（积极/消极/中性）\n2. 分析具体的情绪色彩（如喜悦、愤怒、悲伤、惊讶等）\n3. 指出体现情感的关键词或句子\n4. 只输出分析结果，简洁明了",
+    "en": "Please analyze the emotional tendency and tone of the following text:\n\n{{text}}\n\nRequirements:\n1. Identify the overall sentiment (positive/negative/neutral)\n2. Analyze the specific emotions (e.g., joy, anger, sadness, surprise)\n3. Point out the keywords or sentences that convey the emotion\n4. Output only the analysis result, concise and clear"
+  },
+  "systemPrompt": {
+    "zh": "你是一个专业的情感分析助手，擅长识别和分析文本中的情感倾向和情绪色彩。",
+    "en": "You are a professional sentiment analysis assistant skilled at identifying and analyzing emotional tendencies and tones in text."
+  },
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": {
+          "zh": "需要分析情感的文本",
+          "en": "The text to analyze sentiment in"
+        }
+      }
+    },
+    "required": [
+      "text"
+    ]
+  },
+  "output": {
+    "type": "text"
+  },
+  "preProcess": [
+    {
+      "type": "trim"
+    }
+  ],
+  "example": {
+    "zh": {
+      "input": {
+        "text": "今天天气真好，阳光明媚，心情格外舒畅！"
+      },
+      "output": "情感倾向：积极\n情绪色彩：喜悦、愉悦\n关键词：真好、阳光明媚、心情格外舒畅"
+    },
+    "en": {
+      "input": {
+        "text": "The weather is so nice today — the sun is shining and I feel wonderful!"
+      },
+      "output": "Sentiment: positive\nEmotions: joy, delight\nKey phrases: so nice, sun is shining, feel wonderful"
+    }
+  }
+}
