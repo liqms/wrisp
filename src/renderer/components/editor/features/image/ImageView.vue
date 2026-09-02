@@ -89,7 +89,7 @@ watch(
 const onCaptionEditTransaction = (p: { transaction: Transaction }) => {
   const target = p.transaction.getMeta("imageCaptionEdit");
   if (typeof target !== "number") return;
-  // eslint-disable-next-line no-console
+   
   console.log("[img-debug] 收到 imageCaptionEdit meta:", target, "本节点 pos:", props.getPos());
   if (target !== (props.getPos() as number)) return;
   editingCaption.value = true;

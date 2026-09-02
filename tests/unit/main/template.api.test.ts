@@ -38,6 +38,19 @@ const mockTemplateService = vi.hoisted(() => {
 
   return {
     getTemplatesFile: vi.fn(() => file),
+    getBuiltInTemplates: vi.fn(() => [
+      {
+        id: "todo",
+        version: "1.0.0",
+        title: { zh: "待办清单", en: "Todo List" },
+        description: { zh: "插入待办清单", en: "Insert a todo list" },
+        icon: "check_circle",
+        markdown: { zh: "## 待办", en: "## Todo" },
+        profession: ["general"],
+        tags: ["list"],
+        enabled: true,
+      },
+    ]),
     upsertCustomTemplate: vi.fn(() => file),
     deleteCustomTemplate: vi.fn(() => file),
     setTemplateEnabled: vi.fn(() => file),
@@ -54,6 +67,7 @@ import {
   upsertCustom,
   deleteCustom,
   setEnabled,
+  getBuiltIn,
 } from "@/main/core/apis/template.api"
 import { ErrorCode } from "@/shared/enums"
 import { TEMPLATE_TYPE } from "@/shared/enums/template.enums"
@@ -103,6 +117,14 @@ describe("Template API", () => {
     const res = await setEnabled(TEMPLATE_TYPE.SLASH, "todo", true, false)
     expect(mockTemplateService.setTemplateEnabled).toHaveBeenCalledWith(TEMPLATE_TYPE.SLASH, "todo", true, false)
     expect(res.success).toBe(true)
+  })
+
+  it("getBuiltIn 返回内置模板数组", async () => {
+    const res = await getBuiltIn(TEMPLATE_TYPE.SLASH)
+    expect(res.success).toBe(true)
+    expect(mockTemplateService.getBuiltInTemplates).toHaveBeenCalledWith(TEMPLATE_TYPE.SLASH)
+    expect(res.data).toHaveLength(1)
+    expect(res.data?.[0].id).toBe("todo")
   })
 
   it("service 抛错时 getFile 返回模板错误码", async () => {

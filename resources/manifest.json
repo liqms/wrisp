@@ -1,0 +1,210 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-08-31T10:42:56.124Z",
+  "files": [
+    {
+      "type": "page",
+      "path": "page/page-prd.json",
+      "version": "1.0.0",
+      "sha256": "037b2591db81137cebcb52194bd29e61a4ae6b2a260175a6b5be8aec8f998980"
+    },
+    {
+      "type": "page",
+      "path": "page/page-project-plan.json",
+      "version": "1.0.0",
+      "sha256": "2384e1373f2cbed0705d8622fc3030f26c81b62d339fb196fdcedeaac4c14a61"
+    },
+    {
+      "type": "page",
+      "path": "page/page-reading-notes.json",
+      "version": "1.0.0",
+      "sha256": "3bbf62efa1c485daa91331f0960941386bfcfbdb78ce23e06ec378f82cd7ea0f"
+    },
+    {
+      "type": "page",
+      "path": "page/page-tech-design.json",
+      "version": "1.0.0",
+      "sha256": "087f877ba3ba6ed58e272d664e37bb600ea635df1f5c0e2a4ea7dfc5ea6230c8"
+    },
+    {
+      "type": "page",
+      "path": "page/page-weekly-report.json",
+      "version": "1.0.0",
+      "sha256": "3d047a617a06ce686bd25f6d84f7aad9409a98dbca604cc5c4160b4eb83d94ee"
+    },
+    {
+      "type": "skill",
+      "path": "skills/continue.skill.json",
+      "version": "1.0.0",
+      "sha256": "e5662abcc6b556a105576c995bea3fcf842f93aed639025bc871c492a182a70c"
+    },
+    {
+      "type": "skill",
+      "path": "skills/expand.skill.json",
+      "version": "1.0.0",
+      "sha256": "f3696da7887a939ddc2cea4c99ef5753c399c4076d2eb5188f236989129bcd8b"
+    },
+    {
+      "type": "skill",
+      "path": "skills/grammar.skill.json",
+      "version": "1.0.0",
+      "sha256": "b74e18fa35d65166597493a15f1bdfd341261ae6df54462c88541b4b97a3ae56"
+    },
+    {
+      "type": "skill",
+      "path": "skills/keywords.skill.json",
+      "version": "1.0.0",
+      "sha256": "320c51d3d77ba9cccb0801fb6062373b365c0973fd655b7c1c0e4e27f00a0d56"
+    },
+    {
+      "type": "skill",
+      "path": "skills/outline.skill.json",
+      "version": "1.0.0",
+      "sha256": "249ef032d98e51f0f3847a8d114a8ad3170e7661da5f8077666bf9145b07eb3b"
+    },
+    {
+      "type": "skill",
+      "path": "skills/polish.skill.json",
+      "version": "1.0.0",
+      "sha256": "655f84ee38ea74c14cb92a83860d773fdcb3c210df3369c3915d3ec843e0623c"
+    },
+    {
+      "type": "skill",
+      "path": "skills/rewrite.skill.json",
+      "version": "1.0.0",
+      "sha256": "9668c48e90ce9617cbb359bcf0335e303a940e9e5482cdb6ed162cb02f791e2c"
+    },
+    {
+      "type": "skill",
+      "path": "skills/sentiment.skill.json",
+      "version": "1.0.0",
+      "sha256": "7ae72d1ebbfe102560509e44b4a528fa3c89c50ad557e9d5a586f245e17c9ecf"
+    },
+    {
+      "type": "skill",
+      "path": "skills/summarize.skill.json",
+      "version": "1.0.0",
+      "sha256": "776eeb7881c3c3cc7ed8bfa0d944c4f3f222bba247be9b87e3219a4654979678"
+    },
+    {
+      "type": "skill",
+      "path": "skills/tone.skill.json",
+      "version": "1.0.0",
+      "sha256": "2405a676b2121a2c5610fc08492b18e717c63cfd5c540be3b9ae0c4bca0aa328"
+    },
+    {
+      "type": "skill",
+      "path": "skills/translate.skill.json",
+      "version": "1.0.0",
+      "sha256": "2646e497863d1c90947c2220a9691f5b3633af177c7704905c57ade412c66b61"
+    },
+    {
+      "type": "slash",
+      "path": "slash/article.json",
+      "version": "1.0.0",
+      "sha256": "c1a9f4887579637d12417914507a88730ad88575317ccca532f08b450bb87902"
+    },
+    {
+      "type": "slash",
+      "path": "slash/brainstorm.json",
+      "version": "1.0.0",
+      "sha256": "40155798845a148a21165a90aeddaa11c895447883c3d822e6ca9135854635a7"
+    },
+    {
+      "type": "slash",
+      "path": "slash/class-notes.json",
+      "version": "1.0.0",
+      "sha256": "333441666a8dcd5b31201245efefc10b3a14cab68b9379532747ff7a85d580a2"
+    },
+    {
+      "type": "slash",
+      "path": "slash/competitor.json",
+      "version": "1.0.0",
+      "sha256": "523837b563c296f46b88577575c176cc1fa83d0488779b7e1e9e689dc1494997"
+    },
+    {
+      "type": "slash",
+      "path": "slash/daily-review.json",
+      "version": "1.0.0",
+      "sha256": "232e0d79893aaf011f229bfb013e179fe14dc9897e5a3fc191b924c561c33b26"
+    },
+    {
+      "type": "slash",
+      "path": "slash/data.json",
+      "version": "1.0.0",
+      "sha256": "2e2caf1a3568bbb9e8c947a2fae79f31779999f2de64f69b7a52ee9d7482b912"
+    },
+    {
+      "type": "slash",
+      "path": "slash/experiment.json",
+      "version": "1.0.0",
+      "sha256": "9df201a7549f166f7e51a61f3f556152c050abdaa0e3477618b304bec5bef15e"
+    },
+    {
+      "type": "slash",
+      "path": "slash/idea.json",
+      "version": "1.0.0",
+      "sha256": "3911a151bacd4f1aa63b8c9871c6da78f8d9d1782b7bced14316237a0ca3c47b"
+    },
+    {
+      "type": "slash",
+      "path": "slash/interview.json",
+      "version": "1.0.0",
+      "sha256": "d11608aeb779433eb3e719cdc5d69b0a5795e64458a8462308ccd3455ec3c9b6"
+    },
+    {
+      "type": "slash",
+      "path": "slash/literature.json",
+      "version": "1.0.0",
+      "sha256": "ae7eb1240bc77243c7f6d7e46ecc4091546b5d31aa65b888fbf82d27e1f941aa"
+    },
+    {
+      "type": "slash",
+      "path": "slash/meeting.json",
+      "version": "1.0.0",
+      "sha256": "a6a2b304461986b0e9570fc5ae31581a96418a6444f363e8ae3ce33d2a36ce8e"
+    },
+    {
+      "type": "slash",
+      "path": "slash/plan.json",
+      "version": "1.0.0",
+      "sha256": "f81d124180d092ae5f4527edbb651282f55469e41b34d5ae8a1959705352c770"
+    },
+    {
+      "type": "slash",
+      "path": "slash/reading-notes.json",
+      "version": "1.0.0",
+      "sha256": "50edf8c5f0b60a71995c88a375ffbafd43a6c1fcf00c93415e597dea90ac6d4a"
+    },
+    {
+      "type": "slash",
+      "path": "slash/requirement.json",
+      "version": "1.0.0",
+      "sha256": "4f55e3066b0b49b8c5ff657fcedce33ee37224dc9628323baaf4f6e6d9fc5540"
+    },
+    {
+      "type": "slash",
+      "path": "slash/review-outline.json",
+      "version": "1.0.0",
+      "sha256": "8771af5191dc975ab3abb3abadaa1e7f739d290061460f9efbf87aa84a3bd59e"
+    },
+    {
+      "type": "slash",
+      "path": "slash/story.json",
+      "version": "1.0.0",
+      "sha256": "de8db3c92fc4a3e715618760b0246f6ef0ab11efbb1ebcbfdd124f355f712076"
+    },
+    {
+      "type": "slash",
+      "path": "slash/tech-design.json",
+      "version": "1.0.0",
+      "sha256": "93d26c520dcfc10e1a1093378c24e2602f5ca92e975866534b069affe9d108b3"
+    },
+    {
+      "type": "slash",
+      "path": "slash/todo.json",
+      "version": "1.0.0",
+      "sha256": "f63a777f1a1ee79785ae54ac676ad5315c7cf4b0944957e8c9580c0ee86b6e38"
+    }
+  ]
+}

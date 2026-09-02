@@ -1,0 +1,100 @@
+{
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/skill.schema.json",
+  "id": "tone",
+  "name": {
+    "zh": "语气转化",
+    "en": "Tone Adjustment"
+  },
+  "description": {
+    "zh": "调整文本的语气和表达方式，使其符合特定的沟通场景和受众需求",
+    "en": "Adjust the tone and expression of the text to match specific communication scenarios and audience needs"
+  },
+  "icon": "🎭",
+  "version": "1.0.0",
+  "author": "Wrisp Team",
+  "category": [
+    "editing",
+    "tone"
+  ],
+  "tags": [
+    {
+      "zh": "语气",
+      "en": "tone"
+    },
+    {
+      "zh": "风格",
+      "en": "style"
+    },
+    {
+      "zh": "声调",
+      "en": "voice"
+    },
+    {
+      "zh": "情绪",
+      "en": "mood"
+    }
+  ],
+  "enabled": true,
+  "promptTemplate": {
+    "zh": "请将以下文本的语气转化为「{{tone}}」风格：\n\n{{text}}\n\n要求：\n1. 保留原文的核心意思\n2. 调整语气和表达方式以匹配目标风格\n3. 只输出转化后的结果，不要添加任何解释",
+    "en": "Please convert the tone of the following text to a {{tone}} style:\n\n{{text}}\n\nRequirements:\n1. Preserve the core meaning of the original\n2. Adjust the tone and expression to match the target style\n3. Output only the converted result, without any explanation"
+  },
+  "systemPrompt": {
+    "zh": "你是一个专业的语气转化助手，擅长根据不同的场景和受众调整文本的语气和表达方式。",
+    "en": "You are a professional tone adjustment assistant skilled at adapting the tone and expression of text for different scenarios and audiences."
+  },
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": {
+          "zh": "需要调整语气的文本",
+          "en": "The text to adjust tone in"
+        }
+      },
+      "tone": {
+        "type": "string",
+        "enum": [
+          "formal",
+          "relaxed",
+          "humorous",
+          "serious",
+          "warm"
+        ],
+        "default": "formal",
+        "description": {
+          "zh": "语气风格",
+          "en": "Target tone"
+        }
+      }
+    },
+    "required": [
+      "text"
+    ]
+  },
+  "output": {
+    "type": "text"
+  },
+  "preProcess": [
+    {
+      "type": "trim"
+    }
+  ],
+  "example": {
+    "zh": {
+      "input": {
+        "text": "你这个方案不行，得重新做。",
+        "tone": "warm"
+      },
+      "output": "你的方案有一些可以改进的地方，我们一起调整一下，相信可以做得更好。"
+    },
+    "en": {
+      "input": {
+        "text": "This proposal won't work — you need to redo it.",
+        "tone": "warm"
+      },
+      "output": "There are some areas in your proposal that could be improved. Let's work on it together — I'm sure we can make it even better."
+    }
+  }
+}

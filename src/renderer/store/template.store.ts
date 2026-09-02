@@ -4,13 +4,12 @@ import type {
   CustomTemplate,
   TemplateFile,
   TemplateItem,
+  TemplateResourceFile,
 } from "@/shared/types/template.types";
 import {
   TEMPLATE_TYPE,
   type TemplateType,
 } from "@/shared/enums/template.enums";
-import { builtinTemplates } from "@/renderer/components/editor/slash/commands/templates";
-import { builtinPageTemplates } from "@/renderer/templates/builtin-page-templates";
 import { mergeTemplates } from "@/renderer/components/editor/slash/commands/template-merge";
 
 export const useTemplateStore = defineStore("template", () => {
@@ -19,24 +18,33 @@ export const useTemplateStore = defineStore("template", () => {
     [TEMPLATE_TYPE.SLASH]: null,
     [TEMPLATE_TYPE.PAGE]: null,
   });
+  /** 各类型的内置模板（从工作区 resources/ 加载，按类型懒加载） */
+  const builtins = ref<Record<TemplateType, TemplateResourceFile[] | null>>({
+    [TEMPLATE_TYPE.SLASH]: null,
+    [TEMPLATE_TYPE.PAGE]: null,
+  });
   const loading = ref<Record<TemplateType, boolean>>({
     [TEMPLATE_TYPE.SLASH]: false,
     [TEMPLATE_TYPE.PAGE]: false,
   });
 
-  /** 指定类型是否已从主进程成功加载过（避免重复拉取） */
+  /** 指定类型是否已从主进程成功加载过（file 与 builtins 均就绪，避免重复拉取） */
   function isLoaded(type: TemplateType): boolean {
-    return files.value[type] !== null;
+    return files.value[type] !== null && builtins.value[type] !== null;
   }
 
-  /** 拉取指定类型的模板文件（已加载或加载中则跳过） */
+  /** 拉取指定类型的模板文件与内置模板（已加载或加载中则跳过） */
   async function fetch(type: TemplateType): Promise<void> {
-    if (loading.value[type] || files.value[type]) return;
+    if (loading.value[type] || isLoaded(type)) return;
     loading.value[type] = true;
     try {
-      const res = await window.electronAPI.template.getFile(type);
-      if (res.success && res.data) {
-        files.value[type] = res.data;
+      const fileRes = await window.electronAPI.template.getFile(type);
+      if (fileRes.success && fileRes.data) {
+        files.value[type] = fileRes.data as TemplateFile;
+      }
+      const builtinRes = await window.electronAPI.template.getBuiltIn(type);
+      if (builtinRes.success && builtinRes.data) {
+        builtins.value[type] = builtinRes.data as TemplateResourceFile[];
       }
     } finally {
       loading.value[type] = false;
@@ -50,7 +58,7 @@ export const useTemplateStore = defineStore("template", () => {
   ): Promise<boolean> {
     const res = await window.electronAPI.template.upsertCustom(type, tpl);
     if (res.success && res.data) {
-      files.value[type] = res.data;
+      files.value[type] = res.data as TemplateFile;
       return true;
     }
     return false;
@@ -63,7 +71,7 @@ export const useTemplateStore = defineStore("template", () => {
   ): Promise<boolean> {
     const res = await window.electronAPI.template.deleteCustom(type, id);
     if (res.success && res.data) {
-      files.value[type] = res.data;
+      files.value[type] = res.data as TemplateFile;
       return true;
     }
     return false;
@@ -83,29 +91,41 @@ export const useTemplateStore = defineStore("template", () => {
       enabled,
     );
     if (res.success && res.data) {
-      files.value[type] = res.data;
+      files.value[type] = res.data as TemplateFile;
       return true;
     }
     return false;
   }
 
+  /** 监听 resource:updated 后清空缓存重新加载 */
+  function invalidate(types: TemplateType[]): void {
+    for (const type of types) {
+      files.value[type] = null;
+      builtins.value[type] = null;
+    }
+  }
+
   /**
    * 合并后的全部模板（内置按当前语言解析）。
-   * slash 类型用 Slash 菜单清单；page 类型用页面文档清单。
+   * slash 与 page 共用此方法，内置模板由 builtins 提供。
    */
   function allTemplates(type: TemplateType, locale: string): TemplateItem[] {
-    const builtins =
-      type === TEMPLATE_TYPE.SLASH ? builtinTemplates : builtinPageTemplates;
-    return mergeTemplates(builtins, files.value[type], locale);
+    return mergeTemplates(
+      builtins.value[type] ?? [],
+      files.value[type],
+      locale,
+    );
   }
 
   return {
     files,
+    builtins,
     isLoaded,
     fetch,
     saveCustom,
     removeCustom,
     setEnabled,
+    invalidate,
     allTemplates,
   };
 });

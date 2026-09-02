@@ -1,12 +1,11 @@
 import { skillManager } from "@/main/core/skills/skill.manager";
 import { skillExecutor } from "@/main/core/skills/skill.executor";
-import { skillUpdater } from "@/main/core/skills/skill.updater";
 import { skillExecutionDao } from "@/main/core/db/skill-execution.dao";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import { Logger } from "@/main/utils/logger";
 import type { ApiResponse } from "@/shared/types";
-import type { SkillListItem, CategoryNode, SkillUpdateItem, SkillDefinition, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
+import type { SkillListItem, CategoryNode, SkillDefinition, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
 
 async function getSkills(): Promise<ApiResponse<SkillListItem[]>> {
   try {
@@ -99,26 +98,6 @@ async function setSkillEnabled(id: string, enabled: boolean): Promise<ApiRespons
   }
 }
 
-async function checkSkillUpdates(): Promise<ApiResponse<SkillUpdateItem[]>> {
-  try {
-    const result = await skillUpdater.checkForUpdates();
-    return response.success(result);
-  } catch (error) {
-    Logger.error("检查 Skill 更新失败", { error: String(error) });
-    return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error);
-  }
-}
-
-async function applySkillUpdates(): Promise<ApiResponse<void>> {
-  try {
-    await skillUpdater.applyUpdates();
-    return response.empty();
-  } catch (error) {
-    Logger.error("应用 Skill 更新失败", { error: String(error) });
-    return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error);
-  }
-}
-
 async function getSkillExecutions(skillId?: string, limit?: number): Promise<ApiResponse<SkillExecutionRecord[]>> {
   try {
     let result: SkillExecutionRecord[];
@@ -154,8 +133,6 @@ export {
   updateCustomSkill,
   deleteCustomSkill,
   setSkillEnabled,
-  checkSkillUpdates,
-  applySkillUpdates,
   getSkillExecutions,
   getSkillExecutionStats,
 };

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
+  "id": "literature",
+  "version": "1.0.0",
+  "title": {
+    "zh": "文献笔记",
+    "en": "Literature Note"
+  },
+  "description": {
+    "zh": "插入文献阅读笔记框架",
+    "en": "Insert literature note skeleton"
+  },
+  "icon": "science",
+  "markdown": {
+    "zh": "## 文献笔记 - {标题}\n- 作者/年份：\n- 核心观点：\n- 方法：\n- 结论：\n- 与我的研究的关系：\n",
+    "en": "## Literature Note - {title}\n- Author/Year:\n- Core argument:\n- Method:\n- Findings:\n- Relevance to my research:\n"
+  },
+  "profession": [
+    "researcher"
+  ],
+  "tags": [
+    {
+      "zh": "调研",
+      "en": "research"
+    },
+    {
+      "zh": "文献",
+      "en": "literature"
+    }
+  ],
+  "enabled": true
+}

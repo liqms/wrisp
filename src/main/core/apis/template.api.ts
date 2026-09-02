@@ -7,6 +7,7 @@ import type {
   CustomTemplate,
   TemplateFile,
 } from "@/shared/types";
+import type { TemplateResourceFile } from "@/shared/types/template.types";
 import { Logger } from "@/main/utils/logger";
 
 async function getFile(
@@ -60,4 +61,15 @@ async function setEnabled(
   }
 }
 
-export { getFile, upsertCustom, deleteCustom, setEnabled };
+async function getBuiltIn(
+  type: TemplateType,
+): Promise<ApiResponse<TemplateResourceFile[]>> {
+  try {
+    return response.success(templateService.getBuiltInTemplates(type));
+  } catch (error) {
+    Logger.error("获取内置模板失败", { error: String(error), type });
+    return response.error(ErrorCode.TEMPLATE_GET_FAILED, error as Error);
+  }
+}
+
+export { getFile, upsertCustom, deleteCustom, setEnabled, getBuiltIn };

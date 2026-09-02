@@ -4,12 +4,14 @@ import {
   upsertCustom,
   deleteCustom,
   setEnabled,
+  getBuiltIn,
 } from "@/main/core/apis/template.api";
 import type { ApiResponse } from "@/shared/types";
 import type { TemplateType } from "@/shared/enums/template.enums";
 import type {
   CustomTemplate,
   TemplateFile,
+  TemplateResourceFile,
 } from "@/shared/types/template.types";
 
 export function registerTemplateHandlers() {
@@ -17,6 +19,16 @@ export function registerTemplateHandlers() {
     "template:getFile",
     async (_, type: TemplateType): Promise<ApiResponse<TemplateFile>> => {
       return getFile(type);
+    },
+  );
+
+  ipcMain.handle(
+    "template:getBuiltIn",
+    async (
+      _,
+      type: TemplateType,
+    ): Promise<ApiResponse<TemplateResourceFile[]>> => {
+      return getBuiltIn(type);
     },
   );
 

@@ -3,10 +3,14 @@ import type { TemplateType } from "@/shared/enums/template.enums";
 import type {
   CustomTemplate,
   TemplateFile,
+  TemplateResourceFile,
 } from "@/shared/types/template.types";
 
 export interface TemplateAPI {
   getFile: (type: TemplateType) => Promise<ApiResponse<TemplateFile>>;
+  getBuiltIn: (
+    type: TemplateType,
+  ) => Promise<ApiResponse<TemplateResourceFile[]>>;
   upsertCustom: (
     type: TemplateType,
     tpl: CustomTemplate,

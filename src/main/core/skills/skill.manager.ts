@@ -4,7 +4,8 @@ import * as crypto from "crypto";
 import { app } from "electron";
 import { Logger } from "@/main/utils/logger";
 import { skillSchemaValidator } from "./skill.schema.validator";
-import { compareVersions, VersionComparison } from "@/main/utils/version";
+import { RESOURCES_DIR } from "@/main/constants/folder.constants";
+import { configService } from "@/main/core/services/config.service";
 import type {
   SkillDefinition,
   SkillManifest,
@@ -14,11 +15,84 @@ import type {
   CategoryNode,
   SkillSource,
 } from "@/shared/types/skill.types";
+import type { LocalizedText } from "@/shared/types/template.types";
 import { TimeUtil } from "@/shared/utils/time";
 
 const BUILT_IN = "built-in";
 const CUSTOM = "custom";
 const REMOTE = "remote";
+
+/** 解析双语文本：按当前语言取值，兼容旧格式（string 直接透传） */
+function resolveLocalized(
+  value: LocalizedText | string | undefined,
+  useEn: boolean,
+): string {
+  if (value === undefined) return "";
+  const raw = value as string | LocalizedText;
+  return typeof raw === "string" ? raw : useEn ? raw.en : raw.zh;
+}
+
+/** 旧格式（string）规范化为双语结构；新格式原样返回 */
+function normalizeLocalized(
+  value: string | LocalizedText,
+): LocalizedText {
+  return typeof value === "string" ? { zh: value, en: value } : value;
+}
+
+/**
+ * 旧格式 skill 文件规范化为双语结构：
+ * string 字段包装为 {zh, en}（两语言同值），旧 example 包装为双语分组。
+ * 保证进入 schema 校验的数据均为新格式，旧自定义 skill 可正常加载。
+ */
+function normalizeSkillDefinition(raw: Record<string, unknown>): SkillDefinition {
+  const skill = raw as unknown as SkillDefinition;
+  skill.name = normalizeLocalized(skill.name as string | LocalizedText);
+  skill.description = normalizeLocalized(
+    skill.description as string | LocalizedText,
+  );
+  skill.promptTemplate = normalizeLocalized(
+    skill.promptTemplate as string | LocalizedText,
+  );
+  if (skill.systemPrompt !== undefined) {
+    skill.systemPrompt = normalizeLocalized(
+      skill.systemPrompt as string | LocalizedText,
+    );
+  }
+  if (Array.isArray(skill.tags)) {
+    skill.tags = skill.tags.map((tag) =>
+      normalizeLocalized(tag as string | LocalizedText),
+    );
+  }
+  if (skill.input?.properties) {
+    for (const prop of Object.values(skill.input.properties)) {
+      if (prop.description !== undefined) {
+        prop.description = normalizeLocalized(
+          prop.description as string | LocalizedText,
+        );
+      }
+    }
+  }
+  // 旧格式 example：{input, output} → {zh: {...}, en: {...}}（两语言同内容）
+  const example = skill.example as unknown;
+  if (
+    example &&
+    typeof example === "object" &&
+    !("zh" in (example as Record<string, unknown>))
+  ) {
+    const legacy = example as { input: Record<string, unknown>; output: string };
+    skill.example = { zh: legacy, en: legacy };
+  }
+  return skill;
+}
+
+/** 读取当前语言是否为英文（与渲染层 general.locale 配置一致） */
+function isEnglishLocale(): boolean {
+  try {
+    return configService.getValue<string>("general.locale") === "enUS";
+  } catch {
+    return false;
+  }
+}
 
 class SkillManager {
   private static instance: SkillManager | null = null;
@@ -49,17 +123,19 @@ class SkillManager {
         this.skillsDir = path.join(app.getPath("userData"), "skills");
       }
 
-      const exists = fs.existsSync(this.skillsDir);
-
-      if (!exists) {
+      if (!fs.existsSync(this.skillsDir)) {
         Logger.info("Skills directory not found, creating...");
-        fs.mkdirSync(path.join(this.skillsDir, BUILT_IN), { recursive: true });
         fs.mkdirSync(path.join(this.skillsDir, CUSTOM), { recursive: true });
-        fs.mkdirSync(path.join(this.skillsDir, REMOTE), { recursive: true });
+      }
 
-        this.copyBuiltInSkills();
-      } else {
-        this.syncBuiltInSkills();
+      // 兼容旧版本：废弃目录日志提示
+      const legacyBuiltIn = path.join(this.skillsDir, BUILT_IN);
+      if (fs.existsSync(legacyBuiltIn)) {
+        Logger.warn("检测到废弃的 <skillsDir>/built-in/ 目录，已停止加载。新版本从 <workspace>/resources/skills/ 加载。", { legacyDir: legacyBuiltIn });
+      }
+      const legacyRemote = path.join(this.skillsDir, REMOTE);
+      if (fs.existsSync(legacyRemote)) {
+        Logger.warn("检测到废弃的 <skillsDir>/remote/ 目录，已停止加载。远程同步由 resource-sync 处理。", { legacyDir: legacyRemote });
       }
 
       this.loadSkills();
@@ -307,13 +383,16 @@ class SkillManager {
   }
 
   private loadSkills(): void {
+    const workspacePath: string = (globalThis as Record<string, unknown>)
+      .__WRISP_WORKSPACE_PATH__ as string;
+    const builtinDir = workspacePath
+      ? path.join(workspacePath, RESOURCES_DIR, "skills")
+      : path.join(app.getPath("userData"), RESOURCES_DIR, "skills");
+    const customDir = path.join(this.skillsDir, CUSTOM);
+
     const sourceDirs: { dir: string; source: SkillSource }[] = [
-      {
-        dir: path.join(this.skillsDir, BUILT_IN),
-        source: BUILT_IN as SkillSource,
-      },
-      { dir: path.join(this.skillsDir, CUSTOM), source: CUSTOM as SkillSource },
-      { dir: path.join(this.skillsDir, REMOTE), source: REMOTE as SkillSource },
+      { dir: builtinDir, source: BUILT_IN as SkillSource },
+      { dir: customDir, source: CUSTOM as SkillSource },
     ];
 
     for (const { dir, source } of sourceDirs) {
@@ -331,7 +410,9 @@ class SkillManager {
         const filePath = path.join(dir, file);
         try {
           const content = fs.readFileSync(filePath, "utf-8");
-          const skill: SkillDefinition = JSON.parse(content);
+          const parsed: Record<string, unknown> = JSON.parse(content);
+          // 旧格式规范化为双语结构后再校验，保证历史自定义 skill 可加载
+          const skill = normalizeSkillDefinition(parsed);
           const validation = skillSchemaValidator.validate(skill);
           if (!validation.valid) {
             const errorMsgs = validation.errors
@@ -560,20 +641,44 @@ class SkillManager {
   }
 
   private toListItem(skill: SkillDefinition): SkillListItem {
+    const useEn = isEnglishLocale();
+
+    // 按当前语言解析 input 参数说明（浅拷贝，避免修改原始定义）
+    const input: SkillListItem["input"] = skill.input
+      ? {
+          ...skill.input,
+          properties: Object.fromEntries(
+            Object.entries(skill.input.properties).map(([key, prop]) => [
+              key,
+              {
+                ...prop,
+                description: prop.description
+                  ? resolveLocalized(prop.description, useEn)
+                  : undefined,
+              },
+            ]),
+          ),
+        }
+      : undefined;
+
     return {
       id: skill.id,
-      name: skill.name,
-      description: skill.description,
+      name: resolveLocalized(skill.name, useEn),
+      description: resolveLocalized(skill.description, useEn),
       icon: skill.icon,
       version: skill.version,
       author: skill.author,
       category: skill.category,
-      tags: skill.tags,
+      tags: (skill.tags ?? []).map((tag) => resolveLocalized(tag, useEn)),
       enabled: skill.enabled,
       source: this.getSkillSource(skill.id),
       level: skill.tools && skill.tools.length > 0 ? "L2" : "L1",
-      input: skill.input,
-      example: skill.example,
+      input,
+      example: skill.example
+        ? useEn
+          ? skill.example.en
+          : skill.example.zh
+        : undefined,
     };
   }
 
@@ -586,93 +691,6 @@ class SkillManager {
           error: String(error),
         });
       }
-    }
-  }
-
-  private getBuiltInSourceDir(): string {
-    const isDev = !!process.env.VITE_DEV_SERVER_URL;
-    if (isDev) {
-      return path.join(app.getAppPath(), "resources", "skills", BUILT_IN);
-    }
-    return path.join(__dirname, "..", "resources", "skills", BUILT_IN);
-  }
-
-  private copyBuiltInSkills(): void {
-    const sourceDir = this.getBuiltInSourceDir();
-    if (!fs.existsSync(sourceDir)) {
-      Logger.warn("Built-in skills source directory not found", { sourceDir });
-      return;
-    }
-
-    const targetDir = path.join(this.skillsDir, BUILT_IN);
-    try {
-      const files = fs
-        .readdirSync(sourceDir)
-        .filter((f) => f.endsWith(".skill.json"));
-      for (const file of files) {
-        const srcPath = path.join(sourceDir, file);
-        const destPath = path.join(targetDir, file);
-        fs.copyFileSync(srcPath, destPath);
-        Logger.info(`Copied built-in skill: ${file}`);
-      }
-    } catch (error) {
-      Logger.error("Failed to copy built-in skills", { error: String(error) });
-    }
-  }
-
-  private syncBuiltInSkills(): void {
-    const sourceDir = this.getBuiltInSourceDir();
-    if (!fs.existsSync(sourceDir)) {
-      Logger.warn("Built-in skills source directory not found for sync", {
-        sourceDir,
-      });
-      return;
-    }
-
-    const targetDir = path.join(this.skillsDir, BUILT_IN);
-    try {
-      const sourceFiles = fs
-        .readdirSync(sourceDir)
-        .filter((f) => f.endsWith(".skill.json"));
-
-      for (const file of sourceFiles) {
-        const srcPath = path.join(sourceDir, file);
-        const destPath = path.join(targetDir, file);
-
-        let sourceSkill: SkillDefinition;
-        try {
-          sourceSkill = JSON.parse(fs.readFileSync(srcPath, "utf-8"));
-        } catch {
-          Logger.warn(`Failed to parse source skill: ${file}`);
-          continue;
-        }
-
-        if (fs.existsSync(destPath)) {
-          let installedSkill: SkillDefinition;
-          try {
-            installedSkill = JSON.parse(fs.readFileSync(destPath, "utf-8"));
-          } catch {
-            fs.copyFileSync(srcPath, destPath);
-            Logger.info(`Updated built-in skill (unreadable): ${file}`);
-            continue;
-          }
-
-          if (
-            compareVersions(installedSkill.version, sourceSkill.version) !==
-            VersionComparison.EQUAL
-          ) {
-            fs.copyFileSync(srcPath, destPath);
-            Logger.info(
-              `Updated built-in skill: ${file} (${installedSkill.version} → ${sourceSkill.version})`,
-            );
-          }
-        } else {
-          fs.copyFileSync(srcPath, destPath);
-          Logger.info(`Installed new built-in skill: ${file}`);
-        }
-      }
-    } catch (error) {
-      Logger.error("Failed to sync built-in skills", { error: String(error) });
     }
   }
 }

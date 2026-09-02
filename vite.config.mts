@@ -38,7 +38,24 @@ function copySchemas() {
   }
 }
 
+function copyResources() {
+  const srcPath = path.resolve(import.meta.dirname, 'resources')
+  const destPath = path.resolve(import.meta.dirname, 'dist-electron/resources')
+
+  if (fs.existsSync(srcPath)) {
+    if (!fs.existsSync(destPath)) {
+      fs.mkdirSync(destPath, { recursive: true })
+    }
+
+    const files = fs.readdirSync(srcPath)
+    files.forEach(file => {
+      copyRecursive(path.join(srcPath, file), path.join(destPath, file))
+    })
+  }
+}
+
 copySchemas()
+copyResources()
 
 // https://vitejs.dev/config/
 export default defineConfig({

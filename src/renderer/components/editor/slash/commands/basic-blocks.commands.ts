@@ -155,15 +155,15 @@ export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup 
       icon: ImageOutlined,
       action: ({ editor, pos }) => importImageAttachment(editor, pos),
     },
-    {
-      id: "basic-mention",
-      title: t("EDITOR.SLASH.BASIC_BLOCKS.MENTION_TITLE"),
-      description: t("EDITOR.SLASH.BASIC_BLOCKS.MENTION_DESC"),
-      icon: AlternateEmailOutlined,
-      // 插入 @ 触发字符，用户继续输入即可弹出页面建议列表
-      action: ({ editor, pos }) =>
-        run(editor, pos, (ed) => ed.chain().focus().insertContent("@").run()),
-    },
+    // {
+    //   id: "basic-mention",
+    //   title: t("EDITOR.SLASH.BASIC_BLOCKS.MENTION_TITLE"),
+    //   description: t("EDITOR.SLASH.BASIC_BLOCKS.MENTION_DESC"),
+    //   icon: AlternateEmailOutlined,
+    //   // 插入 @ 触发字符，用户继续输入即可弹出页面建议列表
+    //   action: ({ editor, pos }) =>
+    //     run(editor, pos, (ed) => ed.chain().focus().insertContent("@").run()),
+    // },
     {
       id: "basic-inline-math",
       title: t("EDITOR.SLASH.BASIC_BLOCKS.INLINE_MATH_TITLE"),

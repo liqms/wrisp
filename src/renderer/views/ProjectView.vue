@@ -24,9 +24,8 @@
     <div ref="scrollContainerRef" class="project-scroll" @scroll="handleScroll">
       <n-spin :show="loading && allProjects.length === 0">
         <!-- 空状态 -->
-        <n-flex v-if="allProjects.length === 0 && !loading" class="empty-state">
-          <n-text depth="3">{{ t('TIPS.PROJECT.NO_PROJECT') }}</n-text>
-        </n-flex>
+        <n-empty v-if="allProjects.length === 0 && !loading" class="empty-state"
+          :description="t('TIPS.PROJECT.NO_PROJECT')" />
 
         <template v-else>
           <!-- 置顶作品模块 -->
@@ -211,7 +210,7 @@ onMounted(() => {
 @use "@/renderer/styles/_variables" as *;
 
 .project-view {
-  padding: $spacing-lg;
+  padding: $spacing-xl;
   height: 100%;
   gap: $spacing-md;
 
@@ -233,9 +232,6 @@ onMounted(() => {
   }
 
   .empty-state {
-    display: flex;
-    justify-content: center;
-    align-items: center;
     padding: 80px 0;
   }
 

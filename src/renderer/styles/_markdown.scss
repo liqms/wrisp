@@ -319,6 +319,12 @@
   height: 24px;
   color: var(--text-quaternary);
   user-select: none;
+  // 透明桥接区：覆盖手柄按钮与块左缘之间的 12px 视觉间距，使 element 的可命中区
+  // 与块左缘连续相接。鼠标从块向左移到手柄时，mouseleave 的 relatedTarget 恒为
+  // element（padding 属于 element 的一部分），官方扩展判定 wrapper.contains(element)
+  // 为 true，不隐藏手柄。若改用外部 margin/left 间隙，间隙下方是官方 wrapper
+  // （pointer-events: none），relatedTarget 穿透 wrapper 导致手柄被误隐藏、无法选中。
+  padding-right: 12px;
 
   // 拖拽进行中：手柄置灰反馈
   &[data-dragging="true"] {

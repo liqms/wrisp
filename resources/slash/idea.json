@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
+  "id": "idea",
+  "version": "1.0.0",
+  "title": {
+    "zh": "灵感记录",
+    "en": "Idea Capture"
+  },
+  "description": {
+    "zh": "插入灵感记录框架",
+    "en": "Insert idea capture skeleton"
+  },
+  "icon": "lightbulb",
+  "markdown": {
+    "zh": "## 灵感记录 - {主题}\n- 触发点：\n- 想法：\n- 可能的发展方向：\n",
+    "en": "## Idea Capture - {topic}\n- Trigger:\n- Idea:\n- Possible directions:\n"
+  },
+  "profession": [
+    "writer"
+  ],
+  "tags": [
+    {
+      "zh": "创意",
+      "en": "ideation"
+    },
+    {
+      "zh": "想法",
+      "en": "idea"
+    }
+  ],
+  "enabled": true
+}

@@ -45,7 +45,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     cooldownMs: 30000,
   },
   skillsConfig: {
-    remoteUpdateEnabled: true,
+    remoteUpdateEnabled: false,
     remoteUpdateUrl: "",
   },
   shortcuts: [],

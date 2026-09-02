@@ -1,0 +1,83 @@
+{
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/skill.schema.json",
+  "id": "keywords",
+  "name": {
+    "zh": "关键词提取",
+    "en": "Keyword Extraction"
+  },
+  "description": {
+    "zh": "从文本中提取核心关键词和关键短语，识别文本的主要主题和重点内容",
+    "en": "Extract core keywords and key phrases from the text to identify its main themes and key points"
+  },
+  "icon": "🔑",
+  "version": "1.0.0",
+  "author": "Wrisp Team",
+  "category": [
+    "analysis",
+    "keyword"
+  ],
+  "tags": [
+    {
+      "zh": "关键词",
+      "en": "keywords"
+    },
+    {
+      "zh": "提取",
+      "en": "extraction"
+    },
+    {
+      "zh": "分析",
+      "en": "analysis"
+    },
+    {
+      "zh": "主题",
+      "en": "topic"
+    }
+  ],
+  "enabled": true,
+  "promptTemplate": {
+    "zh": "请从以下文本中提取核心关键词和关键短语：\n\n{{text}}\n\n要求：\n1. 提取 5-10 个最能代表文本核心内容的关键词或短语\n2. 按重要性从高到低排列\n3. 每个关键词用逗号分隔\n4. 只输出关键词列表，不要添加任何解释",
+    "en": "Please extract the core keywords and key phrases from the following text:\n\n{{text}}\n\nRequirements:\n1. Extract 5-10 keywords or phrases that best represent the core content\n2. Rank them by importance from high to low\n3. Separate each keyword with a comma\n4. Output only the keyword list, without any explanation"
+  },
+  "systemPrompt": {
+    "zh": "你是一个专业的关键词提取助手，擅长从文本中准确识别和提取核心关键词。",
+    "en": "You are a professional keyword extraction assistant skilled at accurately identifying and extracting core keywords from text."
+  },
+  "input": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": {
+          "zh": "需要提取关键词的文本",
+          "en": "The text to extract keywords from"
+        }
+      }
+    },
+    "required": [
+      "text"
+    ]
+  },
+  "output": {
+    "type": "text"
+  },
+  "preProcess": [
+    {
+      "type": "trim"
+    }
+  ],
+  "example": {
+    "zh": {
+      "input": {
+        "text": "深度学习是机器学习的一个子集，它使用多层神经网络来模拟人脑的学习过程。通过大量数据的训练，深度学习模型能够自动提取特征，在图像识别、语音识别和自然语言处理等领域取得了显著成果。"
+      },
+      "output": "深度学习, 神经网络, 机器学习, 图像识别, 自然语言处理, 语音识别, 特征提取, 模型训练"
+    },
+    "en": {
+      "input": {
+        "text": "Deep learning is a subset of machine learning that uses multi-layer neural networks to simulate the learning process of the human brain. Through training on large amounts of data, deep learning models can automatically extract features and have achieved remarkable results in fields such as image recognition, speech recognition, and natural language processing."
+      },
+      "output": "deep learning, neural networks, machine learning, image recognition, natural language processing, speech recognition, feature extraction, model training"
+    }
+  }
+}

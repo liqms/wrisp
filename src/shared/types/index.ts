@@ -15,3 +15,4 @@ export * from "./tag.types";
 export * from "./page.types";
 export * from "./template.types";
 export * from "./attachment.types";
+export * from "./resource.types";

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/liqms/wrisp/main/resources/schemas/template.schema.json",
+  "id": "reading-notes",
+  "version": "1.0.0",
+  "title": {
+    "zh": "读书笔记",
+    "en": "Reading Notes"
+  },
+  "description": {
+    "zh": "插入读书笔记框架",
+    "en": "Insert reading notes skeleton"
+  },
+  "icon": "menu_book",
+  "markdown": {
+    "zh": "## 读书笔记 - {书名}\n- 作者：\n- 核心内容：\n- 金句摘录：\n- 我的思考：\n",
+    "en": "## Reading Notes - {book}\n- Author:\n- Core content:\n- Quotes:\n- My thoughts:\n"
+  },
+  "profession": [
+    "student"
+  ],
+  "tags": [
+    {
+      "zh": "学习",
+      "en": "study"
+    },
+    {
+      "zh": "阅读",
+      "en": "reading"
+    }
+  ],
+  "enabled": true
+}

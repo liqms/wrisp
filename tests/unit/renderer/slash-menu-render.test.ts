@@ -35,6 +35,12 @@ beforeAll(() => {
       code: 0,
       timestamp: Date.now(),
     }),
+    getBuiltIn: vi.fn().mockResolvedValue({
+      success: true,
+      data: [],
+      code: 0,
+      timestamp: Date.now(),
+    }),
   };
 });
 
