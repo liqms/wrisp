@@ -4,6 +4,7 @@ import type {
   ProjectUpdate,
   ProjectQuery,
   ProjectDetail,
+  ProjectReloadResult,
 } from "@/main/types/db";
 import type { PaginationResult } from "@/shared/utils/pagination";
 
@@ -21,4 +22,5 @@ export interface ProjectAPI {
   delete(id: string): Promise<ApiResponse<number>>;
   setPinned(id: string, isPinned: boolean): Promise<ApiResponse<number>>;
   checkNameExists(name: string, excludeId?: string): Promise<ApiResponse<boolean>>;
+  resetProjectTable(): Promise<ApiResponse<ProjectReloadResult>>;
 }

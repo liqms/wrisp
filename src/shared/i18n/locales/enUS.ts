@@ -547,6 +547,7 @@ export default {
       DELETE_FAILED: "Failed to delete project",
       LIST_FAILED: "Failed to get project list",
       NOT_FOUND: "Project not found",
+      RESET_FAILED: "Failed to reset project data",
     },
     TAG: {
       CREATE_FAILED: "Failed to create tag",

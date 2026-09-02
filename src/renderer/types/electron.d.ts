@@ -20,7 +20,7 @@ import type {
 import type { LOG_LEVEL, PageType } from "@/shared/enums";
 import type { LogContext } from "@/main/utils/logger";
 import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
-import type { ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail, Page, PageTree } from "@/main/types/db";
+import type { ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail, ProjectReloadResult, Page, PageTree } from "@/main/types/db";
 import type { Tag, TagCreate, TagUpdate, TagQuery, TagDetail, TagId } from "@/shared/types";
 import type { CreatePageInput, UpdatePageInput, MovePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
@@ -123,6 +123,7 @@ export interface ElectronAPI {
       name: string,
       excludeId?: string,
     ): Promise<ApiResponse<boolean>>;
+    resetProjectTable(): Promise<ApiResponse<ProjectReloadResult>>;
   };
   // Page 相关
   page: {

@@ -539,6 +539,7 @@ export default {
       DELETE_FAILED: "删除作品失败",
       LIST_FAILED: "获取作品列表失败",
       NOT_FOUND: "作品不存在",
+      RESET_FAILED: "重置作品数据失败",
     },
     TAG: {
       CREATE_FAILED: "创建标签失败",
