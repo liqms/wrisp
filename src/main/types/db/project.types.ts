@@ -68,3 +68,10 @@ export interface ProjectDetail extends Project {
   page_count: number
   tags?: Tag[]
 }
+
+export interface ProjectReloadResult {
+  /** 重载的作品数量 */
+  projects: number
+  /** 重载的页面数量 */
+  pages: number
+}

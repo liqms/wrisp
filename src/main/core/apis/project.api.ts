@@ -2,7 +2,7 @@ import { projectService } from "@/main/core/services/project.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";
-import type { ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail } from "@/main/types/db";
+import type { ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail, ProjectReloadResult } from "@/main/types/db";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import { Logger } from "@/main/utils/logger";
 
@@ -100,6 +100,20 @@ async function checkProjectNameExists(name: string, excludeId?: string): Promise
   }
 }
 
+/**
+ * 根据作品文件夹中的 project.json / pages.json 重置 projects 与 pages 表
+ * @returns 重载的作品与页面数量
+ */
+async function resetProjectTable(): Promise<ApiResponse<ProjectReloadResult>> {
+  try {
+    const result = projectService.resetProjectTable();
+    return response.success(result);
+  } catch (error) {
+    Logger.error("重置 projects/pages 表失败", { error: String(error) });
+    return response.error(ErrorCode.PROJECT_RESET_FAILED, error as Error);
+  }
+}
+
 export {
   getProject,
   paginateProjects,
@@ -108,4 +122,5 @@ export {
   deleteProject,
   setProjectPinned,
   checkProjectNameExists,
+  resetProjectTable,
 }

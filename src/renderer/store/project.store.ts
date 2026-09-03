@@ -6,6 +6,7 @@ import type {
     ProjectUpdate,
     ProjectQuery,
     ProjectDetail,
+    ProjectReloadResult,
 } from "@/main/types/db";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import { ErrorCode } from "@/shared/enums";
@@ -304,6 +305,32 @@ export const useProjectStore = defineStore("project", () => {
         }
     };
 
+    /**
+     * 重置 projects/pages 表（从磁盘 project.json/pages.json 重载）
+     */
+    const resetProjectTable = async (): Promise<ProjectReloadResult | null> => {
+        errorCode.value = null;
+        errorMessage.value = null;
+
+        try {
+            const response = (await window.electronAPI.project.resetProjectTable()) as ApiResponse<ProjectReloadResult>;
+
+            if (response.success && response.data) {
+                return response.data as ProjectReloadResult;
+            }
+            errorCode.value = response.code;
+            errorMessage.value = handleApiError(response);
+            return null;
+        } catch {
+            errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
+            errorMessage.value = handleApiError({
+                success: false,
+                code: errorCode.value,
+            });
+            return null;
+        }
+    };
+
     return {
         // 状态
         projects,
@@ -323,5 +350,6 @@ export const useProjectStore = defineStore("project", () => {
         deleteProject,
         setPinned,
         checkNameExists,
+        resetProjectTable,
     };
 });
