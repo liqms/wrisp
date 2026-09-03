@@ -9,7 +9,7 @@ export const DEFAULT_MODEL_CONFIG: ModelConfig = {
     providerPriority: [],
     enableAiMode: false,
     enableCloudAi: false,
-    version: "0.1.5",
+    version: "0.1.6",
     updatedAt: TimeUtil.toISOString(Date.now()),
 }
 

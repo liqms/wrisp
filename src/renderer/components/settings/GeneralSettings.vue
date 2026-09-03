@@ -118,6 +118,7 @@ import { useI18n } from "vue-i18n";
 import type { AppConfig } from "@/shared/types";
 import { useConfig } from "@/renderer/composables/useConfig";
 import { useJournal } from "@/renderer/composables/useJournal";
+import { useProject } from "@/renderer/composables/useProject";
 import { useMessage } from "naive-ui";
 import ColorCard from "@/renderer/components/base/ColorCard.vue";
 import UpdatePrompt from "@/renderer/components/UpdatePrompt.vue";
@@ -139,6 +140,7 @@ defineProps<{ config: AppConfig | null }>();
 const { t } = useI18n();
 const message = useMessage();
 const { resetJournalTable } = useJournal();
+const { resetProjectTable } = useProject();
 const rebuildingIndex = ref(false);
 const configStore = useConfig();
 const {
@@ -366,8 +368,17 @@ const rebuildIndex = async () => {
   if (rebuildingIndex.value) return;
   rebuildingIndex.value = true;
   try {
-    const count = await resetJournalTable();
-    message.success(t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX_SUCCESS", { count }));
+    const [journalCount, projectResult] = await Promise.all([
+      resetJournalTable(),
+      resetProjectTable(),
+    ]);
+    message.success(
+      t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX_SUCCESS", {
+        journals: journalCount,
+        projects: projectResult?.projects ?? 0,
+        pages: projectResult?.pages ?? 0,
+      }),
+    );
   } catch (error) {
     logger.error("重建索引失败", { error });
     message.error(t("ERROR.COMMON.ACTION_ERROR"));

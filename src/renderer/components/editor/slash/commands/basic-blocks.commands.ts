@@ -9,7 +9,6 @@ import {
   FormatQuoteOutlined,
   HorizontalRuleOutlined,
   ImageOutlined,
-  AlternateEmailOutlined,
   FunctionsOutlined,
   CampaignOutlined,
 } from "@vicons/material";

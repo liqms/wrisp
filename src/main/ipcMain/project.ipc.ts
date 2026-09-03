@@ -7,6 +7,7 @@ import {
   deleteProject,
   setProjectPinned,
   checkProjectNameExists,
+  resetProjectTable,
 } from "@/main/core/apis/project.api";
 import type { ApiResponse } from "@/shared/types";
 import type {
@@ -14,6 +15,7 @@ import type {
   ProjectUpdate,
   ProjectQuery,
   ProjectDetail,
+  ProjectReloadResult,
 } from "@/main/types/db";
 import type { PaginationResult } from "@/shared/utils/pagination";
 
@@ -85,6 +87,13 @@ export function registerProjectHandlers() {
       excludeId?: string,
     ): Promise<ApiResponse<boolean>> => {
       return checkProjectNameExists(name, excludeId);
+    },
+  );
+
+  ipcMain.handle(
+    "project:resetProjectTable",
+    async (): Promise<ApiResponse<ProjectReloadResult>> => {
+      return resetProjectTable();
     },
   );
 }
