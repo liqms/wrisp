@@ -239,14 +239,32 @@
     }
   }
 
-  // @ 提及：<span data-type="mention">@页面</span>
+  // 行内语义 token（Logseq 风格）：[[双链]] / #标签 / @人物
+  // 符号弱化、正文正常显示、悬浮突出显示（.mention-node 旧版 @ 提及节点合并为同款风格）
+  .inline-sem,
+  .inline-sem-symbol,
   .mention-node {
-    padding: 1px 4px;
+    cursor: pointer;
     border-radius: 4px;
-    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .inline-sem:hover,
+  .inline-sem-symbol:hover,
+  .mention-node:hover {
     color: var(--primary-color);
-    font-weight: 500;
-    cursor: default;
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  }
+
+  // 符号（[[、]]、#、@）默认弱化，悬浮时跟随 token 高亮
+  .inline-sem-symbol {
+    color: var(--text-tertiary);
+
+    .inline-sem:hover & {
+      color: var(--primary-color);
+    }
   }
 
   // 数学公式（KaTeX 渲染节点）

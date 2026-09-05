@@ -20,6 +20,7 @@ import { Admonition, registerAdmonitionBridge } from "./features/admonition/admo
 import { Ruby } from "./features/ruby/ruby-extension";
 import { createLegacyMentionExtension } from "./features/mention/mention-extension";
 import { createInlineSemanticSuggestExtension } from "./features/inline-semantic/inline-semantic-suggest";
+import { createInlineSemanticDecoration } from "./features/inline-semantic/inline-semantic-decoration";
 import { createMathematicsExtension } from "./features/math/mathematics-extension";
 import { createCodeBlockLowlight } from "./features/code-block/code-block-extension";
 import { createImageExtension } from "./features/image/image-extension";
@@ -83,6 +84,8 @@ export function getExtensions(placeholder?: string): Extensions {
     createLegacyMentionExtension(),
     // 行内语义建议：@ 人物 / # 标签，选中插入纯文本
     createInlineSemanticSuggestExtension(),
+    // 行内语义 Decoration：[[双链]] / #标签 / @人物 的 Logseq 风格渲染（纯视觉，不改文档结构）
+    createInlineSemanticDecoration(),
     // 数学公式（行内 $...$ + 块级 $$...$$，KaTeX 渲染 + 点击编辑浮层）
     ...createMathematicsExtension(),
     TaskList,
