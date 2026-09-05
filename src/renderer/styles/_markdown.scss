@@ -33,6 +33,39 @@
     display: block;
   }
 
+  // ===== prosemirror-view 官方基础样式（prosemirror.css）补丁 =====
+  // 项目从未引入官方 CSS，以下按官方文件补齐缺失规则（仅做主题变量适配）。
+  // 白空格保留 + 换行：缺失时连续空格视觉折叠为 1 个（数据保留但所见非所存），
+  // 长无空格串（长 URL）不换行，在 overflow 滚动容器中被直接裁剪不可见。
+  .ProseMirror {
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    white-space: break-spaces;
+    // 禁用连字：fi/fl 等连字会导致光标定位与选区边界偏移
+    -webkit-font-variant-ligatures: none;
+    font-variant-ligatures: none;
+  }
+
+  // 拖拽期间 prosemirror-view 给编辑器根加 -hideselection 隐藏原生选区，
+  // 缺失时 DragHandle 拖块原位选区高亮不消失，与拖拽预览/插入线视觉叠加
+  .ProseMirror-hideselection *::selection {
+    background: transparent;
+  }
+
+  .ProseMirror-hideselection * {
+    caret-color: transparent;
+  }
+
+  // 防御性规则（官方同款）：保证 prosemirror 内部拖拽/选区占位符
+  // 不被全局 img 样式破坏（将来若加全局 img 规则仍安全）
+  .ProseMirror [draggable][contenteditable="false"] {
+    user-select: text;
+  }
+
+  .ProseMirror img.ProseMirror-separator {
+    display: inline !important;
+  }
+
   h1,
   h2,
   h3,
