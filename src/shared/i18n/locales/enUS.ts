@@ -250,6 +250,9 @@ export default {
         GROUP_LABEL: "Content Templates",
       },
     },
+    INLINE_SEMANTIC: {
+      NO_MATCH: "No matches",
+    },
     BLOCKS: {
       GROUP_LABEL: "Content Cards",
       COMMON: {

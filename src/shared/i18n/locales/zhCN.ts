@@ -248,6 +248,9 @@ export default {
         GROUP_LABEL: "内容模板",
       },
     },
+    INLINE_SEMANTIC: {
+      NO_MATCH: "无匹配结果",
+    },
     BLOCKS: {
       GROUP_LABEL: "内容块",
       COMMON: {

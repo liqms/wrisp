@@ -18,7 +18,8 @@ import DragHandle from "@tiptap/extension-drag-handle";
 import { DropLine, handleNodeChange, renderDragHandle } from "./features/drag-reorder/drag-reorder";
 import { Admonition, registerAdmonitionBridge } from "./features/admonition/admonition-extension";
 import { Ruby } from "./features/ruby/ruby-extension";
-import { createMentionExtension } from "./features/mention/mention-extension";
+import { createLegacyMentionExtension } from "./features/mention/mention-extension";
+import { createInlineSemanticSuggestExtension } from "./features/inline-semantic/inline-semantic-suggest";
 import { createMathematicsExtension } from "./features/math/mathematics-extension";
 import { createCodeBlockLowlight } from "./features/code-block/code-block-extension";
 import { createImageExtension } from "./features/image/image-extension";
@@ -78,8 +79,10 @@ export function getExtensions(placeholder?: string): Extensions {
     Subscript,
     Superscript,
     Ruby,
-    // @ 提及（候选 = 页面列表）
-    createMentionExtension(),
+    // 旧版 @ 提及节点（仅历史文档解析渲染，不触发 suggestion）
+    createLegacyMentionExtension(),
+    // 行内语义建议：@ 人物 / # 标签，选中插入纯文本
+    createInlineSemanticSuggestExtension(),
     // 数学公式（行内 $...$ + 块级 $$...$$，KaTeX 渲染 + 点击编辑浮层）
     ...createMathematicsExtension(),
     TaskList,
