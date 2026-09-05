@@ -225,8 +225,6 @@ export default {
         HORIZONTAL_RULE_DESC: "Insert a horizontal rule",
         IMAGE_TITLE: "Image",
         IMAGE_DESC: "Insert a local image",
-        MENTION_TITLE: "Mention",
-        MENTION_DESC: "Insert an {'@'} page mention",
         INLINE_MATH_TITLE: "Inline Math",
         INLINE_MATH_DESC: "Insert inline LaTeX math",
       },

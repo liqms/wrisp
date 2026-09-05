@@ -223,8 +223,6 @@ export default {
         HORIZONTAL_RULE_DESC: "插入水平分割线",
         IMAGE_TITLE: "图片",
         IMAGE_DESC: "插入本地图片",
-        MENTION_TITLE: "提及",
-        MENTION_DESC: "插入 {'@'} 页面提及",
         INLINE_MATH_TITLE: "行内公式",
         INLINE_MATH_DESC: "插入行内 LaTeX 公式",
       },

@@ -52,7 +52,7 @@ async function importImageAttachment(editor: Editor, pos: number): Promise<void>
 
 /**
  * 构建基本块命令组：与 BubbleMenu 块类型面板对齐的基础格式块，
- * 外加分割线 / 图片 / @ 提及 / 数学公式。
+ * 外加分割线 / 图片 / 数学公式。
  */
 export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup {
   const items: SlashCommand[] = [
@@ -154,15 +154,6 @@ export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup 
       icon: ImageOutlined,
       action: ({ editor, pos }) => importImageAttachment(editor, pos),
     },
-    // {
-    //   id: "basic-mention",
-    //   title: t("EDITOR.SLASH.BASIC_BLOCKS.MENTION_TITLE"),
-    //   description: t("EDITOR.SLASH.BASIC_BLOCKS.MENTION_DESC"),
-    //   icon: AlternateEmailOutlined,
-    //   // 插入 @ 触发字符，用户继续输入即可弹出页面建议列表
-    //   action: ({ editor, pos }) =>
-    //     run(editor, pos, (ed) => ed.chain().focus().insertContent("@").run()),
-    // },
     {
       id: "basic-inline-math",
       title: t("EDITOR.SLASH.BASIC_BLOCKS.INLINE_MATH_TITLE"),
