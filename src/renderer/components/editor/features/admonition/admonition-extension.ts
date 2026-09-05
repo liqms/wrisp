@@ -1,6 +1,8 @@
 import { Node, mergeAttributes } from "@tiptap/core";
+import { VueNodeViewRenderer } from "@tiptap/vue-3";
 import { marked } from "marked";
 import type { Token, TokenizerAndRendererExtension, Tokens } from "marked";
+import AdmonitionView from "./AdmonitionView.vue";
 
 /**
  * Admonition（提示块）：Obsidian 风格 `:::type ... :::` 围栏容器。
@@ -8,6 +10,9 @@ import type { Token, TokenizerAndRendererExtension, Tokens } from "marked";
  * 双链路（与 metric 卡片块的桥接模式一致）：
  * - 读取：全局 marked 单例上的围栏 tokenizer → 桥接 HTML（内存中转，不落盘）→ parseHTML
  * - 保存：节点 renderMarkdown → `:::type` 围栏（子块用 "\n\n" 连接，同官方 Document 节点）
+ *
+ * 编辑态使用 Vue NodeView（AdmonitionView）：类型标题行可点击下拉切换类型；
+ * 阅读态（marked 渲染的 v-html）仍以 CSS ::before 显示纯文本标题。
  *
  * 不在扩展上声明 markdownTokenizer：读取链路不经 MarkdownManager 的 marked 实例，
  * 主链路不生效（见 marked-bridge 顶部说明）。
@@ -125,6 +130,28 @@ export const Admonition = Node.create({
 
   renderHTML({ HTMLAttributes }) {
     return ["div", mergeAttributes({ "data-admonition": "" }, HTMLAttributes), 0];
+  },
+
+  // 编辑态 NodeView：类型标题行渲染为可点击元素（n-dropdown 切换类型）
+  addNodeView() {
+    return VueNodeViewRenderer(AdmonitionView, {
+      // 标题行（含类型下拉触发器）的交互交给 Vue/Naive UI：
+      // 阻止 ProseMirror 抢焦点/移动光标，避免下拉菜单一闪即关
+      stopEvent: ({ event }) => {
+        const target = event.target as HTMLElement | null;
+        return Boolean(target?.closest?.(".admonition-title"));
+      },
+      // 标题区 DOM 由 Vue 管理（图标/文案/下拉），其内变更必须忽略；
+      // 内容区（.admonition-content）与选区变化交给 ProseMirror（同 CodeBlockView）
+      ignoreMutation: ({ mutation }) => {
+        const target = mutation.target;
+        const el = target instanceof Element ? target : (target?.parentElement ?? null);
+        if (!el) return true;
+        if (el.closest(".admonition-title")) return true;
+        if (mutation.type === "selection") return false;
+        return !el.closest(".admonition-content");
+      },
+    });
   },
 
   renderMarkdown(node, helpers) {

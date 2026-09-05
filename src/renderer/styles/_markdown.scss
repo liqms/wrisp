@@ -249,7 +249,7 @@
       --admonition-color: var(--error-color);
     }
 
-    // 类型标题行（编辑态与阅读态共用）
+    // 类型标题行（阅读态与编辑态共用基础样式）
     &::before {
       content: "笔记";
       display: block;
@@ -270,6 +270,54 @@
     }
     &[data-type="danger"]::before {
       content: "危险";
+    }
+
+    // 编辑态（Vue NodeView）：真实标题元素替代 ::before（点击下拉切换类型）
+    &.admonition-edit::before {
+      display: none;
+    }
+
+    .admonition-title {
+      margin-bottom: 4px;
+      user-select: none;
+
+      .admonition-title__trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 1px 5px;
+        margin-left: -5px;
+        border-radius: 3px;
+        font-weight: 600;
+        font-size: 0.9em;
+        color: var(--admonition-color);
+        cursor: pointer;
+        transition: background 100ms ease;
+
+        &:hover {
+          background: color-mix(
+            in srgb,
+            var(--admonition-color) 10%,
+            transparent
+          );
+        }
+
+        // 下拉箭头：默认隐藏，悬浮标题或菜单展开时淡入（提示可点击切换类型）
+        .admonition-title__chevron {
+          opacity: 0;
+          transition: opacity 120ms ease;
+        }
+
+        &:hover .admonition-title__chevron,
+        &.is-menu-open .admonition-title__chevron {
+          opacity: 0.7;
+        }
+      }
+    }
+
+    // NodeViewContent 包裹层：让"最后一个子块无下边距"继续命中实际内容块
+    .admonition-content > :last-child {
+      margin-bottom: 0;
     }
 
     // 嵌套时收紧内层边距，避免视觉上过度膨胀

@@ -96,7 +96,7 @@ export function getExtensions(placeholder?: string): Extensions {
       placeholder: placeholder || "",
     }),
     Markdown,
-    // 提示块（`:::type` 围栏容器：斜杠插入、气泡菜单切换类型）
+    // 提示块（`:::type` 围栏容器：斜杠插入、标题行/气泡菜单切换类型）
     Admonition,
     // 块拖拽排序：拖拽期间的蓝色插入线（落点指示）
     DropLine,
