@@ -1,0 +1,37 @@
+src/shared/i18n/locales/zhCN.ts
+  h_2ab4d7dc3fd42a 225
+src/renderer/styles/_markdown.scss
+  h_2ab4d7dc3fd42a 15,29,87,94,102,108,118,125,134,139,147,151,155,176,189,199,212,217,222,241,251,256,262,269,276,309,311,322,328,341,347,352,356,361
+src/shared/i18n/locales/enUS.ts
+  s_55d622b92fa6f2::t_312af8eb7abc65 227
+  s_55d622b92fa6f2::t_564d48b5146d10 224-226
+  s_55d622b92fa6f2::t_e47793f35f2b98 228-230
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.2",
+  "base_commit_sha": "8607c4a462a5834b4e2b791591b70dfa0621a6de",
+  "prompts": {},
+  "humans": {
+    "h_2ab4d7dc3fd42a": {
+      "author": "liqms <liqms@msn.cn>"
+    }
+  },
+  "sessions": {
+    "s_55d622b92fa6f2": {
+      "agent_id": {
+        "tool": "trae-code-edit",
+        "id": "ai_tab-20260830211808010002153146422157A",
+        "model": "default"
+      },
+      "human_author": "liqms <liqms@msn.cn>",
+      "custom_attributes": {
+        "edit_kind": "file_edit",
+        "tool": "trae-code-edit",
+        "client_type": "ide",
+        "external_session_id": "20260830211808010002153146422157A",
+        "source_scene": "cue"
+      }
+    }
+  }
+}
