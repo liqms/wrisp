@@ -348,9 +348,8 @@ defineExpose({ focus, clear, getHTML, getMarkdown, getText, getCatalog, editor }
 }
 
 :deep(.ProseMirror) {
-  font-family: inherit;
   font-size: $font-sm;
-  line-height: 1.6;
+  line-height: 1.5;
   color: var(--text-primary);
   outline: none;
   padding: 0;
