@@ -97,4 +97,27 @@ describe("InlineSemanticDecoration", () => {
     );
     editor.destroy();
   });
+
+  it("悬浮后发生任意 transaction（选区变化/重绘）高亮保持", () => {
+    const editor = createEditor("<p>[[计划]] 和 #科幻</p>");
+    const dom = editor.view.dom;
+    const firstSpan = dom.querySelector("[data-token-id]") as HTMLElement;
+    const tokenId = firstSpan.getAttribute("data-token-id");
+    const sameToken = Array.from(
+      dom.querySelectorAll(`[data-token-id="${tokenId}"]`),
+    );
+
+    firstSpan.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    sameToken.forEach((el) =>
+      expect(el.classList.contains("is-token-hover")).toBe(true),
+    );
+
+    // 模拟选区变化触发的重绘：hover class 由 decoration 管理，重绘不丢失
+    editor.commands.focus();
+    editor.commands.setTextSelection(1);
+    sameToken.forEach((el) =>
+      expect(el.classList.contains("is-token-hover")).toBe(true),
+    );
+    editor.destroy();
+  });
 });
