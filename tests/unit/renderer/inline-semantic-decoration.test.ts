@@ -40,4 +40,61 @@ describe("InlineSemanticDecoration", () => {
     expect(html).toContain("inline-sem");
     editor.destroy();
   });
+
+  it("悬浮 token 任意一段时，同 token 的全部 span 联动加 is-token-hover", () => {
+    const editor = createEditor("<p>[[计划]] 和 #科幻</p>");
+    const dom = editor.view.dom;
+
+    // ProseMirror 将重叠 decoration 拆分为兄弟 span：wiki 应有 3 段（[[、计划、]]）
+    const firstSpan = dom.querySelector("[data-token-id]") as HTMLElement;
+    const tokenId = firstSpan.getAttribute("data-token-id");
+    const sameToken = Array.from(
+      dom.querySelectorAll(`[data-token-id="${tokenId}"]`),
+    );
+    expect(sameToken.length).toBeGreaterThan(1);
+
+    // 悬浮第一段（[[）
+    firstSpan.dispatchEvent(
+      new MouseEvent("mouseover", { bubbles: true }),
+    );
+    sameToken.forEach((el) =>
+      expect(el.classList.contains("is-token-hover")).toBe(true),
+    );
+
+    // 移出（relatedTarget 为编辑器空白处）后取消联动
+    firstSpan.dispatchEvent(
+      new MouseEvent("mouseout", { bubbles: true, relatedTarget: dom }),
+    );
+    sameToken.forEach((el) =>
+      expect(el.classList.contains("is-token-hover")).toBe(false),
+    );
+
+    // 其他 token 不受影响
+    const otherToken = dom.querySelectorAll(
+      `[data-token-id]:not([data-token-id="${tokenId}"])`,
+    );
+    otherToken.forEach((el) =>
+      expect(el.classList.contains("is-token-hover")).toBe(false),
+    );
+    editor.destroy();
+  });
+
+  it("在同 token 的两段之间移动时保持联动高亮", () => {
+    const editor = createEditor("<p>[[计划]]</p>");
+    const dom = editor.view.dom;
+    const spans = Array.from(
+      dom.querySelectorAll("[data-token-id]"),
+    ) as HTMLElement[];
+    expect(spans.length).toBeGreaterThanOrEqual(2);
+
+    spans[0].dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    // 从第一段移入第二段：relatedTarget 是同 token 的 span，不取消高亮
+    spans[0].dispatchEvent(
+      new MouseEvent("mouseout", { bubbles: true, relatedTarget: spans[1] }),
+    );
+    spans.forEach((el) =>
+      expect(el.classList.contains("is-token-hover")).toBe(true),
+    );
+    editor.destroy();
+  });
 });

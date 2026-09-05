@@ -240,7 +240,7 @@
   }
 
   // 行内语义 token（Logseq 风格）：[[双链]] / #标签 / @人物
-  // 符号弱化、正文正常显示、悬浮突出显示（.mention-node 旧版 @ 提及节点合并为同款风格）
+  // 符号弱化、正文正常显示、悬浮整体突出显示（.mention-node 旧版 @ 提及节点合并为同款风格）
   .inline-sem,
   .inline-sem-symbol,
   .mention-node {
@@ -251,8 +251,10 @@
       color 0.15s ease;
   }
 
-  .inline-sem:hover,
-  .inline-sem-symbol:hover,
+  // 悬浮时整个 token（符号+正文）联动高亮：ProseMirror 把重叠的 inline
+  // decoration 拆分为兄弟 span，纯 CSS :hover 无法跨段联动，
+  // 由 decoration 插件的 mouseover/mouseout 给同 token 的全部 span 切换 .is-token-hover
+  .inline-sem.is-token-hover,
   .mention-node:hover {
     color: var(--primary-color);
     background: color-mix(in srgb, var(--primary-color) 10%, transparent);
@@ -260,9 +262,9 @@
 
   // 符号（[[、]]、#、@）默认弱化，悬浮时跟随 token 高亮
   .inline-sem-symbol {
-    color: var(--text-tertiary);
+    color: var(--text-third);
 
-    .inline-sem:hover & {
+    &.is-token-hover {
       color: var(--primary-color);
     }
   }

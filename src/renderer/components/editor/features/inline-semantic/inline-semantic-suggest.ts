@@ -120,10 +120,18 @@ function createSuggestionRender(iconChar: string): SuggestRenderer {
 
       itemEl.appendChild(icon);
       itemEl.appendChild(label);
-      itemEl.addEventListener("mousedown", (event) => {
+
+      // 点击选中：pointerdown 先于 mousedown 触发，优先处理（抢先于
+      // 编辑器外部的 mousedown 捕获监听者，避免其先销毁菜单置空 command）；
+      // mousedown 兜底，两次触发由 command 空值保证幂等
+      const selectItem = (event: Event) => {
+        const command = state.command;
+        if (!command) return;
         event.preventDefault();
-        state.command?.(item);
-      });
+        command(item);
+      };
+      itemEl.addEventListener("pointerdown", selectItem);
+      itemEl.addEventListener("mousedown", selectItem);
       itemEl.addEventListener("mouseenter", () => {
         state.selected = index;
         renderItems();

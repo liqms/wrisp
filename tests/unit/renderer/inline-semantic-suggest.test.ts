@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
+import { Editor } from "@tiptap/core";
+import StarterKit from "@tiptap/starter-kit";
 import type { ApiResponse, Character, Tag } from "@/shared/types";
+import { createInlineSemanticSuggestExtension } from "@/renderer/components/editor/features/inline-semantic/inline-semantic-suggest";
 
 beforeAll(() => {
   // 补充 setup/renderer.ts 未覆盖的 character / tag 模块
@@ -49,5 +52,56 @@ describe("loadCharacterItems / loadTagItems", () => {
     ]);
     const tags = await loadTagItems("科幻");
     expect(tags).toEqual([{ id: "t1", label: "#科幻" }]);
+  });
+});
+
+describe("建议下拉点击填入", () => {
+  function createEditor(): Editor {
+    return new Editor({
+      extensions: [StarterKit, createInlineSemanticSuggestExtension()],
+      content: "<p></p>",
+    });
+  }
+
+  it("mousedown 点击 @ 人物项后，纯文本填入编辑器并关闭菜单", async () => {
+    const editor = createEditor();
+    editor.commands.insertContent("@张");
+    // 等待异步 items 加载（IPC mock）与 suggestion 渲染
+    await new Promise((r) => setTimeout(r, 100));
+
+    const menu = document.querySelector(".inline-sem-suggest-menu");
+    expect(menu).not.toBeNull();
+    const items = menu!.querySelectorAll(".inline-sem-suggest-item");
+    expect(items.length).toBeGreaterThan(0);
+
+    items[0].dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+    );
+    await new Promise((r) => setTimeout(r, 50));
+
+    // mock：query="张" → 第一项 label 为 "张张"，替换后应为 "@张张 "
+    expect(editor.getText()).toContain("@张张 ");
+    expect(document.querySelector(".inline-sem-suggest-menu")).toBeNull();
+    editor.destroy();
+  });
+
+  it("mousedown 点击 # 标签项后，纯文本填入编辑器", async () => {
+    const editor = createEditor();
+    editor.commands.insertContent("#科");
+    await new Promise((r) => setTimeout(r, 100));
+
+    const menu = document.querySelector(".inline-sem-suggest-menu");
+    expect(menu).not.toBeNull();
+    const items = menu!.querySelectorAll(".inline-sem-suggest-item");
+    expect(items.length).toBeGreaterThan(0);
+
+    items[0].dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+    );
+    await new Promise((r) => setTimeout(r, 50));
+
+    // mock：query="科" → 标签 label 为 "#科"
+    expect(editor.getText()).toContain("#科 ");
+    editor.destroy();
   });
 });
