@@ -117,7 +117,11 @@ class FileService {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      fs.writeFileSync(absolutePath, content, "utf-8");
+      fs.writeFileSync(
+        absolutePath,
+        this.ensureTrailingBlankLine(filePath, content),
+        "utf-8",
+      );
     } catch (error) {
       Logger.error("写入文件失败", {
         filePath,
@@ -126,6 +130,19 @@ class FileService {
       });
       throw error;
     }
+  }
+
+  /**
+   * markdown 落盘前规范化：确保文件末尾恰好保留一个空行。
+   * 编辑器序列化（@tiptap/markdown）会丢弃末尾空段落，用户在文末敲的
+   * 空行不会进入序列化结果——在此统一补齐。末尾多个连续换行（含 CRLF）
+   * 压缩为恰好一个空行；空内容保持空文件；非 .md 文件原样写入。
+   */
+  private ensureTrailingBlankLine(filePath: string, content: string): string {
+    if (!/\.md$/i.test(filePath) || content.length === 0) {
+      return content;
+    }
+    return content.replace(/(?:\r?\n)+$/, "") + "\n\n";
   }
 
   public copy(src: string, dest: string): void {
