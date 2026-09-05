@@ -118,7 +118,9 @@ export class TrayService {
     const possiblePaths = [
       // 开发环境：__dirname = dist-electron/
       path.join(__dirname, '..', 'static', 'wrisp.png'),
-      // 生产环境（asar 打包）
+      // 生产环境：Vite publicDir 将 static/ 内容复制到 dist-renderer/ 根目录（asar 内）
+      path.join(__dirname, '..', 'dist-renderer', 'wrisp.png'),
+      // 生产环境（extraResources 拷贝到 resources 目录时）
       path.join(process.resourcesPath || '', 'static', 'wrisp.png'),
       // 应用根目录
       path.join(app.getAppPath(), 'static', 'wrisp.png'),
