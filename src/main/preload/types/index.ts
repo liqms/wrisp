@@ -9,6 +9,7 @@ import type { AIAPI } from "./ai";
 import type { SkillAPI } from "./skill";
 import type { ModelAPI } from "./model";
 import type { TagAPI } from "./tag";
+import type { CharacterAPI } from "./character";
 import type { ConceptAPI } from "./concept";
 import type { TopicAPI } from "./topic";
 import type { ReflectionAPI } from "./reflection";
@@ -32,6 +33,7 @@ export interface ElectronAPI {
   skill: SkillAPI;
   model: ModelAPI;
   tag: TagAPI;
+  character: CharacterAPI;
   page: PageAPI;
   smartTask: SmartTaskAPI;
   task: TaskAPI;
@@ -61,6 +63,7 @@ export type {
   SkillAPI,
   ModelAPI,
   TagAPI,
+  CharacterAPI,
   ConceptAPI,
   TopicAPI,
   ReflectionAPI,

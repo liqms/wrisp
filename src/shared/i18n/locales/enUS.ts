@@ -488,6 +488,7 @@ export default {
       JOURNAL: "Journal error",
       PROJECT: "Project error",
       TAG: "Tag error",
+      CHARACTER: "Character error",
       DOWNLOAD: "Download error",
       LOG: "Log error",
       NOTIFICATION: "Notification error",
@@ -556,6 +557,10 @@ export default {
       DELETE_FAILED: "Failed to delete tag",
       QUERY_FAILED: "Failed to query tag",
       NOT_FOUND: "Tag not found",
+    },
+    CHARACTER: {
+      QUERY_FAILED: "Failed to query characters",
+      CREATE_FAILED: "Failed to save characters",
     },
     TEMPLATE: {
       GET_FAILED: "Failed to get templates",

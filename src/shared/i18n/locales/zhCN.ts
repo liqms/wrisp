@@ -480,6 +480,7 @@ export default {
       JOURNAL: "日志错误",
       PROJECT: "作品错误",
       TAG: "标签错误",
+      CHARACTER: "人物错误",
       DOWNLOAD: "下载错误",
       LOG: "日志错误",
       NOTIFICATION: "通知错误",
@@ -548,6 +549,10 @@ export default {
       DELETE_FAILED: "删除标签失败",
       QUERY_FAILED: "查询标签失败",
       NOT_FOUND: "标签不存在",
+    },
+    CHARACTER: {
+      QUERY_FAILED: "查询人物失败",
+      CREATE_FAILED: "保存人物失败",
     },
     TEMPLATE: {
       GET_FAILED: "获取模板失败",

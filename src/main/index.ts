@@ -30,6 +30,7 @@ import {
   registerSkillHandlers,
   registerModelHandlers,
   registerTagHandlers,
+  registerCharacterHandlers,
   registerPageHandlers,
   registerConceptHandlers,
   registerTopicHandlers,
@@ -188,6 +189,7 @@ app.whenReady().then(async () => {
   registerSkillHandlers();
   registerModelHandlers();
   registerTagHandlers();
+  registerCharacterHandlers();
   registerPageHandlers();
   registerConceptHandlers();
   registerTopicHandlers();

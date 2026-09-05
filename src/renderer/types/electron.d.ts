@@ -22,6 +22,7 @@ import type { LogContext } from "@/main/utils/logger";
 import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
 import type { ProjectCreate, ProjectUpdate, ProjectQuery, ProjectDetail, ProjectReloadResult, Page, PageTree } from "@/main/types/db";
 import type { Tag, TagCreate, TagUpdate, TagQuery, TagDetail, TagId } from "@/shared/types";
+import type { Character } from "@/shared/types";
 import type { CreatePageInput, UpdatePageInput, MovePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import type { ModelType } from "@/shared/types/model.types";
@@ -186,6 +187,11 @@ export interface ElectronAPI {
     createTags(data: TagCreate | TagCreate[]): Promise<ApiResponse<string | string[]>>;
     updateTag(items: { id: TagId; data: TagUpdate } | { id: TagId; data: TagUpdate }[]): Promise<ApiResponse<number | number[]>>;
     deleteTag(ids: TagId | TagId[]): Promise<ApiResponse<number>>;
+  };
+
+  // Character 相关
+  character: {
+    findCharacters(name: string, options?: { limit?: number }): Promise<ApiResponse<Character[]>>;
   };
 
   // Skill 相关
