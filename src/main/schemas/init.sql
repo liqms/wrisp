@@ -244,6 +244,18 @@ CREATE TABLE IF NOT EXISTS  project_chunks (
     FOREIGN KEY (chunk_id) REFERENCES semantic_chunks(id) ON DELETE CASCADE
 );
 
+-- 人物表（@人物提及同步，v0.2.0）
+CREATE TABLE IF NOT EXISTS characters (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    owner_type TEXT NOT NULL DEFAULT 'contact' CHECK (owner_type IN ('contact', 'project')),
+    owner_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+    description TEXT DEFAULT '',
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 -- 创建页面表
 CREATE TABLE IF NOT EXISTS pages (
     id TEXT PRIMARY KEY,
@@ -334,6 +346,11 @@ CREATE INDEX IF NOT EXISTS idx_semantic_chunks_type ON semantic_chunks(chunk_typ
 
 -- 标签索引
 CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
+
+-- 人物索引：同名人物可归属不同作品（表达式唯一索引，NULL 归属按空串参与唯一比较）
+CREATE UNIQUE INDEX IF NOT EXISTS idx_characters_identity ON characters(name, owner_type, COALESCE(owner_id, ''));
+CREATE INDEX IF NOT EXISTS idx_characters_owner ON characters(owner_type, owner_id);
+CREATE INDEX IF NOT EXISTS idx_characters_name ON characters(name);
 
 -- 标签关联索引
 CREATE INDEX IF NOT EXISTS idx_tagged_items_tag ON tagged_items(tag_id);
