@@ -63,35 +63,11 @@ function shouldShowMenu(props: SuggestionProps<SuggestItem>): boolean {
   return props.items.length > 0 || props.query.trim().length > 0;
 }
 
-function applyMenuStyles(menu: HTMLDivElement): void {
-  Object.assign(menu.style, {
-    position: "fixed",
-    zIndex: "1000",
-    minWidth: "180px",
-    maxWidth: "320px",
-    maxHeight: "240px",
-    overflowY: "auto",
-    background: "var(--bg-color, #fff)",
-    border: "1px solid var(--border-color, #e0e0e0)",
-    borderRadius: "8px",
-    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
-    padding: "4px",
-  } satisfies Partial<CSSStyleDeclaration>);
-}
-
-function applyItemStyles(item: HTMLDivElement, active: boolean): void {
-  Object.assign(item.style, {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "6px 10px",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontSize: "13px",
-    background: active ? "var(--primary-color, #18a058)" : "transparent",
-    color: active ? "#fff" : "inherit",
-  } satisfies Partial<CSSStyleDeclaration>);
-}
+/**
+ * 下拉视觉样式全部走 global.scss 的 .inline-sem-suggest-* 类，
+ * 颜色引用主题 CSS 变量（:root / html[data-theme="dark"]），亮暗色自动切换。
+ * 此处仅保留动态定位（top/left）为内联样式。
+ */
 
 /** suggestion render 契约的渲染器对象类型（render 值是「返回该对象的工厂函数」） */
 type SuggestRenderer = NonNullable<
@@ -123,11 +99,7 @@ function createSuggestionRender(iconChar: string): SuggestRenderer {
 
     if (state.items.length === 0) {
       const empty = document.createElement("div");
-      Object.assign(empty.style, {
-        padding: "8px 10px",
-        fontSize: "12px",
-        opacity: "0.6",
-      } satisfies Partial<CSSStyleDeclaration>);
+      empty.className = "inline-sem-suggest-empty";
       empty.textContent = t("EDITOR.INLINE_SEMANTIC.NO_MATCH");
       menu.appendChild(empty);
       return;
@@ -135,11 +107,14 @@ function createSuggestionRender(iconChar: string): SuggestRenderer {
 
     state.items.forEach((item, index) => {
       const itemEl = document.createElement("div");
-      applyItemStyles(itemEl, index === state.selected);
+      itemEl.className =
+        index === state.selected
+          ? "inline-sem-suggest-item active"
+          : "inline-sem-suggest-item";
 
       const icon = document.createElement("span");
+      icon.className = "inline-sem-suggest-icon";
       icon.textContent = iconChar;
-      icon.style.opacity = "0.6";
       const label = document.createElement("span");
       label.textContent = item.label;
 
@@ -174,7 +149,7 @@ function createSuggestionRender(iconChar: string): SuggestRenderer {
     }
     if (!state.menu) {
       const menu = document.createElement("div");
-      applyMenuStyles(menu);
+      menu.className = "inline-sem-suggest-menu";
       document.body.appendChild(menu);
       state.menu = menu;
     }
