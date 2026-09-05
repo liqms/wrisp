@@ -41,6 +41,40 @@ describe("InlineSemanticDecoration", () => {
     editor.destroy();
   });
 
+  it("token 分段拼出药丸：首段 start、尾段 end、wiki 有中段", () => {
+    const editor = createEditor("<p>[[计划]] 和 #科幻</p>");
+    const dom = editor.view.dom;
+
+    // wiki：[[（start+symbol）、计划（中段，无角色 class）、]]（end+symbol）
+    const wikiSpans = Array.from(
+      dom.querySelectorAll("[data-token-id]"),
+    ) as HTMLElement[];
+    const wikiToken = wikiSpans[0].getAttribute("data-token-id");
+    const wikiSegs = wikiSpans.filter(
+      (el) => el.getAttribute("data-token-id") === wikiToken,
+    );
+    expect(wikiSegs).toHaveLength(3);
+    expect(wikiSegs[0].className).toContain("inline-sem-start");
+    expect(wikiSegs[0].className).toContain("inline-sem-symbol");
+    expect(wikiSegs[1].className).not.toContain("inline-sem-start");
+    expect(wikiSegs[1].className).not.toContain("inline-sem-end");
+    expect(wikiSegs[2].className).toContain("inline-sem-end");
+    expect(wikiSegs[2].className).toContain("inline-sem-symbol");
+
+    // 标签：#（start+symbol）、科幻（end）
+    const tagToken = wikiSpans
+      .find((el) => el.getAttribute("data-token-id") !== wikiToken)!
+      .getAttribute("data-token-id");
+    const tagSegs = wikiSpans.filter(
+      (el) => el.getAttribute("data-token-id") === tagToken,
+    );
+    expect(tagSegs).toHaveLength(2);
+    expect(tagSegs[0].className).toContain("inline-sem-start");
+    expect(tagSegs[0].className).toContain("inline-sem-symbol");
+    expect(tagSegs[1].className).toContain("inline-sem-end");
+    editor.destroy();
+  });
+
   it("悬浮 token 任意一段时，同 token 的全部 span 联动加 is-token-hover", () => {
     const editor = createEditor("<p>[[计划]] 和 #科幻</p>");
     const dom = editor.view.dom;

@@ -16,12 +16,15 @@ interface InlineSemanticState {
 }
 
 /**
- * 遍历文档中的 text node，为 [[双链]] / #标签 / @人物 添加 Decoration：
- * - 整体区间加 .inline-sem（容器样式，悬浮突出）
- * - 符号区间（[[、]]、#、@）加 .inline-sem-symbol（弱化样式）
- * - 同一 token 的全部区间共享 data-token-id（ProseMirror 会把重叠的
- *   inline decoration 拆分合并为兄弟 span，悬浮联动需借助该 id 定位）
- * - 悬浮中的 token（hoverTokenId 匹配）全部区间追加 .is-token-hover
+ * 遍历文档中的 text node，为 [[双链]] / #标签 / @人物 添加 Decoration。
+ * ProseMirror 把相邻的 inline decoration 渲染为兄弟 span，因此按「分段」
+ * 构造 decoration，让各段 class 拼出完整药丸（悬浮时符号+正文为一个整体）：
+ * - 首段 .inline-sem-start：左圆角 + 左内距（视觉左边界）
+ * - 中段（仅 wiki 正文）：无圆角，背景无缝衔接
+ * - 尾段 .inline-sem-end：右圆角 + 右内距（视觉右边界）
+ * - 符号段（[[、]]、#、@）叠加 .inline-sem-symbol（弱化样式）
+ * - 同一 token 的全部段共享 data-token-id（悬浮联动定位）
+ * - 悬浮中的 token（hoverTokenId 匹配）全部段追加 .is-token-hover
  */
 function buildInlineSemanticDecorations(
   doc: ProsemirrorNode,
@@ -44,31 +47,45 @@ function buildInlineSemanticDecorations(
       const tokenId = `tok-${from}-${to}`;
       const hovered = tokenId === hoverTokenId;
 
-      // 整体容器
-      decorations.push(
-        Decoration.inline(from, to, {
-          class: hovered
-            ? "inline-sem is-token-hover"
-            : "inline-sem",
-          "data-token-id": tokenId,
-        }),
-      );
-      // 前置符号
-      decorations.push(
-        Decoration.inline(from, from + token.symbolLength, {
-          class: hovered
-            ? "inline-sem-symbol is-token-hover"
-            : "inline-sem-symbol",
-          "data-token-id": tokenId,
-        }),
-      );
-      // wiki 的右括号
+      /** 段 class 组装：公共 .inline-sem + 段角色 + 悬浮态 */
+      const seg = (...roles: string[]) =>
+        ["inline-sem", ...roles, ...(hovered ? ["is-token-hover"] : [])].join(
+          " ",
+        );
+
       if (token.type === "wiki") {
+        // [[
+        decorations.push(
+          Decoration.inline(from, from + 2, {
+            class: seg("inline-sem-symbol", "inline-sem-start"),
+            "data-token-id": tokenId,
+          }),
+        );
+        // 正文（regex 保证至少 1 字符，中段始终存在）
+        decorations.push(
+          Decoration.inline(from + 2, to - 2, {
+            class: seg(),
+            "data-token-id": tokenId,
+          }),
+        );
+        // ]]
         decorations.push(
           Decoration.inline(to - 2, to, {
-            class: hovered
-              ? "inline-sem-symbol is-token-hover"
-              : "inline-sem-symbol",
+            class: seg("inline-sem-symbol", "inline-sem-end"),
+            "data-token-id": tokenId,
+          }),
+        );
+      } else {
+        // #标签 / @人物：符号段 + 正文段
+        decorations.push(
+          Decoration.inline(from, from + token.symbolLength, {
+            class: seg("inline-sem-symbol", "inline-sem-start"),
+            "data-token-id": tokenId,
+          }),
+        );
+        decorations.push(
+          Decoration.inline(from + token.symbolLength, to, {
+            class: seg("inline-sem-end"),
             "data-token-id": tokenId,
           }),
         );
