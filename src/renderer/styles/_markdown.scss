@@ -243,7 +243,10 @@
   // ProseMirror 把 token 渲染为兄弟 span 分段（首段/中段/尾段），
   // 由 .inline-sem-start/-end 拼出完整药丸：悬浮时符号+正文为一个整体，
   // 带内间距（padding）与圆角（border-radius）。
-  // 水平内距用负 margin 抵消，保证常态排版不被撑开、悬浮无位移。
+  // 水平内距为常驻正 padding（不用负 margin 抵消）：编辑器滚动容器
+  // overflow-y:auto 会对左侧溢出做水平裁剪，负 margin 会把行首 token 的
+  // 左内距+圆角裁掉；常驻 padding 让药丸始终处于内容流内，永不裁剪，
+  // 且悬浮前后无位移。
   .inline-sem {
     cursor: pointer;
     padding: 4px 0; // 垂直内距：inline 元素不占布局，仅扩展背景绘制区
@@ -253,13 +256,11 @@
 
     &.inline-sem-start {
       padding-left: 4px;
-      margin-left: -4px;
       border-radius: 4px 0 0 4px;
     }
 
     &.inline-sem-end {
       padding-right: 4px;
-      margin-right: -4px;
       border-radius: 0 4px 4px 0;
     }
   }
