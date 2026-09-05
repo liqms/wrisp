@@ -11,6 +11,7 @@ import { FileIndexCreate, FileIndexUpdate } from "@/main/types/db";
 import { NodeCryptoUtil } from "@/main/utils";
 import { TimeUtil } from "@/shared/utils";
 import { JOURNAL_DIR } from "@/main/constants/folder.constants";
+import { inlineTokenSyncService } from "@/main/core/services/inline-token-sync.service";
 
 /**
  * Journal 服务
@@ -195,6 +196,11 @@ class JournalService {
         sync_status: "pending",
       };
       this.fileIndexDao.update(fileIndex.id, fileIndexUpdate);
+
+      // 同步行内 token：#标签入标签表、@人物入人物表（失败不影响保存）
+      inlineTokenSyncService.syncFromMarkdown(journal.content || "", {
+        type: "contact",
+      });
 
       return true;
     } catch (error) {
