@@ -1,4 +1,5 @@
 import { parseIndentedBlocks } from "@tiptap/core";
+import TaskItem from "@tiptap/extension-task-item";
 import { marked } from "marked";
 import type { Token, TokenizerAndRendererExtension, Tokens } from "marked";
 
@@ -136,3 +137,32 @@ export function registerTaskItemBridge(): void {
   marked.use({ extensions: [taskListBridge] });
   registered = true;
 }
+
+const DATE_ATTR_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** date 属性白名单校验：非法格式回退空串（无日期） */
+function sanitizeTaskDate(value: unknown): string {
+  return typeof value === "string" && DATE_ATTR_RE.test(value) ? value : "";
+}
+
+/**
+ * 任务节点：基于官方 TaskItem 扩展（保留键盘行为/输入规则/节点名 taskItem）。
+ * 新增 date 属性（YYYY-MM-DD）：序列化为行尾 [[日期]]，编辑态由 NodeView chip 渲染。
+ * 后续 Task 在此基础上追加 renderMarkdown 与 Vue NodeView。
+ */
+export const WrispTaskItem = TaskItem.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      // 任务日期（YYYY-MM-DD）：空串表示无日期
+      date: {
+        default: "",
+        keepOnSplit: false,
+        parseHTML: (element: HTMLElement) => sanitizeTaskDate(element.getAttribute("data-date")),
+        renderHTML: (attributes: Record<string, unknown>) => ({
+          "data-date": sanitizeTaskDate(attributes.date) || null,
+        }),
+      },
+    };
+  },
+});
