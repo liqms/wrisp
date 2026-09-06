@@ -248,9 +248,6 @@ export default {
     },
     TASK_ITEM: {
       TOGGLE_CHECKED_TITLE: "切换完成状态",
-      ADD_DATE_TITLE: "添加日期",
-      CHANGE_DATE_TITLE: "修改日期",
-      DATE_LABEL: "日期",
     },
     INLINE_SEMANTIC: {
       NO_MATCH: "无匹配结果",

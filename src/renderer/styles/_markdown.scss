@@ -126,72 +126,9 @@
   }
 
   // ===== 任务节点（WrispTaskItem，Vue NodeView 渲染）=====
-  // 布局复用上方 ul[data-type="taskList"] li 规则（flex + label/div 子项）：
-  // li 结构为 label（勾选框）+ div.task-item-body（内容行），药丸紧跟文本行尾
-  .task-item-node {
-    .task-item-body {
-      display: flex;
-      align-items: flex-start;
-      min-width: 0;
-    }
-
-    // NodeViewContent：不占满整行（flex-grow 0），让日期药丸紧跟文本
-    .task-item-text {
-      flex: 0 1 auto;
-      min-width: 0;
-    }
-
-    // 日期药丸：视觉复用 [[双链]] 的 inline-sem 药丸（bg-tertiary 背景 +
-    // 括号符号弱化 + hover 主色高亮），点击打开 pickDate 浮层修改日期
-    .task-item-date {
-      display: inline-flex;
-      align-items: center;
-      flex: 0 0 auto;
-      margin-left: 4px;
-      padding: 4px 6px;
-      border-radius: 4px;
-      background-color: var(--bg-tertiary);
-      cursor: pointer;
-      user-select: none;
-      white-space: nowrap;
-      transition:
-        background-color 0.15s ease,
-        color 0.15s ease;
-
-      &:hover {
-        color: var(--primary-color);
-        background: color-mix(in srgb, var(--primary-color) 10%, transparent);
-      }
-
-      // 无日期的弱占位药丸：悬浮任务行时才显示，整体弱化为禁用色
-      &.task-item-date-placeholder {
-        visibility: hidden;
-        color: var(--text-disabled);
-
-        &:hover {
-          color: var(--primary-color);
-        }
-      }
-    }
-
-    &:hover .task-item-date-placeholder {
-      visibility: visible;
-    }
-  }
-
-  // 阅读态（marked v-html，无 Vue NodeView）：data-date 属性经 ::after 展示，
-  // 同款药丸样式（::after 内括号无法单独弱化，整粒统一色）。
-  // 编辑态 NodeView（.task-item-node）由 Vue 药丸渲染，排除避免双显
-  ul[data-type="taskList"] li[data-date]:not(.task-item-node)::after {
-    content: "[[" attr(data-date) "]]";
-    margin-left: 4px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    background-color: var(--bg-tertiary);
-    color: var(--text-secondary);
-    font-size: 0.9em;
-    user-select: none;
-  }
+  // li.task-item-node 命中上方 ul[data-type="taskList"] li 官方规则
+  // （flex + label/div 子项）；日期为行内 [[文本]]，由统一的
+  // inline-sem 药丸样式渲染，无任务专属样式
 
   code {
     background-color: var(--bg-secondary);

@@ -250,9 +250,6 @@ export default {
     },
     TASK_ITEM: {
       TOGGLE_CHECKED_TITLE: "Toggle completion",
-      ADD_DATE_TITLE: "Add date",
-      CHANGE_DATE_TITLE: "Change date",
-      DATE_LABEL: "date",
     },
     INLINE_SEMANTIC: {
       NO_MATCH: "No matches",

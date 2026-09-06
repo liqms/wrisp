@@ -27,17 +27,11 @@ describe("任务列表 marked 桥接（读链路：- [ ]/- [x] → 桥接 HTML�
     expect(html).toContain('checked="checked"');
   });
 
-  it("行尾 [[YYYY-MM-DD]] 提升为 data-date 属性并从文本剥离", () => {
+  it("[[YYYY-MM-DD]] 保留在文本中（统一日期文本，非任务属性）", () => {
     const html = marked.parse("- [x] 完成报告 [[2026-09-06]]") as string;
-    expect(html).toContain('data-date="2026-09-06"');
-    expect(html).toContain("完成报告");
-    expect(html).not.toContain("[[2026-09-06]]");
-  });
-
-  it("非日期格式的 [[wiki 链接]] 保留在文本中（不误剥离）", () => {
-    const html = marked.parse("- [ ] 阅读 [[项目笔记]]") as string;
     expect(html).not.toContain("data-date");
-    expect(html).toContain("[[项目笔记]]");
+    expect(html).toContain("完成报告");
+    expect(html).toContain("[[2026-09-06]]");
   });
 
   it("多项任务逐项输出 li", () => {
@@ -111,28 +105,12 @@ describe("任务节点解析（桥接 HTML → taskItem 节点）", () => {
     expect(items[1]?.attrs.checked).toBe(true);
   });
 
-  it("行尾日期 → date 属性，文本中不残留 [[...]]", () => {
+  it("日期保留在文本内容中（无 date 专属属性，与正文 [[...]] 统一）", () => {
     const editor = createEditor();
     loadMarkdown(editor, "- [x] 完成报告 [[2026-09-06]]");
     const item = collectTaskItems(editor)[0];
-    expect(item?.attrs.date).toBe("2026-09-06");
-    expect(item?.textContent).toBe("完成报告");
-  });
-
-  it("wiki 链接不剥离：date 为空，文本保留 [[...]]", () => {
-    const editor = createEditor();
-    loadMarkdown(editor, "- [ ] 阅读 [[项目笔记]]");
-    const item = collectTaskItems(editor)[0];
-    expect(item?.attrs.date).toBe("");
-    expect(item?.textContent).toBe("阅读 [[项目笔记]]");
-  });
-
-  it("桥接 HTML 中非法 data-date 回退空串（白名单）", () => {
-    const editor = createEditor();
-    editor.commands.setContent(
-      '<ul data-type="taskList"><li data-type="taskItem" data-checked="false" data-date="not-a-date">x</li></ul>',
-    );
-    expect(collectTaskItems(editor)[0]?.attrs.date).toBe("");
+    expect("date" in (item?.attrs ?? {})).toBe(false);
+    expect(item?.textContent).toBe("完成报告 [[2026-09-06]]");
   });
 
   it("嵌套任务解析为父子 taskItem", () => {
@@ -154,11 +132,15 @@ describe("任务节点序列化（getMarkdown）", () => {
     expect(out).toContain("- [x] B");
   });
 
-  it("日期属性 → 行尾 [[YYYY-MM-DD]]", () => {
+  it("日期文本随正文统一转义（\\[\\[...\\]\\]），round-trip 幂等", () => {
     const editor = createEditor();
     loadMarkdown(editor, "- [x] 完成报告 [[2026-09-06]]");
-    const out = editor.getMarkdown();
-    expect(out).toContain("- [x] 完成报告 [[2026-09-06]]");
+    const once = editor.getMarkdown();
+    // @tiptap/markdown 默认转义 [ ]，与段落里斜杠命令插入的 [[日期]] 行为一致
+    expect(once).toContain("- [x] 完成报告 \\[\\[2026-09-06\\]\\]");
+    // 转义格式再读入还原为 [[...]] 文本，序列化稳定
+    loadMarkdown(editor, once);
+    expect(editor.getMarkdown()).toBe(once);
   });
 
   it("round-trip 幂等：加载 → 序列化 → 再加载 → 再序列化一致", () => {
@@ -170,7 +152,7 @@ describe("任务节点序列化（getMarkdown）", () => {
     expect(editor.getMarkdown()).toBe(once);
   });
 
-  it("切换 checked / 设置 date 后序列化联动（setNodeMarkup 路径，同官方 NodeView 行为）", () => {
+  it("切换 checked 后序列化联动（setNodeMarkup 路径，同官方 NodeView 行为）", () => {
     const editor = createEditor();
     loadMarkdown(editor, "- [ ] 任务");
     let pos = -1;
@@ -180,10 +162,10 @@ describe("任务节点序列化（getMarkdown）", () => {
     });
     expect(pos).toBeGreaterThanOrEqual(0);
     editor.view.dispatch(
-      editor.view.state.tr.setNodeMarkup(pos, undefined, { checked: true, date: "2026-12-31" }),
+      editor.view.state.tr.setNodeMarkup(pos, undefined, { checked: true }),
     );
     const out = editor.getMarkdown();
-    expect(out).toContain("- [x] 任务 [[2026-12-31]]");
+    expect(out).toContain("- [x] 任务");
   });
 
   it("任务内行内格式（加粗）保留", () => {
@@ -193,11 +175,11 @@ describe("任务节点序列化（getMarkdown）", () => {
     expect(out).toContain("**重点**");
   });
 
-  it("带日期 + 嵌套子任务：日期在首行行尾，子块缩进保持", () => {
+  it("带日期 + 嵌套子任务：日期随首行文本，子块缩进保持", () => {
     const editor = createEditor();
     loadMarkdown(editor, "- [x] 父任务 [[2026-09-06]]\n  - [ ] 子任务");
     const out = editor.getMarkdown();
-    expect(out).toContain("- [x] 父任务 [[2026-09-06]]");
+    expect(out).toContain("- [x] 父任务 \\[\\[2026-09-06\\]\\]");
     // 子任务行需保留嵌套缩进（两个空格）
     expect(out).toContain("  - [ ] 子任务");
     // round-trip 幂等
@@ -244,8 +226,8 @@ describe("编辑器集成（getExtensions 全链路）", () => {
       return true;
     });
     expect(item?.attrs.checked).toBe(true);
-    expect(item?.attrs.date).toBe("2026-09-06");
+    expect(item?.textContent).toBe("完成报告 [[2026-09-06]]");
 
-    expect(editor.getMarkdown()).toContain("- [x] 完成报告 [[2026-09-06]]");
+    expect(editor.getMarkdown()).toContain("- [x] 完成报告 \\[\\[2026-09-06\\]\\]");
   });
 });

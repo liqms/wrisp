@@ -1,4 +1,4 @@
-import { parseIndentedBlocks, renderNestedMarkdownContent } from "@tiptap/core";
+import { parseIndentedBlocks } from "@tiptap/core";
 import TaskItem from "@tiptap/extension-task-item";
 import { VueNodeViewRenderer } from "@tiptap/vue-3";
 import { marked } from "marked";
@@ -10,8 +10,12 @@ import type { Token, TokenizerAndRendererExtension, Tokens } from "marked";
  *
  * 双链路（与 admonition / metric 卡片块模式一致）：
  * - 读取：全局 marked 单例上的任务行 tokenizer → 桥接 HTML（内存中转，不落盘）
- *   → taskItem.parseHTML 读 data-checked / data-date 属性
- * - 保存：节点 renderMarkdown → `- [ ] 文本` / `- [x] 文本 [[日期]]`
+ *   → taskItem.parseHTML 读 data-checked 属性
+ * - 保存：官方 renderMarkdown → `- [ ] 文本` / `- [x] 文本`
+ *
+ * 日期为非必要信息：不设专属属性，`[[日期]]` 与正文统一——
+ * 在任务里用斜杠命令（日期和时间组）插入 `[[YYYY-MM-DD]]` 行内文本，
+ * 编辑态由 inline-sem Decoration 渲染药丸，序列化随普通文本转义（幂等）。
  *
  * 不在扩展上声明 markdownTokenizer：读取链路不经 MarkdownManager 的 marked 实例，
  * 主链路不生效（同 admonition-extension 顶部说明）。
@@ -20,14 +24,10 @@ import type { Token, TokenizerAndRendererExtension, Tokens } from "marked";
 /** 任务行：`- [ ] 文本` / `* [x] 文本`（缩进表达嵌套层级） */
 const taskItemLineRe = /^(\s*)([-+*])\s+\[([ xX])]\s+(.*)$/;
 
-/** 行尾日期属性：仅严格 YYYY-MM-DD 视为任务日期（wiki 链接不受影响） */
-const taskDateAttrRe = /\s*\[\[(\d{4}-\d{2}-\d{2})\]\]\s*$/;
-
 interface WrispTaskItemToken extends Tokens.Generic {
   mainContent: string;
   indentLevel: number;
   checked: boolean;
-  date: string;
   text: string;
   tokens: Token[];
   nestedTokens?: Token[];
@@ -52,7 +52,7 @@ const taskListBridge: TokenizerAndRendererExtension = {
     const lexer = this.lexer;
     if (!lexer) return undefined;
 
-    // 嵌套内容递归解析（与官方 TaskList.markdownTokenizer 同构，增加日期剥离）
+    // 嵌套内容递归解析（与官方 TaskList.markdownTokenizer 同构）
     const parseTaskContent = (content: string): Token[] => {
       const nested = parseIndentedBlocks(content, parseConfig, lexer);
       if (nested) {
@@ -74,16 +74,14 @@ const taskListBridge: TokenizerAndRendererExtension = {
       itemPattern: taskItemLineRe,
       extractItemData: (match: RegExpMatchArray) => {
         const rawContent = match[4];
-        const dateMatch = taskDateAttrRe.exec(rawContent);
         return {
           indentLevel: match[1].length,
-          mainContent: dateMatch ? rawContent.slice(0, dateMatch.index) : rawContent,
+          mainContent: rawContent,
           checked: match[3].toLowerCase() === "x",
-          date: dateMatch ? dateMatch[1] : "",
         };
       },
       createToken: (
-        data: { mainContent: string; checked: boolean; date: string; indentLevel: number },
+        data: { mainContent: string; checked: boolean; indentLevel: number },
         nestedTokens?: Token[],
       ): WrispTaskItemToken => ({
         type: "wrispTaskItem",
@@ -91,7 +89,6 @@ const taskListBridge: TokenizerAndRendererExtension = {
         mainContent: data.mainContent,
         indentLevel: data.indentLevel,
         checked: data.checked,
-        date: data.date,
         text: data.mainContent,
         tokens: lexer.inlineTokens(data.mainContent),
         nestedTokens,
@@ -118,7 +115,6 @@ const taskListBridge: TokenizerAndRendererExtension = {
 
     const items = t.items.map((item) => {
       const attrs = [`data-type="taskItem"`, `data-checked="${item.checked ? "true" : "false"}"`];
-      if (item.date) attrs.push(`data-date="${item.date}"`);
       const inline = parser.parseInline(item.tokens ?? []);
       const nested = item.nestedTokens?.length ? parser.parse(item.nestedTokens) : "";
       // checkbox 仅供阅读态（v-html）显示；编辑器解析时 input/label 为未知元素被跳过，
@@ -140,74 +136,22 @@ export function registerTaskItemBridge(): void {
   registered = true;
 }
 
-const DATE_ATTR_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** date 属性白名单校验：非法格式回退空串（无日期） */
-function sanitizeTaskDate(value: unknown): string {
-  return typeof value === "string" && DATE_ATTR_RE.test(value) ? value : "";
-}
-
 /**
  * 任务节点：基于官方 TaskItem 扩展（保留键盘行为/输入规则/节点名 taskItem）。
- * 新增 date 属性（YYYY-MM-DD）：序列化为行尾 [[日期]]，编辑态由 NodeView chip 渲染。
- * 后续 Task 在此基础上追加 renderMarkdown 与 Vue NodeView。
+ * 编辑态 Vue NodeView 渲染勾选框（title 提示 + change 切换），
+ * 交互区经 stopEvent/ignoreMutation 与 ProseMirror 隔离。
  */
 export const WrispTaskItem = TaskItem.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      // 任务日期（YYYY-MM-DD）：空串表示无日期
-      date: {
-        default: "",
-        keepOnSplit: false,
-        parseHTML: (element: HTMLElement) => sanitizeTaskDate(element.getAttribute("data-date")),
-        renderHTML: (attributes: Record<string, unknown>) => ({
-          "data-date": sanitizeTaskDate(attributes.date) || null,
-        }),
-      },
-    };
-  },
-
-  // 覆写官方 renderMarkdown（仅输出 - [ ]/- [x]，无日期）：
-  // date 属性 → 首行行尾 [[YYYY-MM-DD]]。
-  // 不能把日期注入为 text 节点：MarkdownManager 的 escapeMarkdownSyntax
-  // 会把 [[ ]] 转义为 \[\[ \]\]，故在渲染字符串层面拼接；
-  // 嵌套子块缩进与官方 renderNestedMarkdownContent 同构。
-  renderMarkdown(node, helpers) {
-    const checkedChar = node.attrs?.checked ? "x" : " ";
-    const prefix = `- [${checkedChar}] `;
-    const date = sanitizeTaskDate(node.attrs?.date);
-    if (!date || !Array.isArray(node.content) || node.content.length === 0) {
-      return renderNestedMarkdownContent(node, helpers, prefix);
-    }
-    const [content, ...children] = node.content;
-    const mainContent = helpers.renderChildren([content]);
-    let output = mainContent ? `${prefix}${mainContent} [[${date}]]` : `${prefix}[[${date}]]`;
-    for (const [index, child] of children.entries()) {
-      const childContent = helpers.renderChild?.(child, index + 1) ?? helpers.renderChildren([child]);
-      if (childContent == null) continue;
-      const indentedChild = childContent
-        .split("\n")
-        .map((line) => helpers.indent(line || ""))
-        .join("\n");
-      output += child.type === "paragraph" ? `\n\n${indentedChild}` : `\n${indentedChild}`;
-    }
-    return output;
-  },
-
-  // 编辑态 NodeView：勾选框切换 + 日期药丸（点击复用 pickDate 浮层）
+  // 编辑态 NodeView：勾选框切换（日期等行内内容由统一机制处理）
   addNodeView() {
     return VueNodeViewRenderer(TaskItemView, {
-      // 勾选框 / 日期药丸（含占位）的交互交给 Vue：
+      // 勾选框的交互交给 Vue：
       // 阻止 ProseMirror 抢焦点或把点击当作编辑器选区操作
       stopEvent: ({ event }) => {
         const target = event.target as HTMLElement | null;
-        return Boolean(
-          target?.closest?.(".task-item-checkbox") ||
-          target?.closest?.(".task-item-date"),
-        );
+        return Boolean(target?.closest?.(".task-item-checkbox"));
       },
-      // 勾选框 / chip 区域 DOM 由 Vue 管理，其内变更必须忽略；
+      // 勾选框 DOM 由 Vue 管理，其内变更必须忽略；
       // 内容区（.task-item-text）与选区变化交给 ProseMirror（同 admonition 模式）
       ignoreMutation: ({ mutation }) => {
         const target = mutation.target;
