@@ -1,4 +1,4 @@
-import { parseIndentedBlocks } from "@tiptap/core";
+import { parseIndentedBlocks, renderNestedMarkdownContent } from "@tiptap/core";
 import TaskItem from "@tiptap/extension-task-item";
 import { marked } from "marked";
 import type { Token, TokenizerAndRendererExtension, Tokens } from "marked";
@@ -164,5 +164,32 @@ export const WrispTaskItem = TaskItem.extend({
         }),
       },
     };
+  },
+
+  // 覆写官方 renderMarkdown（仅输出 - [ ]/- [x]，无日期）：
+  // date 属性 → 首行行尾 [[YYYY-MM-DD]]。
+  // 不能把日期注入为 text 节点：MarkdownManager 的 escapeMarkdownSyntax
+  // 会把 [[ ]] 转义为 \[\[ \]\]，故在渲染字符串层面拼接；
+  // 嵌套子块缩进与官方 renderNestedMarkdownContent 同构。
+  renderMarkdown(node, helpers) {
+    const checkedChar = node.attrs?.checked ? "x" : " ";
+    const prefix = `- [${checkedChar}] `;
+    const date = sanitizeTaskDate(node.attrs?.date);
+    if (!date || !Array.isArray(node.content) || node.content.length === 0) {
+      return renderNestedMarkdownContent(node, helpers, prefix);
+    }
+    const [content, ...children] = node.content;
+    const mainContent = helpers.renderChildren([content]);
+    let output = mainContent ? `${prefix}${mainContent} [[${date}]]` : `${prefix}[[${date}]]`;
+    for (const [index, child] of children.entries()) {
+      const childContent = helpers.renderChild?.(child, index + 1) ?? helpers.renderChildren([child]);
+      if (childContent == null) continue;
+      const indentedChild = childContent
+        .split("\n")
+        .map((line) => helpers.indent(line || ""))
+        .join("\n");
+      output += child.type === "paragraph" ? `\n\n${indentedChild}` : `\n${indentedChild}`;
+    }
+    return output;
   },
 });

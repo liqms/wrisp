@@ -142,3 +142,52 @@ describe("任务节点解析（桥接 HTML → taskItem 节点）", () => {
     expect(items[1]?.attrs.checked).toBe(true);
   });
 });
+
+describe("任务节点序列化（getMarkdown）", () => {
+  it("未完成/已完成 → - [ ] / - [x] 前缀", () => {
+    const editor = createEditor();
+    loadMarkdown(editor, "- [ ] A\n- [x] B");
+    const out = editor.getMarkdown();
+    expect(out).toContain("- [ ] A");
+    expect(out).toContain("- [x] B");
+  });
+
+  it("日期属性 → 行尾 [[YYYY-MM-DD]]", () => {
+    const editor = createEditor();
+    loadMarkdown(editor, "- [x] 完成报告 [[2026-09-06]]");
+    const out = editor.getMarkdown();
+    expect(out).toContain("- [x] 完成报告 [[2026-09-06]]");
+  });
+
+  it("round-trip 幂等：加载 → 序列化 → 再加载 → 再序列化一致", () => {
+    const editor = createEditor();
+    const md = "- [ ] A [[2026-09-01]]\n- [x] B";
+    loadMarkdown(editor, md);
+    const once = editor.getMarkdown();
+    loadMarkdown(editor, once);
+    expect(editor.getMarkdown()).toBe(once);
+  });
+
+  it("切换 checked / 设置 date 后序列化联动（setNodeMarkup 路径，同官方 NodeView 行为）", () => {
+    const editor = createEditor();
+    loadMarkdown(editor, "- [ ] 任务");
+    let pos = -1;
+    editor.state.doc.descendants((node, p) => {
+      if (node.type.name === "taskItem" && pos < 0) pos = p;
+      return true;
+    });
+    expect(pos).toBeGreaterThanOrEqual(0);
+    editor.view.dispatch(
+      editor.view.state.tr.setNodeMarkup(pos, undefined, { checked: true, date: "2026-12-31" }),
+    );
+    const out = editor.getMarkdown();
+    expect(out).toContain("- [x] 任务 [[2026-12-31]]");
+  });
+
+  it("任务内行内格式（加粗）保留", () => {
+    const editor = createEditor();
+    loadMarkdown(editor, "- [ ] **重点**任务");
+    const out = editor.getMarkdown();
+    expect(out).toContain("**重点**");
+  });
+});
