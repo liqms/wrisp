@@ -116,12 +116,66 @@
     > label {
       flex: 0 0 auto;
       margin-right: 0.5rem;
-      margin-top: 0.25rem;
       user-select: none;
     }
 
     > div {
       flex: 1 1 auto;
+    }
+  }
+
+  // 任务复选框：覆盖原生外观适配主题色（--primary-color 随用户主题色运行时切换）。
+  // 编辑态 NodeView（label.task-item-checkbox）与阅读态 v-html
+  // （li[data-type="taskItem"] > label）结构一致，此处一并覆盖
+  ul[data-type="taskList"] input[type="checkbox"] {
+    appearance: none;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border: 1.5px solid var(--text-quaternary);
+    border-radius: 4px;
+    background-color: transparent;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover:not(:disabled) {
+      border-color: var(--primary-color);
+    }
+
+    &:focus-visible {
+      outline: 2px solid
+        color-mix(in srgb, var(--primary-color) 40%, transparent);
+      outline-offset: 1px;
+    }
+
+    &:checked {
+      border-color: var(--primary-color);
+      background-color: var(--primary-color);
+      // 白色对勾（浅色主题主色饱和度高，白勾清晰）
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 10px 10px;
+
+      // 深色主题主色偏亮（如 #63e2b7），白勾对比不足，改用页面底色勾
+      html[data-theme="dark"] & {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231c1c1f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+      }
+
+      &:hover:not(:disabled) {
+        background-color: var(--primary-color-hover);
+        border-color: var(--primary-color-hover);
+      }
+    }
+
+    // 阅读态（v-html）勾选框带 disabled，仅作展示
+    &:disabled {
+      cursor: default;
+      opacity: 0.85;
     }
   }
 
