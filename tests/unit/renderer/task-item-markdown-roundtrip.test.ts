@@ -6,6 +6,8 @@ import TaskList from "@tiptap/extension-task-list";
 import { Markdown } from "@tiptap/markdown";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { registerTaskItemBridge, WrispTaskItem } from "@/renderer/components/editor/features/task-item/task-item-extension";
+import { Editor as VueEditor } from "@tiptap/vue-3";
+import { getExtensions } from "@/renderer/components/editor/extensions";
 
 // 模拟应用启动时的桥接注册（幂等）
 registerTaskItemBridge();
@@ -201,5 +203,49 @@ describe("任务节点序列化（getMarkdown）", () => {
     // round-trip 幂等
     loadMarkdown(editor, out);
     expect(editor.getMarkdown()).toBe(out);
+  });
+});
+
+describe("编辑器集成（getExtensions 全链路）", () => {
+  const integrationEditors: VueEditor[] = [];
+
+  afterEach(() => {
+    while (integrationEditors.length) integrationEditors.pop()?.destroy();
+  });
+
+  it("getExtensions 注册 WrispTaskItem 且 toggleTaskList 可用（气泡菜单/斜杠命令兼容）", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const editor = new VueEditor({ element: el, extensions: getExtensions() });
+    integrationEditors.push(editor);
+
+    editor.commands.setContent("<p>目标</p>");
+    editor.commands.setTextSelection(1);
+    editor.chain().focus().toggleTaskList().run();
+    expect(editor.isActive("taskList")).toBe(true);
+
+    const out = editor.getMarkdown();
+    expect(out).toContain("- [ ]");
+    expect(out).toContain("目标");
+  });
+
+  it("完整链路 round-trip：markdown → 全扩展编辑器 → markdown", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const editor = new VueEditor({ element: el, extensions: getExtensions() });
+    integrationEditors.push(editor);
+
+    const html = marked.parse("- [x] 完成报告 [[2026-09-06]]") as string;
+    editor.commands.setContent(html);
+
+    let item: PMNode | undefined;
+    editor.state.doc.descendants((node) => {
+      if (!item && node.type.name === "taskItem") item = node;
+      return true;
+    });
+    expect(item?.attrs.checked).toBe(true);
+    expect(item?.attrs.date).toBe("2026-09-06");
+
+    expect(editor.getMarkdown()).toContain("- [x] 完成报告 [[2026-09-06]]");
   });
 });

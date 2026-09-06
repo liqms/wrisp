@@ -4,7 +4,6 @@ import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
 import Placeholder from "@tiptap/extension-placeholder";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
@@ -17,6 +16,7 @@ import { createBlockNodes } from "./blocks/engine/node-factory";
 import DragHandle from "@tiptap/extension-drag-handle";
 import { DropLine, handleNodeChange, renderDragHandle } from "./features/drag-reorder/drag-reorder";
 import { Admonition, registerAdmonitionBridge } from "./features/admonition/admonition-extension";
+import { WrispTaskItem, registerTaskItemBridge } from "./features/task-item/task-item-extension";
 import { Ruby } from "./features/ruby/ruby-extension";
 import { createLegacyMentionExtension } from "./features/mention/mention-extension";
 import { createInlineSemanticSuggestExtension } from "./features/inline-semantic/inline-semantic-suggest";
@@ -30,6 +30,8 @@ import { createImageExtension } from "./features/image/image-extension";
 registerWrispBlockBridge(getBlocks());
 // 在全局 marked 单例上注册 `:::type` 提示块围栏的解析桥接（幂等）
 registerAdmonitionBridge();
+// 在全局 marked 单例上注册 `- [ ]/- [x]` 任务行桥接（幂等）
+registerTaskItemBridge();
 
 export function getExtensions(placeholder?: string): Extensions {
   const exts: Extensions = [
@@ -89,7 +91,8 @@ export function getExtensions(placeholder?: string): Extensions {
     // 数学公式（行内 $...$ + 块级 $$...$$，KaTeX 渲染 + 点击编辑浮层）
     ...createMathematicsExtension(),
     TaskList,
-    TaskItem.configure({
+    // 任务项：date 属性 + Vue NodeView（勾选切换 / 日期 chip 复用 pickDate）
+    WrispTaskItem.configure({
       nested: true,
     }),
     Placeholder.configure({
