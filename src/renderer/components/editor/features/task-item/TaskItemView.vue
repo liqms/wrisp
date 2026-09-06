@@ -26,3 +26,19 @@ function onCheckboxChange(e: Event): void {
   props.updateAttributes({ checked: (e.target as HTMLInputElement).checked });
 }
 </script>
+<style scoped lang="scss">
+@use "@/renderer/styles/_variables" as *;
+
+.task-item-node {
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* contentDOM 内的 p 由 ProseMirror 直接渲染（无 data-v 属性），
+   scoped 属性选择器匹配不到，必须 :deep() 穿透 */
+.task-item-text :deep(p) {
+  margin: 4px 0 !important;
+}
+</style>

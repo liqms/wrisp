@@ -101,6 +101,8 @@ export function buildBlocksGroup(t: (key: string) => string): CommandGroup {
     description: def.descKey ? t(def.descKey) : "",
     icon: def.slashIcon ?? "▦",
     action: ({ editor, pos }) => insertBlock(editor, pos, def),
+    // 自定义块（指标卡等）为围栏/多行结构，GFM 单元格无法承载——表格上下文隐藏
+    isEnabled: (editor) => !editor.isActive("table"),
   }));
   return {
     id: "blocks",

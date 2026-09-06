@@ -9,7 +9,7 @@
 
     <!-- 编辑器 -->
     <TiptapEditor ref="editorRef" v-model:model-value="editContent" :min-height="editorMinHeight"
-      :max-height="editorMaxHeight" :slash-command="true" :enable-bubble-menu="false" class="journal-editor"
+      :max-height="editorMaxHeight" :slash-command="true" :enable-bubble-menu="true" class="journal-editor"
       @enter="saveEdit" />
 
   </n-flex>

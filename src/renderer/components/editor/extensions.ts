@@ -24,6 +24,7 @@ import { createInlineSemanticDecoration } from "./features/inline-semantic/inlin
 import { createMathematicsExtension } from "./features/math/mathematics-extension";
 import { createCodeBlockLowlight } from "./features/code-block/code-block-extension";
 import { createImageExtension } from "./features/image/image-extension";
+import { createTableExtensions } from "./features/table/table-extension";
 
 // 在全局 marked 单例上注册 `:::name` 围栏的解析桥接（幂等）。
 // 读取链路（mdToHtml）与插入链路（insertMarkdownTemplate）均经该单例解析。
@@ -101,6 +102,8 @@ export function getExtensions(placeholder?: string): Extensions {
     Markdown,
     // 提示块（`:::type` 围栏容器：斜杠插入、标题行/气泡菜单切换类型）
     Admonition,
+    // 表格（GFM 管道表格：斜杠插入、行列气泡菜单管理；单元格内 `|` 转义由封装修复）
+    ...createTableExtensions(),
     // 块拖拽排序：拖拽期间的蓝色插入线（落点指示）
     DropLine,
     // 自定义块（由声明式注册表生成的节点：卡片 atom + 可选分组容器）

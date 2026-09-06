@@ -9,6 +9,7 @@
     <ContextMenu :visible="contextVisible" :pos-x="contextX" :pos-y="contextY" :has-selection="contextHasSelection"
       @update:visible="contextVisible = $event" @cut="handleCut" @copy="handleCopy" @paste="handlePaste"
       @select-all="handleSelectAll" />
+    <TableEdgeControls :editor="editor ?? null" />
   </n-flex>
 </template>
 
@@ -23,6 +24,7 @@ import type { PageCatalogItem } from "@/shared/types/page.types";
 import SlashMenu from "./slash/SlashMenu.vue";
 import BubbleMenu from "./menus/BubbleMenu.vue";
 import ImageBubbleMenu from "./features/image/ImageBubbleMenu.vue";
+import TableEdgeControls from "./features/table/TableEdgeControls.vue";
 import ContextMenu from "./menus/ContextMenu.vue";
 
 /** Markdown → HTML（异步，marked 返回 Promise<string>） */
@@ -352,7 +354,8 @@ defineExpose({ focus, clear, getHTML, getMarkdown, getText, getCatalog, editor }
   line-height: 1.5;
   color: var(--text-primary);
   outline: none;
-  padding: 0;
+  /* 顶部/左侧预留空间给表格 edge handles（列/行 handle 伸出到容器外） */
+  padding: 22px 0 0 24px;
 
   >*+* {
     margin-top: 0.25em;
