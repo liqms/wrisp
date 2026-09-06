@@ -116,6 +116,7 @@
     > label {
       flex: 0 0 auto;
       margin-right: 0.5rem;
+      margin-top: 0.25rem;
       user-select: none;
     }
 
@@ -190,6 +191,7 @@
     border-radius: 4px;
     font-family: $font-family-mono;
     font-size: 14px;
+    color: var(--text-secondary);
   }
 
   pre {
@@ -261,7 +263,6 @@
     code .hljs-meta,
     code .hljs-subst,
     code .hljs-section,
-    code .hljs-params,
     code .hljs-type {
       color: var(--hl-meta);
     }
@@ -524,22 +525,24 @@
 
 /* ===== 块拖拽排序（drag-reorder）===== */
 
-// 拖拽手柄：悬停块时浮现在左侧（显隐由 @tiptap/extension-drag-handle 控制，
+// 拖拽手柄：悬停块时浮现在块左侧的手柄槽位内（显隐由 @tiptap/extension-drag-handle 控制，
 // 定位由 drag-reorder 的接管逻辑改为 fixed 视口坐标：顶边对齐块顶、
-// 右缘与块左缘保持 12px 间距）
+// 右缘与块左缘相接、左缘夹取在编辑区（ProseMirror 内容根）内）
 // 手柄集群：[＋ 添加块] [⠿ 拖拽]，各自独立悬停反馈
+// 整体宽度 48px（20 + 20 + 8 桥接区），与各编辑容器 ProseMirror 左侧预留的
+// $spacing-2xl（48px）内边距槽位精确匹配，悬停时不溢出编辑区
 .drag-handle {
   display: flex;
   align-items: center;
   height: 24px;
   color: var(--text-quaternary);
   user-select: none;
-  // 透明桥接区：覆盖手柄按钮与块左缘之间的 12px 视觉间距，使 element 的可命中区
+  // 透明桥接区：覆盖手柄按钮与块左缘之间的 8px 视觉间距，使 element 的可命中区
   // 与块左缘连续相接。鼠标从块向左移到手柄时，mouseleave 的 relatedTarget 恒为
   // element（padding 属于 element 的一部分），官方扩展判定 wrapper.contains(element)
   // 为 true，不隐藏手柄。若改用外部 margin/left 间隙，间隙下方是官方 wrapper
   // （pointer-events: none），relatedTarget 穿透 wrapper 导致手柄被误隐藏、无法选中。
-  padding-right: 12px;
+  padding-right: 8px;
 
   // 拖拽进行中：手柄置灰反馈
   &[data-dragging="true"] {

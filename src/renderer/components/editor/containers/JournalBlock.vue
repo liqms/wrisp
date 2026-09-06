@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
 import TiptapEditor from "../TiptapEditor.vue";
 import type { JournalFileInfo } from "@/shared/types";
 import { useJournal } from "@/renderer/composables/useJournal";
@@ -66,6 +66,15 @@ let isSyncingFromProp = false;
 watch(
   () => props.journal.content,
   (newContent) => {
+    // 值与当前编辑内容一致：是自身保存（updateContentLocally 乐观更新）引发的 store 回写，
+    // 仅刷新 lastSavedContent。若在此置 isSyncingFromProp 会武装一次性标记，
+    // 吞掉下一次仅触发单次 emit 的编辑（如只切换代码块语言），导致该改动不保存。
+    if (newContent === editContent.value) {
+      lastSavedContent.value = newContent;
+      return;
+    }
+    // 真正的外部变更：同步编辑器并跳过接下来的一次自动保存，
+    // 避免 setContent 完成前防抖把旧内容写回覆盖新内容
     isSyncingFromProp = true;
     editContent.value = newContent;
     lastSavedContent.value = newContent;
@@ -102,6 +111,15 @@ watch(editContent, () => {
     saveEdit();
   }, 800);
 });
+
+// 卸载前冲销未完成的防抖保存，避免切换视图时丢失最后 800ms 内的改动（与 PageBlock 行为一致）
+onBeforeUnmount(() => {
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+    void saveEdit();
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -119,6 +137,8 @@ watch(editContent, () => {
 
 .date-header {
   margin-bottom: $spacing-sm;
+  // 左右内边距与正文 ProseMirror 一致，日期标题与正文左对齐（见下方 .journal-editor）
+  padding: 0 $spacing-2xl;
 }
 
 .date-title {
@@ -128,5 +148,14 @@ watch(editContent, () => {
 
 .journal-editor {
   width: 100%;
+}
+
+/* 正文左右对称预留 48px（$spacing-2xl）内边距：左侧作为拖拽手柄槽位（手柄悬停时
+   浮现在槽位内，不再溢出日志卡片与编辑列），右侧保持留白对称——与 PageBlock
+   编辑区 "max-width 800 + padding 0 48" 的既有模式一致。
+   drag-reorder 的 takeoverPosition 以 ProseMirror 内容根左缘为下界夹取，
+   槽位宽度与手柄整体宽度 48px 精确匹配 */
+.journal-editor :deep(.ProseMirror) {
+  padding: 0 $spacing-2xl;
 }
 </style>

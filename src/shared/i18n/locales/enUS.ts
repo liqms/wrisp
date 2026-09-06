@@ -220,7 +220,7 @@ export default {
         BLOCKQUOTE_TITLE: "Quote",
         BLOCKQUOTE_DESC: "Quoted text block",
         ADMONITION_TITLE: "Callout",
-        ADMONITION_DESC: "Customizable typed callout container",
+        ADMONITION_DESC: "Insert a customizable typed callout container",
         HORIZONTAL_RULE_TITLE: "Divider",
         HORIZONTAL_RULE_DESC: "Insert a horizontal rule",
         IMAGE_TITLE: "Image",

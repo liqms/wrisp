@@ -152,7 +152,13 @@ function hideHandleOnScroll(): void {
  * 实测手柄会偏移一个滚动量。这里改用 fixed 视口坐标直接对齐块：
  * 顶边与块顶对齐、右缘（含 .drag-handle 的 padding-right 透明桥接区）紧贴块左缘。
  *
- * 间距由 .drag-handle 的 padding-right（12px）实现而非在此处留间隙：
+ * 左缘夹取：手柄整体宽度 48px（两个 20px 按钮 + 8px 桥接区），各编辑容器在
+ * ProseMirror 左右对称预留 48px（$spacing-2xl）内边距，左侧即手柄槽位，
+ * 手柄悬停时浮现在槽位内（右侧留白对称，视觉平衡）；左缘以 view.dom
+ * （ProseMirror 内容根）左缘为下界夹取，保证手柄永不溢出编辑区
+ * （日志卡片外的页面留白 / 章节编辑器侧栏方向）。
+ *
+ * 间距由 .drag-handle 的 padding-right（8px）实现而非在此处留间隙：
  * 早期版本用 `rect.left - offsetWidth - 12` 留间隙，间隙下方是官方扩展 wrapper
  * （pointer-events: none），鼠标从块移到手柄时 mouseleave 的 relatedTarget
  * 穿透 wrapper 指向 parentElement，官方判定 !wrapper.contains(relatedTarget)
@@ -162,12 +168,18 @@ function hideHandleOnScroll(): void {
 function takeoverPosition(element: HTMLElement): void {
   const block = hoveredBlock;
   if (!block || block.editor.isDestroyed || !element.isConnected) return;
-  const dom = block.editor.view.nodeDOM(block.pos);
+  const view = block.editor.view;
+  const dom = view.nodeDOM(block.pos);
   if (!dom || dom.nodeType !== 1) return;
   const rect = (dom as HTMLElement).getBoundingClientRect();
+  // 编辑区（ProseMirror 内容根）左缘：手柄槽位的硬边界
+  const editorLeft = view.dom.getBoundingClientRect().left;
   element.style.position = "fixed";
-  // element.offsetWidth 含 padding-right（透明桥接区），右缘紧贴块左缘
-  element.style.left = `${Math.round(rect.left - element.offsetWidth)}px`;
+  // element.offsetWidth 含 padding-right（透明桥接区），右缘紧贴块左缘；
+  // 槽位不足（如未预留内边距的容器）时夹取到编辑区左缘，宁可轻微覆盖
+  // 块内容也不让手柄溢出编辑区
+  const left = Math.max(rect.left - element.offsetWidth, editorLeft);
+  element.style.left = `${Math.round(left)}px`;
   element.style.top = `${Math.round(rect.top)}px`;
 }
 

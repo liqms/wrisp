@@ -184,14 +184,13 @@ onBeforeUnmount(() => {
     height: 100%;
     min-height: 0;
     width: 100%;
-    padding: $spacing-xl 0;
+    padding: $spacing-xl $spacing-md;    
 }
 
 .page-block-title-wrap {
     flex-shrink: 0;
     width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
+    margin: $spacing-md auto;
     height: 32px;
     padding: 0 $spacing-2xl;
 }
@@ -227,8 +226,7 @@ onBeforeUnmount(() => {
 }
 
 /* 编辑器内部由自身滚动，滚动条位于整个编辑器最右侧；正文内容居中并限制在 800px */
-.page-block :deep(.page-block-editor .ProseMirror) {
-    max-width: 800px;
+.page-block :deep(.page-block-editor .ProseMirror) {    
     margin: 0 auto;
     padding: 0 $spacing-2xl;
 }
