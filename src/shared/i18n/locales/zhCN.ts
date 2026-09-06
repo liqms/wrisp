@@ -240,6 +240,12 @@ export default {
         DATE_PICKER_DESC: "选择自定义日期插入",
         DATE_PICKER_PLACEHOLDER: "选择日期",
       },
+      TASK_ITEM: {
+        TOGGLE_CHECKED_TITLE: "切换完成状态",
+        ADD_DATE_TITLE: "添加日期",
+        CHANGE_DATE_TITLE: "修改日期",
+        CLEAR_DATE_TITLE: "清除日期",
+      },
       PLACEHOLDER: "输入命令...",
       EMPTY: "没有匹配的命令",
       TEMPLATE: {

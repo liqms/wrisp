@@ -1,6 +1,8 @@
 import { parseIndentedBlocks, renderNestedMarkdownContent } from "@tiptap/core";
 import TaskItem from "@tiptap/extension-task-item";
+import { VueNodeViewRenderer } from "@tiptap/vue-3";
 import { marked } from "marked";
+import TaskItemView from "./TaskItemView.vue";
 import type { Token, TokenizerAndRendererExtension, Tokens } from "marked";
 
 /**
@@ -191,5 +193,30 @@ export const WrispTaskItem = TaskItem.extend({
       output += child.type === "paragraph" ? `\n\n${indentedChild}` : `\n${indentedChild}`;
     }
     return output;
+  },
+
+  // 编辑态 NodeView：勾选框切换 + 日期 chip（点击复用 pickDate 浮层）
+  addNodeView() {
+    return VueNodeViewRenderer(TaskItemView, {
+      // 勾选框 / 日期 chip / 添加按钮的交互交给 Vue：
+      // 阻止 ProseMirror 抢焦点或把点击当作编辑器选区操作
+      stopEvent: ({ event }) => {
+        const target = event.target as HTMLElement | null;
+        return Boolean(
+          target?.closest?.(".task-item-checkbox") ||
+          target?.closest?.(".task-item-date") ||
+          target?.closest?.(".task-item-date-add"),
+        );
+      },
+      // 勾选框 / chip 区域 DOM 由 Vue 管理，其内变更必须忽略；
+      // 内容区（.task-item-text）与选区变化交给 ProseMirror（同 admonition 模式）
+      ignoreMutation: ({ mutation }) => {
+        const target = mutation.target;
+        const el = target instanceof Element ? target : (target?.parentElement ?? null);
+        if (!el) return true;
+        if (mutation.type === "selection") return false;
+        return !el.closest(".task-item-text");
+      },
+    });
   },
 });

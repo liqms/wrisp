@@ -242,6 +242,12 @@ export default {
         DATE_PICKER_DESC: "Pick a custom date to insert",
         DATE_PICKER_PLACEHOLDER: "Pick a date",
       },
+      TASK_ITEM: {
+        TOGGLE_CHECKED_TITLE: "Toggle completion",
+        ADD_DATE_TITLE: "Add date",
+        CHANGE_DATE_TITLE: "Change date",
+        CLEAR_DATE_TITLE: "Clear date",
+      },
       PLACEHOLDER: "Type a command...",
       EMPTY: "No matching command",
       TEMPLATE: {
