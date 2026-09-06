@@ -190,4 +190,16 @@ describe("任务节点序列化（getMarkdown）", () => {
     const out = editor.getMarkdown();
     expect(out).toContain("**重点**");
   });
+
+  it("带日期 + 嵌套子任务：日期在首行行尾，子块缩进保持", () => {
+    const editor = createEditor();
+    loadMarkdown(editor, "- [x] 父任务 [[2026-09-06]]\n  - [ ] 子任务");
+    const out = editor.getMarkdown();
+    expect(out).toContain("- [x] 父任务 [[2026-09-06]]");
+    // 子任务行需保留嵌套缩进（两个空格）
+    expect(out).toContain("  - [ ] 子任务");
+    // round-trip 幂等
+    loadMarkdown(editor, out);
+    expect(editor.getMarkdown()).toBe(out);
+  });
 });
