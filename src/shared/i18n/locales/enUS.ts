@@ -242,17 +242,17 @@ export default {
         DATE_PICKER_DESC: "Pick a custom date to insert",
         DATE_PICKER_PLACEHOLDER: "Pick a date",
       },
-      TASK_ITEM: {
-        TOGGLE_CHECKED_TITLE: "Toggle completion",
-        ADD_DATE_TITLE: "Add date",
-        CHANGE_DATE_TITLE: "Change date",
-        CLEAR_DATE_TITLE: "Clear date",
-      },
       PLACEHOLDER: "Type a command...",
       EMPTY: "No matching command",
       TEMPLATE: {
         GROUP_LABEL: "Content Templates",
       },
+    },
+    TASK_ITEM: {
+      TOGGLE_CHECKED_TITLE: "Toggle completion",
+      ADD_DATE_TITLE: "Add date",
+      CHANGE_DATE_TITLE: "Change date",
+      DATE_LABEL: "date",
     },
     INLINE_SEMANTIC: {
       NO_MATCH: "No matches",

@@ -195,17 +195,16 @@ export const WrispTaskItem = TaskItem.extend({
     return output;
   },
 
-  // 编辑态 NodeView：勾选框切换 + 日期 chip（点击复用 pickDate 浮层）
+  // 编辑态 NodeView：勾选框切换 + 日期药丸（点击复用 pickDate 浮层）
   addNodeView() {
     return VueNodeViewRenderer(TaskItemView, {
-      // 勾选框 / 日期 chip / 添加按钮的交互交给 Vue：
+      // 勾选框 / 日期药丸（含占位）的交互交给 Vue：
       // 阻止 ProseMirror 抢焦点或把点击当作编辑器选区操作
       stopEvent: ({ event }) => {
         const target = event.target as HTMLElement | null;
         return Boolean(
           target?.closest?.(".task-item-checkbox") ||
-          target?.closest?.(".task-item-date") ||
-          target?.closest?.(".task-item-date-add"),
+          target?.closest?.(".task-item-date"),
         );
       },
       // 勾选框 / chip 区域 DOM 由 Vue 管理，其内变更必须忽略；
