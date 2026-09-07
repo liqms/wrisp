@@ -25,7 +25,14 @@ export function createCodeBlockLowlight() {
         language: {
           default: "javascript",
           parseHTML: (element) => {
-            const cls = element.getAttribute("class") ?? "";
+            // marked 渲染的 HTML：<pre><code class="language-x">（class 在 code 子元素上）
+            // 编辑器 getHTML 序列化：class 在 pre 自身（见下方 renderHTML），两处都要查
+            const cls = [
+              element.getAttribute("class"),
+              element.firstElementChild?.getAttribute("class"),
+            ]
+              .filter(Boolean)
+              .join(" ");
             const match = /language-(\w+)/.exec(cls);
             return match?.[1] ?? "javascript";
           },

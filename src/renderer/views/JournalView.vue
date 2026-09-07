@@ -134,9 +134,9 @@ onMounted(async () => {
   width: 100%;
   min-width: 0;
   /* 覆盖 naive-ui 的 min-width: 100%，使 max-width 生效 */
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: $spacing-xl $spacing-md;
+  padding: $spacing-lg $spacing-md;
 }
 
 .loading {

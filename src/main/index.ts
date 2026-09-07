@@ -30,6 +30,7 @@ import {
   registerSkillHandlers,
   registerModelHandlers,
   registerTagHandlers,
+  registerCharacterHandlers,
   registerPageHandlers,
   registerConceptHandlers,
   registerTopicHandlers,
@@ -107,7 +108,7 @@ function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width,
     height,
-    minWidth: 800,
+    minWidth: 900,
     minHeight: 600,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
@@ -188,6 +189,7 @@ app.whenReady().then(async () => {
   registerSkillHandlers();
   registerModelHandlers();
   registerTagHandlers();
+  registerCharacterHandlers();
   registerPageHandlers();
   registerConceptHandlers();
   registerTopicHandlers();

@@ -17,6 +17,7 @@ import { fileService } from "@/main/core/services/base/file.service";
 import { NodeCryptoUtil } from "@/main/utils";
 import { PAGE_TYPE } from "@/shared/enums";
 import { PROJECT_SETTINGS_DIR, CHAPTER_DIR } from "@/main/constants/folder.constants";
+import { inlineTokenSyncService } from "@/main/core/services/inline-token-sync.service";
 
 /**
  * 页面服务
@@ -242,6 +243,13 @@ class PageService {
       // 1. 更新 md 文件
       if (updateData.content !== undefined) {
         fileService.writeFile(existing.file_path, updateData.content || "");
+
+        // 同步行内 token：#标签入标签表、@人物入人物表（失败不影响保存）
+        // 作品页面的人物归属该作品；无 project_id 时退化为联系人
+        inlineTokenSyncService.syncFromMarkdown(updateData.content || "", {
+          type: existing.project_id ? "project" : "contact",
+          id: existing.project_id ?? undefined,
+        });
       }
 
       // 2. 更新页面表（转换为 db 类型）

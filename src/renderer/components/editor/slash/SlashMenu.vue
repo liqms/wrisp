@@ -69,12 +69,21 @@ const selectedIndex = ref(0);
 
 const menuStyle = ref<Record<string, string>>({});
 
-// 命令组 = 通用(日期时间) + 已启用的模板
+// 命令组 = 通用(日期时间) + 已启用的模板；
+// isEnabled 为 false 的命令（如单元格内的表格命令）按当前选区过滤隐藏
 const commandGroups = computed<CommandGroup[]>(() => {
+  // 依赖 visible：每次打开菜单时按当时的编辑器选区重新求值
+  // （菜单打开期间焦点在搜索框，选区冻结，打开时的状态即为会话全程状态）
+  void props.visible;
   const items = templateStore
     .allTemplates(TEMPLATE_TYPE.SLASH, locale.value)
     .filter((item) => item.enabled);
-  return getCommandGroups(t, items);
+  return getCommandGroups(t, items)
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((cmd) => cmd.isEnabled?.(props.editor) !== false),
+    }))
+    .filter((group) => group.items.length > 0);
 });
 
 // 判断图标是否为 Vue 组件（@vicons 等）；字符串则走 v-html
@@ -107,10 +116,13 @@ watch(
   },
 );
 
+// 全局索引必须基于 filteredGroups（实际渲染/执行列表）累加：
+// 搜索过滤或 isEnabled 过滤后各组项数与 commandGroups 不一致，
+// 若按未过滤列表累加会导致高亮索引与 Enter 执行的命令错位
 function getGlobalIndex(gi: number, ci: number): number {
   let idx = 0;
   for (let i = 0; i < gi; i++) {
-    idx += commandGroups.value[i].items.length;
+    idx += filteredGroups.value[i].items.length;
   }
   return idx + ci;
 }

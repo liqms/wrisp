@@ -1,8 +1,70 @@
 @use "./fonts" as *;
 
+// Gapcursor 块间光标（Tiptap v3 StarterKit 已内置 gapCursor 扩展，
+// 但 prosemirror-gapcursor 的样式需自行引入；官方 CSS 将光标硬编码为黑色，
+// 暗色主题下不可见，此处用主题变量适配亮/暗色）
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
 .markdown-content {
   width: 100%;
   line-height: 1.5;
+
+  .ProseMirror-gapcursor {
+    display: none;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .ProseMirror-gapcursor:after {
+    content: "";
+    display: block;
+    position: absolute;
+    top: -2px;
+    width: 20px;
+    border-top: 1px solid var(--text-primary);
+    animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+  }
+
+  .ProseMirror-focused .ProseMirror-gapcursor {
+    display: block;
+  }
+
+  // ===== prosemirror-view 官方基础样式（prosemirror.css）补丁 =====
+  // 项目从未引入官方 CSS，以下按官方文件补齐缺失规则（仅做主题变量适配）。
+  // 白空格保留 + 换行：缺失时连续空格视觉折叠为 1 个（数据保留但所见非所存），
+  // 长无空格串（长 URL）不换行，在 overflow 滚动容器中被直接裁剪不可见。
+  .ProseMirror {
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    white-space: break-spaces;
+    // 禁用连字：fi/fl 等连字会导致光标定位与选区边界偏移
+    -webkit-font-variant-ligatures: none;
+    font-variant-ligatures: none;
+  }
+
+  // 拖拽期间 prosemirror-view 给编辑器根加 -hideselection 隐藏原生选区，
+  // 缺失时 DragHandle 拖块原位选区高亮不消失，与拖拽预览/插入线视觉叠加
+  .ProseMirror-hideselection *::selection {
+    background: transparent;
+  }
+
+  .ProseMirror-hideselection * {
+    caret-color: transparent;
+  }
+
+  // 防御性规则（官方同款）：保证 prosemirror 内部拖拽/选区占位符
+  // 不被全局 img 样式破坏（将来若加全局 img 规则仍安全）
+  .ProseMirror [draggable][contenteditable="false"] {
+    user-select: text;
+  }
+
+  .ProseMirror img.ProseMirror-separator {
+    display: inline !important;
+  }
 
   h1,
   h2,
@@ -16,15 +78,15 @@
   }
 
   h1 {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   h2 {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   h3 {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   p {
@@ -49,7 +111,7 @@
 
   ul[data-type="taskList"] li {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
 
     > label {
       flex: 0 0 auto;
@@ -63,12 +125,73 @@
     }
   }
 
+  // 任务复选框：覆盖原生外观适配主题色（--primary-color 随用户主题色运行时切换）。
+  // 编辑态 NodeView（label.task-item-checkbox）与阅读态 v-html
+  // （li[data-type="taskItem"] > label）结构一致，此处一并覆盖
+  ul[data-type="taskList"] input[type="checkbox"] {
+    appearance: none;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border: 1.5px solid var(--text-quaternary);
+    border-radius: 4px;
+    background-color: transparent;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover:not(:disabled) {
+      border-color: var(--primary-color);
+    }
+
+    &:focus-visible {
+      outline: 2px solid
+        color-mix(in srgb, var(--primary-color) 40%, transparent);
+      outline-offset: 1px;
+    }
+
+    &:checked {
+      border-color: var(--primary-color);
+      background-color: var(--primary-color);
+      // 白色对勾（浅色主题主色饱和度高，白勾清晰）
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 10px 10px;
+
+      // 深色主题主色偏亮（如 #63e2b7），白勾对比不足，改用页面底色勾
+      html[data-theme="dark"] & {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231c1c1f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+      }
+
+      &:hover:not(:disabled) {
+        background-color: var(--primary-color-hover);
+        border-color: var(--primary-color-hover);
+      }
+    }
+
+    // 阅读态（v-html）勾选框带 disabled，仅作展示
+    &:disabled {
+      cursor: default;
+      opacity: 0.85;
+    }
+  }
+
+  // ===== 任务节点（WrispTaskItem，Vue NodeView 渲染）=====
+  // li.task-item-node 命中上方 ul[data-type="taskList"] li 官方规则
+  // （flex + label/div 子项）；日期为行内 [[文本]]，由统一的
+  // inline-sem 药丸样式渲染，无任务专属样式
+
   code {
     background-color: var(--bg-secondary);
     padding: 2px 6px;
     border-radius: 4px;
     font-family: $font-family-mono;
     font-size: 14px;
+    color: var(--text-secondary);
   }
 
   pre {
@@ -140,7 +263,6 @@
     code .hljs-meta,
     code .hljs-subst,
     code .hljs-section,
-    code .hljs-params,
     code .hljs-type {
       color: var(--hl-meta);
     }
@@ -187,7 +309,7 @@
       --admonition-color: var(--error-color);
     }
 
-    // 类型标题行（编辑态与阅读态共用）
+    // 类型标题行（阅读态与编辑态共用基础样式）
     &::before {
       content: "笔记";
       display: block;
@@ -208,6 +330,54 @@
     }
     &[data-type="danger"]::before {
       content: "危险";
+    }
+
+    // 编辑态（Vue NodeView）：真实标题元素替代 ::before（点击下拉切换类型）
+    &.admonition-edit::before {
+      display: none;
+    }
+
+    .admonition-title {
+      margin-bottom: 4px;
+      user-select: none;
+
+      .admonition-title__trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 1px 5px;
+        margin-left: -5px;
+        border-radius: 3px;
+        font-weight: 600;
+        font-size: 0.9em;
+        color: var(--admonition-color);
+        cursor: pointer;
+        transition: background 100ms ease;
+
+        &:hover {
+          background: color-mix(
+            in srgb,
+            var(--admonition-color) 10%,
+            transparent
+          );
+        }
+
+        // 下拉箭头：默认隐藏，悬浮标题或菜单展开时淡入（提示可点击切换类型）
+        .admonition-title__chevron {
+          opacity: 0;
+          transition: opacity 120ms ease;
+        }
+
+        &:hover .admonition-title__chevron,
+        &.is-menu-open .admonition-title__chevron {
+          opacity: 0.7;
+        }
+      }
+    }
+
+    // NodeViewContent 包裹层：让"最后一个子块无下边距"继续命中实际内容块
+    .admonition-content > :last-child {
+      margin-bottom: 0;
     }
 
     // 嵌套时收紧内层边距，避免视觉上过度膨胀
@@ -239,14 +409,60 @@
     }
   }
 
-  // @ 提及：<span data-type="mention">@页面</span>
+  // 行内语义 token（Logseq 风格）：[[双链]] / #标签 / @人物
+  // ProseMirror 把 token 渲染为兄弟 span 分段（首段/中段/尾段），
+  // 由 .inline-sem-start/-end 拼出完整药丸：悬浮时符号+正文为一个整体，
+  // 带内间距（padding）与圆角（border-radius）。
+  // 水平内距为常驻正 padding（不用负 margin 抵消）：编辑器滚动容器
+  // overflow-y:auto 会对左侧溢出做水平裁剪，负 margin 会把行首 token 的
+  // 左内距+圆角裁掉；常驻 padding 让药丸始终处于内容流内，永不裁剪，
+  // 且悬浮前后无位移。
+  .inline-sem {
+    cursor: pointer;
+    padding: 4px 0; // 垂直内距：inline 元素不占布局，仅扩展背景绘制区
+    // background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    background-color: var(--bg-tertiary);
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &.inline-sem-start {
+      padding-left: 4px;
+      border-radius: 4px 0 0 4px;
+    }
+
+    &.inline-sem-end {
+      padding-right: 4px;
+      border-radius: 0 4px 4px 0;
+    }
+  }
+
+  // 旧版 @ 提及节点（单节点渲染，整粒药丸）
   .mention-node {
-    padding: 1px 4px;
+    cursor: pointer;
+    padding: 4px 6px;
     border-radius: 4px;
-    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  // 悬浮时整个 token（符号+正文）联动高亮：由 decoration 插件的
+  // mouseover/mouseout 给同 token 的全部段切换 .is-token-hover，
+  // 各段背景相邻衔接，视觉上是一整个圆角色块
+  .inline-sem.is-token-hover,
+  .mention-node:hover {
     color: var(--primary-color);
-    font-weight: 500;
-    cursor: default;
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  }
+
+  // 符号（[[、]]、#、@）默认弱化，悬浮时跟随 token 高亮
+  .inline-sem-symbol {
+    color: var(--text-disabled);
+
+    &.is-token-hover {
+      color: var(--text-disabled);
+    }
   }
 
   // 数学公式（KaTeX 渲染节点）
@@ -277,12 +493,12 @@
   table {
     border-collapse: collapse;
     width: 100%;
-    margin: 12px 0;
+    margin: 4px 0;
 
     th,
     td {
       border: 1px solid var(--border-color);
-      padding: 8px 12px;
+      padding: 0 8px;
       text-align: left;
     }
 
@@ -290,6 +506,43 @@
       background-color: var(--bg-secondary);
       font-weight: 600;
     }
+  }
+
+  // ===== 表格编辑态样式（prosemirror-tables 官方 tables.css 的主题适配版） =====
+  // 可编辑器内表格：横向滚动容器 + 单元格选区高亮 + 列宽拖拽手柄
+  .tableWrapper {
+    overflow-x: auto;
+  }
+
+  .ProseMirror th,
+  .ProseMirror td {
+    position: relative;
+  }
+
+  .ProseMirror .selectedCell::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    pointer-events: none;
+  }
+
+  .ProseMirror .column-resize-handle {
+    position: absolute;
+    right: -1px;
+    top: 0;
+    bottom: -2px;
+    width: 2px;
+    background-color: var(--primary-color);
+    pointer-events: none;    
+  }
+
+  .ProseMirror.resize-cursor {
+    cursor: ew-resize;
+    cursor: col-resize;    
   }
 
   hr {
@@ -309,22 +562,24 @@
 
 /* ===== 块拖拽排序（drag-reorder）===== */
 
-// 拖拽手柄：悬停块时浮现在左侧（显隐由 @tiptap/extension-drag-handle 控制，
+// 拖拽手柄：悬停块时浮现在块左侧的手柄槽位内（显隐由 @tiptap/extension-drag-handle 控制，
 // 定位由 drag-reorder 的接管逻辑改为 fixed 视口坐标：顶边对齐块顶、
-// 右缘与块左缘保持 12px 间距）
+// 右缘与块左缘相接、左缘夹取在编辑区（ProseMirror 内容根）内）
 // 手柄集群：[＋ 添加块] [⠿ 拖拽]，各自独立悬停反馈
+// 整体宽度 48px（20 + 20 + 8 桥接区），与各编辑容器 ProseMirror 左侧预留的
+// $spacing-2xl（48px）内边距槽位精确匹配，悬停时不溢出编辑区
 .drag-handle {
   display: flex;
   align-items: center;
   height: 24px;
   color: var(--text-quaternary);
   user-select: none;
-  // 透明桥接区：覆盖手柄按钮与块左缘之间的 12px 视觉间距，使 element 的可命中区
+  // 透明桥接区：覆盖手柄按钮与块左缘之间的 8px 视觉间距，使 element 的可命中区
   // 与块左缘连续相接。鼠标从块向左移到手柄时，mouseleave 的 relatedTarget 恒为
   // element（padding 属于 element 的一部分），官方扩展判定 wrapper.contains(element)
   // 为 true，不隐藏手柄。若改用外部 margin/left 间隙，间隙下方是官方 wrapper
   // （pointer-events: none），relatedTarget 穿透 wrapper 导致手柄被误隐藏、无法选中。
-  padding-right: 12px;
+  padding-right: 8px;
 
   // 拖拽进行中：手柄置灰反馈
   &[data-dragging="true"] {

@@ -9,6 +9,7 @@ import { aiModule } from "./ai";
 import { skillModule } from "./skill";
 import { modelModule } from "./model";
 import { tagModule } from "./tag";
+import { characterModule } from "./character";
 import { pageModule } from "./page";
 import { conceptModule } from "./concept";
 import { topicModule } from "./topic";
@@ -33,6 +34,7 @@ export const modules = {
   skill: skillModule,
   model: modelModule,
   tag: tagModule,
+  character: characterModule,
   page: pageModule,
   concept: conceptModule,
   topic: topicModule,

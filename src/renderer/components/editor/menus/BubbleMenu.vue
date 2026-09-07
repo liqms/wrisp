@@ -250,6 +250,7 @@ import type { Editor } from "@tiptap/core";
 import { PluginKey } from "@tiptap/pm/state";
 import type { EditorState } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
+import { CellSelection } from "@tiptap/pm/tables";
 import { isDraggingBlock } from "@/renderer/components/editor/features/drag-reorder/drag-reorder";
 
 const props = defineProps<{
@@ -400,6 +401,9 @@ function shouldShow(p: {
   if (isDraggingBlock()) return false;
   // 选中图片或代码块时，显示各自的专用浮层，不显示文字工具栏
   if (ed.isActive("image") || ed.isActive("codeBlock")) return false;
+  // 表格单元格拖选（CellSelection）时不显示文字工具栏：表格操作由边缘控件承担，
+  // 拖选过程中工具栏跟随选区闪烁反而干扰
+  if (p.state.selection instanceof CellSelection) return false;
   return true;
 }
 

@@ -49,6 +49,10 @@ export enum ErrorCode {
   TAG_QUERY_FAILED = "ERROR.TAG.QUERY_FAILED",
   TAG_NOT_FOUND = "ERROR.TAG.NOT_FOUND",
 
+  // ============ 人物错误 ============
+  CHARACTER_QUERY_FAILED = "ERROR.CHARACTER.QUERY_FAILED",
+  CHARACTER_CREATE_FAILED = "ERROR.CHARACTER.CREATE_FAILED",
+
   // ============ 模板错误 ============
   TEMPLATE_GET_FAILED = "ERROR.TEMPLATE.GET_FAILED",
   TEMPLATE_SAVE_FAILED = "ERROR.TEMPLATE.SAVE_FAILED",
@@ -180,6 +184,7 @@ export type ErrorCategory =
   | "TEMPLATE" // 模板错误
   | "ATTACHMENT" // 附件错误
   | "RESOURCE" // 资源同步错误
+  | "CHARACTER" // 人物错误
   | "UNKNOWN" // 未知分类
   | "SUCCESS"; // 成功分类
 
@@ -228,6 +233,8 @@ export function getErrorCategory(errorCode: ErrorCode): ErrorCategory {
       return "TEMPLATE";
     case "ATTACHMENT":
       return "ATTACHMENT";
+    case "CHARACTER":
+      return "CHARACTER";
     case "AGENT":
       return "AGENT";
     case "SUCCESS":
@@ -262,6 +269,7 @@ export function getErrorCategoryMap(): Record<ErrorCategory, ErrorCode[]> {
     TEMPLATE: [],
     ATTACHMENT: [],
     RESOURCE: [],
+    CHARACTER: [],
     UNKNOWN: [],
     SUCCESS: [],
   };

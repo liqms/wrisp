@@ -2,6 +2,7 @@ export * from "./chunk.types";
 export * from "./fileIndex.types";
 export * from "./tag.types";
 export * from "./taggedItem.types";
+export * from "./character.types";
 export * from "./semanticLink.types";
 export * from "./concept.types";
 export * from "./conceptChunk.types";

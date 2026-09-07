@@ -110,6 +110,13 @@ watch(() => props.node, () => nextTick(updateAddButton));
   position: relative;
   display: block;
   margin: 4px 0;
+  border-radius: 4px;
+  transition: box-shadow 0.15s ease;
+
+  // 块选中（Esc / 全选到分组节点）时的视觉反馈，与 MetricCard 选中样式一致
+  &.selected {
+    box-shadow: 0 0 0 1px var(--primary-color);
+  }
 }
 
 .metric-group__add {
