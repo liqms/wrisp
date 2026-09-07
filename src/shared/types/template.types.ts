@@ -1,4 +1,5 @@
 import type { Profession } from "@/shared/enums/profession.enums";
+import type { ResourceType } from "@/shared/enums/resource.enums";
 import type { TemplateIconName } from "@/shared/enums/template.enums";
 
 /** 双语文本：zh 为简体中文，en 为英文 */
@@ -75,4 +76,37 @@ export interface TemplateResourceFile {
   /** 类型标签（双语，渲染层按当前语言解析） */
   tags: LocalizedText[];
   enabled: boolean;
+}
+
+/** 已安装资源清单（<workspace>/resources/installed.json），键为资源类型，值为 id 列表 */
+export type InstalledResourceList = Partial<Record<ResourceType, string[]>>;
+
+/** 模板市场条目（远程 manifest 元数据 + 文件内容 + 本地安装状态合并，三类资源通用） */
+export interface MarketplaceItem {
+  id: string;
+  type: ResourceType; // slash | page | skill
+  /** 远程最新版本 */
+  version: string;
+  title: LocalizedText;
+  description: LocalizedText;
+  /** 模板为图标名；技能为 emoji 字符串 */
+  icon: string;
+  tags: LocalizedText[];
+  /** 预览内容：模板为 markdown，技能为 promptTemplate */
+  preview: LocalizedText;
+  /** 适用职业（仅命令/页面模板；技能为空数组） */
+  profession: Profession[];
+  /** 本地是否已安装（本地存在对应资源文件） */
+  installed: boolean;
+  /** 本地已安装版本（未安装为空串） */
+  installedVersion: string;
+  /** 是否有可用更新（已安装且本地版本 < 远程版本） */
+  updateAvailable: boolean;
+}
+
+/** 模板市场目录（一次拉取的结果） */
+export interface MarketplaceCatalog {
+  items: MarketplaceItem[];
+  /** 远程 manifest 是否拉取成功（false = 离线降级，仅本地已安装数据） */
+  offline: boolean;
 }
