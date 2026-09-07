@@ -7,6 +7,7 @@ import {
   ChecklistOutlined,
   CodeOutlined,
   FormatQuoteOutlined,
+  TableChartOutlined,
   HorizontalRuleOutlined,
   ImageOutlined,
   FunctionsOutlined,
@@ -21,6 +22,12 @@ function run(editor: Editor, pos: number, chain: (ed: Editor) => void): void {
   deleteSlashText(editor, pos);
   chain(editor);
 }
+
+/**
+ * 表格上下文守卫：GFM 单元格是单行语义，无法承载多行/围栏块语法，
+ * 在单元格内插入这类块保存时会破坏表格结构或退化为字面前缀——菜单层隐藏。
+ */
+const notInTableCell = (ed: Editor): boolean => !ed.isActive("table");
 
 /**
  * 选择本地图片并作为附件插入：
@@ -73,6 +80,7 @@ export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup 
       icon: "H1",
       action: ({ editor, pos }) =>
         run(editor, pos, (ed) => ed.chain().focus().toggleHeading({ level: 1 }).run()),
+      isEnabled: notInTableCell,
     },
     {
       id: "basic-heading-2",
@@ -81,6 +89,7 @@ export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup 
       icon: "H2",
       action: ({ editor, pos }) =>
         run(editor, pos, (ed) => ed.chain().focus().toggleHeading({ level: 2 }).run()),
+      isEnabled: notInTableCell,
     },
     {
       id: "basic-heading-3",
@@ -89,6 +98,7 @@ export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup 
       icon: "H3",
       action: ({ editor, pos }) =>
         run(editor, pos, (ed) => ed.chain().focus().toggleHeading({ level: 3 }).run()),
+      isEnabled: notInTableCell,
     },
     {
       id: "basic-bullet-list",
@@ -121,6 +131,8 @@ export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup 
       icon: CodeOutlined,
       action: ({ editor, pos }) =>
         run(editor, pos, (ed) => ed.chain().focus().toggleCodeBlock().run()),
+      // ``` 围栏在管道表格内会直接破坏 GFM 解析
+      isEnabled: notInTableCell,
     },
     {
       id: "basic-blockquote",
@@ -129,6 +141,21 @@ export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup 
       icon: FormatQuoteOutlined,
       action: ({ editor, pos }) =>
         run(editor, pos, (ed) => ed.chain().focus().toggleBlockquote().run()),
+      isEnabled: notInTableCell,
+    },
+    {
+      id: "basic-table",
+      title: t("EDITOR.SLASH.BASIC_BLOCKS.TABLE_TITLE"),
+      description: t("EDITOR.SLASH.BASIC_BLOCKS.TABLE_DESC"),
+      icon: TableChartOutlined,
+      // 插入 3x3 表格（首行为表头）；插入后 Tab 切换单元格，行列管理见表格气泡菜单
+      action: ({ editor, pos }) =>
+        run(editor, pos, (ed) =>
+          ed.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+        ),
+      // 单元格内禁止嵌套表格：schema 允许（table 属 block 组）但 GFM 无法序列化，
+      // 嵌套表格保存时会被序列化器拍平破坏结构——菜单层面直接隐藏
+      isEnabled: notInTableCell,
     },
     {
       id: "basic-admonition",
@@ -138,6 +165,8 @@ export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup 
       // 包裹当前块为提示块（默认 note 类型，插入后可经气泡菜单切换类型）
       action: ({ editor, pos }) =>
         run(editor, pos, (ed) => ed.chain().focus().toggleWrap("admonition", { type: "note" }).run()),
+      // ::: 围栏在管道表格内会破坏 GFM 解析
+      isEnabled: notInTableCell,
     },
     {
       id: "basic-horizontal-rule",
@@ -146,6 +175,8 @@ export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup 
       icon: HorizontalRuleOutlined,
       action: ({ editor, pos }) =>
         run(editor, pos, (ed) => ed.chain().focus().setHorizontalRule().run()),
+      // 分割线在单元格内退化为 "---" 字面文本
+      isEnabled: notInTableCell,
     },
     {
       id: "basic-image",

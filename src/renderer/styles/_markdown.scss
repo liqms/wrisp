@@ -125,12 +125,73 @@
     }
   }
 
+  // 任务复选框：覆盖原生外观适配主题色（--primary-color 随用户主题色运行时切换）。
+  // 编辑态 NodeView（label.task-item-checkbox）与阅读态 v-html
+  // （li[data-type="taskItem"] > label）结构一致，此处一并覆盖
+  ul[data-type="taskList"] input[type="checkbox"] {
+    appearance: none;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border: 1.5px solid var(--text-quaternary);
+    border-radius: 4px;
+    background-color: transparent;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover:not(:disabled) {
+      border-color: var(--primary-color);
+    }
+
+    &:focus-visible {
+      outline: 2px solid
+        color-mix(in srgb, var(--primary-color) 40%, transparent);
+      outline-offset: 1px;
+    }
+
+    &:checked {
+      border-color: var(--primary-color);
+      background-color: var(--primary-color);
+      // 白色对勾（浅色主题主色饱和度高，白勾清晰）
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 10px 10px;
+
+      // 深色主题主色偏亮（如 #63e2b7），白勾对比不足，改用页面底色勾
+      html[data-theme="dark"] & {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231c1c1f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+      }
+
+      &:hover:not(:disabled) {
+        background-color: var(--primary-color-hover);
+        border-color: var(--primary-color-hover);
+      }
+    }
+
+    // 阅读态（v-html）勾选框带 disabled，仅作展示
+    &:disabled {
+      cursor: default;
+      opacity: 0.85;
+    }
+  }
+
+  // ===== 任务节点（WrispTaskItem，Vue NodeView 渲染）=====
+  // li.task-item-node 命中上方 ul[data-type="taskList"] li 官方规则
+  // （flex + label/div 子项）；日期为行内 [[文本]]，由统一的
+  // inline-sem 药丸样式渲染，无任务专属样式
+
   code {
     background-color: var(--bg-secondary);
     padding: 2px 6px;
     border-radius: 4px;
     font-family: $font-family-mono;
     font-size: 14px;
+    color: var(--text-secondary);
   }
 
   pre {
@@ -202,7 +263,6 @@
     code .hljs-meta,
     code .hljs-subst,
     code .hljs-section,
-    code .hljs-params,
     code .hljs-type {
       color: var(--hl-meta);
     }
@@ -433,12 +493,12 @@
   table {
     border-collapse: collapse;
     width: 100%;
-    margin: 12px 0;
+    margin: 4px 0;
 
     th,
     td {
       border: 1px solid var(--border-color);
-      padding: 8px 12px;
+      padding: 0 8px;
       text-align: left;
     }
 
@@ -446,6 +506,43 @@
       background-color: var(--bg-secondary);
       font-weight: 600;
     }
+  }
+
+  // ===== 表格编辑态样式（prosemirror-tables 官方 tables.css 的主题适配版） =====
+  // 可编辑器内表格：横向滚动容器 + 单元格选区高亮 + 列宽拖拽手柄
+  .tableWrapper {
+    overflow-x: auto;
+  }
+
+  .ProseMirror th,
+  .ProseMirror td {
+    position: relative;
+  }
+
+  .ProseMirror .selectedCell::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    pointer-events: none;
+  }
+
+  .ProseMirror .column-resize-handle {
+    position: absolute;
+    right: -1px;
+    top: 0;
+    bottom: -2px;
+    width: 2px;
+    background-color: var(--primary-color);
+    pointer-events: none;    
+  }
+
+  .ProseMirror.resize-cursor {
+    cursor: ew-resize;
+    cursor: col-resize;    
   }
 
   hr {
@@ -465,22 +562,24 @@
 
 /* ===== 块拖拽排序（drag-reorder）===== */
 
-// 拖拽手柄：悬停块时浮现在左侧（显隐由 @tiptap/extension-drag-handle 控制，
+// 拖拽手柄：悬停块时浮现在块左侧的手柄槽位内（显隐由 @tiptap/extension-drag-handle 控制，
 // 定位由 drag-reorder 的接管逻辑改为 fixed 视口坐标：顶边对齐块顶、
-// 右缘与块左缘保持 12px 间距）
+// 右缘与块左缘相接、左缘夹取在编辑区（ProseMirror 内容根）内）
 // 手柄集群：[＋ 添加块] [⠿ 拖拽]，各自独立悬停反馈
+// 整体宽度 48px（20 + 20 + 8 桥接区），与各编辑容器 ProseMirror 左侧预留的
+// $spacing-2xl（48px）内边距槽位精确匹配，悬停时不溢出编辑区
 .drag-handle {
   display: flex;
   align-items: center;
   height: 24px;
   color: var(--text-quaternary);
   user-select: none;
-  // 透明桥接区：覆盖手柄按钮与块左缘之间的 12px 视觉间距，使 element 的可命中区
+  // 透明桥接区：覆盖手柄按钮与块左缘之间的 8px 视觉间距，使 element 的可命中区
   // 与块左缘连续相接。鼠标从块向左移到手柄时，mouseleave 的 relatedTarget 恒为
   // element（padding 属于 element 的一部分），官方扩展判定 wrapper.contains(element)
   // 为 true，不隐藏手柄。若改用外部 margin/left 间隙，间隙下方是官方 wrapper
   // （pointer-events: none），relatedTarget 穿透 wrapper 导致手柄被误隐藏、无法选中。
-  padding-right: 12px;
+  padding-right: 8px;
 
   // 拖拽进行中：手柄置灰反馈
   &[data-dragging="true"] {

@@ -32,10 +32,12 @@
         <!-- 右侧：页面编辑区（悬浮目录浮层绝对定位覆盖其上） -->
         <div class="page-content">
             <div class="editor-wrap">
-                <n-spin v-if="loading" class="content-state" />
-                <PageBlock v-else-if="currentPageId" ref="pageBlockRef" :key="currentPageId" :pageID="currentPageId"
-                    @saved="handleSaved" @catalog="handleCatalog" @catalog-active="handleCatalogActive" />
-                <n-empty v-else class="content-state" :description="t('TIPS.PAGE.NO_PAGE_SELECTED')" />
+                <div class="page-block-container">
+                    <n-spin v-if="loading" class="content-state" />
+                    <PageBlock v-else-if="currentPageId" ref="pageBlockRef" :key="currentPageId" :pageID="currentPageId"
+                        @saved="handleSaved" @catalog="handleCatalog" @catalog-active="handleCatalogActive" />
+                    <n-empty v-else class="content-state" :description="t('TIPS.PAGE.NO_PAGE_SELECTED')" />
+                </div>
             </div>
             <CatalogTree :items="catalogItems" :active-index="activeCatalogIndex" @select="handleCatalogSelect" />
         </div>
@@ -240,6 +242,12 @@ watch(currentPageId, () => {
 .editor-wrap {
     flex: 1;
     min-width: 0;
+    width: 100%;
+}
+
+.page-block-container {
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 .content-state {

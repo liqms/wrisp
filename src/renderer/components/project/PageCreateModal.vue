@@ -99,6 +99,7 @@ watch(
     formData.value.title = "";
     titleTouched.value = false;
     selectedTemplateId.value = "";
+    formRef.value?.restoreValidation();
   },
 );
 
@@ -115,6 +116,8 @@ function selectTemplate(id: string) {
   if (!titleTouched.value) {
     const tpl = templateOptions.value.find((item) => item.id === id);
     formData.value.title = tpl?.title ?? "";
+    // 程序化填充不触发 blur 校验，需手动清除已有的校验错误
+    formRef.value?.restoreValidation();
   }
 }
 

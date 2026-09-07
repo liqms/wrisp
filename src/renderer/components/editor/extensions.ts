@@ -4,7 +4,6 @@ import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
 import Placeholder from "@tiptap/extension-placeholder";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
@@ -17,6 +16,7 @@ import { createBlockNodes } from "./blocks/engine/node-factory";
 import DragHandle from "@tiptap/extension-drag-handle";
 import { DropLine, handleNodeChange, renderDragHandle } from "./features/drag-reorder/drag-reorder";
 import { Admonition, registerAdmonitionBridge } from "./features/admonition/admonition-extension";
+import { WrispTaskItem, registerTaskItemBridge } from "./features/task-item/task-item-extension";
 import { Ruby } from "./features/ruby/ruby-extension";
 import { createLegacyMentionExtension } from "./features/mention/mention-extension";
 import { createInlineSemanticSuggestExtension } from "./features/inline-semantic/inline-semantic-suggest";
@@ -24,12 +24,15 @@ import { createInlineSemanticDecoration } from "./features/inline-semantic/inlin
 import { createMathematicsExtension } from "./features/math/mathematics-extension";
 import { createCodeBlockLowlight } from "./features/code-block/code-block-extension";
 import { createImageExtension } from "./features/image/image-extension";
+import { createTableExtensions } from "./features/table/table-extension";
 
 // 在全局 marked 单例上注册 `:::name` 围栏的解析桥接（幂等）。
 // 读取链路（mdToHtml）与插入链路（insertMarkdownTemplate）均经该单例解析。
 registerWrispBlockBridge(getBlocks());
 // 在全局 marked 单例上注册 `:::type` 提示块围栏的解析桥接（幂等）
 registerAdmonitionBridge();
+// 在全局 marked 单例上注册 `- [ ]/- [x]` 任务行桥接（幂等）
+registerTaskItemBridge();
 
 export function getExtensions(placeholder?: string): Extensions {
   const exts: Extensions = [
@@ -89,7 +92,8 @@ export function getExtensions(placeholder?: string): Extensions {
     // 数学公式（行内 $...$ + 块级 $$...$$，KaTeX 渲染 + 点击编辑浮层）
     ...createMathematicsExtension(),
     TaskList,
-    TaskItem.configure({
+    // 任务项：date 属性 + Vue NodeView（勾选切换 / 日期 chip 复用 pickDate）
+    WrispTaskItem.configure({
       nested: true,
     }),
     Placeholder.configure({
@@ -98,6 +102,8 @@ export function getExtensions(placeholder?: string): Extensions {
     Markdown,
     // 提示块（`:::type` 围栏容器：斜杠插入、标题行/气泡菜单切换类型）
     Admonition,
+    // 表格（GFM 管道表格：斜杠插入、行列气泡菜单管理；单元格内 `|` 转义由封装修复）
+    ...createTableExtensions(),
     // 块拖拽排序：拖拽期间的蓝色插入线（落点指示）
     DropLine,
     // 自定义块（由声明式注册表生成的节点：卡片 atom + 可选分组容器）
@@ -131,7 +137,7 @@ function getExtensionName(ex: unknown): string {
 }
 
 /**
- * 创建编辑器扩展的工厂（公用接口）
+ * 创建编辑器扩展的工厂（公用接口）（公用接口）
  * - 返回去重后的扩展数组
  * - 可传入 `custom` 以在默认扩展后追加自定义扩展（并去重）
  */
