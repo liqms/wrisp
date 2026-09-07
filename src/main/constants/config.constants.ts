@@ -32,7 +32,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
       profession: PROFESSION.PM,
     },
   },
-  version: "0.1.8",
+  version: "0.1.9",
   workspace: "",
   currentProjectId: "",
   isFirstLaunch: true,
