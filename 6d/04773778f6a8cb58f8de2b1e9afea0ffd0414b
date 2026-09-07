@@ -1,0 +1,32 @@
+src/main/core/services/tray.service.ts
+  s_c783cbb780a599::t_3449f6e27f6ada 121-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.2",
+  "base_commit_sha": "6d04773778f6a8cb58f8de2b1e9afea0ffd0414b",
+  "prompts": {},
+  "sessions": {
+    "s_c783cbb780a599": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a9b7c56f140fa4a4ec97c97",
+        "model": "glm-5.3__dev"
+      },
+      "human_author": "liqms <liqms@msn.cn>",
+      "custom_attributes": {
+        "tool_type": "agent",
+        "runtime_client": "trae-tob-git-ai",
+        "client_type": "ide",
+        "tool_use_id": "6a9b7cf8f140fa4a4ec97d13",
+        "operation_id": "6a9b7cf8f140fa4a4ec97d13",
+        "edit_kind": "file_edit",
+        "session_id": "6a9b7c56f140fa4a4ec97c97",
+        "tool_id": "Edit",
+        "dedupe_key": "6a9b7c56f140fa4a4ec97c97:6a9b7cf8f140fa4a4ec97d13:afterEdit:610cf8fe",
+        "external_session_id": "6a9b7c56f140fa4a4ec97c97",
+        "source_scene": "unknown"
+      }
+    }
+  }
+}
