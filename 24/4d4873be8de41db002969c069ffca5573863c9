@@ -1,0 +1,32 @@
+src/renderer/views/PageView.vue
+  s_326ded584f24aa::t_f72cf4216fc54b 251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.2",
+  "base_commit_sha": "244d4873be8de41db002969c069ffca5573863c9",
+  "prompts": {},
+  "sessions": {
+    "s_326ded584f24aa": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a9e7b1cde7b140a289bf980",
+        "model": "glm-5.2__dev"
+      },
+      "human_author": "liqms <liqms@msn.cn>",
+      "custom_attributes": {
+        "tool_type": "agent",
+        "runtime_client": "trae-tob-git-ai",
+        "operation_id": "6a9e7b97de7b140a289bf9db",
+        "source_scene": "unknown",
+        "client_type": "ide",
+        "session_id": "6a9e7b1cde7b140a289bf980",
+        "tool_use_id": "6a9e7b97de7b140a289bf9db",
+        "external_session_id": "6a9e7b1cde7b140a289bf980",
+        "edit_kind": "file_edit",
+        "tool_id": "Edit",
+        "dedupe_key": "6a9e7b1cde7b140a289bf980:6a9e7b97de7b140a289bf9db:afterEdit:bc062261"
+      }
+    }
+  }
+}
