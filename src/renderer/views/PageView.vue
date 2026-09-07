@@ -248,6 +248,7 @@ watch(currentPageId, () => {
 .page-block-container {
     max-width: 900px;
     margin: 0 auto;
+    height: 100%;
 }
 
 .content-state {
