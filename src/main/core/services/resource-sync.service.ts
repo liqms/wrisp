@@ -9,12 +9,15 @@ import { RESOURCES_DIR } from "@/main/constants/folder.constants";
 import { Logger } from "@/main/utils/logger";
 import type { RemoteManifest, LocalManifest, SyncStatus, SyncResult } from "@/shared/types/resource.types";
 import type { ResourceType } from "@/shared/enums/resource.enums";
+import { isResourceType } from "@/shared/enums/resource.enums";
+import { resourceIdFromPath } from "@/shared/utils/resource";
+import { installedTemplateService } from "@/main/core/services/template-installed.service";
 import { EMPTY_SYNC_STATUS } from "@/shared/types/resource.types";
 
 class ResourceSyncService {
   private static instance: ResourceSyncService | null = null;
   private status: SyncStatus = { ...EMPTY_SYNC_STATUS };
-  private constructor() {}
+  private constructor() { }
   public static getInstance(): ResourceSyncService {
     if (!ResourceSyncService.instance) ResourceSyncService.instance = new ResourceSyncService();
     return ResourceSyncService.instance;
@@ -73,6 +76,20 @@ class ResourceSyncService {
       const remote = parseManifest(manifestRes.text);
       if (!remote) return this.failSync("远程 manifest 解析失败");
 
+      // 首次同步：installed.json 缺失时按本地已存在文件快照为已安装，并清理已下架 id
+      const installed = installedTemplateService.loadWithSnapshot(remote);
+      installedTemplateService.prune(remote);
+
+      // 期望同步集合：三类资源均只同步已安装的条目
+      const desired = new Set<string>();
+      for (const entry of remote.files) {
+        if (!isResourceType(entry.type)) continue;
+        const id = resourceIdFromPath(entry.path, entry.type);
+        if ((installed[entry.type] ?? []).includes(id)) {
+          desired.add(entry.path);
+        }
+      }
+
       const local = this.loadLocalManifest();
       const diff = compareManifests(local, remote);
 
@@ -80,7 +97,7 @@ class ResourceSyncService {
       const updated: string[] = [];
       const changedTypesSet = new Set<ResourceType>();
 
-      for (const entry of [...diff.toAdd, ...diff.toUpdate]) {
+      for (const entry of [...diff.toAdd, ...diff.toUpdate].filter((e) => desired.has(e.path))) {
         const url = this.rawUrl(`${RESOURCE_CONFIG.resourcesDir}/${entry.path}`);
         const res = await resourceHttpClient.fetchText(url);
         if (!res.ok) { Logger.warn("下载失败，跳过", { path: entry.path, error: res.error }); continue; }

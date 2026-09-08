@@ -22,6 +22,7 @@ vi.mock("fs", () => ({
   unlinkSync: mockFs.unlinkSync,
 }));
 
+import path from "path";
 import { resourceSyncService } from "@/main/core/services/resource-sync.service";
 import type { RemoteManifest } from "@/shared/types/resource.types";
 
@@ -60,7 +61,9 @@ describe("ResourceSyncService", () => {
     mockParse.mockReturnValueOnce(remote);
     mockCompare.mockReturnValueOnce({ toAdd: remote.files, toUpdate: [], toRemove: [] });
     mockHash.mockReturnValueOnce("h1").mockReturnValueOnce("h2");
-    mockFs.existsSync.mockReturnValue(false);
+    mockFs.existsSync.mockImplementation((p: string) =>
+      !p.endsWith("installed.json"),
+    );
     const r = await resourceSyncService.checkAndSync();
     expect(r.success).toBe(true);
     expect(r.added).toHaveLength(2);
@@ -80,6 +83,9 @@ describe("ResourceSyncService", () => {
     mockParse.mockReturnValueOnce(remote);
     mockCompare.mockReturnValueOnce({ toAdd: remote.files, toUpdate: [], toRemove: [] });
     mockHash.mockReturnValue("h1");
+    mockFs.existsSync.mockImplementation((p: string) =>
+      !p.endsWith("installed.json"),
+    );
     const r = await resourceSyncService.checkAndSync();
     expect(r.success).toBe(true);
     expect(r.added).toEqual(["slash/a.json"]);
@@ -90,5 +96,70 @@ describe("ResourceSyncService", () => {
     mockCompare.mockReturnValueOnce({ toAdd: [], toUpdate: [], toRemove: [] });
     const r = await resourceSyncService.checkAndSync();
     expect(r.changedTypes).toHaveLength(0);
+  });
+  it("选择性同步：slash/skill 均按已安装清单过滤", async () => {
+    const remote: RemoteManifest = {
+      version: "1.0.0",
+      updatedAt: "2026-09-08T00:00:00Z",
+      files: [
+        { type: "skill", path: "skills/polish.skill.json", version: "1.0.0", sha256: "s1" },
+        { type: "skill", path: "skills/grammar.skill.json", version: "1.0.0", sha256: "s2" },
+        { type: "slash", path: "slash/todo.json", version: "1.0.0", sha256: "h1" },
+        { type: "slash", path: "slash/article.json", version: "1.0.0", sha256: "h2" },
+      ],
+    };
+    // installed.json 已存在：slash 装 todo、skill 装 polish；article 与 grammar 未安装
+    mockFs.existsSync.mockImplementation((p: string) => p.endsWith("installed.json"));
+    mockFs.readFileSync.mockReturnValue(
+      JSON.stringify({ slash: ["todo"], page: [], skill: ["polish"] }),
+    );
+    mockFetchText
+      .mockResolvedValueOnce({ ok: true, text: "manifest" })
+      .mockResolvedValueOnce({ ok: true, text: "p" }) // polish
+      .mockResolvedValueOnce({ ok: true, text: "t" }); // todo
+    mockParse.mockReturnValueOnce(remote);
+    mockCompare.mockReturnValueOnce({
+      toAdd: remote.files,
+      toUpdate: [],
+      toRemove: [],
+    });
+    mockHash.mockReturnValueOnce("s1").mockReturnValueOnce("h1");
+    const r = await resourceSyncService.checkAndSync();
+    expect(r.success).toBe(true);
+    expect(r.added).toEqual(["skills/polish.skill.json", "slash/todo.json"]);
+    expect(r.added).not.toContain("skills/grammar.skill.json");
+    expect(r.added).not.toContain("slash/article.json");
+  });
+  it("首次同步：按本地已存在文件快照，职业模板不下载", async () => {
+    const remote: RemoteManifest = {
+      version: "1.0.0",
+      updatedAt: "",
+      files: [
+        { type: "slash", path: "slash/todo.json", version: "1.0.0", sha256: "h1" },
+        { type: "slash", path: "slash/article.json", version: "1.0.0", sha256: "h2" },
+        { type: "skill", path: "skills/polish.skill.json", version: "1.0.0", sha256: "s1" },
+      ],
+    };
+    // installed.json 缺失；本地仅存在打包的通用模板与技能文件（todo/polish），article 职业模板本地不存在
+    // 注意 Windows 下 endsWith("slash/todo.json") 不匹配反斜杠，用 path.join 构造尾段
+    mockFs.existsSync.mockImplementation((p: string) =>
+      p.endsWith(path.join("slash", "todo.json")) ||
+      p.endsWith(path.join("skills", "polish.skill.json")),
+    );
+    mockFetchText
+      .mockResolvedValueOnce({ ok: true, text: "manifest" })
+      .mockResolvedValueOnce({ ok: true, text: "t" })
+      .mockResolvedValueOnce({ ok: true, text: "p" });
+    mockParse.mockReturnValueOnce(remote);
+    mockCompare.mockReturnValueOnce({
+      toAdd: remote.files,
+      toUpdate: [],
+      toRemove: [],
+    });
+    mockHash.mockReturnValueOnce("h1").mockReturnValueOnce("s1");
+    const r = await resourceSyncService.checkAndSync();
+    expect(r.success).toBe(true);
+    expect(r.added).toEqual(["slash/todo.json", "skills/polish.skill.json"]);
+    expect(r.added).not.toContain("slash/article.json");
   });
 });
