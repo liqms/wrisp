@@ -10,6 +10,11 @@ import {
   TEMPLATE_TYPE,
   type TemplateType,
 } from "@/shared/enums/template.enums";
+import { RESOURCE_TYPE, type ResourceType } from "@/shared/enums/resource.enums";
+import type {
+  MarketplaceCatalog,
+  MarketplaceItem,
+} from "@/shared/types/template.types";
 import { mergeTemplates } from "@/renderer/components/editor/slash/commands/template-merge";
 
 export const useTemplateStore = defineStore("template", () => {
@@ -105,6 +110,74 @@ export const useTemplateStore = defineStore("template", () => {
     }
   }
 
+  /** 各类型的市场目录（按类型懒加载，slash/page/skill） */
+  const marketplace = ref<
+    Partial<Record<ResourceType, MarketplaceCatalog | null>>
+  >({
+    [RESOURCE_TYPE.SLASH]: null,
+    [RESOURCE_TYPE.PAGE]: null,
+    [RESOURCE_TYPE.SKILL]: null,
+  });
+
+  /** 拉取指定类型的模板市场目录（force=true 强制绕过主进程缓存） */
+  async function fetchMarketplace(
+    type: ResourceType,
+    force = false,
+  ): Promise<void> {
+    const res = await window.electronAPI.template.getMarketplace(type, force);
+    if (res.success && res.data) {
+      marketplace.value[type] = res.data as MarketplaceCatalog;
+    }
+  }
+
+  function applyMarketplaceItem(
+    type: ResourceType,
+    entry: MarketplaceItem,
+  ): void {
+    const cat = marketplace.value[type];
+    if (!cat) return;
+    const i = cat.items.findIndex((e) => e.id === entry.id);
+    if (i >= 0) cat.items[i] = entry;
+  }
+
+  /** 安装资源：更新市场条目，并使内置缓存失效后重新加载（设置页/Slash 菜单即时生效） */
+  async function installMarketplace(
+    type: ResourceType,
+    id: string,
+  ): Promise<boolean> {
+    const res = await window.electronAPI.template.installMarketplace(type, id);
+    if (res.success && res.data) {
+      applyMarketplaceItem(type, res.data as MarketplaceItem);
+      (builtins.value as Record<ResourceType, unknown>)[type] = null;
+      await fetch(type as TemplateType);
+      return true;
+    }
+    return false;
+  }
+
+  /** 卸载资源：更新市场条目，并使内置缓存失效后重新加载 */
+  async function uninstallMarketplace(
+    type: ResourceType,
+    id: string,
+  ): Promise<boolean> {
+    const res = await window.electronAPI.template.uninstallMarketplace(
+      type,
+      id,
+    );
+    if (res.success && res.data) {
+      applyMarketplaceItem(type, res.data as MarketplaceItem);
+      (builtins.value as Record<ResourceType, unknown>)[type] = null;
+      await fetch(type as TemplateType);
+      return true;
+    }
+    return false;
+  }
+
+  /** 资源更新后清空市场缓存 */
+  function invalidateMarketplace(types: ResourceType[]): void {
+    for (const type of types) marketplace.value[type] = null;
+  }
+
   /**
    * 合并后的全部模板（内置按当前语言解析）。
    * slash 与 page 共用此方法，内置模板由 builtins 提供。
@@ -120,12 +193,17 @@ export const useTemplateStore = defineStore("template", () => {
   return {
     files,
     builtins,
+    marketplace,
     isLoaded,
     fetch,
     saveCustom,
     removeCustom,
     setEnabled,
     invalidate,
+    invalidateMarketplace,
     allTemplates,
+    fetchMarketplace,
+    installMarketplace,
+    uninstallMarketplace,
   };
 });
