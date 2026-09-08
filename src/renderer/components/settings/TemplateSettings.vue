@@ -6,11 +6,19 @@
         <div class="desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.DESC") }}</div>
       </div>
       <n-flex align="center" :size="8">
+        <n-button type="primary" @click="enterMarketplace">
+          <template #icon><n-icon>
+              <StorefrontOutlined />
+            </n-icon></template>
+          {{ t("SETTINGS.TEMPLATE_SETTINGS.ENTER_MARKETPLACE") }}
+        </n-button>
         <!-- 新建支持选择命令/页面模板类型 -->
         <n-dropdown trigger="click" :options="createOptions" @select="openCreate">
           <n-button type="primary">
             {{ t("SETTINGS.TEMPLATE_SETTINGS.ADD") }}
-            <n-icon style="margin-left: 4px"><ChevronDown /></n-icon>
+            <n-icon style="margin-left: 4px">
+              <ChevronDown />
+            </n-icon>
           </n-button>
         </n-dropdown>
         <n-button :loading="syncing" @click="onSyncNow">
@@ -20,10 +28,8 @@
     </n-flex>
 
     <n-tabs v-model:value="activeType" type="line" size="small">
-      <n-tab :name="TEMPLATE_TYPE.SLASH"
-        :tab="t('SETTINGS.TEMPLATE_SETTINGS.TYPE_SLASH')" />
-      <n-tab :name="TEMPLATE_TYPE.PAGE"
-        :tab="t('SETTINGS.TEMPLATE_SETTINGS.TYPE_PAGE')" />
+      <n-tab :name="TEMPLATE_TYPE.SLASH" :tab="t('SETTINGS.TEMPLATE_SETTINGS.TYPE_SLASH')" />
+      <n-tab :name="TEMPLATE_TYPE.PAGE" :tab="t('SETTINGS.TEMPLATE_SETTINGS.TYPE_PAGE')" />
     </n-tabs>
 
     <n-flex align="center" :size="8">
@@ -50,6 +56,7 @@ import { useI18n } from "vue-i18n";
 import { NButton, NSwitch, NTag, useMessage } from "naive-ui";
 import type { DropdownOption } from "naive-ui";
 import { ChevronDown } from "@vicons/ionicons5";
+import { StorefrontOutlined } from "@vicons/material";
 import type { DataTableColumns } from "naive-ui";
 import { PROFESSION, type Profession } from "@/shared/enums";
 import type { AppConfig } from "@/shared/types";
@@ -69,6 +76,15 @@ import TemplateViewModal from "./TemplateViewModal.vue";
 
 // 设置页通过 SettingsView 统一传入 config（本组件使用 store 读取配置，此处声明以接收该 prop）
 defineProps<{ config?: AppConfig | null }>();
+
+const emit = defineEmits<{
+  /** 请求关闭设置弹窗并跳转模板市场 */
+  (e: "enterMarketplace"): void;
+}>();
+
+function enterMarketplace() {
+  emit("enterMarketplace");
+}
 
 const { t } = useI18n();
 const message = useMessage();
@@ -252,13 +268,13 @@ const columns: DataTableColumns<TemplateItem> = [
       row.tags.length === 0
         ? "—"
         : h(
-            "div",
-            // 多标签间距 + 允许换行（窄列下长标签自动折行）
-            { style: "display: flex; flex-wrap: wrap; gap: 4px; row-gap: 4px;" },
-            row.tags.map((tag) =>
-              h(NTag, { size: "small", bordered: false }, { default: () => tag }),
-            ),
+          "div",
+          // 多标签间距 + 允许换行（窄列下长标签自动折行）
+          { style: "display: flex; flex-wrap: wrap; gap: 4px; row-gap: 4px;" },
+          row.tags.map((tag) =>
+            h(NTag, { size: "small", bordered: false }, { default: () => tag }),
           ),
+        ),
   },
   {
     title: t("SETTINGS.TEMPLATE_SETTINGS.VERSION"),

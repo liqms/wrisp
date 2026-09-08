@@ -7,7 +7,7 @@
         <n-menu v-model:value="activeMenuKey" :options="menuOptions" />
       </div>
       <n-scrollbar class="settings-content">
-        <component :is="currentComponent" :config="config" />
+        <component :is="currentComponent" :config="config" @enterMarketplace="enterMarketplace" />
       </n-scrollbar>
     </n-flex>
   </n-modal>
@@ -25,6 +25,7 @@ import TemplateSettings from "@/renderer/components/settings/TemplateSettings.vu
 import { DiceOutline, DocumentTextOutline, OptionsOutline } from "@vicons/ionicons5";
 
 import { KeyboardAltOutlined } from "@vicons/material";
+import { useRouter } from "vue-router";
 
 const props = defineProps<{
   show: boolean;
@@ -38,6 +39,13 @@ const showModal = computed({
   get: () => props.show,
   set: (value) => emit("update:showSettings", value),
 });
+
+const router = useRouter();
+
+function enterMarketplace() {
+  showModal.value = false;
+  router.push("/marketplace");
+}
 
 const { t } = useI18n();
 const configStore = useConfig();
