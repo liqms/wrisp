@@ -3,6 +3,7 @@ import path from "path";
 import { app } from "electron";
 import { Logger } from "@/main/utils/logger";
 import { configService } from "@/main/core/services/config.service";
+import { RESOURCE_TYPE } from "@/shared/enums/resource.enums";
 import {
   SQLITE_DIR,
   MAIN_DB_FILE,
@@ -98,23 +99,51 @@ class WorkspaceInitService {
     }
     try {
       fs.mkdirSync(targetDir, { recursive: true });
-      this.copyDirectory(sourceDir, targetDir);
+      this.copyDirectory(sourceDir, targetDir, "", this.isBundledResource);
       Logger.info("首次启动已复制 resources 到工作区", { sourceDir, targetDir });
     } catch (error) {
       Logger.error("复制 resources 失败", { error: String(error), sourceDir, targetDir });
     }
   }
 
-  private copyDirectory(src: string, dest: string): void {
+  private copyDirectory(
+    src: string,
+    dest: string,
+    relPath = "",
+    filter?: (srcPath: string, relPath: string) => boolean,
+  ): void {
     for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
       const srcPath = path.join(src, entry.name);
       const destPath = path.join(dest, entry.name);
+      const entryRel = relPath ? `${relPath}/${entry.name}` : entry.name;
       if (entry.isDirectory()) {
         fs.mkdirSync(destPath, { recursive: true });
-        this.copyDirectory(srcPath, destPath);
+        this.copyDirectory(srcPath, destPath, entryRel, filter);
       } else {
+        if (filter && !filter(srcPath, entryRel)) continue;
         fs.copyFileSync(srcPath, destPath);
       }
+    }
+  }
+
+  /**
+   * 仅打包通用模板：slash/page 下 profession 含 general（或缺失/为空）的文件才复制；
+   * skills/schemas/manifest.json 全量复制。
+   */
+  private isBundledResource(srcPath: string, relPath: string): boolean {
+    const type = relPath.split("/")[0];
+    if (type !== RESOURCE_TYPE.SLASH && type !== RESOURCE_TYPE.PAGE) return true;
+    if (!relPath.endsWith(".json")) return false;
+    try {
+      const parsed = JSON.parse(fs.readFileSync(srcPath, "utf-8")) as {
+        profession?: unknown;
+      };
+      const profession = Array.isArray(parsed.profession)
+        ? parsed.profession
+        : [];
+      return profession.length === 0 || profession.includes("general");
+    } catch {
+      return false;
     }
   }
 }

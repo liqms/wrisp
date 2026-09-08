@@ -38,19 +38,66 @@ function copySchemas() {
   }
 }
 
+/** 仅打包通用模板：slash/page 下 profession 含 general（或缺失/为空）的文件；skills/schemas/manifest 全量 */
+function isBundledResourceFile(src: string): boolean {
+  const rel = path.relative(
+    path.resolve(import.meta.dirname, 'resources'),
+    src,
+  )
+  const type = rel.split(path.sep)[0]
+  if (type !== 'slash' && type !== 'page') return true
+  if (!src.endsWith('.json')) return false
+  try {
+    const parsed = JSON.parse(fs.readFileSync(src, 'utf-8')) as {
+      profession?: unknown
+    }
+    const profession = Array.isArray(parsed.profession)
+      ? parsed.profession
+      : []
+    return profession.length === 0 || profession.includes('general')
+  } catch {
+    return false
+  }
+}
+
 function copyResources() {
   const srcPath = path.resolve(import.meta.dirname, 'resources')
   const destPath = path.resolve(import.meta.dirname, 'dist-electron/resources')
 
-  if (fs.existsSync(srcPath)) {
-    if (!fs.existsSync(destPath)) {
-      fs.mkdirSync(destPath, { recursive: true })
-    }
+  if (!fs.existsSync(srcPath)) return
+  if (!fs.existsSync(destPath)) {
+    fs.mkdirSync(destPath, { recursive: true })
+  }
 
-    const files = fs.readdirSync(srcPath)
-    files.forEach(file => {
-      copyRecursive(path.join(srcPath, file), path.join(destPath, file))
-    })
+  const files = fs.readdirSync(srcPath)
+  files.forEach(file => {
+    const src = path.join(srcPath, file)
+    const stat = fs.statSync(src)
+    if (stat.isDirectory()) {
+      copyDirFiltered(src, path.join(destPath, file), isBundledResourceFile)
+    } else {
+      copyRecursive(src, path.join(destPath, file))
+    }
+  })
+}
+
+/** 递归复制并按谓词过滤文件 */
+function copyDirFiltered(
+  src: string,
+  dest: string,
+  filter: (src: string) => boolean,
+) {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true })
+  }
+  for (const entry of fs.readdirSync(src)) {
+    const s = path.join(src, entry)
+    const d = path.join(dest, entry)
+    if (fs.statSync(s).isDirectory()) {
+      copyDirFiltered(s, d, filter)
+    } else if (filter(s)) {
+      copyRecursive(s, d)
+    }
   }
 }
 
