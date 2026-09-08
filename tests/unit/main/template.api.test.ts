@@ -62,12 +62,52 @@ vi.mock("@/main/core/services/template.service", () => ({
   default: vi.fn(() => mockTemplateService),
 }))
 
+// ── Mock templateMarketService ──
+const mockMarketService = vi.hoisted(() => ({
+  getCatalog: vi.fn(() => ({ items: [], offline: true })),
+  install: vi.fn(() => ({
+    id: "todo",
+    type: "slash",
+    version: "1.0.0",
+    title: { zh: "待办", en: "Todo" },
+    description: { zh: "", en: "" },
+    icon: "task_alt",
+    tags: [],
+    preview: { zh: "", en: "" },
+    profession: ["general"],
+    installed: true,
+    installedVersion: "1.0.0",
+    updateAvailable: false,
+  })),
+  uninstall: vi.fn(() => ({
+    id: "todo",
+    type: "slash",
+    version: "1.0.0",
+    title: { zh: "待办", en: "Todo" },
+    description: { zh: "", en: "" },
+    icon: "task_alt",
+    tags: [],
+    preview: { zh: "", en: "" },
+    profession: ["general"],
+    installed: false,
+    installedVersion: "",
+    updateAvailable: false,
+  })),
+}))
+
+vi.mock("@/main/core/services/template-market.service", () => ({
+  templateMarketService: mockMarketService,
+}))
+
 import {
   getFile,
   upsertCustom,
   deleteCustom,
   setEnabled,
   getBuiltIn,
+  getMarketplace,
+  installMarketplace,
+  uninstallMarketplace,
 } from "@/main/core/apis/template.api"
 import { ErrorCode } from "@/shared/enums"
 import { TEMPLATE_TYPE } from "@/shared/enums/template.enums"
@@ -152,5 +192,26 @@ describe("Template API", () => {
     const res = await upsertCustom("../etc" as TemplateType, tpl)
     expect(res.success).toBe(false)
     expect(res.code).toBe(ErrorCode.TEMPLATE_SAVE_FAILED)
+  })
+
+  it("getMarketplace 返回目录", async () => {
+    mockMarketService.getCatalog.mockReturnValue({ items: [], offline: true })
+    const res = await getMarketplace("slash", false)
+    expect(res.success).toBe(true)
+    expect(res.data).toEqual({ items: [], offline: true })
+  })
+
+  it("installMarketplace 失败返回错误码", async () => {
+    mockMarketService.install.mockRejectedValue(new Error("404"))
+    const res = await installMarketplace("slash", "todo")
+    expect(res.success).toBe(false)
+    expect(res.code).toBe(ErrorCode.TEMPLATE_SAVE_FAILED)
+  })
+
+  it("uninstallMarketplace 调用 service 并返回成功响应", async () => {
+    const res = await uninstallMarketplace("slash", "todo")
+    expect(mockMarketService.uninstall).toHaveBeenCalledWith("slash", "todo")
+    expect(res.success).toBe(true)
+    expect(res.data?.installed).toBe(false)
   })
 })

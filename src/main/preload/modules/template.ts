@@ -10,4 +10,10 @@ export const templateModule: TemplateAPI = {
     ipcRenderer.invoke("template:deleteCustom", type, id),
   setEnabled: (type, id, builtIn, enabled) =>
     ipcRenderer.invoke("template:setEnabled", type, id, builtIn, enabled),
+  getMarketplace: (type, force) =>
+    ipcRenderer.invoke("template:getMarketplace", type, force),
+  installMarketplace: (type, id) =>
+    ipcRenderer.invoke("template:installMarketplace", type, id),
+  uninstallMarketplace: (type, id) =>
+    ipcRenderer.invoke("template:uninstallMarketplace", type, id),
 };

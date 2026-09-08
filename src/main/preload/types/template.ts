@@ -1,9 +1,14 @@
 import type { ApiResponse } from "@/shared/types";
 import type { TemplateType } from "@/shared/enums/template.enums";
+import type { ResourceType } from "@/shared/enums/resource.enums";
 import type {
   CustomTemplate,
   TemplateFile,
   TemplateResourceFile,
+} from "@/shared/types/template.types";
+import type {
+  MarketplaceCatalog,
+  MarketplaceItem,
 } from "@/shared/types/template.types";
 
 export interface TemplateAPI {
@@ -25,4 +30,16 @@ export interface TemplateAPI {
     builtIn: boolean,
     enabled: boolean,
   ) => Promise<ApiResponse<TemplateFile>>;
+  getMarketplace: (
+    type: ResourceType,
+    force?: boolean,
+  ) => Promise<ApiResponse<MarketplaceCatalog>>;
+  installMarketplace: (
+    type: ResourceType,
+    id: string,
+  ) => Promise<ApiResponse<MarketplaceItem>>;
+  uninstallMarketplace: (
+    type: ResourceType,
+    id: string,
+  ) => Promise<ApiResponse<MarketplaceItem>>;
 }
