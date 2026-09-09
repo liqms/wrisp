@@ -5,6 +5,7 @@ import {
   getSkillsByCategory,
   getCategories,
   executeSkill,
+  executeSkillStream,
   createCustomSkill,
   updateCustomSkill,
   deleteCustomSkill,
@@ -39,6 +40,13 @@ export function registerSkillHandlers() {
     "skill:execute",
     async (_, skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<SkillExecuteResult>> => {
       return executeSkill(skillId, inputs);
+    },
+  );
+
+  ipcMain.handle(
+    "skill:executeStream",
+    async (event, skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<null>> => {
+      return executeSkillStream(event, skillId, inputs);
     },
   );
 

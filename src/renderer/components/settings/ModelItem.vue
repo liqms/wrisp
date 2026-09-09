@@ -1,6 +1,7 @@
 <template>
-    <n-flex justify="space-between" align="center" class="model-item" @click="handleClick">
+    <n-flex justify="space-between" align="center" class="model-item" :class="{ clickable: selectable }" @click="handleClick">
         <n-flex align="center" class="model-info">
+            <n-checkbox v-if="selectable" :checked="checked" class="model-checkbox" @update:checked.stop="handleToggle" />
             <n-text class="model-name">{{ model.name }}</n-text>
             <n-space class="input-icons" align="center">
                 <n-icon v-if="model.isInputText" class="model-icon" size="16">
@@ -63,12 +64,18 @@ const VideoIcon = (): Component => h('svg', { xmlns: 'http://www.w3.org/2000/svg
 
 interface Props {
     model: Model
+    checked?: boolean
+    selectable?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+    checked: false,
+    selectable: false,
+})
 
 const emit = defineEmits<{
     (e: 'click'): void
+    (e: 'toggle', checked: boolean): void
 }>()
 
 const outputIcon = computed((): Component => {
@@ -82,7 +89,15 @@ const outputIcon = computed((): Component => {
 })
 
 const handleClick = (): void => {
-    emit('click')
+    if (props.selectable) {
+        handleToggle(!props.checked)
+    } else {
+        emit('click')
+    }
+}
+
+const handleToggle = (val: boolean): void => {
+    emit('toggle', val)
 }
 </script>
 
@@ -95,9 +110,17 @@ const handleClick = (): void => {
     transition: background-color 0.2s;
     border: 1px solid var(--border-color);
 
+    &.clickable {
+        cursor: pointer;
+    }
+
     &:hover {
         background-color: var(--bg-tertiary);
     }
+}
+
+.model-checkbox {
+    margin-right: $spacing-sm;
 }
 
 .model-info {

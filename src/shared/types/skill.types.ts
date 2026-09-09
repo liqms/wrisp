@@ -292,3 +292,17 @@ export interface SkillExecuteResult {
   tokensUsed: number;
   executionTimeMs: number;
 }
+
+/** L1 流式输出的单个 chunk（delta 为增量文本） */
+export interface SkillStreamChunk {
+  /** skill 执行 ID（同一次执行的多个 chunk 共享此 ID） */
+  executionId: string;
+  /** 增量文本内容 */
+  delta: string;
+  /** 当前累计内容（可选，便于前端直接渲染） */
+  accumulated?: string;
+  /** 是否结束（done=true 且 error 为空 = 正常结束） */
+  done: boolean;
+  /** 错误信息（done=true 且执行失败时） */
+  error?: string;
+}

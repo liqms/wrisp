@@ -228,10 +228,14 @@ app.whenReady().then(async () => {
     Logger.error("向量数据库服务初始化失败", { error: String(error) });
   }
 
-  // 异步触发资源同步（不阻塞启动；失败静默，使用本地缓存）
-  resourceSyncService.checkAndSync().catch((err) => {
-    Logger.error("资源同步启动失败", { error: String(err) });
-  });
+  // 异步触发资源同步（每日一次；距上次成功同步不足 24h 则跳过，由定时任务兜底）
+  if (resourceSyncService.shouldDailySync()) {
+    resourceSyncService.checkAndSync().catch((err) => {
+      Logger.error("资源同步启动失败", { error: String(err) });
+    });
+  } else {
+    Logger.info("资源同步：距上次成功同步不足 24 小时，跳过启动同步，由每日定时任务执行");
+  }
 
   // 初始化定时任务调度器
   scheduler.startAll()

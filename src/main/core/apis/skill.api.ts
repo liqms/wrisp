@@ -4,8 +4,9 @@ import { skillExecutionDao } from "@/main/core/db/skill-execution.dao";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import { Logger } from "@/main/utils/logger";
+import type { IpcMainInvokeEvent } from "electron";
 import type { ApiResponse } from "@/shared/types";
-import type { SkillListItem, CategoryNode, SkillDefinition, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
+import type { SkillListItem, CategoryNode, SkillDefinition, SkillExecuteResult, SkillExecutionRecord, SkillStreamChunk } from "@/shared/types/skill.types";
 
 async function getSkills(): Promise<ApiResponse<SkillListItem[]>> {
   try {
@@ -54,6 +55,40 @@ async function executeSkill(skillId: string, inputs: Record<string, unknown>): P
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     Logger.error(`执行 Skill 失败: ${skillId}`, { error: errorMessage });
+    return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error);
+  }
+}
+
+/**
+ * 流式执行 L1 Skill：通过 webContents.send 逐 chunk 推送
+ * 返回空响应（真实内容经事件通道传输）
+ */
+async function executeSkillStream(
+  event: IpcMainInvokeEvent,
+  skillId: string,
+  inputs: Record<string, unknown>,
+): Promise<ApiResponse<null>> {
+  try {
+    const executionId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    for await (const chunk of skillExecutor.executeL1Stream(skillId, inputs)) {
+      const streamChunk: SkillStreamChunk = {
+        executionId,
+        delta: chunk.delta,
+        done: chunk.done,
+        error: chunk.error,
+      };
+      event.sender.send("skill:executeStream:chunk", streamChunk);
+    }
+    return response.empty();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    Logger.error(`流式执行 Skill 失败: ${skillId}`, { error: errorMessage });
+    event.sender.send("skill:executeStream:chunk", {
+      executionId: "",
+      delta: "",
+      done: true,
+      error: errorMessage,
+    } satisfies SkillStreamChunk);
     return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error);
   }
 }
@@ -129,6 +164,7 @@ export {
   getSkillsByCategory,
   getCategories,
   executeSkill,
+  executeSkillStream,
   createCustomSkill,
   updateCustomSkill,
   deleteCustomSkill,

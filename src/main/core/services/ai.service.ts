@@ -1,14 +1,17 @@
 import { LLMGateway } from "@/main/core/model-gateway/llm-gateway";
 import { modelRouter } from "@/main/core/model-gateway/router";
 import { localGateway } from "@/main/core/model-gateway/local-gateway";
+import { LLMConcurrencyController } from "@/main/core/model-gateway/llm-concurrency-controller";
 import { modelService } from "@/main/core/services/model.service";
 import { configService } from "@/main/core/services/config.service";
-import { LLMRequest, LLMResponse, LLMStreamChunk, CostSummary, CostRecord } from "@/main/core/model-gateway/llm-gateway/types";
+import { modelMetaService } from "@/main/core/services/model-meta.service";
+import { LLMRequest, LLMResponse, LLMStreamChunk, CostSummary, CostRecord, Model } from "@/main/core/model-gateway/llm-gateway/types";
 import { Logger } from "@/main/utils/logger";
 
 class AIService {
   private static instance: AIService | null = null;
   private gateway: LLMGateway | null = null;
+  private concurrencyController = new LLMConcurrencyController(5);
 
   private constructor() { }
 
@@ -29,19 +32,31 @@ class AIService {
   }
 
   async chatCompletion(request: LLMRequest): Promise<LLMResponse> {
-    // 如果请求携带 taskType 且无 tools（L2 不走本地路由），使用路由器决策
-    if (request.taskType && !request.tools) {
-      const target = await modelRouter.route(request.taskType);
-      if (target === "local") {
-        return this.localChatCompletion(request);
-      }
-    }
-    // 默认走云端
-    return this.ensureGateway().chatCompletion(request);
+    const priority = request.taskType ? "high" : "low";
+    return this.concurrencyController.acquire(
+      async () => {
+        // 如果请求携带 taskType 且无 tools（L2 不走本地路由），使用路由器决策
+        if (request.taskType && !request.tools) {
+          const target = await modelRouter.route(request.taskType);
+          if (target === "local") {
+            return this.localChatCompletion(request);
+          }
+        }
+        // 默认走云端
+        return this.ensureGateway().chatCompletion(request);
+      },
+      { priority },
+    );
   }
 
   async *chatCompletionStream(request: LLMRequest): AsyncIterable<LLMStreamChunk> {
-    yield* this.ensureGateway().chatCompletionStream(request);
+    const priority = request.taskType ? "high" : "low";
+    const release = await this.concurrencyController.acquireSlotManual(priority);
+    try {
+      yield* this.ensureGateway().chatCompletionStream(request);
+    } finally {
+      release();
+    }
   }
 
   getCostSummary(): CostSummary {
@@ -66,6 +81,34 @@ class AIService {
     const adapter = this.ensureGateway().getProviderManager().getAdapterByProvider(providerId);
     if (!adapter) return false;
     return adapter.testConnection();
+  }
+
+  /** 获取指定 Provider 支持的模型列表（调用厂商 /models 接口，并合并本地元信息） */
+  async listModels(providerId: string): Promise<Model[]> {
+    const adapter = this.ensureGateway().getProviderManager().getAdapterByProvider(providerId);
+    if (!adapter) {
+      throw new Error(`Provider [${providerId}] 未注册或未启用`);
+    }
+    const models = await adapter.listModels();
+    const metaMap = modelMetaService.getProviderModels(providerId);
+    if (Object.keys(metaMap).length === 0) return models;
+
+    return models.map((m) => {
+      const meta = metaMap[m.id];
+      if (!meta) return m;
+      // 元信息存在时覆盖对应字段，未提供的保留适配器原值
+      return {
+        ...m,
+        contextLength: meta.contextLength ?? m.contextLength,
+        maxTokens: meta.maxTokens ?? m.maxTokens,
+        isInputText: meta.isInputText ?? m.isInputText,
+        isInputPic: meta.isInputPic ?? m.isInputPic,
+        isInputAudio: meta.isInputAudio ?? m.isInputAudio,
+        isInputVideo: meta.isInputVideo ?? m.isInputVideo,
+        structuredOutputs: meta.structuredOutputs ?? m.structuredOutputs,
+        outputType: meta.outputType ?? m.outputType,
+      };
+    });
   }
 
   refreshConfig(): void {

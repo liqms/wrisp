@@ -16,6 +16,7 @@ import type {
   CostRecord,
   CostSummary,
   ImportedImage,
+  Model,
 } from "@/shared/types";
 import type { LOG_LEVEL, PageType } from "@/shared/enums";
 import type { LogContext } from "@/main/utils/logger";
@@ -26,7 +27,7 @@ import type { Character } from "@/shared/types";
 import type { CreatePageInput, UpdatePageInput, MovePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
 import type { ModelType } from "@/shared/types/model.types";
-import type { SkillListItem, CategoryNode, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
+import type { SkillListItem, CategoryNode, SkillExecuteResult, SkillExecutionRecord, SkillStreamChunk } from "@/shared/types/skill.types";
 import type { Concept, ConceptWithBlocks, Topic, TopicWithConceptsAndBlocks, Reflection, ReflectionWithBlocks, TemporalEventWithBlock } from "@/main/types/db";
 import type { UpdateAPI } from "@/main/preload/types/update";
 import type { TemplateAPI } from "@/main/preload/types/template";
@@ -166,6 +167,7 @@ export interface ElectronAPI {
     getCostRecords(count?: number): Promise<ApiResponse<CostRecord[]>>;
     getProviders(): Promise<ApiResponse<Array<{ providerId: string; providerName: string; models: unknown[]; isHealthy: boolean; enabled: boolean }>>>;
     testProviderConnection(providerId: string): Promise<ApiResponse<boolean>>;
+    listModels(providerId: string): Promise<ApiResponse<Model[]>>;
     refreshConfig(): Promise<ApiResponse<void>>;
     isLocalAvailable(): Promise<ApiResponse<boolean>>;
     isCloudAvailable(): Promise<ApiResponse<boolean>>;
@@ -201,6 +203,8 @@ export interface ElectronAPI {
     getSkillsByCategory(category: string): Promise<ApiResponse<SkillListItem[]>>;
     getCategories(): Promise<ApiResponse<CategoryNode[]>>;
     execute(skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<SkillExecuteResult>>;
+    executeSkillStream(skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<null>>;
+    onSkillStreamChunk(callback: (chunk: SkillStreamChunk) => void): () => void;
     createCustomSkill(definition: Record<string, unknown>): Promise<ApiResponse<void>>;
     updateCustomSkill(id: string, definition: Record<string, unknown>): Promise<ApiResponse<void>>;
     deleteCustomSkill(id: string): Promise<ApiResponse<void>>;

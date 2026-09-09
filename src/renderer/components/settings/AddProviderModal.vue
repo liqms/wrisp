@@ -27,12 +27,33 @@
           :placeholder="t('SETTINGS.AI_SETTINGS.API_KEY_PLACEHOLDER')" />
       </n-form-item>
 
-      <!-- 模型列表 -->
-      <n-form-item v-if="formData.models.length > 0" :label="t('SETTINGS.AI_SETTINGS.MODELS')">
-        <n-flex vertical class="model-list">
-          <ModelItem v-for="model in formData.models" :key="model.id" :model="model" />
+      <!-- 获取模型列表 -->
+      <n-form-item :label="t('SETTINGS.AI_SETTINGS.MODELS')">
+        <n-flex align="center" class="fetch-row">
+          <n-button type="primary" size="small" :loading="fetching" :disabled="!canFetch" @click="handleFetchModels">
+            {{ t('SETTINGS.AI_SETTINGS.FETCH_MODELS') }}
+          </n-button>
+          <n-text v-if="fetchHint" class="fetch-hint" depth="3">{{ fetchHint }}</n-text>
         </n-flex>
       </n-form-item>
+
+      <!-- 模型列表（可勾选） -->
+      <n-form-item v-if="availableModels.length > 0" :label="t('SETTINGS.AI_SETTINGS.SELECT_MODELS_HINT')">
+        <n-flex vertical class="model-list">
+          <ModelItem v-for="model in availableModels" :key="model.id" :model="model" selectable
+            :checked="selectedModelIds.has(model.id)" @toggle="(val) => handleToggleModel(model.id, val)" />
+        </n-flex>
+        <n-flex class="select-all-row">
+          <n-checkbox :checked="allSelected" @update:checked="handleSelectAll">
+            {{ t('ACTION.COMMON.SELECT_ALL') }}
+          </n-checkbox>
+        </n-flex>
+      </n-form-item>
+
+      <!-- 错误提示 -->
+      <n-alert v-if="fetchError" type="error" :show-icon="true" class="fetch-error">
+        {{ fetchError }}
+      </n-alert>
     </n-form>
 
     <n-flex justify="end" class="step-actions">
@@ -52,6 +73,8 @@ import { PROVIDER } from "@/shared/enums";
 import type { Locale } from "@/shared/enums";
 import type { AIProvider, Model } from "@/shared/types";
 import ModelItem from "./ModelItem.vue";
+import { logger } from "@/renderer/utils/logger.utils";
+import { getErrorMessage } from "@/renderer/utils/error.utils";
 
 const { t } = useI18n();
 
@@ -68,11 +91,29 @@ const emit = defineEmits<{
 const formRef = ref<FormInst | null>(null);
 const selectedPresetId = ref<string | null>(null);
 
+// 拉取模型相关状态
+const fetching = ref(false);
+const fetchError = ref<string | null>(null);
+const availableModels = ref<Model[]>([]);
+const selectedModelIds = ref<Set<string>>(new Set());
+
 const presetOptions = computed(() =>
   PROVIDER.map((p) => ({
     label: p.name,
     value: p.id,
   })),
+);
+
+const canFetch = computed(() => !!formData.value.apiKey && !!formData.value.baseUrl && !!formData.value.id);
+
+const fetchHint = computed(() => {
+  if (fetching.value) return t("SETTINGS.AI_SETTINGS.FETCH_MODELS_LOADING");
+  if (!formData.value.apiKey || !formData.value.baseUrl) return t("SETTINGS.AI_SETTINGS.FETCH_MODELS_HINT");
+  return null;
+});
+
+const allSelected = computed(() =>
+  availableModels.value.length > 0 && availableModels.value.every((m) => selectedModelIds.value.has(m.id)),
 );
 
 const formData = ref<{
@@ -113,6 +154,9 @@ const rules = {
 
 function resetForm() {
   selectedPresetId.value = null;
+  fetchError.value = null;
+  availableModels.value = [];
+  selectedModelIds.value = new Set();
   formData.value = {
     id: "",
     name: "",
@@ -131,7 +175,6 @@ watch(
   (val) => {
     if (!val) return;
     if (props.editingProvider) {
-      // 编辑模式：用已有数据预填
       selectedPresetId.value = null;
       formData.value = {
         id: props.editingProvider.id,
@@ -143,6 +186,10 @@ watch(
         logoPath: props.editingProvider.logoPath ?? "",
         models: [...(props.editingProvider.models ?? [])],
       };
+      // 编辑模式：预填已有模型并全选
+      availableModels.value = [...(props.editingProvider.models ?? [])];
+      selectedModelIds.value = new Set(availableModels.value.map((m) => m.id));
+      fetchError.value = null;
     } else {
       resetForm();
     }
@@ -163,8 +210,56 @@ function onPresetChange(presetId: string | null) {
     apiKey: "",
     locale: preset.locale,
     logoPath: preset.logoPath ?? "",
-    models: [...preset.models],
+    models: [],
   };
+  // 切换预设后清空已拉取的模型
+  availableModels.value = [];
+  selectedModelIds.value = new Set();
+  fetchError.value = null;
+}
+
+// 从厂商接口拉取模型列表
+async function handleFetchModels() {
+  if (!canFetch.value) return;
+  fetching.value = true;
+  fetchError.value = null;
+  try {
+    const res = await window.electronAPI.ai.listModels(formData.value.id);
+    if (res.success && Array.isArray(res.data)) {
+      const models = res.data as Model[];
+      availableModels.value = models;
+      // 默认全选
+      selectedModelIds.value = new Set(models.map((m) => m.id));
+      if (models.length === 0) {
+        fetchError.value = t("SETTINGS.AI_SETTINGS.FETCH_MODELS_EMPTY");
+      }
+    } else {
+      fetchError.value = t("SETTINGS.AI_SETTINGS.FETCH_MODELS_FAILED", { msg: getErrorMessage(res.code) });
+    }
+  } catch (e) {
+    logger.error("获取模型列表失败", { error: e });
+    fetchError.value = t("SETTINGS.AI_SETTINGS.FETCH_MODELS_FAILED", { msg: String(e) });
+  } finally {
+    fetching.value = false;
+  }
+}
+
+function handleToggleModel(modelId: string, checked: boolean) {
+  const next = new Set(selectedModelIds.value);
+  if (checked) {
+    next.add(modelId);
+  } else {
+    next.delete(modelId);
+  }
+  selectedModelIds.value = next;
+}
+
+function handleSelectAll(checked: boolean) {
+  if (checked) {
+    selectedModelIds.value = new Set(availableModels.value.map((m) => m.id));
+  } else {
+    selectedModelIds.value = new Set();
+  }
 }
 
 async function handleConfirm() {
@@ -174,6 +269,11 @@ async function handleConfirm() {
     return;
   }
 
+  // 保存时使用勾选的模型；若未拉取过则保留 formData.models（编辑模式原模型）
+  const finalModels = availableModels.value.length > 0
+    ? availableModels.value.filter((m) => selectedModelIds.value.has(m.id))
+    : formData.value.models;
+
   const provider: AIProvider = {
     id: formData.value.id || formData.value.name,
     name: formData.value.name,
@@ -182,7 +282,7 @@ async function handleConfirm() {
     apiKey: formData.value.apiKey,
     locale: formData.value.locale as Locale,
     logoPath: formData.value.logoPath || undefined,
-    models: formData.value.models,
+    models: finalModels,
     enabled: props.editingProvider?.enabled ?? true,
   };
 
@@ -197,9 +297,25 @@ async function handleConfirm() {
 <style scoped lang="scss">
 @use "@/renderer/styles/variables" as *;
 
+.fetch-row {
+  gap: $spacing-sm;
+}
+
+.fetch-hint {
+  font-size: $font-xs;
+}
+
 .model-list {
   width: 100%;
   gap: $spacing-xs;
+}
+
+.select-all-row {
+  margin-top: $spacing-sm;
+}
+
+.fetch-error {
+  margin-top: $spacing-sm;
 }
 
 .step-actions {

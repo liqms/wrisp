@@ -1,17 +1,37 @@
 <template>
   <n-flex vertical size="large" class="template-settings">
-    <n-flex justify="space-between" align="center">
-      <div>
-        <div class="title">{{ t("SETTINGS.TEMPLATE_SETTINGS.TITLE") }}</div>
-        <div class="desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.DESC") }}</div>
-      </div>
-      <n-flex align="center" :size="8">
+    <n-card size="medium" :bordered="false" class="setting-card">
+      <n-flex align="center" class="setting-row">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.MARKETPLACE_TITLE") }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.MARKETPLACE_DESC") }}</n-text>
+        </n-flex>
+
         <n-button type="primary" @click="enterMarketplace">
-          <template #icon><n-icon>
-              <StorefrontOutlined />
-            </n-icon></template>
           {{ t("SETTINGS.TEMPLATE_SETTINGS.ENTER_MARKETPLACE") }}
         </n-button>
+      </n-flex>
+      <n-divider />
+      <n-flex align="center" class="setting-row">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.CURRENT_TEMPLATES") }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.CURRENT_TEMPLATES_DESC") }}</n-text>
+        </n-flex>
+
+        <n-button type="primary" :loading="syncing" @click="onSyncNow">
+          {{ t("SETTINGS.TEMPLATE_SETTINGS.SYNC_NOW") }}
+        </n-button>
+      </n-flex>
+    </n-card>
+    <n-card size="medium" :bordered="false" class="setting-card">
+      <n-flex align="center" class="setting-content">
+        <n-text class="setting-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.TYPE_SLASH") }}</n-text>
+        <n-text class="setting-desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.TYPE_SLASH_DESC") }}</n-text>
+      </n-flex>
+    </n-card>
+    <n-flex justify="space-between" align="center">
+      <n-flex align="center" :size="8">
+
         <!-- 新建支持选择命令/页面模板类型 -->
         <n-dropdown trigger="click" :options="createOptions" @select="openCreate">
           <n-button type="primary">
@@ -21,9 +41,6 @@
             </n-icon>
           </n-button>
         </n-dropdown>
-        <n-button :loading="syncing" @click="onSyncNow">
-          {{ t("SETTINGS.TEMPLATE_SETTINGS.SYNC_NOW") }}
-        </n-button>
       </n-flex>
     </n-flex>
 
@@ -328,9 +345,47 @@ const columns: DataTableColumns<TemplateItem> = [
 </script>
 
 <style scoped lang="scss">
+@use "@/renderer/styles/_variables.scss" as *;
+
 /* 避开外层 n-scrollbar 的悬浮滚动条轨道，防止「新建」按钮被遮挡 */
 .template-settings {
   padding-right: 12px;
+  max-height: 100%;
+}
+
+
+.setting-card {
+  margin-bottom: $spacing-md;
+  background-color: var(--bg-secondary);
+  border-radius: $radius-md;
+}
+
+.setting-row {
+  margin-bottom: $spacing-md;
+  align-items: center;
+  min-height: 34px;
+  justify-content: space-between !important;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.setting-content {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 0 !important;
+}
+
+.setting-label {
+  width: 130px;
+  font-size: $font-base;
+  margin-bottom: $spacing-xs;
+}
+
+.setting-desc {
+  font-size: $font-xs;
+  color: var(--text-third);
 }
 
 .title {

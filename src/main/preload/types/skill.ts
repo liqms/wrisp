@@ -1,5 +1,5 @@
 import type { ApiResponse } from "@/shared/types";
-import type { SkillListItem, CategoryNode, SkillExecuteResult, SkillExecutionRecord } from "@/shared/types/skill.types";
+import type { SkillListItem, CategoryNode, SkillExecuteResult, SkillExecutionRecord, SkillStreamChunk } from "@/shared/types/skill.types";
 
 export interface SkillAPI {
   getSkills(): Promise<ApiResponse<SkillListItem[]>>;
@@ -7,6 +7,8 @@ export interface SkillAPI {
   getSkillsByCategory(category: string): Promise<ApiResponse<SkillListItem[]>>;
   getCategories(): Promise<ApiResponse<CategoryNode[]>>;
   execute(skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<SkillExecuteResult>>;
+  executeSkillStream(skillId: string, inputs: Record<string, unknown>): Promise<ApiResponse<null>>;
+  onSkillStreamChunk(callback: (chunk: SkillStreamChunk) => void): () => void;
   createCustomSkill(definition: Record<string, unknown>): Promise<ApiResponse<void>>;
   updateCustomSkill(id: string, definition: Record<string, unknown>): Promise<ApiResponse<void>>;
   deleteCustomSkill(id: string): Promise<ApiResponse<void>>;

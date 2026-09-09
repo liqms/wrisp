@@ -92,7 +92,7 @@ const menuOptions = computed(() => [
   },
   {
     key: "template",
-    label: t("SETTINGS.TEMPLATE_SETTINGS.TITLE"),
+    label: t("APP.BASE.TEMPLATE"),
     icon: renderIcon(DocumentTextOutline),
   },
 ]);

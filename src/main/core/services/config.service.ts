@@ -10,7 +10,7 @@ import { configMigration } from "@/main/core/migration";
 import { closeDatabase, setWorkspacePath } from "@/main/core/db/connection";
 import { BrowserWindow } from "electron";
 import { databaseMigration } from "@/main/core/migration/database.migration";
-import { CONFIG_DIR } from "@/main/constants";
+import { CONFIG_DIR, DIST_RENDERER_DIR } from "@/main/constants";
 
 /**
  * 配置服务
@@ -329,6 +329,10 @@ class ConfigService {
   public getStaticPath(type?: string): string {
     if (type === "userData") {
       return path.join(this.userDataPath, "Cache", "static");
+    }
+    // 打包后 static/（vite publicDir）内容被复制进 dist-renderer/，而非 asar 根下的 static/
+    if (app.isPackaged) {
+      return path.join(this.appPath, DIST_RENDERER_DIR);
     }
     return path.join(this.appPath, "static");
   }

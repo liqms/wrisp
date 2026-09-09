@@ -9,9 +9,10 @@ import { RESOURCES_DIR } from "@/main/constants/folder.constants";
 import { Logger } from "@/main/utils/logger";
 import type { RemoteManifest, LocalManifest, SyncStatus, SyncResult } from "@/shared/types/resource.types";
 import type { ResourceType } from "@/shared/enums/resource.enums";
-import { isResourceType } from "@/shared/enums/resource.enums";
+import { isResourceType, RESOURCE_TYPE } from "@/shared/enums/resource.enums";
 import { resourceIdFromPath } from "@/shared/utils/resource";
 import { installedTemplateService } from "@/main/core/services/template-installed.service";
+import { modelMetaService } from "@/main/core/services/model-meta.service";
 import { EMPTY_SYNC_STATUS } from "@/shared/types/resource.types";
 
 class ResourceSyncService {
@@ -24,6 +25,16 @@ class ResourceSyncService {
   }
 
   public getStatus(): SyncStatus { return { ...this.status }; }
+
+  /**
+   * 是否应该执行每日同步：上次成功同步距今超过 24 小时，或从未同步过。
+   * 用于启动时决定是否触发同步，避免每次启动都拉取。
+   */
+  public shouldDailySync(): boolean {
+    if (!this.status.lastSyncSuccess || !this.status.lastSyncAt) return true;
+    const elapsed = Date.now() - new Date(this.status.lastSyncAt).getTime();
+    return elapsed > 24 * 60 * 60 * 1000;
+  }
 
   private getWorkspaceResourcesDir(): string {
     const ws = (globalThis as Record<string, unknown>).__WRISP_WORKSPACE_PATH__ as string | undefined
@@ -80,10 +91,16 @@ class ResourceSyncService {
       const installed = installedTemplateService.loadWithSnapshot(remote);
       installedTemplateService.prune(remote);
 
-      // 期望同步集合：三类资源均只同步已安装的条目
+      // 期望同步集合：
+      // - 模板类（slash/page/skill）只同步已安装条目；
+      // - 全局文件（model-meta）始终同步，不依赖 installed.json。
       const desired = new Set<string>();
       for (const entry of remote.files) {
         if (!isResourceType(entry.type)) continue;
+        if (entry.type === RESOURCE_TYPE.MODEL_META) {
+          desired.add(entry.path);
+          continue;
+        }
         const id = resourceIdFromPath(entry.path, entry.type);
         if ((installed[entry.type] ?? []).includes(id)) {
           desired.add(entry.path);
@@ -115,6 +132,10 @@ class ResourceSyncService {
 
       this.saveLocalManifest(remote);
       const changedTypes = [...changedTypesSet];
+      // 模型元信息文件变更后，清缓存以便下次 listModels 重新读取
+      if (changedTypes.includes(RESOURCE_TYPE.MODEL_META)) {
+        modelMetaService.invalidate();
+      }
       this.broadcastUpdate(changedTypes);
 
       this.status = { syncing: false, lastSyncAt: new Date().toISOString(), lastSyncSuccess: true, lastError: null };

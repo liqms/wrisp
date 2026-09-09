@@ -1,5 +1,6 @@
-import { ipcRenderer } from "electron";
+import { ipcRenderer, IpcRendererEvent } from "electron";
 import type { SkillAPI } from "../types/skill";
+import type { SkillStreamChunk } from "@/shared/types/skill.types";
 
 export const skillModule: SkillAPI = {
   getSkills: () => ipcRenderer.invoke("skill:getSkills"),
@@ -7,6 +8,12 @@ export const skillModule: SkillAPI = {
   getSkillsByCategory: (category) => ipcRenderer.invoke("skill:getSkillsByCategory", category),
   getCategories: () => ipcRenderer.invoke("skill:getCategories"),
   execute: (skillId, inputs) => ipcRenderer.invoke("skill:execute", skillId, inputs),
+  executeSkillStream: (skillId, inputs) => ipcRenderer.invoke("skill:executeStream", skillId, inputs),
+  onSkillStreamChunk: (callback) => {
+    const handler = (_: IpcRendererEvent, chunk: unknown) => callback(chunk as SkillStreamChunk);
+    ipcRenderer.on("skill:executeStream:chunk", handler);
+    return () => ipcRenderer.removeListener("skill:executeStream:chunk", handler);
+  },
   createCustomSkill: (definition) => ipcRenderer.invoke("skill:createCustomSkill", definition),
   updateCustomSkill: (id, definition) => ipcRenderer.invoke("skill:updateCustomSkill", id, definition),
   deleteCustomSkill: (id) => ipcRenderer.invoke("skill:deleteCustomSkill", id),

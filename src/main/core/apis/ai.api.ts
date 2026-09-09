@@ -2,7 +2,7 @@ import { aiService } from "@/main/core/services/ai.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";
-import type { LLMRequest, LLMResponse, CostSummary, CostRecord } from "@/main/core/model-gateway/llm-gateway/types";
+import type { LLMRequest, LLMResponse, CostSummary, CostRecord, Model } from "@/main/core/model-gateway/llm-gateway/types";
 import { Logger } from "@/main/utils/logger";
 import type { IpcMainInvokeEvent } from "electron";
 
@@ -74,6 +74,16 @@ async function testProviderConnection(providerId: string): Promise<ApiResponse<b
   }
 }
 
+async function listModels(providerId: string): Promise<ApiResponse<Model[]>> {
+  try {
+    const result = await aiService.listModels(providerId);
+    return response.success(result);
+  } catch (error) {
+    Logger.error("获取 Provider 模型列表失败", { providerId, error: String(error) });
+    return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error);
+  }
+}
+
 async function refreshAIConfig(): Promise<ApiResponse<void>> {
   try {
     aiService.refreshConfig();
@@ -114,4 +124,4 @@ async function getRouteStatus(): Promise<ApiResponse<Record<string, unknown>>> {
   }
 }
 
-export { chatCompletion, chatCompletionStream, getCostSummary, getCostRecords, getProviders, testProviderConnection, refreshAIConfig, isLocalAvailable, isCloudAvailable, getRouteStatus };
+export { chatCompletion, chatCompletionStream, getCostSummary, getCostRecords, getProviders, testProviderConnection, listModels, refreshAIConfig, isLocalAvailable, isCloudAvailable, getRouteStatus };

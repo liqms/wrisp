@@ -1,6 +1,6 @@
 import { TaskExecutor, TaskContext, TaskResult, TaskStatus } from "./types";
 import { progressManager } from "./progress.manager";
-import { TASK_EXECUTION_ORDER } from "./task-dag";
+import { getTaskLayers } from "./task-dag";
 import { TaskExecutionDao } from "@/main/core/db/task-execution.dao";
 import { ChunkDao } from "@/main/core/db";
 import { TaskExecutionCreate, TaskExecutionUpdate, Chunk } from "@/main/types/db";
@@ -26,7 +26,6 @@ class SmartTaskScheduler {
 
   // 注册所有执行器
   private executors: Map<string, TaskExecutor> = new Map();
-  private taskOrder = TASK_EXECUTION_ORDER;
 
   private constructor() {
     this.registerExecutor(new ChunkSummaryExecutor());
@@ -76,19 +75,21 @@ class SmartTaskScheduler {
       // 创建执行记录
       const executionId = generateId();
       this.currentExecutionId = executionId;
+      const layers = getTaskLayers();
+      const flatTasks = layers.flat();
       const create: TaskExecutionCreate = {
         id: executionId,
         started_at: TimeUtil.getLocalDateString(),
         status: "running",
-        tasks_summary: JSON.stringify(this.taskOrder.map((n) => ({ name: n, status: "pending" }))),
+        tasks_summary: JSON.stringify(flatTasks.map((n) => ({ name: n, status: "pending" }))),
         processed_until: null,
       };
       this.taskExecutionDao.create(create);
 
-      // 注册进度
-      progressManager.registerTasks(this.taskOrder);
+      // 注册进度（layers.flat() 保持 DAG 拓扑序作为初始顺序）
+      progressManager.registerTasks(flatTasks);
 
-      // 按拓扑顺序执行
+      // 按 DAG 层级分组并行执行
       const context: TaskContext = {
         executionId,
         processedUntil,
@@ -97,25 +98,9 @@ class SmartTaskScheduler {
       };
 
       const results: TaskResult[] = [];
-      const completedTasks = new Set<string>();
 
-      for (const taskName of this.taskOrder) {
+      for (const layer of layers) {
         if (this.cancelSignal.cancelled) break;
-
-        const executor = this.executors.get(taskName);
-        if (!executor) {
-          Logger.error("[SmartTaskScheduler] 未知任务", { taskName });
-          continue;
-        }
-
-        // 检查依赖
-        if (executor.dependencies && executor.dependencies.length > 0) {
-          const depsSatisfied = executor.dependencies.every((d) => completedTasks.has(d));
-          if (!depsSatisfied) {
-            Logger.warn("[SmartTaskScheduler] 依赖未满足，跳过任务", { taskName, dependencies: executor.dependencies });
-            continue;
-          }
-        }
 
         // 等待暂停恢复
         while (this.pauseSignal.paused && !this.cancelSignal.cancelled) {
@@ -123,18 +108,43 @@ class SmartTaskScheduler {
         }
         if (this.cancelSignal.cancelled) break;
 
-        Logger.info("[SmartTaskScheduler] 开始执行任务", { taskName });
-        const result = await executor.run(context);
-        results.push(result);
-        progressManager.completeTask(result);
-        completedTasks.add(taskName);
+        Logger.info("[SmartTaskScheduler] 开始并行执行任务层", { tasks: layer });
 
-        if (result.success) {
-          Logger.info("[SmartTaskScheduler] 任务完成", { taskName, processed: result.processedCount });
-        } else {
-          Logger.error("[SmartTaskScheduler] 任务失败", { taskName, error: result.error });
-          // 任务失败但继续执行后续任务（非阻塞）
-        }
+        // 同层任务并行执行
+        const layerResults = await Promise.all(
+          layer.map(async (taskName) => {
+            const executor = this.executors.get(taskName);
+            if (!executor) {
+              Logger.error("[SmartTaskScheduler] 未知任务", { taskName });
+              return null;
+            }
+
+            Logger.info("[SmartTaskScheduler] 开始执行任务", { taskName });
+            let result: TaskResult;
+            try {
+              result = await executor.run(context);
+            } catch (error) {
+              Logger.error("[SmartTaskScheduler] 任务执行异常", { taskName, error: String(error) });
+              result = {
+                taskName,
+                success: false,
+                processedCount: 0,
+                error: String(error),
+              };
+            }
+
+            progressManager.completeTask(result);
+            if (result.success) {
+              Logger.info("[SmartTaskScheduler] 任务完成", { taskName, processed: result.processedCount });
+            } else {
+              Logger.error("[SmartTaskScheduler] 任务失败", { taskName, error: result.error });
+              // 任务失败但继续执行后续层（非阻塞，与旧串行逻辑一致）
+            }
+            return result;
+          }),
+        );
+
+        results.push(...layerResults.filter((r): r is TaskResult => r !== null));
       }
 
       // 计算最大 updated_at

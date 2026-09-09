@@ -14,6 +14,7 @@ import type { LLMRequest, LLMMessage, ToolCall } from '@/main/core/model-gateway
 import { OUTPUT_MODEL_TYPE } from '@/shared/enums';
 
 const DEFAULT_MAX_STEPS = 5;
+const DEFAULT_L1_TIMEOUT_MS = 120_000;
 const DEFAULT_L2_TIMEOUT_MS = 60_000;
 const MAX_CONCURRENT_L2 = 1;
 
@@ -117,7 +118,11 @@ export class SkillExecutor {
       taskType: skill.taskType,
       temperature: skill.temperature,
     };
-    const response = await aiService.chatCompletion(request);
+    const response = await this.withTimeout(
+      aiService.chatCompletion(request),
+      DEFAULT_L1_TIMEOUT_MS,
+      'L1_SKILL_TIMEOUT',
+    );
 
     const content = this.applyPostProcess(response.content, skill.postProcess);
     const executionTimeMs = Date.now() - startTime;
@@ -130,6 +135,72 @@ export class SkillExecutor {
       tokensUsed: response.usage.totalTokens,
       executionTimeMs,
     };
+  }
+
+  // ==================== L1 流式执行 ====================
+
+  /**
+   * L1 流式执行：yield 每个增量 chunk
+   * 仅支持无 tools 的 L1 skill（L2 需完整 toolCalls 解析，无法流式）
+   */
+  async *executeL1Stream(
+    skillId: string,
+    inputs: Record<string, unknown>,
+  ): AsyncIterable<{ delta: string; done: boolean; error?: string }> {
+    const skill = skillManager.getSkillDefinition(skillId);
+    if (!skill) {
+      yield { delta: "", done: true, error: `SKILL_NOT_FOUND: ${skillId}` };
+      return;
+    }
+
+    if (skill.tools && skill.tools.length > 0) {
+      yield { delta: "", done: true, error: "L2_SKILL_NOT_SUPPORTED_STREAM" };
+      return;
+    }
+
+    const validatedInputs = this.validateInputs(skill, inputs);
+    const renderedPrompt = this.renderPrompt(resolveLocalized(skill.promptTemplate), validatedInputs);
+    const preProcessed = this.applyPreProcess(renderedPrompt, skill.preProcess);
+
+    const messages: LLMMessage[] = [];
+    if (skill.systemPrompt) {
+      messages.push({ role: 'system', content: resolveLocalized(skill.systemPrompt) });
+    }
+    messages.push({ role: 'user', content: preProcessed });
+
+    const request: LLMRequest = {
+      messages,
+      outputType: OUTPUT_MODEL_TYPE.TEXT,
+      taskType: skill.taskType,
+      temperature: skill.temperature,
+    };
+
+    let accumulated = '';
+    const stream = aiService.chatCompletionStream(request)[Symbol.asyncIterator]();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('L1_SKILL_TIMEOUT')), DEFAULT_L1_TIMEOUT_MS);
+    });
+
+    try {
+      while (true) {
+        const result = await Promise.race([stream.next(), timeoutPromise]);
+        if (result.done) break;
+        const delta = result.value?.content || '';
+        accumulated += delta;
+        if (delta) {
+          yield { delta, done: false };
+        }
+      }
+
+      const content = this.applyPostProcess(accumulated, skill.postProcess);
+      yield { delta: content, done: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      yield { delta: '', done: true, error: errorMessage };
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
   }
 
   // ==================== L2 执行（ReAct 循环） ====================
@@ -368,12 +439,12 @@ export class SkillExecutor {
 
   // ==================== 超时控制 ====================
 
-  private withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  private withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorCode = 'L2_SKILL_TIMEOUT'): Promise<T> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     return Promise.race([
       promise,
       new Promise<T>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('L2_SKILL_TIMEOUT')), timeoutMs);
+        timer = setTimeout(() => reject(new Error(errorCode)), timeoutMs);
       }),
     ]).finally(() => {
       if (timer !== undefined) clearTimeout(timer);

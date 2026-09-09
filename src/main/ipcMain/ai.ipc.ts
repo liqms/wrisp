@@ -6,13 +6,14 @@ import {
   getCostRecords,
   getProviders,
   testProviderConnection,
+  listModels,
   refreshAIConfig,
   isLocalAvailable,
   isCloudAvailable,
   getRouteStatus,
 } from "@/main/core/apis/ai.api";
 import type { ApiResponse } from "@/shared/types";
-import type { LLMRequest, LLMResponse, CostSummary, CostRecord } from "@/main/core/model-gateway/llm-gateway/types";
+import type { LLMRequest, LLMResponse, CostSummary, CostRecord, Model } from "@/main/core/model-gateway/llm-gateway/types";
 
 export function registerAIHandlers() {
   ipcMain.handle(
@@ -48,6 +49,13 @@ export function registerAIHandlers() {
     "ai:testProviderConnection",
     async (_, providerId: string): Promise<ApiResponse<boolean>> => {
       return testProviderConnection(providerId);
+    },
+  );
+
+  ipcMain.handle(
+    "ai:listModels",
+    async (_, providerId: string): Promise<ApiResponse<Model[]>> => {
+      return listModels(providerId);
     },
   );
 

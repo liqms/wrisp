@@ -20,7 +20,7 @@
       clickoutside（排除 trigger）关闭并回调 update:show(false)。 -->
     <template v-for="(c, ci) in active.cols" :key="`ch-${ci}`">
       <n-popover v-if="isColVisible(ci)" :show="openCol === ci" trigger="click" placement="bottom" :show-arrow="false"
-        @update:show="(v: boolean) => onColPopoverShow(ci, v)" :style="{ padding: '0',borderRadius: '8px' }">
+        :style="{ padding: '0',borderRadius: '8px' }" @update:show="(v: boolean) => onColPopoverShow(ci, v)">
         <template #trigger>
           <div class="te-handle te-handle--col" :class="{ 'is-active': isColActive(ci) }"
             :style="{ left: `${c.left + c.width / 2 - 14}px`, top: `${active.rect.top - 20}px`, width: '28px' }"
@@ -61,7 +61,7 @@
     <!-- 左侧行 handle（仅当前 hover / 选中 / 菜单打开的行显示）；@clickoutside 同列，勿绑定 -->
     <template v-for="(r, ri) in active.rows" :key="`rh-${ri}`">
       <n-popover v-if="isRowVisible(ri)" :show="openRow === ri" trigger="click" placement="right" :show-arrow="false"
-        @update:show="(v: boolean) => onRowPopoverShow(ri, v)" :style="{ padding: '0',borderRadius: '8px' }">
+        :style="{ padding: '0',borderRadius: '8px' }" @update:show="(v: boolean) => onRowPopoverShow(ri, v)">
         <template #trigger>
           <div class="te-handle te-handle--row" :class="{ 'is-active': isRowActive(ri) }"
             :style="{ top: `${r.top + r.height / 2 - 14}px`, left: `${active.rect.left - 22}px`, height: '28px' }"

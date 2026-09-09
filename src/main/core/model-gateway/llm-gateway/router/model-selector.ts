@@ -21,8 +21,23 @@ export class ModelSelector {
       if (adapter) return adapter;
     }
 
+    // 优先级 1：按创作任务类型匹配默认模型（taskType 专属配置覆盖通用 outputType 配置）
+    if (request.taskType) {
+      const taskDefault = this.defaultModels.find(dm => dm.taskType === request.taskType);
+      if (taskDefault) {
+        const adapter = this.providerManager.getAdapterByProvider(taskDefault.providerId);
+        if (adapter) {
+          request.model = taskDefault.modelId;
+          return adapter;
+        }
+      }
+    }
+
+    // 优先级 2：按输出类型匹配通用默认模型（仅匹配未指定 taskType 的条目）
     if (request.outputType) {
-      const defaultModel = this.defaultModels.find(dm => dm.outputType === request.outputType);
+      const defaultModel = this.defaultModels.find(
+        dm => dm.outputType === request.outputType && dm.taskType === undefined,
+      );
       if (defaultModel) {
         const adapter = this.providerManager.getAdapterByProvider(defaultModel.providerId);
         if (adapter) {

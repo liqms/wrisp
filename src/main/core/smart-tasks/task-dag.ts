@@ -38,3 +38,44 @@ export const TASK_EXECUTION_ORDER: string[] = [
   "topic-detection",
   "topic-summary",
 ];
+
+/** 获取指定任务的依赖列表 */
+export function getTaskDependencies(taskName: string): string[] {
+  const node = MVP_TASK_DAG.find((n) => n.name === taskName);
+  return node?.dependencies ?? [];
+}
+
+/** 按 DAG 依赖关系将任务分层（同层任务无相互依赖，可并行执行） */
+export function getTaskLayers(): string[][] {
+  const layers: string[][] = [];
+  const assigned = new Set<string>();
+
+  // 第 0 层：所有无依赖任务（根节点）并行
+  const rootLayer = MVP_TASK_DAG
+    .filter((n) => n.dependencies.length === 0)
+    .map((n) => n.name);
+  if (rootLayer.length === 0) return layers;
+  for (const name of rootLayer) {
+    assigned.add(name);
+  }
+  layers.push(rootLayer);
+
+  // 后续层：每轮收集所有依赖已满足的任务，同层可并行
+  while (assigned.size < MVP_TASK_DAG.length) {
+    const currentLayer: string[] = [];
+    for (const node of MVP_TASK_DAG) {
+      if (assigned.has(node.name)) continue;
+      const depsReady = node.dependencies.every((d) => assigned.has(d));
+      if (depsReady) {
+        currentLayer.push(node.name);
+      }
+    }
+    if (currentLayer.length === 0) break; // 防止循环依赖死循环
+    for (const name of currentLayer) {
+      assigned.add(name);
+    }
+    layers.push(currentLayer);
+  }
+
+  return layers;
+}

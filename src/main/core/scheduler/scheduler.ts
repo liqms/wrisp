@@ -1,7 +1,11 @@
 import { BackupTask } from './backup.task'
 import { DEFAULT_BACKUP_CONFIG, DEFAULT_CLEANUP_CONFIG, DEFAULT_LOG_CLEANUP_CONFIG } from '@/main/constants/auto.constants'
 import { CleanupTask } from './cleanup.task'
+import { resourceSyncService } from '@/main/core/services/resource-sync.service'
 import { Logger } from '@/main/utils/logger'
+
+/** 资源（模板 + 模型元信息）同步间隔：24 小时 */
+const RESOURCE_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 /**
  * 定时任务调度器
@@ -25,6 +29,8 @@ export class Scheduler {
   private cleanupIntervalId: NodeJS.Timeout | null = null
   /** 日志清理定时器ID */
   private logCleanupIntervalId: NodeJS.Timeout | null = null
+  /** 资源同步定时器ID */
+  private resourceSyncIntervalId: NodeJS.Timeout | null = null
 
   /**
    * 私有构造函数，实现单例模式
@@ -169,6 +175,50 @@ export class Scheduler {
     this.startLogCleanupSchedule()
   }
 
+  // ==================== 资源同步调度 ====================
+
+  /**
+   * 启动资源（模板 + 模型元信息）每日同步定时任务
+   */
+  public startResourceSyncSchedule(): void {
+    this.stopResourceSyncSchedule()
+
+    Logger.info('启动资源同步定时任务', { intervalHours: 24, intervalMs: RESOURCE_SYNC_INTERVAL_MS })
+
+    this.resourceSyncIntervalId = setInterval(async () => {
+      try {
+        const result = await resourceSyncService.checkAndSync()
+        Logger.info('资源同步定时任务执行完成', {
+          success: result.success,
+          added: result.added.length,
+          updated: result.updated.length,
+          error: result.error,
+        })
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        Logger.error('资源同步定时任务执行失败', { error: errorMessage })
+      }
+    }, RESOURCE_SYNC_INTERVAL_MS)
+  }
+
+  /**
+   * 停止资源同步定时任务
+   */
+  public stopResourceSyncSchedule(): void {
+    if (this.resourceSyncIntervalId) {
+      clearInterval(this.resourceSyncIntervalId)
+      this.resourceSyncIntervalId = null
+      Logger.info('资源同步定时任务已停止')
+    }
+  }
+
+  /**
+   * 重启资源同步定时任务
+   */
+  public restartResourceSyncSchedule(): void {
+    this.startResourceSyncSchedule()
+  }
+
   // ==================== 全局调度 ====================
 
   /**
@@ -178,6 +228,7 @@ export class Scheduler {
     this.startBackupSchedule()
     this.startCleanupSchedule()
     this.startLogCleanupSchedule()
+    this.startResourceSyncSchedule()
     Logger.info('所有定时任务已启动')
   }
 
@@ -188,6 +239,7 @@ export class Scheduler {
     this.stopBackupSchedule()
     this.stopCleanupSchedule()
     this.stopLogCleanupSchedule()
+    this.stopResourceSyncSchedule()
     Logger.info('所有定时任务已停止')
   }
 

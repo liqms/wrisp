@@ -1,13 +1,16 @@
 <template>
-    <n-modal
-        :show="show"
-        :title="isEditing ? t('ACTION.EDIT.EDIT_PROJECT') : t('ACTION.NEW.PROJECT')"
-        preset="card"
-        style="width: 520px"
-        :mask-closable="false"
-        @update:show="handleUpdateShow"
-    >
+    <n-modal :show="show" :title="isEditing ? t('ACTION.EDIT.EDIT_PROJECT') : t('ACTION.NEW.PROJECT')" preset="card"
+        style="width: 520px" :mask-closable="false" @update:show="handleUpdateShow">
         <n-form ref="formRef" :model="formData" :rules="formRules" label-placement="top">
+            <n-form-item :label="t('TIPS.PROJECT.PROJECT_COVER')" path="coverImage">
+                <n-flex class="cover-picker" :gap="8">
+                    <div v-for="cover in coverOptions" :key="cover || 'default'" class="cover-option"
+                        :class="{ active: formData.coverImage === cover }" @click="formData.coverImage = cover">
+                        <img class="cover-thumb" :src="coverUrl(cover)" :alt="t('TIPS.PROJECT.PROJECT_COVER')" />
+                        <span v-if="!cover" class="cover-default-badge">{{ t('TIPS.PROJECT.DEFAULT_COVER') }}</span>
+                    </div>
+                </n-flex>
+            </n-form-item>
             <n-form-item :label="t('TIPS.PROJECT.PROJECT_NAME')" path="name">
                 <n-input v-model:value="formData.name" :placeholder="t('TIPS.PROJECT.INPUT_PROJECT_NAME')" />
             </n-form-item>
@@ -39,6 +42,8 @@ import { useI18n } from "vue-i18n";
 import { useProject } from "@/renderer/composables/useProject";
 import { PROJECT_TYPE, type ProjectType } from "@/shared/enums";
 import type { ProjectCreate, ProjectUpdate, ProjectDetail } from "@/main/types/db";
+import type { JsonMetadata } from "@/shared/types";
+import { joinPath } from "@/renderer/utils/string.utils";
 
 const props = defineProps<{
     show: boolean;
@@ -60,11 +65,46 @@ const isEditing = computed(() => !!props.project);
 const submitting = ref(false);
 const formRef = ref<FormInst | null>(null);
 
-const formData = ref<{ name: string; type: string; description: string }>({
+const formData = ref<{ name: string; type: string; description: string; coverImage: string }>({
     name: "",
     type: PROJECT_TYPE.NOVEL,
     description: "",
+    coverImage: "",
 });
+
+// 候选封面（空串表示默认封面）
+const coverOptions = [
+    "",
+    "images/project_cover_001.png",
+    "images/project_cover_002.png",
+    "images/project_cover_003.png",
+    "images/project_cover_004.png",
+];
+
+const defaultCoverImage = "images/project_cover_default.png";
+const coverUrl = (cover: string): string => joinPath("app://", cover || defaultCoverImage);
+
+// 解析 metadata（DAO 返回 JSON 字符串）
+const parseMetadata = (metadata: JsonMetadata | string | null | undefined): JsonMetadata => {
+    if (!metadata) return {};
+    if (typeof metadata === "object") return metadata;
+    try {
+        return JSON.parse(metadata) as JsonMetadata;
+    } catch {
+        return {};
+    }
+};
+
+// 构造包含封面选择的 metadata（保留原有键）
+const buildMetadata = (base: JsonMetadata | string | null | undefined, coverImage: string): JsonMetadata | undefined => {
+    const metadata = { ...parseMetadata(base) };
+    if (coverImage) {
+        metadata.cover_image = coverImage;
+    } else {
+        delete metadata.cover_image;
+    }
+    return Object.keys(metadata).length > 0 ? metadata : undefined;
+};
 
 const formRules: FormRules = {
     name: [
@@ -95,8 +135,9 @@ watch(
                 name: props.project.name,
                 type: props.project.type,
                 description: props.project.description || "",
+                coverImage: parseMetadata(props.project.metadata).cover_image || "",
             }
-            : { name: "", type: PROJECT_TYPE.NOVEL, description: "" };
+            : { name: "", type: PROJECT_TYPE.NOVEL, description: "", coverImage: "" };
     },
 );
 
@@ -120,6 +161,7 @@ const handleSubmit = async () => {
                 name: formData.value.name,
                 type: formData.value.type as ProjectType,
                 description: formData.value.description || undefined,
+                metadata: buildMetadata(props.project.metadata, formData.value.coverImage),
             };
             const success = await updateProject(props.project.id, updateData);
             if (success) {
@@ -140,6 +182,7 @@ const handleSubmit = async () => {
                 name: formData.value.name,
                 type: formData.value.type as ProjectType,
                 description: formData.value.description || undefined,
+                metadata: buildMetadata(null, formData.value.coverImage),
             };
             const id = await createProject(createData);
             if (id) {
@@ -155,3 +198,51 @@ const handleSubmit = async () => {
     }
 };
 </script>
+
+<style scoped lang="scss">
+@use "@/renderer/styles/_variables" as *;
+
+.cover-picker {
+    width: 100%;
+}
+
+.cover-option {
+    position: relative;
+    width: 64px;
+    height: 90px;
+    border-radius: $radius-sm;
+    border: 2px solid var(--border-color);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all $transition-base ease;
+
+    &:hover {
+        border-color: var(--primary-color);
+    }
+
+    &.active {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 1px var(--primary-color);
+    }
+}
+
+.cover-thumb {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cover-default-badge {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1px 6px;
+    border-radius: $radius-sm;
+    background: rgba(20, 40, 40, 0.7);
+    color: rgb(255, 255, 255, 0.9);
+    font-size: $font-xs;
+    white-space: nowrap;
+}
+</style>

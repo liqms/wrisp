@@ -7,8 +7,8 @@
 
         <n-flex class="project-grid">
             <ProjectCard v-for="project in projects" :id="project.id" :key="project.id" :name="project.name"
-                :type="project.type" :is-pinned="!!project.is_pinned" @click="handleClick" @settings="handleSettings"
-                @pin="handlePin" />
+                :type="project.type" :cover-image="getCoverImage(project)" :is-pinned="!!project.is_pinned"
+                @click="handleClick" @settings="handleSettings" @pin="handlePin" />
         </n-flex>
     </n-flex>
 </template>
@@ -27,6 +27,19 @@ const emit = defineEmits<{
     (e: "settings", id: string): void;
     (e: "pin", id: string): void;
 }>();
+
+// 从 metadata（JSON 字符串）解析封面路径，未设置时回退默认封面
+const getCoverImage = (project: ProjectDetail): string => {
+    try {
+        const metadata =
+            typeof project.metadata === "string"
+                ? (JSON.parse(project.metadata || "{}") as Record<string, unknown>)
+                : (project.metadata as unknown as Record<string, unknown>);
+        return typeof metadata?.cover_image === "string" ? metadata.cover_image : "";
+    } catch {
+        return "";
+    }
+};
 
 const handleClick = (id: string) => emit("click", id);
 const handleSettings = (id: string) => emit("settings", id);

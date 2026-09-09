@@ -10,30 +10,40 @@ class ProgressManager {
   private taskProgress = new Map<string, { current: number; total: number }>();
   private taskResults: TaskResult[] = [];
   private totalTaskCount = 0;
+  /** 上次推送时间戳（节流用） */
+  private lastPushTime = 0;
+  /** 推送节流间隔（毫秒） */
+  private readonly PUSH_THROTTLE_MS = 200;
 
   /** 注册所有任务的预计总数 */
   public registerTasks(taskNames: string[]): void {
     this.totalTaskCount = taskNames.length;
     this.taskProgress.clear();
     this.taskResults = [];
+    this.lastPushTime = 0;
     for (const name of taskNames) {
       this.taskProgress.set(name, { current: 0, total: 1 });
     }
   }
 
-  /** 更新某个任务的进度 */
+  /** 更新某个任务的进度（节流推送，避免并行时高频 IPC） */
   public update(taskName: string, current: number, total: number): void {
     this.taskProgress.set(taskName, { current, total });
-    this.pushProgress();
+    const now = Date.now();
+    if (now - this.lastPushTime >= this.PUSH_THROTTLE_MS) {
+      this.lastPushTime = now;
+      this.pushProgress();
+    }
   }
 
-  /** 记录任务完成 */
+  /** 记录任务完成（强制推送，不受节流限制） */
   public completeTask(result: TaskResult): void {
     this.taskResults.push(result);
     const p = this.taskProgress.get(result.taskName);
     if (p) {
       p.current = p.total;
     }
+    this.lastPushTime = Date.now();
     this.pushProgress();
   }
 
