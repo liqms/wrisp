@@ -6,6 +6,24 @@ vi.mock("@/main/core/services/vector.service", () => ({
   },
 }));
 
+// chunkService 现在会经 projectChunkDao 按实时归属过滤，
+// 需要桩掉 DAO，避免访问未初始化的真实数据库。
+vi.mock("@/main/core/db", () => ({
+  ChunkDao: class {
+    searchFts = vi.fn(() => []);
+    findByIds = vi.fn(() => []);
+  },
+  ProjectChunkDao: class {
+    findBy = vi.fn(() => []);
+  },
+  ConceptChunkDao: class {
+    countBy = vi.fn(() => 0);
+  },
+  TopicChunkDao: class {
+    countBy = vi.fn(() => 0);
+  },
+}));
+
 vi.mock("@/main/core/model-gateway/router", () => ({
   modelRouter: {
     isLocalAvailable: vi.fn(async () => true),

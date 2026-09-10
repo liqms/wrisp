@@ -344,11 +344,34 @@ class ChunkService {
         projectId,
       });
 
-      if (!searchResults || searchResults.length === 0) {
+      // 向量行里的 project_id 是**写入时快照**，不可作为唯一依据：
+      //   · 迁移前写入的历史行为 null → `.where` 永远匹配不到，表现为"什么都搜不到"（C2）；
+      //   · 语义块改归属后向量行不更新 → 快照仍指向旧作品（I1）。
+      // 因此以 `project_chunks` 的**实时归属**为准做一次过滤；
+      // 若作用域检索为空（历史行被 `.where` 提前滤掉），退回不带过滤的
+      // 超额召回再后置过滤，补偿召回损失（计划所述"迁移期间退化为超额召回 + 后过滤"）。
+      let scoped = searchResults ?? [];
+      if (projectId) {
+        const projectPath = this.getProjectChunkIds(projectId);
+        const allowed = new Set(projectPath);
+        const liveFiltered = scoped.filter((r) => allowed.has(r.item.block_id));
+
+        if (liveFiltered.length === 0) {
+          const overFetched = await vectorService.searchBlockEmbeddings({
+            vector,
+            topK: ANN_TOP_K * 4,
+          });
+          scoped = overFetched.filter((r) => allowed.has(r.item.block_id));
+        } else {
+          scoped = liveFiltered;
+        }
+      }
+
+      if (scoped.length === 0) {
         return [];
       }
 
-      const candidateBlockIds = searchResults.map((r) => r.item.block_id);
+      const candidateBlockIds = scoped.map((r) => r.item.block_id);
       const candidateBlocks = this.chunkDao.findByIds(candidateBlockIds);
 
       if (candidateBlocks.length === 0) {
