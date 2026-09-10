@@ -17,9 +17,14 @@ const i18n = createI18n({
   fallbackWarn: false,
 });
 
-/** 最小编辑器桩：SlashMenu 仅在定位时使用 view.coordsAtPos */
+/**
+ * 最小编辑器桩。
+ * SlashMenu 定位时用 view.coordsAtPos；命令的 isEnabled 会调用 isActive
+ * （如"表格单元格内隐藏某些块"的判定），因此桩需提供该方法。
+ */
 const editorStub = {
   view: { coordsAtPos: () => ({ left: 10, top: 10, bottom: 30 }) },
+  isActive: () => false,
 } as unknown as Editor;
 
 beforeAll(() => {

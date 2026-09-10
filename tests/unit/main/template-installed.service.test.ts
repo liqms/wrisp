@@ -76,7 +76,12 @@ describe("TemplateInstalledService", () => {
         p.endsWith(path.join("skills", "polish.skill.json")),
     );
     const list = installedTemplateService.loadWithSnapshot(remote);
-    expect(list).toEqual({ slash: ["todo"], page: [], skill: ["polish"] });
+    expect(list).toEqual({
+      slash: ["todo"],
+      page: [],
+      skill: ["polish"],
+      "model-meta": [],
+    });
     expect(mockFs.writeFileSync).toHaveBeenCalled();
   });
   it("loadWithSnapshot 在文件存在时读取文件", () => {
