@@ -1,5 +1,5 @@
 import { TaskExecutor, TaskContext, TaskResult } from "../types";
-import { ChunkDao } from "@/main/core/db";
+import { ChunkDao, ProjectChunkDao } from "@/main/core/db";
 import { vectorService } from "@/main/core/services/vector.service";
 import { semanticLinkDao } from "@/main/core/db/semanticLink.dao";
 import { localGateway } from "@/main/core/model-gateway/local-gateway";
@@ -13,6 +13,7 @@ export class SemanticLinkExecutor implements TaskExecutor {
   public dependencies = ["chunk-vectorize"];
 
   private chunkDao = new ChunkDao();
+  private projectChunkDao = new ProjectChunkDao();
 
   public async run(context: TaskContext): Promise<TaskResult> {
     const blocks = this.getVectorizedBlocks(context.processedUntil);
@@ -39,9 +40,18 @@ export class SemanticLinkExecutor implements TaskExecutor {
         if (!blockEmbeddings || blockEmbeddings.length === 0) continue;
 
         // Step 2: LanceDB ANN 检索
+        // 语义块若归属某作品，则把检索限制在同一作品内 —— 否则会跨作品建立
+        // semantic_links（数据污染；一旦有消费方就变成信息泄漏）。
+        // 未归属作品的块（如日记）保持原有全局行为。
+        // 注：向量行里的 project_id 是写入时快照，历史行可能为 null 而漏检——
+        // 这对后台富化任务是可接受的（漏检 fail-closed），跨作品才是要避免的。
+        const projectLinks = this.projectChunkDao.findBy("chunk_id", block.id);
+        const projectId = projectLinks[0]?.project_id;
+
         const annResults = await vectorService.searchBlockEmbeddings({
           vector: blockEmbeddings[0].embedding,
           topK: ANN_TOP_K,
+          ...(projectId ? { projectId } : {}),
         });
 
         const candidates = annResults
