@@ -283,16 +283,9 @@ export async function deleteBlockEmbedding(
 }
 
 /**
- * 语义搜索 Block
+ * 语义搜索 Block（实现移至 ./block-search，此处仅再导出以保持既有调用方不变）
  */
-export async function searchBlockEmbeddings(
-  table: Table,
-  queryVector: number[],
-  topK: number = 10,
-): Promise<BlockEmbedding[]> {
-  const results = await table.search(queryVector).limit(topK).toArray();
-  return results as BlockEmbedding[];
-}
+export { searchBlockEmbeddings } from "./block-search";
 
 /**
  * 插入单个页面向量

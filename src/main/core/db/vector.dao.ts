@@ -12,6 +12,7 @@ import type {
   VectorTableName,
 } from "@/main/types/db/vector.types";
 import { Logger } from "@/main/utils/logger";
+import { buildProjectFilter } from "@/main/core/vector/project-filter";
 
 /**
  * 向量数据访问对象基类
@@ -157,7 +158,13 @@ export class BlockVectorDao extends BaseVectorDao {
   async search(params: VectorSearchParams): Promise<VectorSearchResult<BlockEmbedding>[]> {
     try {
       const table = await this.getTable("block_embeddings");
-      const results = await table.search(params.vector).limit(params.topK || 10).toArray();
+      let query = table.search(params.vector).limit(params.topK || 10);
+
+      if (params.projectId) {
+        query = query.where(buildProjectFilter(params.projectId));
+      }
+
+      const results = await query.toArray();
 
       return results.map((item: unknown) => {
         const embedding = item as BlockEmbedding;
