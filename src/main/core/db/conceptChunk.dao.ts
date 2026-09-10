@@ -131,6 +131,17 @@ export class ConceptChunkDao extends BaseDao<ConceptChunk, ConceptChunkCreate, C
   }
 
   /**
+   * 按语义块 id 批量查询关联（供"按作品过滤概念"使用）
+   * @param chunkIds 语义块 id 列表
+   */
+  findByChunkIds(chunkIds: Id[]): ConceptChunk[] {
+    if (chunkIds.length === 0) return []
+    const placeholders = chunkIds.map(() => "?").join(",")
+    const sql = `SELECT * FROM ${this.tableName} WHERE chunk_id IN (${placeholders}) ORDER BY relevance_score DESC`
+    return this.query(sql, chunkIds)
+  }
+
+  /**
    * 构建 WHERE 子句
    * @param conditions 查询条件
    */
