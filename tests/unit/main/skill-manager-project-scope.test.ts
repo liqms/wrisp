@@ -73,4 +73,13 @@ describe("SkillManager 两级解析", () => {
     expect(skillManager.resolveSkillDefinition("does-not-exist")).toBeNull();
     expect(storeList).not.toHaveBeenCalled();
   });
+
+  it("项目不存在时返回 null，不静默降级为全局", () => {
+    findById.mockReturnValueOnce(null);
+    skillManager.invalidateProjectSkills("p-missing");
+
+    expect(
+      skillManager.resolveSkillDefinition("outline", "p-missing"),
+    ).toBeNull();
+  });
 });

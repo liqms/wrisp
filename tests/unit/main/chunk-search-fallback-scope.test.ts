@@ -73,13 +73,17 @@ describe("chunkService.search 降级路径的作品隔离", () => {
     expect(result.map((r) => r.id)).toEqual(["c1"]);
   });
 
-  it("未传 projectId 时保持既有行为（不过滤）", async () => {
+  it("显式调用 searchAll 时不做作品过滤（全库检索）", async () => {
     m.searchFts.mockReturnValue([
       stubChunk("c1", "a"),
       stubChunk("c2", "b"),
     ]);
 
-    const result = await chunkService.search("关键词", 10, SEARCH_TYPE.SEMANTIC);
+    const result = await chunkService.searchAll(
+      "关键词",
+      10,
+      SEARCH_TYPE.SEMANTIC,
+    );
 
     expect(result.map((r) => r.id)).toEqual(["c1", "c2"]);
   });

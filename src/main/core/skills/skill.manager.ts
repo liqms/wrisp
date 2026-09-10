@@ -177,14 +177,23 @@ class SkillManager {
 
   /**
    * 解析技能：作品作用域优先，未命中回退全局。
-   * 未传 projectId 时只查全局。
+   *
+   * - 未传 `projectId`：只查全局；
+   * - 传了 `projectId` 但**项目不存在**：返回 `null`（显式失败）。
+   *   不静默回退全局——那会让"作品作用域"在使用方不知情的情况下
+   *   降级为全局，属于隐性失效；
+   * - 传了 `projectId` 且项目存在、但该作品没有这一技能：回退全局，
+   *   这是"作品 → 全局"的正常查找顺序。
    */
   public resolveSkillDefinition(
     skillId: string,
     projectId?: string,
   ): SkillDefinition | null {
     if (projectId) {
-      const workSkill = this.getProjectSkill(skillId, projectId);
+      const cache = this.getProjectSkillsCache(projectId);
+      if (!cache) return null;
+
+      const workSkill = cache.get(skillId);
       if (workSkill) return workSkill;
     }
     return this.skills.get(skillId) || null;
@@ -196,26 +205,25 @@ class SkillManager {
   }
 
   /**
-   * 取某作品的作品技能：首次访问时整目录载入并缓存，
-   * 避免每次解析都做一次文件读取。
+   * 载入某作品的作品技能并缓存；项目不存在时返回 null。
+   * 首次访问时整目录载入，避免每次解析都做一次文件读取；
+   * 「项目不存在」不写入缓存，以便项目稍后创建后能重新载入。
    */
-  private getProjectSkill(
-    skillId: string,
+  private getProjectSkillsCache(
     projectId: string,
-  ): SkillDefinition | null {
-    let cache = this.projectSkillsCache.get(projectId);
-    if (!cache) {
-      cache = new Map<string, SkillDefinition>();
-      this.projectSkillsCache.set(projectId, cache);
+  ): Map<string, SkillDefinition> | null {
+    const cached = this.projectSkillsCache.get(projectId);
+    if (cached) return cached;
 
-      const project = this.projectDao.findById(projectId);
-      if (project?.file_path) {
-        for (const skill of projectSkillStore.list(project.file_path)) {
-          cache.set(skill.id, skill);
-        }
-      }
+    const project = this.projectDao.findById(projectId);
+    if (!project?.file_path) return null;
+
+    const cache = new Map<string, SkillDefinition>();
+    for (const skill of projectSkillStore.list(project.file_path)) {
+      cache.set(skill.id, skill);
     }
-    return cache.get(skillId) ?? null;
+    this.projectSkillsCache.set(projectId, cache);
+    return cache;
   }
 
   public getSkillsByCategory(category: string): SkillListItem[] {

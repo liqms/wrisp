@@ -257,9 +257,37 @@ class ChunkService {
 
   // ──────── 搜索 ────────
 
+  /**
+   * 按作品检索语义块。
+   *
+   * `projectId` **必填**——检索必须按作品隔离；需要全库检索请显式调用
+   * `searchAll`。把隔离设为必填而非可选，是为了让"忘记传 projectId"
+   * 变成编译期错误，而不是运行期的静默跨作品召回。
+   */
   public async search(
     keyword: string,
+    limit: number,
+    searchType: SearchType,
+    projectId: Id,
+  ): Promise<ChunkItem[]> {
+    return this.runSearch(keyword, limit, searchType, projectId);
+  }
+
+  /**
+   * 全库检索（**不**按作品隔离）。
+   * 仅用于明确的全局搜索场景；调用方需自行确认这是有意的。
+   */
+  public async searchAll(
+    keyword: string,
     limit: number = 50,
+    searchType?: SearchType,
+  ): Promise<ChunkItem[]> {
+    return this.runSearch(keyword, limit, searchType);
+  }
+
+  private async runSearch(
+    keyword: string,
+    limit: number,
     searchType?: SearchType,
     projectId?: Id,
   ): Promise<ChunkItem[]> {
