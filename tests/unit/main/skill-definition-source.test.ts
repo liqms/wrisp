@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import type { SkillDefinition } from "@/shared/types/skill.types";
 
+// 类型契约测试：运行时断言恒真，行为回归不会在此失败。不计入行为覆盖。
+
 describe("SkillDefinition 作品来源元数据", () => {
   it("允许携带 sourceTemplateId / sourceTemplateVersion", () => {
     const skill = {

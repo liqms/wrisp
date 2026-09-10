@@ -60,4 +60,15 @@ describe("CreationSessionService", () => {
       "CREATION_SESSION_NOT_FOUND",
     );
   });
+
+  it("对未开门的会话 resolveGate 抛错（不允许非法状态组合）", () => {
+    const s = creationSessionService.start("page", "p6", "pg6");
+
+    expect(() =>
+      creationSessionService.resolveGate(s.id, "needs-user"),
+    ).toThrow("GATE_NOT_OPEN");
+    expect(() => creationSessionService.resolveGate(s.id, "approve")).toThrow(
+      "GATE_NOT_OPEN",
+    );
+  });
 });

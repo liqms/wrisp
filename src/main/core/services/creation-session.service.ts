@@ -73,17 +73,19 @@ class CreationSessionService {
     id: string,
     decision: "approve" | "needs-user",
   ): CreationSession {
-    if (decision === "needs-user") {
-      return this.mutate(id, (s) => ({
-        ...s,
-        status: "awaiting-confirm",
-      }));
-    }
-    return this.mutate(id, (s) => ({
-      ...s,
-      status: "active",
-      pendingKind: null,
-    }));
+    return this.mutate(id, (s) => {
+      // 状态机守卫：没有待确认项时不得"关闭"确认门——
+      // 否则会造出 awaiting-confirm 但 pendingKind 为 null 的非法会话，
+      // 恢复流程（listResumable）会把它当成有未决事项。
+      if (!s.pendingKind) {
+        throw new Error(`GATE_NOT_OPEN: ${id}`);
+      }
+      if (decision === "needs-user") {
+        // 仍需人工：保持门开着（不清 pendingKind）
+        return { ...s, status: "awaiting-confirm" };
+      }
+      return { ...s, status: "active", pendingKind: null };
+    });
   }
 
   /** 逐项设置委托自动确认开关 */
