@@ -266,9 +266,12 @@ class ChunkService {
     try {
       if (searchType === SEARCH_TYPE.KEYWORD) {
         const blocks = this.chunkDao.searchFts(keyword, limit);
-        return this.blocksToRecordList(blocks, (a, b) =>
+        const list = this.blocksToRecordList(blocks, (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         );
+        // 全文检索同样受作品作用域约束：传了 projectId 就必须过滤，
+        // 否则签名与行为不一致，会成为跨作品召回的隐患。
+        return projectId ? this.filterByProject(list, projectId) : list;
       } else if (searchType === SEARCH_TYPE.SEMANTIC) {
         const canUseLocal = await modelRouter.isLocalAvailable();
         if (canUseLocal) {

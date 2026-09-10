@@ -62,11 +62,23 @@ class CreationSessionService {
     }));
   }
 
-  /** 关闭确认门：清除待确认项并回到进行中 */
+  /**
+   * 关闭确认门。
+   *
+   * **只有 `approve` 才真正关闭**：`needs-user` 表示"仍需人工决定"，
+   * 此时必须保持门开着（`awaiting-confirm`），否则等于把"交回人工"
+   * 静默变成了"放行"——向放行方向失败是最危险的一类 bug。
+   */
   public resolveGate(
     id: string,
-    _decision: "approve" | "needs-user",
+    decision: "approve" | "needs-user",
   ): CreationSession {
+    if (decision === "needs-user") {
+      return this.mutate(id, (s) => ({
+        ...s,
+        status: "awaiting-confirm",
+      }));
+    }
     return this.mutate(id, (s) => ({
       ...s,
       status: "active",

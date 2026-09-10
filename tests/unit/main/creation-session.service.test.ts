@@ -45,6 +45,16 @@ describe("CreationSessionService", () => {
     expect(updated.delegation.section).toBe(true);
   });
 
+  it("resolveGate(needs-user) 不关闭确认门（不得向放行方向失败）", () => {
+    const s = creationSessionService.start("page", "p5", "pg5");
+    creationSessionService.openGate(s.id, "section");
+
+    const kept = creationSessionService.resolveGate(s.id, "needs-user");
+
+    expect(kept.status).toBe("awaiting-confirm");
+    expect(kept.pendingKind).toBe("section");
+  });
+
   it("对不存在的会话操作会抛错", () => {
     expect(() => creationSessionService.advance("nope", "page.write")).toThrow(
       "CREATION_SESSION_NOT_FOUND",
