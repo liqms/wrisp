@@ -1,5 +1,6 @@
 import type { GateKind } from "@/shared/types";
 import type { ReviewStrictness } from "@/main/core/skills/gate-policy";
+import type { GateContext } from "@/main/core/skills/gate-policy";
 
 /** Reviewer 对某次产出的判定输入 */
 export interface ReviewerSignal {
@@ -12,14 +13,11 @@ export interface DelegationCarrier {
   delegation: Partial<Record<GateKind, boolean>>;
 }
 
-export interface PageGateContext {
-  kind: GateKind;
-  delegated: boolean;
-  reviewStrictness: ReviewStrictness;
-  hitHardConstraint: boolean;
-  confidence: number;
-  calibrated: boolean;
-}
+/**
+ * 与 `GateContext` **同一结构**——不做第二份声明，避免字段漂移
+ * （例如将来给 GateContext 加 factsConsistent 时这里会静默落后）。
+ */
+export type PageGateContext = GateContext;
 
 /**
  * 页面创作的**决策内核**。

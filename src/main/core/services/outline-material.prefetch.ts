@@ -1,6 +1,7 @@
 import { Logger } from "@/main/utils/logger";
 import type { OutlineNode } from "@/shared/types";
 import type { MaterialSearchItem } from "./material-search.service";
+import type { MaterialSearchParams } from "./material-search.service";
 
 // 单一来源：素材条目结构定义在素材检索服务，避免两处各自声明后漂移
 export type { MaterialSearchItem };
@@ -9,13 +10,14 @@ export type { MaterialSearchItem };
  * 素材检索函数（由调用方注入）。
  * 之所以用注入而非直接 import 服务，是为了让本编排可单测，
  * 也便于将来替换检索实现。
+ *
+ * 参数直接复用 `MaterialSearchParams`（而非各自声明一遍）：
+ * 否则 `kinds` 会退化成 string[]，传错大小写（如 "Chunk"）时
+ * 类型层不报错、运行时静默返回空数组。
  */
-export type MaterialSearchFn = (params: {
-  projectId: string;
-  query: string;
-  kinds?: string[];
-  limit?: number;
-}) => Promise<MaterialSearchItem[]>;
+export type MaterialSearchFn = (
+  params: MaterialSearchParams,
+) => Promise<MaterialSearchItem[]>;
 
 export interface NodeMaterials {
   nodeId: string;
