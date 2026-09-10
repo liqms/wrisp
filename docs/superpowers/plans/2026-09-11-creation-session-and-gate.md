@@ -170,7 +170,9 @@ git commit -m "feat: 新增创作会话类型与 creation_sessions 表"
 
 **Interfaces:**
 - Consumes: Task 1 的类型
-- Produces: `creationSessionDao.insert/findById/updateSession/listResumable`
+- Produces: `creationSessionDao.insert/findSessionById/updateSession/listResumable`
+
+> 注意：**不要**把方法命名为 `findById` —— `BaseDao.findById` 返回的是行类型 `T`，而 DAO 对外暴露的是领域对象 `CreationSession`，覆盖会触发 `TS2416`。（执行时实际踩到，已改名。）
 
 - [ ] **Step 1: 写失败测试**
 
@@ -518,7 +520,7 @@ const store = new Map<string, unknown>();
 vi.mock("@/main/core/db", () => ({
   creationSessionDao: {
     insert: (s: { id: string }) => store.set(s.id, { ...s }),
-    findById: (id: string) => store.get(id) ?? null,
+    findSessionById: (id: string) => store.get(id) ?? null,
     updateSession: (s: { id: string }) => store.set(s.id, { ...s }),
     listResumable: () => [...store.values()],
   },
@@ -660,7 +662,7 @@ class CreationSessionService {
     id: string,
     fn: (s: CreationSession) => CreationSession,
   ): CreationSession {
-    const existing = creationSessionDao.findById(id);
+    const existing = creationSessionDao.findSessionById(id);
     if (!existing) throw new Error(`CREATION_SESSION_NOT_FOUND: ${id}`);
     const next: CreationSession = {
       ...fn(existing),
