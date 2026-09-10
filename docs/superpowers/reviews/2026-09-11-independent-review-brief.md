@@ -63,6 +63,22 @@
 
 ## 已知的既有问题（不必重复报告，但可确认）
 
-- `better-sqlite3` 原生模块 ABI 不匹配（`NODE_MODULE_VERSION 145` vs 当前 Node 需要 `137`），导致多个集成测试失败；`pnpm rebuild` 可修复。
-- 全量测试存在既有失败（约 37 项），与本分支无关；已有一次基线对比记录在 `.superpowers/sdd/2026-09-10-material-retrieval-by-project/progress.md`。
-- `pnpm test` 中 `tests/unit/main/skill-executor-l1-stream.test.ts` 曾在执行期间被本分支改动打破，已在提交 `8cc193a` 修复。
+- **`better-sqlite3` 原生模块 ABI 曾不匹配**（原为 `NODE_MODULE_VERSION 145`，Node v24 需要 `137`），压住了一批集成测试。已用 **`npm rebuild better-sqlite3`** 修复（针对当前 Node 重建）。
+  - 注意：`pnpm rebuild`（= `electron-rebuild`）是**针对 Electron 的 ABI**，不解决 Node 下跑 vitest 的问题；两者在同一个 `node_modules` 里互斥。
+  - **当前状态：模块为 Node ABI（137）**，因此**运行 Electron 应用前需要先执行 `pnpm rebuild` 切回 Electron ABI**。这是本仓库的一个真实约束，值得评审者留意。
+- 修复后全量测试：**3 失败 / 554 通过（557）**，3 项均为**与本分支无关的陈旧测试**：
+  1. `tests/unit/main/template-installed.service.test.ts` 与
+  2. `tests/unit/shared/resource-types.test.ts` —— 都断言资源类型只有 3 种，但 `model-meta` 已被加入（`RESOURCE_TYPES` 现为 4 种），属既有功能演进后未更新的测试；
+  3. `tests/unit/renderer/slash-menu-render.test.ts` —— 测试的 editor 桩缺少 `isActive`，与编辑器 API 演进而非本分支相关。
+- `tests/unit/main/skill-executor-l1-stream.test.ts` 曾在执行期间被本分支改动打破，已在提交 `8cc193a` 修复。
+
+## 本分支执行期间由审查发现并修复的缺陷（供评审者复核，不必重新发现）
+
+| 提交 | 缺陷 | 级别 |
+|---|---|---|
+| `d0dd0c3` | 语义检索降级到全文检索时未按作品过滤 → 跨作品召回 | Critical |
+| `d37d6c4` | `resolveGate` 忽略 decision，`needs-user` 也被当作放行（fail-open）；`KEYWORD` 分支未过滤 | Critical |
+| `676d8a0` | 作品隔离改为强制（`projectId` 必填 + 显式 `searchAll`）；技能解析不再静默降级为全局 | 根因修复 |
+| `8cc193a` | 技能解析改动打破既有测试；消除两处重复类型定义 | 回归 |
+
+**评审者请重点确认：这些修复是否真的到位，以及是否还有同类（fail-open / 跨作用域）的遗漏。**
