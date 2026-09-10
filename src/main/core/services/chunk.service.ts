@@ -275,9 +275,12 @@ class ChunkService {
           return this.searchByVector(keyword, limit, projectId);
         }
         const blocks = this.chunkDao.searchFts(keyword, limit);
-        return this.blocksToRecordList(blocks, (a, b) =>
+        const fallback = this.blocksToRecordList(blocks, (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         );
+        // 本地模型不可用时降级为全文检索：这条路径同样必须按作品过滤，
+        // 否则会跨作品召回（spec 非协商条款）。
+        return projectId ? this.filterByProject(fallback, projectId) : fallback;
       }
       return [];
     } catch (error) {
@@ -391,6 +394,16 @@ class ChunkService {
     return this.projectChunkDao
       .findBy("project_id", projectId)
       .map((row) => row.chunk_id);
+  }
+
+  /**
+   * 按作品过滤语义块。
+   * 用于降级路径（本地模型不可用时的全文检索）——那条路径没有向量层的
+   * `.where()` 保护，必须在此显式过滤，否则会跨作品召回。
+   */
+  private filterByProject(chunks: ChunkItem[], projectId: Id): ChunkItem[] {
+    const allowed = new Set(this.getProjectChunkIds(projectId));
+    return chunks.filter((c) => allowed.has(c.id));
   }
 
   public getByProjectId(projectId: Id): ChunkItem[] {
