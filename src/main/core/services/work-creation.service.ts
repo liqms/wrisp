@@ -65,6 +65,10 @@ class WorkCreationService {
       }
     }
 
+    // 写入作品技能后必须失效缓存：该项目若在写入前被解析过一次，
+    // 缓存里可能存着空 Map，本进程内后续解析会一直回退全局（表现为 SKILL_NOT_FOUND）。
+    skillManager.invalidateProjectSkills(projectId);
+
     return { brief, derivedSkillIds };
   }
 }

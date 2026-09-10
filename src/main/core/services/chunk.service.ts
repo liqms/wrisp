@@ -386,9 +386,12 @@ class ChunkService {
         limit,
       });
       const blocks = this.chunkDao.searchFts(keyword, limit);
-      return this.blocksToRecordList(blocks, (a, b) =>
+      const fallback = this.blocksToRecordList(blocks, (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
+      // 异常降级同样必须按作品过滤：向量检索抛错时最容易忘记这条，
+      // 而它正是"本地模型损坏/LanceDB 异常"时唯一会走到的路径。
+      return projectId ? this.filterByProject(fallback, projectId) : fallback;
     }
   }
 

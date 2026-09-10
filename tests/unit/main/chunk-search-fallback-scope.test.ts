@@ -42,6 +42,8 @@ vi.mock("@/main/core/model-gateway/local-gateway", () => ({
 
 import { chunkService } from "@/main/core/services/chunk.service";
 import { SEARCH_TYPE } from "@/shared/enums";
+import { modelRouter } from "@/main/core/model-gateway/router";
+import { embed } from "@/main/core/model-gateway/local-gateway";
 
 function stubChunk(id: string, content: string) {
   return {
@@ -86,5 +88,24 @@ describe("chunkService.search 降级路径的作品隔离", () => {
     );
 
     expect(result.map((r) => r.id)).toEqual(["c1", "c2"]);
+  });
+
+  it("向量检索抛错时的降级路径同样按作品过滤（不得跨作品召回）", async () => {
+    vi.mocked(modelRouter.isLocalAvailable).mockResolvedValueOnce(true);
+    vi.mocked(embed).mockRejectedValueOnce(new Error("本地模型加载失败"));
+    m.searchFts.mockReturnValue([
+      stubChunk("c1", "本作品的块"),
+      stubChunk("c2", "别的作品的块"),
+    ]);
+    m.findBy.mockReturnValue([{ chunk_id: "c1" }]);
+
+    const result = await chunkService.search(
+      "关键词",
+      10,
+      SEARCH_TYPE.SEMANTIC,
+      "p1",
+    );
+
+    expect(result.map((r) => r.id)).toEqual(["c1"]);
   });
 });

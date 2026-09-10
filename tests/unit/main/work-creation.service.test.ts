@@ -32,7 +32,10 @@ vi.mock("@/main/core/skills/project-skill.store", () => ({
 }));
 
 vi.mock("@/main/core/skills/skill.manager", () => ({
-  skillManager: { getSkillDefinition: mocks.getSkillDefinition },
+  skillManager: {
+    getSkillDefinition: mocks.getSkillDefinition,
+    invalidateProjectSkills: vi.fn(),
+  },
 }));
 
 import { workCreationService } from "@/main/core/services/work-creation.service";
