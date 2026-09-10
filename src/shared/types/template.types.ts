@@ -8,6 +8,18 @@ export interface LocalizedText {
   en: string;
 }
 
+/**
+ * 页面模板声明的页面级技能（方案 A：模板做编排、技能本体在全局/作品）。
+ * id 为模板内步骤标识；skillId 引用技能 id（解析顺序：作品 → 全局）。
+ */
+export interface TemplatePageSkill {
+  id: string;
+  skillId: string;
+  params?: Record<string, unknown>;
+  /** 该步骤产出是否需用户确认；缺省视为需要确认（保守） */
+  requiresConfirm?: boolean;
+}
+
 /** 自定义模板（用户创建，存于工作区 JSON；slash 与 page 按类型分文件存储） */
 export interface CustomTemplate {
   id: string;
@@ -18,6 +30,8 @@ export interface CustomTemplate {
   /** Markdown 模板正文 */
   markdown: string;
   profession: Profession;
+  /** 页面级技能（仅 page 模板使用；slash 模板留空） */
+  skills?: TemplatePageSkill[];
   enabled: boolean;
 }
 
@@ -57,6 +71,8 @@ export interface TemplateItem {
   tags: string[];
   /** true=内置模板，false=自定义模板 */
   builtIn: boolean;
+  /** 页面级技能（仅 page 模板使用；slash 模板留空） */
+  skills?: TemplatePageSkill[];
   enabled: boolean;
 }
 
@@ -75,6 +91,8 @@ export interface TemplateResourceFile {
   profession: Profession[];
   /** 类型标签（双语，渲染层按当前语言解析） */
   tags: LocalizedText[];
+  /** 页面级技能（仅 page 模板使用；slash 模板留空） */
+  skills?: TemplatePageSkill[];
   enabled: boolean;
 }
 
