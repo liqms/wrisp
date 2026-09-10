@@ -261,6 +261,7 @@ class ChunkService {
     keyword: string,
     limit: number = 50,
     searchType?: SearchType,
+    projectId?: Id,
   ): Promise<ChunkItem[]> {
     try {
       if (searchType === SEARCH_TYPE.KEYWORD) {
@@ -271,7 +272,7 @@ class ChunkService {
       } else if (searchType === SEARCH_TYPE.SEMANTIC) {
         const canUseLocal = await modelRouter.isLocalAvailable();
         if (canUseLocal) {
-          return this.searchByVector(keyword, limit);
+          return this.searchByVector(keyword, limit, projectId);
         }
         const blocks = this.chunkDao.searchFts(keyword, limit);
         return this.blocksToRecordList(blocks, (a, b) =>
@@ -293,6 +294,7 @@ class ChunkService {
   private async searchByVector(
     keyword: string,
     limit: number,
+    projectId?: Id,
   ): Promise<ChunkItem[]> {
     try {
       const ANN_TOP_K = 50;
@@ -305,6 +307,7 @@ class ChunkService {
       const searchResults = await vectorService.searchBlockEmbeddings({
         vector,
         topK: ANN_TOP_K,
+        projectId,
       });
 
       if (!searchResults || searchResults.length === 0) {
@@ -381,6 +384,13 @@ class ChunkService {
       });
       throw error;
     }
+  }
+
+  /** 获取作品关联的全部语义块 id（供素材检索按作品过滤） */
+  public getProjectChunkIds(projectId: Id): string[] {
+    return this.projectChunkDao
+      .findBy("project_id", projectId)
+      .map((row) => row.chunk_id);
   }
 
   public getByProjectId(projectId: Id): ChunkItem[] {
