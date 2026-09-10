@@ -1,6 +1,8 @@
 import type { GateKind } from "@/shared/types";
 
-export type ReviewStrictness = "lenient" | "normal" | "strict";
+// 单一来源：审核严格度定义在 shared，避免与 AppConfig 里的同名类型漂移
+import type { ReviewStrictness } from "@/shared/types";
+export type { ReviewStrictness };
 
 export interface GateContext {
   kind: GateKind;

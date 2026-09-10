@@ -1,13 +1,9 @@
 import { Logger } from "@/main/utils/logger";
 import type { OutlineNode } from "@/shared/types";
+import type { MaterialSearchItem } from "./material-search.service";
 
-export interface MaterialSearchItem {
-  kind: "chunk" | "concept" | "topic";
-  id: string;
-  title?: string;
-  content: string;
-  score?: number;
-}
+// 单一来源：素材条目结构定义在素材检索服务，避免两处各自声明后漂移
+export type { MaterialSearchItem };
 
 /**
  * 素材检索函数（由调用方注入）。

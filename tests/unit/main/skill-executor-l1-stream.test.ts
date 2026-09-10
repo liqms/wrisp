@@ -17,18 +17,24 @@ vi.mock("@/main/core/services/ai.service", () => ({
   },
 }));
 
-vi.mock("@/main/core/skills/skill.manager", () => ({
-  skillManager: {
-    getSkillDefinition: vi.fn().mockReturnValue({
-      id: "test-skill",
-      name: { zh: "测试", en: "Test" },
-      description: { zh: "", en: "" },
-      promptTemplate: { zh: "Say hello to {{name}}", en: "Say hello to {{name}}" },
-      enabled: true,
-      tools: [],
-    }),
-  },
-}));
+vi.mock("@/main/core/skills/skill.manager", () => {
+  const getSkillDefinition = vi.fn().mockReturnValue({
+    id: "test-skill",
+    name: { zh: "测试", en: "Test" },
+    description: { zh: "", en: "" },
+    promptTemplate: { zh: "Say hello to {{name}}", en: "Say hello to {{name}}" },
+    enabled: true,
+    tools: [],
+  });
+  return {
+    skillManager: {
+      getSkillDefinition,
+      // SkillExecutor 现按作品作用域解析技能；本测试无作品上下文，
+      // 委托给同一个 mock，保持既有的 mockReturnValue 控制点不变。
+      resolveSkillDefinition: vi.fn((id: string) => getSkillDefinition(id)),
+    },
+  };
+});
 
 vi.mock("@/main/core/skills/tool.registry", () => ({
   toolRegistry: {
