@@ -67,6 +67,7 @@ export function getVectorDbPath(): string {
 export interface BlockEmbedding {
   [key: string]: unknown;
   block_id: Id;
+  project_id?: Id | null;
   embedding: number[];
 }
 

@@ -76,8 +76,16 @@ export class BlockVectorDao extends BaseVectorDao {
   async update(blockId: string, data: BlockEmbeddingUpdate): Promise<void> {
     try {
       const table = await this.getTable("block_embeddings");
+      const existing = (await table
+        .query()
+        .where(`block_id = '${blockId}'`)
+        .limit(1)
+        .toArray()) as BlockEmbedding[];
+      const projectId = data.project_id ?? existing[0]?.project_id ?? null;
       await table.delete(`block_id = '${blockId}'`);
-      await table.add([{ block_id: blockId, ...data } as BlockEmbedding]);
+      await table.add([
+        { block_id: blockId, project_id: projectId, ...data } as BlockEmbedding,
+      ]);
       Logger.debug("[BlockVectorDao] 更新向量记录", { block_id: blockId });
     } catch (error) {
       Logger.error("[BlockVectorDao] 更新 Block 向量失败", {
