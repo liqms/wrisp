@@ -17,6 +17,8 @@ import type {
 } from "@/shared/types/skill.types";
 import type { LocalizedText } from "@/shared/types/template.types";
 import { TimeUtil } from "@/shared/utils/time";
+import { ProjectDao } from "@/main/core/db";
+import { projectSkillStore } from "./project-skill.store";
 
 const BUILT_IN = "built-in";
 const CUSTOM = "custom";
@@ -102,6 +104,9 @@ class SkillManager {
   private skillsDir: string = "";
   private changeCallbacks: Array<() => void> = [];
   private skillSources: Map<string, SkillSource> = new Map();
+  private projectDao = new ProjectDao();
+  private projectSkillsCache: Map<string, Map<string, SkillDefinition>> =
+    new Map();
 
   private constructor() { }
 
@@ -168,6 +173,49 @@ class SkillManager {
 
   public getSkillDefinition(id: string): SkillDefinition | null {
     return this.skills.get(id) || null;
+  }
+
+  /**
+   * 解析技能：作品作用域优先，未命中回退全局。
+   * 未传 projectId 时只查全局。
+   */
+  public resolveSkillDefinition(
+    skillId: string,
+    projectId?: string,
+  ): SkillDefinition | null {
+    if (projectId) {
+      const workSkill = this.getProjectSkill(skillId, projectId);
+      if (workSkill) return workSkill;
+    }
+    return this.skills.get(skillId) || null;
+  }
+
+  /** 清空某作品的作品技能缓存（作品技能被改写/删除后调用） */
+  public invalidateProjectSkills(projectId: string): void {
+    this.projectSkillsCache.delete(projectId);
+  }
+
+  /**
+   * 取某作品的作品技能：首次访问时整目录载入并缓存，
+   * 避免每次解析都做一次文件读取。
+   */
+  private getProjectSkill(
+    skillId: string,
+    projectId: string,
+  ): SkillDefinition | null {
+    let cache = this.projectSkillsCache.get(projectId);
+    if (!cache) {
+      cache = new Map<string, SkillDefinition>();
+      this.projectSkillsCache.set(projectId, cache);
+
+      const project = this.projectDao.findById(projectId);
+      if (project?.file_path) {
+        for (const skill of projectSkillStore.list(project.file_path)) {
+          cache.set(skill.id, skill);
+        }
+      }
+    }
+    return cache.get(skillId) ?? null;
   }
 
   public getSkillsByCategory(category: string): SkillListItem[] {
