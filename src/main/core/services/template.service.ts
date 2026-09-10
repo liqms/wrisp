@@ -15,7 +15,6 @@ import type {
   TemplateResourceFile,
 } from "@/shared/types/template.types";
 import type { TemplateType } from "@/shared/enums/template.enums";
-import type { Profession } from "@/shared/enums/profession.enums";
 import { PROFESSION } from "@/shared/enums";
 import {
   DEFAULT_TEMPLATE_ICON,
@@ -25,6 +24,7 @@ import {
 } from "@/shared/enums/template.enums";
 import { Logger } from "@/main/utils/logger";
 import { templateSchemaValidator } from "./template.schema.validator";
+import { parseTemplateResource } from "./template-resource.parser";
 
 const DEFAULT_FILE: TemplateFile = {
   customTemplates: [],
@@ -126,22 +126,8 @@ class TemplateService {
         const data = JSON.parse(
           fs.readFileSync(path.join(resourcesDir, file), "utf-8"),
         ) as Partial<TemplateResourceFile>;
-        if (!data.id || typeof data.id !== "string") continue;
-        const tpl: TemplateResourceFile = {
-          id: data.id,
-          version: typeof data.version === "string" ? data.version : "0.0.0",
-          title: data.title ?? { zh: data.id, en: data.id },
-          description: data.description ?? { zh: "", en: "" },
-          icon: isTemplateIconName(data.icon) ? data.icon : DEFAULT_TEMPLATE_ICON,
-          markdown: data.markdown ?? { zh: "", en: "" },
-          profession: Array.isArray(data.profession)
-            ? data.profession.filter(
-                (p): p is Profession => typeof p === "string" && p !== PROFESSION.CUSTOM,
-              )
-            : [PROFESSION.GENERAL],
-          tags: Array.isArray(data.tags) ? data.tags : [],
-          enabled: data.enabled !== false,
-        };
+        const tpl = parseTemplateResource(data);
+        if (!tpl) continue;
         // schema 校验失败的文件跳过加载（与 skill 加载行为一致），避免坏数据进入模板列表
         if (!templateSchemaValidator.validate(tpl)) {
           Logger.warn("内置模板文件 schema 校验失败，已跳过", {
