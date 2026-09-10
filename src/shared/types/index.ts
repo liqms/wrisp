@@ -19,3 +19,4 @@ export * from "./resource.types";
 export * from "./character.types";
 export * from "./creation-session.types";
 export * from "./writing-preference.types";
+export * from "./work-profile.types";
