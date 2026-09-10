@@ -5,16 +5,18 @@
         <component :is="resolveTemplateIcon(template.icon)" class="template-view-svg" />
       </n-flex>
       <n-flex align="center" class="template-info">
-        <n-text class="template-title">{{ template.title }}</n-text>
-        <n-text class="template-description">{{ template.description }}</n-text>
-        <n-flex class="template-tags-wrapper">
-          <n-tag v-for="p in template.professions" :key="p" size="small" :bordered="false">
-            {{ t(`SETTINGS.PROFESSION.OPTION_${p.toUpperCase()}`) }}
-          </n-tag>
-          <n-tag v-for="tag in template.tags" :key="tag" type="success" size="small" :bordered="false">
-            {{ tag }}
-          </n-tag>
+        <n-flex class="template-name-wrapper">
+          <n-text class="template-name">{{ template.title }}</n-text>
+          <n-flex class="template-tags-wrapper">
+            <n-tag v-for="p in template.professions" :key="p" size="small" :bordered="false">
+              {{ t(`SETTINGS.PROFESSION.OPTION_${p.toUpperCase()}`) }}
+            </n-tag>
+            <n-tag v-for="tag in template.tags" :key="tag" size="small" :bordered="false">
+              {{ tag }}
+            </n-tag>
+          </n-flex>
         </n-flex>
+        <n-text class="template-description">{{ template.description }}</n-text>
       </n-flex>
     </n-flex>
     <n-flex class="action-buttons">
@@ -29,14 +31,15 @@
             <CreateOutline />
           </n-icon>
         </n-button>
-        <n-button text size="small" :title="t('ACTION.COMMON.DELETE')" @click.stop="handleDelete">
+        <n-button v-if="!template.builtIn" text size="small" :title="t('ACTION.COMMON.DELETE')"
+          @click.stop="handleDelete">
           <n-icon>
             <TrashOutline />
           </n-icon>
         </n-button>
         <n-divider vertical />
       </n-flex>
-      <n-switch v-model:value="template.enabled" size="small" @update:value="handleToggle" />
+      <n-switch :value="template.enabled" size="small" @update:value="handleToggle" />
 
     </n-flex>
   </n-flex>
@@ -60,11 +63,11 @@ const emit = defineEmits<{
   (e: 'view'): void
   (e: 'edit'): void
   (e: 'delete'): void
-  (e: 'toggle'): void
+  (e: 'toggle', enabled: boolean): void
 }>()
 
-const handleToggle = (): void => {
-  emit('toggle')
+const handleToggle = (enabled: boolean): void => {
+  emit('toggle', enabled)
 }
 
 const handleEdit = (): void => {
@@ -93,8 +96,8 @@ const handleView = (): void => {
   border: 1px solid var(--border-color);
 
   &:hover {
-    background-color: var(--bg-tertiary);
-    border-color: var(--primary-color);
+    background-color: var(--bg-hover);
+    // border-color: var(--primary-color-hover);
   }
 }
 
@@ -103,13 +106,15 @@ const handleView = (): void => {
 }
 
 .template-info {
-  gap: $spacing-xs ;
-  flex-direction: column;
-  align-items: flex-start;
+  gap: $spacing-xs !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
 }
 
+
+
 .template-title {
-  gap: $spacing-xs;
+  gap: $spacing-xs !important;
 }
 
 .template-description {
@@ -118,12 +123,12 @@ const handleView = (): void => {
 }
 
 .template-tags-wrapper {
-  gap: $spacing-xs;
+  gap: $spacing-xs !important;
 }
 
 .template-icon {
-  width: 26px;
-  height: 26px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
 }
 
@@ -133,10 +138,11 @@ const handleView = (): void => {
 }
 
 .action-buttons {
-  gap: $spacing-xs;
+  gap: $spacing-xs !important;
 }
+
 .action-button-more-wrapper {
-  gap: $spacing-xs;
+  gap: $spacing-xs !important;
   opacity: 0;
   transition: opacity 0.2s;
 }

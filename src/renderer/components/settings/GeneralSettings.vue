@@ -391,7 +391,7 @@ const selectWorkspace = async () => {
   try {
     const result = await window.electronAPI.system.openDialog({
       properties: ["openDirectory", "createDirectory"],
-      title: t("SETTINGS.DATA_MANAGER_SETTINGS.SELECT_WORKSPACE"),
+      title: t("ACTION.SELECT.SELECT_WORKSPACE"),
     });
     if (!result.code || result.code !== ErrorCode.SUCCESS) return;
     const data = result.data as { canceled: boolean; filePaths: string[] };

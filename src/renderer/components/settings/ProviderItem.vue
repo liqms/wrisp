@@ -90,8 +90,8 @@ const handleOpenLink = async (): Promise<void> => {
   border: 1px solid var(--border-color);
 
   &:hover {
-    background-color: var(--bg-tertiary);
-    border-color: var(--primary-color);
+    background-color: var(--bg-hover);
+    // border-color: var(--primary-color);
   }
 }
 

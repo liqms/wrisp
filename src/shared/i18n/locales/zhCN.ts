@@ -32,7 +32,6 @@ export default {
       MORE: "更多",
       MOVE_TO: "移动到",
       ROOT: "根目录",
-      OUTLINE: "大纲",
     },
     PROJECT_TYPE: {
       NOVEL: "小说",
@@ -58,7 +57,7 @@ export default {
   },
   ACTION: {
     COMMON: {
-      CREATE: "创建",
+      CREATE: "新建",
       SAVE: "保存",
       CANCEL: "取消",
       CONFIRM: "确认",
@@ -79,6 +78,7 @@ export default {
       LOAD: "加载",
       OVERWRITE: "覆盖",
       NO_MORE_DATA: "没有更多数据了",
+      VIEW: "查看",
     },
     WINDOW: {
       MINIMIZE: "最小化",
@@ -166,16 +166,10 @@ export default {
       COMPLETED: "创作完成",
     },
     WEBVIEW: {
-      WEBVIEW_LOADING: "正在加载中...",
-      INPUT_URL: "输入网址",
+      ERROR: "页面加载出错",
     },
     SEARCH: {
       SEARCH_PROJECT: "搜索作品名称...",
-      NO_PROJECT: "暂无作品",
-    },
-    LOADING: {
-      SYSTEM_INFO_LOADING: "正在加载系统信息...",
-      WEBVIEW_LOADING: "正在加载中...",
     },
     JOURNAL: {
       SEND: "快速记录",
@@ -304,8 +298,6 @@ export default {
       COPY: "复制",
       PASTE: "粘贴",
       SELECT_ALL: "全选",
-      EDIT: "编辑",
-      COPIED: "已复制",
       PASTED: "已粘贴",
       COPY_EMPTY: "没有选中文本",
       PASTE_EMPTY: "剪贴板为空",
@@ -335,7 +327,6 @@ export default {
       MARKETPLACE_TITLE: "社区模板市场",
       MARKETPLACE_DESC: "浏览并安装社区提供的模板",
       ADD: "新建",
-      EDIT: "编辑",
       NAME: "名称",
       DESCRIPTION: "描述",
       ICON: "图标",
@@ -343,15 +334,14 @@ export default {
       PROFESSION: "适用职业",
       TYPE: "类型",
       TYPE_SLASH: "命令模板",
+      TYPE_SLASH_DESC: "管理斜杠命令菜单使用的模板",
       TYPE_PAGE: "页面模板",
+      TYPE_PAGE_DESC: "管理新建页面的模板",
       BUILT_IN: "内置",
       CUSTOM: "自定义",
       ENABLED: "启用",
       ACTIONS: "操作",
       ALL: "全部",
-      SAVE: "保存",
-      CANCEL: "取消",
-      DELETE: "删除",
       VIEW: "查看",
       SAVED: "模板已保存",
       DELETED: "模板已删除",
@@ -387,9 +377,6 @@ export default {
       NO_RESULTS: "没有找到匹配的资源",
       LOAD_FAILED: "加载模板市场失败",
       OFFLINE: "当前处于离线状态，仅显示已安装的资源",
-      RETRY: "重试",
-      BACK: "返回",
-      REFRESH: "刷新",
       VERSION_CURRENT: "当前版本",
       VERSION_LATEST: "最新版本",
       PREVIEW: "内容预览",
@@ -461,7 +448,6 @@ export default {
     },
     DATA_MANAGER_SETTINGS: {
       WORKSPACE: "工作空间",
-      SELECT_WORKSPACE: "选择工作空间",
       REBUILD_INDEX: "重建索引",
       REBUILD_INDEX_DESC: "读取本地日志与作品文件，重新构建数据索引",
       REBUILD_INDEX_LOADING: "重建中...",
@@ -539,8 +525,6 @@ export default {
     LANGUAGE_DESC: "约 2.3 GB",
   },
   NOTIFICATION: {
-    SUCCESS: "操作成功",
-    ERROR: "操作失败",
     MODEL_DOWNLOAD_SUCCESS: "本地模型下载完成，已启用本地智能",
     MODEL_DOWNLOAD_ERROR: "本地模型下载失败, 请检查网络连接或重试",
     MODEL_DOWNLOAD_PARTIAL: "下载完成（{completed} 个成功，{failed} 个失败）",
@@ -590,7 +574,6 @@ export default {
     COMMON: {
       INVALID_PARAMETER: "无效参数",
       ACTION_ERROR: "操作失败",
-      SUCCESS: "操作成功",
       UNKNOWN: "未知错误",
     },
     CONFIG: {

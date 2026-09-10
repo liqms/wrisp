@@ -19,7 +19,7 @@ export function getErrorMessage(errorCode: ErrorCode | null): string {
     const t = i18n.global.t as (key: string) => string | string[];
 
     if (!errorCode) {
-      const message = t("ERROR.COMMON_UNKNOWN");
+      const message = t("ERROR.COMMON.UNKNOWN");
       return Array.isArray(message) ? message[0] : message;
     }
 
@@ -31,7 +31,7 @@ export function getErrorMessage(errorCode: ErrorCode | null): string {
     if (Array.isArray(message) ? message[0] !== i18nKey : message !== i18nKey) {
       return Array.isArray(message) ? message[0] : message;
     }
-    const fallbackMessage = t("ERROR.COMMON_UNKNOWN");
+    const fallbackMessage = t("ERROR.COMMON.UNKNOWN");
     return Array.isArray(fallbackMessage)
       ? fallbackMessage[0]
       : fallbackMessage;

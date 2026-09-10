@@ -1,6 +1,6 @@
 <template>
   <n-modal v-model:show="show" preset="card" :title="template
-    ? t('SETTINGS.TEMPLATE_SETTINGS.EDIT')
+    ? t('ACTION.COMMON.EDIT')
     : t('SETTINGS.TEMPLATE_SETTINGS.ADD')
     " :style="{ maxWidth: '640px', width: 'calc(100% - 60px)' }" :mask-closable="false">
     <n-form label-placement="left" label-width="90">
@@ -25,10 +25,10 @@
     <template #footer>
       <n-space justify="end">
         <n-button @click="show = false">{{
-          t("SETTINGS.TEMPLATE_SETTINGS.CANCEL")
+          t("ACTION.COMMON.CANCEL")
         }}</n-button>
         <n-button type="primary" :disabled="!form.title || !form.markdown" @click="submit">
-          {{ t("SETTINGS.TEMPLATE_SETTINGS.SAVE") }}
+          {{ t("ACTION.COMMON.SAVE") }}
         </n-button>
       </n-space>
     </template>

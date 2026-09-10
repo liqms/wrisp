@@ -51,7 +51,7 @@
     <template #footer>
       <n-space justify="end">
         <n-button @click="show = false">{{
-          t("SETTINGS.TEMPLATE_SETTINGS.CANCEL")
+          t("ACTION.COMMON.CANCEL")
         }}</n-button>
       </n-space>
     </template>

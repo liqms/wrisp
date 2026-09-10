@@ -33,7 +33,6 @@ export default {
       MORE: "More",
       MOVE_TO: "Move to",
       ROOT: "Root",
-      OUTLINE: "Outline",
     },
     PROJECT_TYPE: {
       NOVEL: "Novel",
@@ -80,6 +79,7 @@ export default {
       LOAD: "Load",
       OVERWRITE: "Overwrite",
       NO_MORE_DATA: "No more data",
+      VIEW: "View",
     },
     WINDOW: {
       MINIMIZE: "Minimize",
@@ -168,16 +168,10 @@ export default {
       COMPLETED: "Project completed",
     },
     WEBVIEW: {
-      WEBVIEW_LOADING: "Loading...",
-      INPUT_URL: "Input URL:",
+      ERROR: "Error loading page",
     },
     SEARCH: {
       SEARCH_PROJECT: "Search project name...",
-      NO_PROJECT: "No project found",
-    },
-    LOADING: {
-      SYSTEM_INFO_LOADING: "Loading system information...",
-      WEBVIEW_LOADING: "Loading...",
     },
     JOURNAL: {
       SEND: "Quick Capture",
@@ -306,8 +300,6 @@ export default {
       COPY: "Copy",
       PASTE: "Paste",
       SELECT_ALL: "Select All",
-      EDIT: "Edit",
-      COPIED: "Copied",
       PASTED: "Pasted",
       COPY_EMPTY: "No text selected",
       PASTE_EMPTY: "Clipboard is empty",
@@ -337,7 +329,6 @@ export default {
       MARKETPLACE_TITLE: "Community Template",
       MARKETPLACE_DESC: "Browse and install community templates",
       ADD: "New",
-      EDIT: "Edit",
       NAME: "Name",
       DESCRIPTION: "Description",
       ICON: "Icon",
@@ -345,15 +336,14 @@ export default {
       PROFESSION: "Profession",
       TYPE: "Type",
       TYPE_SLASH: "Command Templates",
+      TYPE_SLASH_DESC: "Manage templates used in the slash menu",
       TYPE_PAGE: "Page Templates",
+      TYPE_PAGE_DESC: "Manage templates used to create new pages",
       BUILT_IN: "Built-in",
       CUSTOM: "Custom",
       ENABLED: "Enabled",
       ACTIONS: "Actions",
       ALL: "All",
-      SAVE: "Save",
-      CANCEL: "Cancel",
-      DELETE: "Delete",
       VIEW: "View",
       SAVED: "Template saved",
       DELETED: "Template deleted",
@@ -389,9 +379,6 @@ export default {
       NO_RESULTS: "No matching resources",
       LOAD_FAILED: "Failed to load the template marketplace",
       OFFLINE: "Offline — showing installed resources only",
-      RETRY: "Retry",
-      BACK: "Back",
-      REFRESH: "Refresh",
       VERSION_CURRENT: "Current version",
       VERSION_LATEST: "Latest version",
       PREVIEW: "Preview",
@@ -464,7 +451,6 @@ export default {
     },
     DATA_MANAGER_SETTINGS: {
       WORKSPACE: "Workspace",
-      SELECT_WORKSPACE: "Select Workspace",
       REBUILD_INDEX: "Rebuild Index",
       REBUILD_INDEX_DESC: "Read local Journal and project files, then rebuild the data index",
       REBUILD_INDEX_LOADING: "Rebuilding...",
@@ -547,8 +533,6 @@ export default {
     LANGUAGE_DESC: "About 2.3 GB.",
   },
   NOTIFICATION: {
-    SUCCESS: "Operation successful",
-    ERROR: "Operation failed",
     MODEL_DOWNLOAD_SUCCESS: "Local model download completed, local intelligence enabled",
     MODEL_DOWNLOAD_ERROR: "Local model download failed, please check your network connection or try again",
     MODEL_DOWNLOAD_PARTIAL: "Download completed ({completed} succeeded, {failed} failed)",
@@ -598,7 +582,6 @@ export default {
     COMMON: {
       INVALID_PARAMETER: "Invalid parameter",
       ACTION_ERROR: "Operation failed",
-      SUCCESS: "Operation successful",
       UNKNOWN: "Unknown error",
     },
     CONFIG: {

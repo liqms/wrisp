@@ -49,8 +49,6 @@ Thumbs.db
 *.tmp
 *.temp
 
-# documentation
-docs
 # Test coverage
 coverage
 

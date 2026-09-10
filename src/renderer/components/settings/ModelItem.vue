@@ -115,7 +115,7 @@ const handleToggle = (val: boolean): void => {
     }
 
     &:hover {
-        background-color: var(--bg-tertiary);
+        background-color: var(--bg-hover);
     }
 }
 
