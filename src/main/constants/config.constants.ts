@@ -38,6 +38,11 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   isFirstLaunch: true,
   isUpdateLaunch: false,
   updatedAt: TimeUtil.toISOString(Date.now()),
+  writingPreference: {
+    taboos: [],
+    vocabulary: [],
+    reviewStrictness: "normal",
+  },
   failoverConfig: {
     maxRetries: 2,
     retryDelayMs: 1000,

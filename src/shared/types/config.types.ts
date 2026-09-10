@@ -5,6 +5,7 @@ import {
   UpdateChannel,
 } from "@/shared/enums/config.enums";
 import type { Profession } from "@/shared/enums/profession.enums";
+import type { WritingPreference } from "./writing-preference.types";
 
 export interface General {
   themeMode: ThemeMode;
@@ -59,6 +60,11 @@ export interface AppConfig {
   isFirstLaunch: boolean; // 是否首次启动
   isUpdateLaunch: boolean; // 是否更新后首次启动
   updatedAt: string; // 更新时间
+  /**
+   * 用户写作偏好（跨作品，创作智能体使用）。
+   * 可选：历史用户配置里没有该字段，消费方需自带默认值兜底。
+   */
+  writingPreference?: WritingPreference;
   failoverConfig: FailoverConfig; // 降级/熔断配置
   skillsConfig: SkillsConfig; // Skills 远程更新配置
   shortcuts?: KeymapItem[]; // 快捷键配置

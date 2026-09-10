@@ -701,6 +701,10 @@ export const creationSessionService = CreationSessionService.getInstance();
   },
 ```
 
+> **执行时的两处偏离（已落地）**：
+> 1. `writingPreference` 在 `AppConfig` 中设为**可选**（`writingPreference?`），而非计划写的必填——必填会迫使所有构造 `AppConfig` 的位置补字段；消费方（偏好记忆计划的 `writingPreferenceService.read()`）本就会合并默认值，`DEFAULT_APP_CONFIG` 仍会为新装用户播种。
+> 2. 该类型抽到 **`src/shared/types/writing-preference.types.ts`**（连同 `ReviewStrictness`），因为 `config.types.ts` 属 shared，不能从 main 侧导入。**后续"偏好与风格记忆"计划应改为从 shared 导入此类型，不要重复声明。**
+
 - [ ] **Step 4: 运行测试确认通过**
 
 Run: `pnpm test tests/unit/main/creation-session.service.test.ts`
