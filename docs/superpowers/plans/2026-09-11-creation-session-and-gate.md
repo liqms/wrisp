@@ -4,7 +4,13 @@
 
 **Goal:** 为创作智能体提供可中断、可恢复的"创作会话"，以及每步产出必经的"确认门"——含按步骤类型的委托与保守回退判定。
 
-**Architecture:** 新增 `creation_sessions` 表（`init.sql`，`CREATE TABLE IF NOT EXISTS` 对存量库同样生效）+ `CreationSessionDao` + `CreationSessionService`（阶段推进、状态流转、可恢复会话查询）。确认门判定抽成纯函数 `decideGateOutcome`，按 `delegation` / `reviewStrictness` / 硬约束 / 置信度 / 历史校准决定 `approve` 或 `needs-user`（`reject` 来自 Reviewer 的内容判断，不属本策略）。用户写作偏好落 electron-store 配置。
+**Architecture:** 新增 `creation_sessions` 表 + `CreationSessionDao` + `CreationSessionService`（阶段推进、状态流转、可恢复会话查询）。确认门判定抽成纯函数 `decideGateOutcome`，按 `delegation` / `reviewStrictness` / 硬约束 / 置信度 / 历史校准决定 `approve` 或 `needs-user`（`reject` 来自 Reviewer 的内容判断，不属本策略）。用户写作偏好落 electron-store 配置。
+
+> **执行期更正（独立评审 I2）**：本计划最初断言"`init.sql` 的 `CREATE TABLE IF NOT EXISTS`
+> 对存量库同样生效"。**该前提不成立**——`init.sql` 只在数据库尚未初始化时执行，存量库不会跑到它。
+> 已补迁移文件 `src/main/schemas/migrations/0.3.0_add_creation_sessions_table.sql`
+> （范式同 `0.2.0_add_characters_table.sql`：建表 + 索引 + **自登记 `migrations_db`**），
+> 并有 `tests/integration/main/migrations.creation-sessions.test.ts` 覆盖存量库场景。
 
 **Tech Stack:** TypeScript（strict）、Electron main、better-sqlite3（`BaseDao`）、electron-store（`configService`）、Vitest。
 
