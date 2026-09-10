@@ -1,5 +1,4 @@
 import { Logger } from "@/main/utils/logger";
-import { searchBlocksTool } from "./tools/search-blocks.tool";
 import type { RegisteredTool, SkillToolDefinition } from "@/shared/types/skill.types";
 
 /**
@@ -102,7 +101,7 @@ class ToolRegistry {
    * 注册内置工具
    */
   private registerBuiltInTools(): void {
-    this.register(searchBlocksTool);
+    // 工具在后续任务中注册
   }
 }
 
