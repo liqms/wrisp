@@ -6,9 +6,19 @@
       <div class="settings-sidebar">
         <n-menu v-model:value="activeMenuKey" :options="menuOptions" />
       </div>
-      <n-scrollbar class="settings-content">
-        <component :is="currentComponent" :config="config" @enterMarketplace="enterMarketplace" />
-      </n-scrollbar>
+      <n-flex vertical :size="0" class="settings-main">
+        <n-breadcrumb class="settings-breadcrumb">
+          <n-breadcrumb-item v-for="(item, index) in breadcrumbItems" :key="item.key" class="breadcrumb-item"
+            :clickable="index < breadcrumbItems.length - 1" @click="navigateBreadcrumb(item)">
+            {{ item.label }}
+            <n-icon :component="ArrowForwardIosOutlined" size="12" class="nav-arrow" />
+          </n-breadcrumb-item>
+        </n-breadcrumb>
+        <n-scrollbar class="settings-content">
+          <component :is="currentComponent" :config="config" @enterMarketplace="enterMarketplace"
+            @navigate="onNavigate" />
+        </n-scrollbar>
+      </n-flex>
     </n-flex>
   </n-modal>
 </template>
@@ -20,11 +30,13 @@ import { useI18n } from "vue-i18n";
 import { useConfig } from "@/renderer/composables/useConfig";
 import GeneralSettings from "@/renderer/components/settings/GeneralSettings.vue";
 import ModelSettings from "@/renderer/components/settings/ModelSettings.vue";
+import ModelProvidersPage from "@/renderer/components/settings/ModelProvidersPage.vue";
+import ModelDefaultsPage from "@/renderer/components/settings/ModelDefaultsPage.vue";
 import KeymapSettings from "@/renderer/components/settings/KeymapSettings.vue";
 import TemplateSettings from "@/renderer/components/settings/TemplateSettings.vue";
 import { DiceOutline, DocumentTextOutline, OptionsOutline } from "@vicons/ionicons5";
 
-import { KeyboardAltOutlined } from "@vicons/material";
+import { ArrowForwardIosOutlined, KeyboardAltOutlined } from "@vicons/material";
 import { useRouter } from "vue-router";
 
 const props = defineProps<{
@@ -57,6 +69,9 @@ const activeMenuKey = ref<string>(
   localStorage.getItem(STORAGE_KEY) || "general",
 );
 
+// 子页面 key，例如 "model.providers" / "model.defaults"，为空表示顶级页面
+const activeSubPage = ref<string | null>(null);
+
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) });
 }
@@ -67,11 +82,15 @@ watch(showModal, (visible) => {
     if (saved) {
       activeMenuKey.value = saved;
     }
+    // 每次打开定位到顶级页面
+    activeSubPage.value = null;
   }
 });
 
 watch(activeMenuKey, (key) => {
   localStorage.setItem(STORAGE_KEY, key);
+  // 切换到其它顶级菜单时回到其根页面
+  activeSubPage.value = null;
 });
 
 const menuOptions = computed(() => [
@@ -97,6 +116,11 @@ const menuOptions = computed(() => [
   },
 ]);
 
+interface BreadcrumbItem {
+  key: string;
+  label: string;
+}
+
 const componentMap: Record<string, Component> = {
   general: markRaw(GeneralSettings),
   model: markRaw(ModelSettings),
@@ -104,9 +128,64 @@ const componentMap: Record<string, Component> = {
   template: markRaw(TemplateSettings),
 };
 
+const subPageComponentMap: Record<string, Component> = {
+  "model.providers": markRaw(ModelProvidersPage),
+  "model.defaults": markRaw(ModelDefaultsPage),
+};
+
+// 当前展示的页面：优先子页面，否则取顶级菜单页
 const currentComponent = computed<Component | null>(() => {
+  if (activeSubPage.value) {
+    return subPageComponentMap[activeSubPage.value] || null;
+  }
   return componentMap[activeMenuKey.value] || null;
 });
+
+// 按菜单 key 定义各顶级页面的面包屑路径；子页面追加更多层级（如 智能 > 模型服务商）
+const breadcrumbMap: Record<string, { key: string; labelKey: string }[]> = {
+  general: [{ key: "general", labelKey: "SETTINGS.GENERAL" }],
+  model: [{ key: "model", labelKey: "SETTINGS.AI_SETTINGS.INTELLIGENT" }],
+  keymap: [{ key: "keymap", labelKey: "SETTINGS.KEYMAP" }],
+  template: [{ key: "template", labelKey: "APP.BASE.TEMPLATE" }],
+};
+
+const subPageBreadcrumbMap: Record<string, { key: string; labelKey: string }[]> = {
+  "model.providers": [
+    { key: "model", labelKey: "SETTINGS.AI_SETTINGS.INTELLIGENT" },
+    { key: "model.providers", labelKey: "SETTINGS.PROVIDER_MODELS" },
+  ],
+  "model.defaults": [
+    { key: "model", labelKey: "SETTINGS.AI_SETTINGS.INTELLIGENT" },
+    { key: "model.defaults", labelKey: "SETTINGS.DEFAULT_MODEL_GENERAL" },
+  ],
+};
+
+const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
+  const path = activeSubPage.value
+    ? subPageBreadcrumbMap[activeSubPage.value] || []
+    : breadcrumbMap[activeMenuKey.value] || [];
+  return path.map((item) => ({ key: item.key, label: t(item.labelKey) }));
+});
+
+// 点击面包屑跳转：顶级层级回到根页面，子层级进入对应子页面
+function navigateBreadcrumb(item: BreadcrumbItem) {
+  const isSubPage = item.key.includes(".");
+  if (isSubPage) {
+    const base = item.key.split(".")[0];
+    activeMenuKey.value = base;
+    activeSubPage.value = item.key;
+  } else {
+    activeMenuKey.value = item.key;
+    activeSubPage.value = null;
+  }
+}
+
+// 子页面跳转入口（由页面组件 emit 'navigate' 触发）
+function onNavigate(pageKey: string) {
+  const base = pageKey.split(".")[0];
+  activeMenuKey.value = base;
+  activeSubPage.value = pageKey;
+}
 </script>
 
 <style scoped lang="scss">
@@ -124,6 +203,44 @@ const currentComponent = computed<Component | null>(() => {
   border-right: 1px solid var(--border-color);
   overflow-y: auto;
 }
+
+.settings-main {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.settings-breadcrumb {
+  flex-shrink: 0;
+  padding: 0 0 $spacing-sm 0;
+  font-size: $font-md;
+}
+
+.breadcrumb-item {
+  flex-shrink: 0;
+  font-size: $font-md;
+  color: var(--text-third);
+  cursor: pointer;
+
+  &:last-child {
+    cursor: default;
+    color: var(--text-primary);
+    .nav-arrow {
+      display: none;
+    }
+  }
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.nav-arrow {
+  color: var(--text-third);
+  flex-shrink: 0;
+  margin: 0 $spacing-sm;
+}
+
+
 
 .settings-content {
   flex: 1;

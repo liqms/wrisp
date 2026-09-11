@@ -1,48 +1,46 @@
 <template>
-  <n-flex justify="space-between" align="center" class="provider-item">
-    <n-flex align="center" class="provider-info-wrapper">
-      <n-avatar :round="true" :src="logoPath" class="provider-avatar" />
-      <n-flex align="center" class="provider-info">
-        <n-flex align="center" class="provider-title">
+  <n-card justify="space-between" align="center" class="provider-item" content-style="padding: 0;">
+    <n-flex align="center" class="provider-content" @click="expanded = !expanded">
+      <n-flex align="center">
+        <n-avatar :round="true" :src="logoPath" class="provider-avatar" />
+        <n-flex align="center" class="provider-info">
           <n-text class="provider-name">{{ props.provider.name }}</n-text>
-          <n-tag v-if="props.provider.enabled" type="success" size="tiny" round :bordered="false">
-            ON
-          </n-tag>
-          <n-tag v-else size="tiny" round :bordered="false">
-            OFF
-          </n-tag>
-        </n-flex>
-        <n-text class="provider-link" @click="handleOpenLink">{{ props.provider.websiteUrl
+          <n-text class="provider-link" @click.stop="handleOpenLink">{{ props.provider.websiteUrl
           }}</n-text>
+        </n-flex>
+      </n-flex>
+      <n-flex align="center" @click.stop>
+        <n-switch v-model="props.provider.enabled" @change="handleToggle" />
+        <n-icon class="expand-icon">
+          <ChevronDownOutline v-if="!expanded" />
+          <ChevronUpOutline v-else />
+        </n-icon>
       </n-flex>
     </n-flex>
-    <n-flex class="action-buttons">
-      <n-button v-if="props.provider.enabled" size="small" strong secondary type="tertiary"
-        @click.stop="handleToggle">{{ t('ACTION.COMMON.OFF') }}</n-button>
-      <n-button v-else size="small" strong secondary type="primary" @click.stop="handleToggle">{{ t('ACTION.COMMON.ON')
-        }}</n-button>
-      <n-button text size="small" :title="t('ACTION.COMMON.EDIT')" @click.stop="handleEdit">
-        <n-icon>
-          <CreateOutline />
-        </n-icon>
-      </n-button>
-      <n-button text size="small" :title="t('ACTION.COMMON.DELETE')" @click.stop="handleDelete">
-        <n-icon>
-          <TrashOutline />
-        </n-icon>
-      </n-button>
-    </n-flex>
-  </n-flex>
+    <template v-if="expanded">
+      <n-divider class="divider" />
+      <n-flex class="action-buttons">
+        <n-button tertiary size="small" :title="t('ACTION.COMMON.EDIT')" @click.stop="handleEdit">
+          {{ t('ACTION.COMMON.EDIT') }}
+        </n-button>
+        <n-button tertiary size="small" :title="t('ACTION.COMMON.DELETE')" @click.stop="handleDelete">
+          {{ t('ACTION.COMMON.DELETE') }}
+        </n-button>
+      </n-flex>
+    </template>
+  </n-card>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CreateOutline, TrashOutline } from '@vicons/ionicons5'
+import { ChevronDownOutline, ChevronUpOutline } from '@vicons/ionicons5'
 import type { AIProvider } from '@/shared/types'
 import { joinPath } from '@/renderer/utils/string.utils'
 
 const { t } = useI18n()
+
+const expanded = ref(false)
 
 interface Props {
   provider: AIProvider
@@ -82,31 +80,33 @@ const handleOpenLink = async (): Promise<void> => {
 <style lang="scss" scoped>
 @use "@/renderer/styles/_variables.scss" as *;
 
-.provider-item {
-  padding: $spacing-md;
-  border-radius: $radius-md;
-  transition: background-color 0.2s;
-  width: 100%;
-  border: 1px solid var(--border-color);
+
+.provider-content {
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  padding: 20px;
+  border-radius: $radius-md $radius-md 0 0;
 
   &:hover {
     background-color: var(--bg-hover);
-    // border-color: var(--primary-color);
   }
 }
 
-.provider-info-wrapper {
-  gap: 12px;
+
+.provider-item {
+  border-radius: $radius-md;
+  transition: background-color 0.2s;
+  width: 100%;
+  border: 1px solid transparent;
+  background-color: var(--bg-secondary);
+
+
 }
 
 .provider-info {
-  gap: $spacing-xs !important;
+  gap: 0 !important;
   flex-direction: column !important;
   align-items: flex-start !important;
-}
-
-.provider-title {
-  gap: $spacing-xs !important;
 }
 
 .provider-link {
@@ -130,13 +130,18 @@ const handleOpenLink = async (): Promise<void> => {
   color: var(--text-primary);
 }
 
-.action-buttons {
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.2s;
+.expand-icon {
+  color: var(--text-third);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-.provider-item:hover .action-buttons {
-  opacity: 1;
+.divider {
+  margin: 0;
+}
+
+.action-buttons {
+  gap: $spacing-xs;
+  padding: 20px;
 }
 </style>

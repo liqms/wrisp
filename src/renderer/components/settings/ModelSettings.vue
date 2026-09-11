@@ -5,10 +5,10 @@
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{
             t("SETTINGS.AI_SETTINGS.ENABLE_AI_MODE")
-          }}</n-text>
+            }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.AI_SETTINGS.ENABLE_AI_MODE_DESC") }}{{
             t("SETTINGS.AI_SETTINGS.ENABLE_AI_MODE_DESC_3")
-          }}</n-text>
+            }}</n-text>
         </n-flex>
         <n-switch :value="enableAiMode" class="setting-switch" @update:value="updateEnableAiMode" />
       </n-flex>
@@ -22,96 +22,63 @@
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{
             t("SETTINGS.AI_SETTINGS.ENABLE_AI_CLOUD")
-          }}</n-text>
+            }}</n-text>
           <n-text class="setting-desc">{{
             t("SETTINGS.AI_SETTINGS.ENABLE_AI_CLOUD_DESC_3")
-          }}</n-text>
+            }}</n-text>
         </n-flex>
         <n-switch :value="enableCloudAi" class="setting-switch" @update:value="updateEnableCloudAi" />
       </n-flex>
     </n-card>
-    <n-card v-if="enableCloudAi" size="medium" :bordered="false" class="setting-card">
-      <n-flex class="setting-row">
+    <n-card v-if="enableCloudAi" size="medium" :bordered="false" class="setting-card nav-card clickable"
+      @click="emit('navigate', PAGE_PROVIDERS)">
+      <!-- 模型服务商 -->
+      <n-flex class="setting-nav-row">
         <n-flex align="center" class="setting-content">
-          <n-text class="setting-label">{{
-            t("SETTINGS.PROVIDER_MODELS")
-          }}</n-text>
+          <n-text class="setting-label">{{ t("SETTINGS.PROVIDER_MODELS") }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.PROVIDER_MODELS_DESC") }}</n-text>
         </n-flex>
-        <n-button size="medium" type="primary" @click="addProvider">
-          {{ t("ACTION.COMMON.ADD") }}
-        </n-button>
-      </n-flex>
-      <n-flex v-if="providers.length > 0" class="ai-mode-list" wrap>
-        <ProviderItem v-for="provider in providers" :key="provider.id" :provider="provider"
-          @edit="handleEditProvider(provider)" @delete="handleDeleteProvider(provider)"
-          @toggle="handleToggleProvider(provider)" />
+        <n-icon class="nav-arrow">
+          <ChevronForward />
+        </n-icon>
       </n-flex>
     </n-card>
-    <ModelDefault />
-    <AddProviderModal v-model:show="showAddModal" :editing-provider="editingProvider" @confirm="handleAddProvider" />
+    <!-- 通用默认模型 -->
+    <n-card v-if="enableCloudAi" size="medium" :bordered="false" class="setting-card nav-card clickable"
+      @click="emit('navigate', PAGE_DEFAULTS)">
+      <n-flex class="setting-nav-row">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{ t("SETTINGS.DEFAULT_MODEL") }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.DEFAULT_MODEL_DESC") }}</n-text>
+        </n-flex>
+        <n-icon class="nav-arrow">
+          <ChevronForward />
+        </n-icon>
+      </n-flex>
+    </n-card>
   </n-scrollbar>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useDialog } from "naive-ui";
 import { useModel } from "@/renderer/composables";
-import type { AIProvider } from "@/shared/types";
-import { logger } from "@/renderer/utils/logger.utils";
-import ProviderItem from "./ProviderItem.vue";
-import AddProviderModal from "./AddProviderModal.vue";
-import ModelDefault from "./ModelDefault.vue";
+import { ChevronForward } from "@vicons/ionicons5";
 import { useDownloadStore } from "@/renderer/store/download.store";
 import DownloadButton from "../base/DownloadButton.vue";
+
+const PAGE_PROVIDERS = "model.providers";
+const PAGE_DEFAULTS = "model.defaults";
+
+const emit = defineEmits<{
+  (e: "navigate", pageKey: string): void;
+}>();
 
 const downloadStore = useDownloadStore();
 
 const { t } = useI18n();
-const dialog = useDialog();
-const { providers, enableAiMode, enableCloudAi, updateEnableAiMode, updateEnableCloudAi, addOrUpdateAIProvider, deleteAIProvider, checkModelExist } = useModel();
-const showAddModal = ref(false);
-const editingProvider = ref<AIProvider | null>(null);
-
-function addProvider() {
-  editingProvider.value = null;
-  showAddModal.value = true;
-}
-
-function handleEditProvider(provider: AIProvider) {
-  editingProvider.value = provider;
-  showAddModal.value = true;
-}
-
-async function handleAddProvider(provider: AIProvider) {
-  try {
-    const success = await addOrUpdateAIProvider(provider);
-    if (success) {
-      showAddModal.value = false;
-    }
-  } catch (e) {
-    logger.error("添加/更新服务商失败 VUE", { error: e });
-  }
-}
-
-function handleDeleteProvider(provider: AIProvider) {
-  dialog.warning({
-    title: t('SETTINGS.AI_SETTINGS.DELETE_PROVIDER_TITLE'),
-    content: t('SETTINGS.AI_SETTINGS.DELETE_PROVIDER_CONFIRM', { name: provider.name }),
-    positiveText: t('ACTION.COMMON.DELETE'),
-    negativeText: t('ACTION.COMMON.CANCEL'),
-    style: { width: '360px' },
-    onPositiveClick: () => {
-      deleteAIProvider(provider.id);
-    },
-  });
-}
-
-async function handleToggleProvider(provider: AIProvider) {
-  const updated = { ...provider, enabled: !provider.enabled };
-  await addOrUpdateAIProvider(updated);
-}
+const { enableAiMode, enableCloudAi, updateEnableAiMode, updateEnableCloudAi, checkModelExist } =
+  useModel();
 
 // 模型定义（与后端 model-registry.ts 保持一致）
 const MODEL_DEFS = [
@@ -184,7 +151,7 @@ watch(enableAiMode, (val) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/renderer/styles/variables.scss" as *;
+@use "@/renderer/styles/_variables" as *;
 
 .model-settings {
   max-height: 100%;
@@ -212,14 +179,6 @@ watch(enableAiMode, (val) => {
   }
 }
 
-.models-item {
-  display: flex;
-  align-items: center;
-  margin-top: $spacing-xs;
-}
-
-
-
 .setting-content {
   flex-direction: column !important;
   align-items: flex-start !important;
@@ -234,5 +193,21 @@ watch(enableAiMode, (val) => {
 .setting-desc {
   font-size: $font-xs;
   color: var(--text-third);
+}
+
+.models-item {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-xs;
+}
+
+.setting-nav-row {
+  align-items: center;
+  justify-content: space-between !important;
+}
+
+.nav-arrow {
+  color: var(--text-third);
+  flex-shrink: 0;
 }
 </style>

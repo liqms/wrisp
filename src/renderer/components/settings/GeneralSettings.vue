@@ -11,7 +11,7 @@
           }}</n-text>
         </n-flex>
 
-        <n-button type="primary" :loading="checkingUpdate || downloading" :disabled="downloading"
+        <n-button tertiary :loading="checkingUpdate || downloading" :disabled="downloading" class="button"
           @click="handleUpdateButtonClick">
           <template v-if="downloading">{{ t("UPDATE.DOWNLOADING", { percent: updatePercent }) }}</template>
           <template v-else-if="installed">{{ t("UPDATE.INSTALL_NOW") }}</template>
@@ -85,7 +85,7 @@
           <n-text class="setting-desc">{{ t("SETTINGS.GENERAL_SETTINGS.CURRENT_FOLDER") }}:&nbsp;
             {{ workspace }}</n-text>
         </n-flex>
-        <n-button size="medium" type="primary" @click="selectWorkspace">
+        <n-button tertiary size="medium" class="button" @click="selectWorkspace">
           {{ t("ACTION.COMMON.CHANGE") }}
         </n-button>
       </n-flex>
@@ -99,7 +99,7 @@
             t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX_DESC")
           }}</n-text>
         </n-flex>
-        <n-button size="medium" type="primary" :loading="rebuildingIndex" :disabled="rebuildingIndex"
+        <n-button tertiary size="medium" class="button" :loading="rebuildingIndex" :disabled="rebuildingIndex"
           @click="rebuildIndex">
           {{ t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX") }}
         </n-button>

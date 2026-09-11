@@ -7,7 +7,7 @@
           <n-text class="setting-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.MARKETPLACE_TITLE") }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.MARKETPLACE_DESC") }}</n-text>
         </n-flex>
-        <n-button type="primary" size="small" @click="enterMarketplace">
+        <n-button type="primary" @click="enterMarketplace">
           {{ t("SETTINGS.TEMPLATE_SETTINGS.ENTER_MARKETPLACE") }}
         </n-button>
       </n-flex>
@@ -18,7 +18,7 @@
           <n-text class="setting-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.CURRENT_TEMPLATES") }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.CURRENT_TEMPLATES_DESC") }}</n-text>
         </n-flex>
-        <n-button type="primary" size="small" :loading="syncing" @click="onSyncNow">
+        <n-button type="primary" :loading="syncing" @click="onSyncNow">
           {{ t("SETTINGS.TEMPLATE_SETTINGS.SYNC_NOW") }}
         </n-button>
       </n-flex>
@@ -32,7 +32,7 @@
             <n-text class="setting-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.TYPE_SLASH") }}</n-text>
             <n-text class="setting-desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.TYPE_SLASH_DESC") }}</n-text>
           </n-flex>
-          <n-button type="primary" size="small" @click="openCreate(TEMPLATE_TYPE.SLASH)">
+          <n-button type="primary" @click="openCreate(TEMPLATE_TYPE.SLASH)">
             {{ t("ACTION.COMMON.CREATE") }}
           </n-button>
         </n-flex>
@@ -52,7 +52,7 @@
             <n-text class="setting-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.TYPE_PAGE") }}</n-text>
             <n-text class="setting-desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.TYPE_PAGE_DESC") }}</n-text>
           </n-flex>
-          <n-button type="primary" size="small" @click="openCreate(TEMPLATE_TYPE.PAGE)">
+          <n-button type="primary" @click="openCreate(TEMPLATE_TYPE.PAGE)">
             {{ t("ACTION.COMMON.CREATE") }}
           </n-button>
         </n-flex>
