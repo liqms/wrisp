@@ -86,6 +86,7 @@ Path alias: `@/` → `./src/` (tsconfig.app.json, vite.config.ts, vitest.config.
 - **Enums pattern**: `export const X = { ... } as const` + `type X = (typeof X)[keyof typeof X]`.
 - **ESLint**: flat config (`eslint.config.mjs`). `vue/multi-word-component-names: "off"`.
 - **Styling**: Sass (sass-embedded) with SCSS.
+- **Frontend notifications**: renderer-process toasts (`notify.info/success/warn/error`) must go through `useFrontendNotification()` from `src/renderer/composables/useNotification.ts` — do NOT use Naive UI's `useMessage()` directly; keep `useDialog()` only for modal confirmations.
 - **Tests**: Vitest + happy-dom; unit/integration specs in `tests/`, coverage via `@vitest/coverage-v8`, shared setup `tests/setup/renderer.ts`.
 
 ## Key pitfalls

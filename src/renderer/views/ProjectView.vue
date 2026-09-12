@@ -172,7 +172,7 @@ const handleTogglePin = async (id: string) => {
     );
     message.success(isPinned ? t('ACTION.COMMON.TOP') : t('ACTION.COMMON.UNTOP'));
   } else {
-    message.error(t('NOTIFICATION.ERROR'));
+    message.error(t('ERROR.COMMON.ACTION_ERROR'));
   }
 };
 

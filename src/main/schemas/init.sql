@@ -435,3 +435,22 @@ VALUES (
     '2026-06-28T00:00:00.000Z',
     '2026-06-28T00:00:00.000Z'
 );
+
+-- 创作会话（可中断、可恢复）
+CREATE TABLE IF NOT EXISTS creation_sessions (
+    id TEXT PRIMARY KEY,
+    scope TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    page_id TEXT,
+    stage TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active',
+    pending_kind TEXT,
+    delegation TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    CHECK (scope IN ('work', 'page')),
+    CHECK (status IN ('active', 'awaiting-confirm', 'paused', 'completed', 'aborted'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_creation_sessions_project
+    ON creation_sessions(project_id, status);

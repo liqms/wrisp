@@ -12,7 +12,7 @@
 | 名称 | `model-gateway-agent` |
 | 层级 | Tier 2 |
 | 依赖的 Tier 1 | `main-process-agent` |
-| 常协同 | `i18n-agent`(设置页文案)、`store-agent`/`renderer-agent`([ModelSettings.vue](../../../src/renderer/components/settings/ModelSettings.vue)) |
+| 常协同 | `i18n-agent`(设置页文案)、`store-agent`/`renderer-agent`([ModelSettings.vue](../../../src/renderer/components/settings/model/ModelSettings.vue)) |
 | 触源 | `src/main/core/model-gateway/**` |
 
 ---
@@ -23,7 +23,7 @@
 - 修改路由策略(failover / load-balancer / model-selector)
 - 修改 cost tracking
 - 修改本地 worker(embedding/llm/rerank handler)
-- 修改 [ModelSettings.vue](../../../src/renderer/components/settings/ModelSettings.vue) 或 `AddProviderModal.vue` 时联动
+- 修改 [ModelSettings.vue](../../../src/renderer/components/settings/model/ModelSettings.vue) 或 `AddProviderModal.vue` 时联动
 
 ---
 

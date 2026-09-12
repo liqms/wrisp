@@ -108,22 +108,18 @@ export class ClaudeAdapter extends BaseAdapter {
 
   /** 从 Anthropic API 获取可用模型列表 */
   async listModels(): Promise<Model[]> {
-    try {
-      const data = await this.client.models.list();
-      return data.data.map(m => ({
-        id: m.id,
-        name: m.display_name || m.id,
-        outputType: "text",
-        contextLength: m.max_input_tokens || 0,
-        maxTokens: m.max_tokens || 0,
-        isInputText: true,
-        isInputPic: m.capabilities?.image_input.supported || false,
-        isInputAudio: false,
-        isInputVideo: false,
-        structuredOutputs: m.capabilities?.structured_outputs.supported || false,
-      }));
-    } catch {
-      return this.models;
-    }
+    const data = await this.client.models.list();
+    return data.data.map(m => ({
+      id: m.id,
+      name: m.display_name || m.id,
+      outputType: "text",
+      contextLength: m.max_input_tokens || 0,
+      maxTokens: m.max_tokens || 0,
+      isInputText: true,
+      isInputPic: m.capabilities?.image_input.supported || false,
+      isInputAudio: false,
+      isInputVideo: false,
+      structuredOutputs: m.capabilities?.structured_outputs.supported || false,
+    }));
   }
 }

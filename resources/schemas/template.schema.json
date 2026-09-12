@@ -125,6 +125,33 @@
     "enabled": {
       "type": "boolean",
       "description": "默认启用状态"
+    },
+    "skills": {
+      "type": "array",
+      "description": "页面级技能声明（仅 page 模板使用）",
+      "items": {
+        "type": "object",
+        "required": ["id", "skillId"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "skillId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "params": {
+            "type": "object"
+          },
+          "requiresConfirm": {
+            "type": "boolean"
+          }
+        }
+      }
     }
   },
   "definitions": {

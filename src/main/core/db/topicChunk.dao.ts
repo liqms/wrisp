@@ -131,6 +131,17 @@ export class TopicChunkDao extends BaseDao<TopicChunk, TopicChunkCreate, TopicCh
   }
 
   /**
+   * 按语义块 id 批量查询关联（供"按作品过滤主题"使用）
+   * @param chunkIds 语义块 id 列表
+   */
+  findByChunkIds(chunkIds: Id[]): TopicChunk[] {
+    if (chunkIds.length === 0) return []
+    const placeholders = chunkIds.map(() => "?").join(",")
+    const sql = `SELECT * FROM ${this.tableName} WHERE chunk_id IN (${placeholders}) ORDER BY relevance_score DESC`
+    return this.query(sql, chunkIds)
+  }
+
+  /**
    * 构建 WHERE 子句
    * @param conditions 查询条件
    */

@@ -1,0 +1,128 @@
+{
+  "version": "2.17",
+  "children": [
+    {
+      "type": "frame",
+      "id": "RuQHG",
+      "x": -854,
+      "y": -1072,
+      "name": "Frame 1",
+      "clip": true,
+      "width": 285,
+      "height": 261,
+      "fill": "#FFFFFF",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "Eyj9e",
+          "x": 0,
+          "y": 0,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "pentip.png",
+            "mode": "fill"
+          },
+          "width": 256,
+          "height": 256
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "T3sWEi",
+      "x": -450,
+      "y": -1072,
+      "name": "openai logo",
+      "clip": true,
+      "width": 256,
+      "height": 256,
+      "fill": "#FFFFFF",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "q84CU",
+          "x": 37,
+          "y": 37,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "image.png",
+            "mode": "fill"
+          },
+          "width": 182,
+          "height": 182
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "radius-large": {
+      "type": "number",
+      "value": 16
+    },
+    "radius-medium": {
+      "type": "number",
+      "value": 12
+    },
+    "radius-small": {
+      "type": "number",
+      "value": 6
+    },
+    "spacing-xl": {
+      "type": "number",
+      "value": 24
+    },
+    "spacing-large": {
+      "type": "number",
+      "value": 16
+    },
+    "spacing-medium": {
+      "type": "number",
+      "value": 8
+    },
+    "spacing-small": {
+      "type": "number",
+      "value": 4
+    },
+    "error-red": {
+      "type": "color",
+      "value": "#FF3B30"
+    },
+    "success-green": {
+      "type": "color",
+      "value": "#34C759"
+    },
+    "border-color": {
+      "type": "color",
+      "value": "#E5E5EA"
+    },
+    "text-disabled": {
+      "type": "color",
+      "value": "#C7C7CC"
+    },
+    "text-secondary": {
+      "type": "color",
+      "value": "#8E8E93"
+    },
+    "text-primary": {
+      "type": "color",
+      "value": "#000000"
+    },
+    "bg-light": {
+      "type": "color",
+      "value": "#FBFBFB"
+    },
+    "secondary-gray": {
+      "type": "color",
+      "value": "#F2F2F7"
+    },
+    "primary-blue": {
+      "type": "color",
+      "value": "#007AFF"
+    }
+  },
+  "fileToken": "32a26fd3-0cdd-4c1e-b908-fa6e9a17e2bd"
+}

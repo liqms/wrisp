@@ -143,7 +143,7 @@ async function handleSubmit() {
       content: tpl?.markdown ?? "",
     });
     if (id) {
-      message.success(t("NOTIFICATION.SUCCESS"));
+      message.success(t("ERROR.SUCCESS"));
       emit("update:show", false);
       emit("created", id);
     } else {

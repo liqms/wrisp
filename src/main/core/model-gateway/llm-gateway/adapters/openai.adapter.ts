@@ -102,21 +102,17 @@ export class OpenAIAdapter extends BaseAdapter {
 
   /** 从远程 API 获取可用模型列表 */
   async listModels(): Promise<Model[]> {
-    try {
-      const data = await this.client.models.list();
-      return data.data.map(m => ({
-        id: m.id,
-        name: m.id,
-        outputType: "text",
-        contextLength: 0,
-        maxTokens: 0,
-        isInputText: true,
-        isInputPic: false,
-        isInputAudio: false,
-        isInputVideo: false,
-      }));
-    } catch {
-      return this.models;
-    }
+    const data = await this.client.models.list();
+    return data.data.map(m => ({
+      id: m.id,
+      name: m.id,
+      outputType: "text",
+      contextLength: 0,
+      maxTokens: 0,
+      isInputText: true,
+      isInputPic: false,
+      isInputAudio: false,
+      isInputVideo: false,
+    }));
   }
 }

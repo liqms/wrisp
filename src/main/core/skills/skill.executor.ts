@@ -38,9 +38,13 @@ export class SkillExecutor {
   /**
    * 执行 Skill（自动判断 L1/L2）
    */
-  async execute(skillId: string, inputs: Record<string, unknown>): Promise<SkillExecuteResult> {
+  async execute(
+    skillId: string,
+    inputs: Record<string, unknown>,
+    projectId?: string,
+  ): Promise<SkillExecuteResult> {
     const startTime = Date.now();
-    const skill = skillManager.getSkillDefinition(skillId);
+    const skill = skillManager.resolveSkillDefinition(skillId, projectId);
     if (!skill) {
       throw new Error(`SKILL_NOT_FOUND: ${skillId}`);
     }
@@ -146,8 +150,9 @@ export class SkillExecutor {
   async *executeL1Stream(
     skillId: string,
     inputs: Record<string, unknown>,
+    projectId?: string,
   ): AsyncIterable<{ delta: string; done: boolean; error?: string }> {
-    const skill = skillManager.getSkillDefinition(skillId);
+    const skill = skillManager.resolveSkillDefinition(skillId, projectId);
     if (!skill) {
       yield { delta: "", done: true, error: `SKILL_NOT_FOUND: ${skillId}` };
       return;

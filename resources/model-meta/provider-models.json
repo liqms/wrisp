@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-09-12T00:00:00.000Z",
+  "providers": {
+    "deepseek": {
+      "deepseek-flash": {
+        "contextLength": 1000000,
+        "maxTokens": 384000,
+        "isInputText": true,
+        "isInputPic": true,
+        "isInputAudio": false,
+        "isInputVideo": false,
+        "structuredOutputs": true,
+        "outputType": "text"
+      },
+      "deepseek-v4-pro": {
+        "contextLength": 1000000,
+        "maxTokens": 384000,
+        "isInputText": true,
+        "isInputPic": false,
+        "isInputAudio": false,
+        "isInputVideo": false,
+        "structuredOutputs": true,
+        "outputType": "text"
+      }
+    }
+  }
+}

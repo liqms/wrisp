@@ -42,8 +42,8 @@ src/renderer/components/project/ProjectCard.vue
 src/renderer/components/project/ProjectList.vue
 src/renderer/components/project/AiAssistantPanel.vue
 src/renderer/components/project/OutlineTree.vue
-src/renderer/components/settings/TemplateSettings.vue
-src/renderer/components/settings/TemplateEditModal.vue
+src/renderer/components/settings/template/TemplateSettings.vue
+src/renderer/components/settings/template/TemplateEditModal.vue
 src/renderer/store/project.store.ts
 src/renderer/store/template.store.ts
 ```

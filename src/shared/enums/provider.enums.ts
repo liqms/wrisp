@@ -6,7 +6,7 @@ export const PROVIDER: AIProvider[] = [
         id: 'deepseek',
         name: '深度求索',
         logoPath: 'logos/deepseek.png',
-        baseUrl: 'https://api.deepseek.cn',
+        baseUrl: 'https://api.deepseek.com',
         websiteUrl: 'https://platform.deepseek.com',
         locale: LOCALE.ZH,
         models: [],

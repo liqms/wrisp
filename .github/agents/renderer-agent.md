@@ -41,7 +41,7 @@
 | 状态管理 | `store/` + `composables/` | store-agent |
 | UI 组件/样式 | `components/` + `styles/` | ui-component-agent |
 | 国际化 | `plugins/i18n.ts`(+ shared) | i18n-agent |
-| 项目/模板业务 | `views/ProjectView.vue` + `components/project/` + `components/settings/TemplateSettings.vue` | project-domain-agent |
+| 项目/模板业务 | `views/ProjectView.vue` + `components/project/` + `components/settings/template/TemplateSettings.vue` | project-domain-agent |
 
 ### 路由
 

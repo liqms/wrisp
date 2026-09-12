@@ -12,6 +12,7 @@ import type {
   VectorTableName,
 } from "@/main/types/db/vector.types";
 import { Logger } from "@/main/utils/logger";
+import { buildProjectFilter } from "@/main/core/vector/project-filter";
 
 /**
  * 向量数据访问对象基类
@@ -76,8 +77,16 @@ export class BlockVectorDao extends BaseVectorDao {
   async update(blockId: string, data: BlockEmbeddingUpdate): Promise<void> {
     try {
       const table = await this.getTable("block_embeddings");
+      const existing = (await table
+        .query()
+        .where(`block_id = '${blockId}'`)
+        .limit(1)
+        .toArray()) as BlockEmbedding[];
+      const projectId = data.project_id ?? existing[0]?.project_id ?? null;
       await table.delete(`block_id = '${blockId}'`);
-      await table.add([{ block_id: blockId, ...data } as BlockEmbedding]);
+      await table.add([
+        { block_id: blockId, project_id: projectId, ...data } as BlockEmbedding,
+      ]);
       Logger.debug("[BlockVectorDao] 更新向量记录", { block_id: blockId });
     } catch (error) {
       Logger.error("[BlockVectorDao] 更新 Block 向量失败", {
@@ -149,7 +158,13 @@ export class BlockVectorDao extends BaseVectorDao {
   async search(params: VectorSearchParams): Promise<VectorSearchResult<BlockEmbedding>[]> {
     try {
       const table = await this.getTable("block_embeddings");
-      const results = await table.search(params.vector).limit(params.topK || 10).toArray();
+      let query = table.search(params.vector).limit(params.topK || 10);
+
+      if (params.projectId) {
+        query = query.where(buildProjectFilter(params.projectId));
+      }
+
+      const results = await query.toArray();
 
       return results.map((item: unknown) => {
         const embedding = item as BlockEmbedding;

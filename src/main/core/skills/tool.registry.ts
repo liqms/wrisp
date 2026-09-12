@@ -1,5 +1,5 @@
 import { Logger } from "@/main/utils/logger";
-import { searchBlocksTool } from "./tools/search-blocks.tool";
+import { searchMaterialsTool } from "./tools/search-materials.tool";
 import type { RegisteredTool, SkillToolDefinition } from "@/shared/types/skill.types";
 
 /**
@@ -102,7 +102,7 @@ class ToolRegistry {
    * 注册内置工具
    */
   private registerBuiltInTools(): void {
-    this.register(searchBlocksTool);
+    this.register(searchMaterialsTool);
   }
 }
 

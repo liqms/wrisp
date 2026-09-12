@@ -257,26 +257,61 @@ class ChunkService {
 
   // ──────── 搜索 ────────
 
+  /**
+   * 按作品检索语义块。
+   *
+   * `projectId` **必填**——检索必须按作品隔离；需要全库检索请显式调用
+   * `searchAll`。把隔离设为必填而非可选，是为了让"忘记传 projectId"
+   * 变成编译期错误，而不是运行期的静默跨作品召回。
+   */
   public async search(
+    keyword: string,
+    limit: number,
+    searchType: SearchType,
+    projectId: Id,
+  ): Promise<ChunkItem[]> {
+    return this.runSearch(keyword, limit, searchType, projectId);
+  }
+
+  /**
+   * 全库检索（**不**按作品隔离）。
+   * 仅用于明确的全局搜索场景；调用方需自行确认这是有意的。
+   */
+  public async searchAll(
     keyword: string,
     limit: number = 50,
     searchType?: SearchType,
   ): Promise<ChunkItem[]> {
+    return this.runSearch(keyword, limit, searchType);
+  }
+
+  private async runSearch(
+    keyword: string,
+    limit: number,
+    searchType?: SearchType,
+    projectId?: Id,
+  ): Promise<ChunkItem[]> {
     try {
       if (searchType === SEARCH_TYPE.KEYWORD) {
         const blocks = this.chunkDao.searchFts(keyword, limit);
-        return this.blocksToRecordList(blocks, (a, b) =>
+        const list = this.blocksToRecordList(blocks, (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         );
+        // 全文检索同样受作品作用域约束：传了 projectId 就必须过滤，
+        // 否则签名与行为不一致，会成为跨作品召回的隐患。
+        return projectId ? this.filterByProject(list, projectId) : list;
       } else if (searchType === SEARCH_TYPE.SEMANTIC) {
         const canUseLocal = await modelRouter.isLocalAvailable();
         if (canUseLocal) {
-          return this.searchByVector(keyword, limit);
+          return this.searchByVector(keyword, limit, projectId);
         }
         const blocks = this.chunkDao.searchFts(keyword, limit);
-        return this.blocksToRecordList(blocks, (a, b) =>
+        const fallback = this.blocksToRecordList(blocks, (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         );
+        // 本地模型不可用时降级为全文检索：这条路径同样必须按作品过滤，
+        // 否则会跨作品召回（spec 非协商条款）。
+        return projectId ? this.filterByProject(fallback, projectId) : fallback;
       }
       return [];
     } catch (error) {
@@ -293,6 +328,7 @@ class ChunkService {
   private async searchByVector(
     keyword: string,
     limit: number,
+    projectId?: Id,
   ): Promise<ChunkItem[]> {
     try {
       const ANN_TOP_K = 50;
@@ -305,13 +341,37 @@ class ChunkService {
       const searchResults = await vectorService.searchBlockEmbeddings({
         vector,
         topK: ANN_TOP_K,
+        projectId,
       });
 
-      if (!searchResults || searchResults.length === 0) {
+      // 向量行里的 project_id 是**写入时快照**，不可作为唯一依据：
+      //   · 迁移前写入的历史行为 null → `.where` 永远匹配不到，表现为"什么都搜不到"（C2）；
+      //   · 语义块改归属后向量行不更新 → 快照仍指向旧作品（I1）。
+      // 因此以 `project_chunks` 的**实时归属**为准做一次过滤；
+      // 若作用域检索为空（历史行被 `.where` 提前滤掉），退回不带过滤的
+      // 超额召回再后置过滤，补偿召回损失（计划所述"迁移期间退化为超额召回 + 后过滤"）。
+      let scoped = searchResults ?? [];
+      if (projectId) {
+        const projectPath = this.getProjectChunkIds(projectId);
+        const allowed = new Set(projectPath);
+        const liveFiltered = scoped.filter((r) => allowed.has(r.item.block_id));
+
+        if (liveFiltered.length === 0) {
+          const overFetched = await vectorService.searchBlockEmbeddings({
+            vector,
+            topK: ANN_TOP_K * 4,
+          });
+          scoped = overFetched.filter((r) => allowed.has(r.item.block_id));
+        } else {
+          scoped = liveFiltered;
+        }
+      }
+
+      if (scoped.length === 0) {
         return [];
       }
 
-      const candidateBlockIds = searchResults.map((r) => r.item.block_id);
+      const candidateBlockIds = scoped.map((r) => r.item.block_id);
       const candidateBlocks = this.chunkDao.findByIds(candidateBlockIds);
 
       if (candidateBlocks.length === 0) {
@@ -349,9 +409,12 @@ class ChunkService {
         limit,
       });
       const blocks = this.chunkDao.searchFts(keyword, limit);
-      return this.blocksToRecordList(blocks, (a, b) =>
+      const fallback = this.blocksToRecordList(blocks, (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
+      // 异常降级同样必须按作品过滤：向量检索抛错时最容易忘记这条，
+      // 而它正是"本地模型损坏/LanceDB 异常"时唯一会走到的路径。
+      return projectId ? this.filterByProject(fallback, projectId) : fallback;
     }
   }
 
@@ -381,6 +444,23 @@ class ChunkService {
       });
       throw error;
     }
+  }
+
+  /** 获取作品关联的全部语义块 id（供素材检索按作品过滤） */
+  public getProjectChunkIds(projectId: Id): string[] {
+    return this.projectChunkDao
+      .findBy("project_id", projectId)
+      .map((row) => row.chunk_id);
+  }
+
+  /**
+   * 按作品过滤语义块。
+   * 用于降级路径（本地模型不可用时的全文检索）——那条路径没有向量层的
+   * `.where()` 保护，必须在此显式过滤，否则会跨作品召回。
+   */
+  private filterByProject(chunks: ChunkItem[], projectId: Id): ChunkItem[] {
+    const allowed = new Set(this.getProjectChunkIds(projectId));
+    return chunks.filter((c) => allowed.has(c.id));
   }
 
   public getByProjectId(projectId: Id): ChunkItem[] {

@@ -38,6 +38,7 @@ export function mergeTemplates(
     version: def.version,
     tags: (def.tags ?? []).map((tag) => resolveTag(tag, useEn)),
     builtIn: true,
+    skills: def.skills,
     enabled: !disabled.has(def.id),
   }));
 
@@ -53,6 +54,7 @@ export function mergeTemplates(
       version: "",
       tags: [],
       builtIn: false,
+      skills: c.skills,
       enabled: c.enabled,
     }),
   );

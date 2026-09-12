@@ -2,11 +2,11 @@
   <n-flex class="webview-container">
     <!-- 错误状态 -->
     <n-flex v-if="hasError" class="webview-error">
-      <n-result status="error" :title="$t('TIPS.WEBVIEW_ERROR')" :description="errorMessage || ''" size="small">
+      <n-result status="error" :title="$t('TIPS.WEBVIEW.ERROR')" :description="errorMessage || ''" size="small">
         <template #footer>
           <n-space justify="center">
             <n-button @click="retry">
-              {{ $t('ACTION.RETRY') }}
+              {{ $t('ACTION.NAVIGATION.RETRY') }}
             </n-button>
           </n-space>
         </template>

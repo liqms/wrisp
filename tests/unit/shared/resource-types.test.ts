@@ -13,11 +13,13 @@ describe("ResourceType 枚举", () => {
     expect(RESOURCE_TYPE.SKILL).toBe("skill");
   });
 
-  it("RESOURCE_TYPES 数组包含全部三种类型", () => {
-    expect(RESOURCE_TYPES).toHaveLength(3);
+  it("RESOURCE_TYPES 数组包含全部资源类型", () => {
+    // 除 slash/page/skill 外，还有 model-meta（厂商模型元信息，全局文件，非用户安装项）
+    expect(RESOURCE_TYPES).toHaveLength(4);
     expect(RESOURCE_TYPES).toContain("slash");
     expect(RESOURCE_TYPES).toContain("page");
     expect(RESOURCE_TYPES).toContain("skill");
+    expect(RESOURCE_TYPES).toContain("model-meta");
   });
 
   it("isResourceType 合法值返回 true", () => {

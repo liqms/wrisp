@@ -67,6 +67,7 @@ export function getVectorDbPath(): string {
 export interface BlockEmbedding {
   [key: string]: unknown;
   block_id: Id;
+  project_id?: Id | null;
   embedding: number[];
 }
 
@@ -146,6 +147,7 @@ export async function initVectorTables(db: Connection): Promise<void> {
     console.log("[LanceDB] 创建 Block 向量表...");
     const schema = new Schema([
       new Field("block_id", new Utf8(), false),
+      new Field("project_id", new Utf8(), true),
       new Field(
         "embedding",
         new FixedSizeList(1536, new Field("item", new Float32(), false)),
@@ -156,6 +158,14 @@ export async function initVectorTables(db: Connection): Promise<void> {
     console.log("[LanceDB] Block 向量表创建完成");
   } else {
     console.log("[LanceDB] Block 向量表已存在");
+    const blockTable = await db.openTable("block_embeddings");
+    const fields = await blockTable.schema();
+    const hasProjectId = fields.fields.some((f) => f.name === "project_id");
+    if (!hasProjectId) {
+      console.log("[LanceDB] 为 Block 向量表补充 project_id 列...");
+      await blockTable.addColumns(new Field("project_id", new Utf8(), true));
+      console.log("[LanceDB] project_id 列补充完成（存量行为 null）");
+    }
   }
 
   // ==================== 页面向量表 ====================
@@ -273,16 +283,9 @@ export async function deleteBlockEmbedding(
 }
 
 /**
- * 语义搜索 Block
+ * 语义搜索 Block（实现移至 ./block-search，此处仅再导出以保持既有调用方不变）
  */
-export async function searchBlockEmbeddings(
-  table: Table,
-  queryVector: number[],
-  topK: number = 10,
-): Promise<BlockEmbedding[]> {
-  const results = await table.search(queryVector).limit(topK).toArray();
-  return results as BlockEmbedding[];
-}
+export { searchBlockEmbeddings } from "./block-search";
 
 /**
  * 插入单个页面向量

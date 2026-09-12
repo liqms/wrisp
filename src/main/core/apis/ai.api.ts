@@ -3,6 +3,7 @@ import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";
 import type { LLMRequest, LLMResponse, CostSummary, CostRecord, Model } from "@/main/core/model-gateway/llm-gateway/types";
+import type { AIProvider } from "@/shared/types/model.types";
 import { Logger } from "@/main/utils/logger";
 import type { IpcMainInvokeEvent } from "electron";
 
@@ -74,13 +75,13 @@ async function testProviderConnection(providerId: string): Promise<ApiResponse<b
   }
 }
 
-async function listModels(providerId: string): Promise<ApiResponse<Model[]>> {
+async function listModels(provider: AIProvider): Promise<ApiResponse<Model[]>> {
   try {
-    const result = await aiService.listModels(providerId);
+    const result = await aiService.listModels(provider);
     return response.success(result);
   } catch (error) {
-    Logger.error("获取 Provider 模型列表失败", { providerId, error: String(error) });
-    return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error);
+    Logger.error("获取 Provider 模型列表失败", { providerId: provider.id, error: String(error) });
+    return response.error(ErrorCode.AI_REQUEST_FAILED, error as Error, { includeErrorDetails: true });
   }
 }
 

@@ -1,6 +1,7 @@
 import { TaskExecutor, TaskContext, TaskResult } from "../types";
-import { ChunkDao } from "@/main/core/db";
+import { ChunkDao, ProjectChunkDao } from "@/main/core/db";
 import { vectorService } from "@/main/core/services/vector.service";
+import { buildBlockEmbeddings } from "@/main/core/vector/vector-payload";
 import { localGateway } from "@/main/core/model-gateway/local-gateway";
 import { progressManager } from "@/main/core/smart-tasks/progress.manager";
 import { Chunk, ChunkUpdate } from "@/main/types/db";
@@ -11,6 +12,12 @@ export class ChunkVectorizeExecutor implements TaskExecutor {
   public dependencies: string[] = [];
 
   private chunkDao = new ChunkDao();
+  private projectChunkDao = new ProjectChunkDao();
+
+  private resolveProjectId(blockId: string): string | null {
+    const links = this.projectChunkDao.findBy("chunk_id", blockId);
+    return links[0]?.project_id ?? null;
+  }
 
   public async run(context: TaskContext): Promise<TaskResult> {
     const blocks = this.getUnprocessedBlocks(context.processedUntil);
@@ -34,10 +41,10 @@ export class ChunkVectorizeExecutor implements TaskExecutor {
       try {
         const results = await localGateway.embedBatch(texts);
 
-        const vectors = results.map((r, idx) => ({
-          block_id: batch[idx].id,
-          embedding: r.vector,
-        }));
+        const vectorList = results.map((r) => r.vector);
+        const vectors = buildBlockEmbeddings(batch, vectorList, (blockId) =>
+          this.resolveProjectId(blockId),
+        );
 
         await vectorService.createBlockEmbeddings(vectors);
 

@@ -22,7 +22,9 @@ describe("resolveShortcuts", () => {
   });
 
   it("按 id 用已保存值覆盖默认值，其余保留默认", () => {
-    const result = resolveShortcuts([{ id: "settings", keys: "Alt+S" }]);
+    const result = resolveShortcuts([
+      { id: "settings", name: { zh: "打开设置", en: "Open Settings" }, keys: "Alt+S" },
+    ]);
     expect(result.find((s) => s.id === "settings")?.currentKeys).toBe("Alt+S");
     expect(result.find((s) => s.id === "search")?.currentKeys).toBe(
       "Ctrl+Shift+F",

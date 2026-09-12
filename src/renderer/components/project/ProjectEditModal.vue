@@ -165,11 +165,11 @@ const handleSubmit = async () => {
             };
             const success = await updateProject(props.project.id, updateData);
             if (success) {
-                message.success(t('NOTIFICATION.SUCCESS'));
+                message.success(t('ERROR.SUCCESS'));
                 emit("update:show", false);
                 emit("saved");
             } else {
-                message.error(t('NOTIFICATION.ERROR'));
+                message.error(t('ERROR.COMMON.ACTION_ERROR'));
             }
         } else {
             const nameExists = await checkNameExists(formData.value.name);
@@ -186,11 +186,11 @@ const handleSubmit = async () => {
             };
             const id = await createProject(createData);
             if (id) {
-                message.success(t('NOTIFICATION.SUCCESS'));
+                message.success(t('ERROR.SUCCESS'));
                 emit("update:show", false);
                 emit("saved");
             } else {
-                message.error(t('NOTIFICATION.ERROR'));
+                message.error(t('ERROR.COMMON.ACTION_ERROR'));
             }
         }
     } finally {

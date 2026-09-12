@@ -154,6 +154,10 @@ export interface SkillDefinition {
   postProcess?: SkillPostProcess;
   /** 使用示例（双语） */
   example?: SkillExample;
+  /** 作品技能的来源全局技能 id（仅作品作用域使用） */
+  sourceTemplateId?: string;
+  /** 派生时所依据的全局技能版本，用于"有更新可用"提示（仅作品作用域使用） */
+  sourceTemplateVersion?: string;
 }
 
 // ==================== Manifest ====================

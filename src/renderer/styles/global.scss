@@ -171,6 +171,25 @@ body {
   justify-content: space-between;
 }
 
+.button {
+  border: 1px solid transparent;
+  &:hover {
+    border: 1px solid var(--primary-color);
+  }
+}
+
+.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--bg-hover);
+  }
+}
+.card-has-scrollbar-width {
+  width: calc(100% - 16px);
+}
+
 // 响应式布局
 @media (max-width: $breakpoint-md) {
   body {

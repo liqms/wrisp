@@ -12,6 +12,7 @@ export type VectorTableName = "block_embeddings" | "pages_embeddings";
 export interface BlockEmbedding {
   [key: string]: unknown;
   block_id: Id;
+  project_id?: Id | null;
   embedding: EmbeddingVector;
   _distance?: number;
 }
@@ -51,6 +52,7 @@ export interface VectorSearchParams {
  */
 export interface BlockEmbeddingCreate {
   block_id: Id;
+  project_id?: Id | null;
   embedding: EmbeddingVector;
 }
 
@@ -58,6 +60,7 @@ export interface BlockEmbeddingCreate {
  * Block 向量更新参数
  */
 export interface BlockEmbeddingUpdate {
+  project_id?: Id | null;
   embedding: EmbeddingVector;
 }
 

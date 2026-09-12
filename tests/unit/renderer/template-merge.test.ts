@@ -88,4 +88,17 @@ describe("mergeTemplates", () => {
     const en = mergeTemplates(BUILTINS, FILE, LOCALE.EN)[0];
     expect(zh.title).toBe(en.title);
   });
+
+  it("把内置模板的 skills 透传到 TemplateItem", () => {
+    const withSkills: TemplateResourceFile[] = [
+      {
+        ...BUILTINS[0],
+        skills: [{ id: "s1", skillId: "outline", requiresConfirm: true }],
+      },
+    ];
+    const items = mergeTemplates(withSkills, null, LOCALE.ZH);
+    expect(items[0].skills).toEqual([
+      { id: "s1", skillId: "outline", requiresConfirm: true },
+    ]);
+  });
 });
