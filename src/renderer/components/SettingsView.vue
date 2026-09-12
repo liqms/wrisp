@@ -31,6 +31,8 @@ import GeneralSettings from "@/renderer/components/settings/GeneralSettings.vue"
 import ModelSettings from "@/renderer/components/settings/ModelSettings.vue";
 import ModelProvidersPage from "@/renderer/components/settings/ModelProvidersPage.vue";
 import ModelDefaultsPage from "@/renderer/components/settings/ModelDefaultsPage.vue";
+import SlashTemplatesPage from "@/renderer/components/settings/SlashTemplatesPage.vue";
+import PageTemplatesPage from "@/renderer/components/settings/PageTemplatesPage.vue";
 import KeymapSettings from "@/renderer/components/settings/KeymapSettings.vue";
 import TemplateSettings from "@/renderer/components/settings/TemplateSettings.vue";
 import { DiceOutline, DocumentTextOutline, OptionsOutline } from "@vicons/ionicons5";
@@ -130,6 +132,8 @@ const componentMap: Record<string, Component> = {
 const subPageComponentMap: Record<string, Component> = {
   "model.providers": markRaw(ModelProvidersPage),
   "model.defaults": markRaw(ModelDefaultsPage),
+  "template.slash": markRaw(SlashTemplatesPage),
+  "template.page": markRaw(PageTemplatesPage),
 };
 
 // 当前展示的页面：优先子页面，否则取顶级菜单页
@@ -156,6 +160,14 @@ const subPageBreadcrumbMap: Record<string, { key: string; labelKey: string }[]> 
   "model.defaults": [
     { key: "model", labelKey: "SETTINGS.AI_SETTINGS.INTELLIGENT" },
     { key: "model.defaults", labelKey: "SETTINGS.DEFAULT_MODEL" },
+  ],
+  "template.slash": [
+    { key: "template", labelKey: "APP.BASE.TEMPLATE" },
+    { key: "template.slash", labelKey: "SETTINGS.TEMPLATE_SETTINGS.TYPE_SLASH" },
+  ],
+  "template.page": [
+    { key: "template", labelKey: "APP.BASE.TEMPLATE" },
+    { key: "template.page", labelKey: "SETTINGS.TEMPLATE_SETTINGS.TYPE_PAGE" },
   ],
 };
 
@@ -224,10 +236,12 @@ function onNavigate(pageKey: string) {
   &:last-child {
     cursor: default;
     color: var(--text-primary);
+
     .nav-arrow {
       display: none;
     }
   }
+
   &:hover {
     color: var(--text-primary);
   }

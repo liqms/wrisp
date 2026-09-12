@@ -99,8 +99,6 @@ const handleOpenLink = async (): Promise<void> => {
   width: 100%;
   border: 1px solid transparent;
   background-color: var(--bg-secondary);
-
-
 }
 
 .provider-info {

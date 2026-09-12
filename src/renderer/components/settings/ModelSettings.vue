@@ -1,5 +1,5 @@
 <template>
-  <n-scrollbar class="model-settings">
+  <n-scrollbar class="model-settings card-has-scrollbar-width">
     <n-card size="medium" :bordered="false" class="setting-card">
       <n-flex class="setting-row">
         <n-flex align="center" class="setting-content">

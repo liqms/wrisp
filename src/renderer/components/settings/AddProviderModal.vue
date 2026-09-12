@@ -123,10 +123,6 @@ const fetchHint = computed(() => {
   return null;
 });
 
-const allSelected = computed(() =>
-  availableModels.value.length > 0 && availableModels.value.every((m) => selectedModelIds.value.has(m.id)),
-);
-
 const formData = ref<{
   id: string;
   name: string;
@@ -263,14 +259,6 @@ function handleToggleModel(modelId: string, checked: boolean) {
     next.delete(modelId);
   }
   selectedModelIds.value = next;
-}
-
-function handleSelectAll(checked: boolean) {
-  if (checked) {
-    selectedModelIds.value = new Set(availableModels.value.map((m) => m.id));
-  } else {
-    selectedModelIds.value = new Set();
-  }
 }
 
 async function handleConfirm() {

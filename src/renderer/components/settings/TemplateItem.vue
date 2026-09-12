@@ -1,63 +1,68 @@
 <template>
-  <n-flex justify="space-between" align="center" class="template-item">
-    <n-flex align="center" class="template-info-wrapper">
-      <n-flex align="center" class="template-icon">
-        <component :is="resolveTemplateIcon(template.icon)" class="template-view-svg" />
-      </n-flex>
-      <n-flex align="center" class="template-info">
-        <n-flex class="template-name-wrapper">
-          <n-text class="template-name">{{ template.title }}</n-text>
-          <n-flex class="template-tags-wrapper">
-            <n-tag v-for="p in template.professions" :key="p" size="small" :bordered="false">
-              {{ t(`SETTINGS.PROFESSION.OPTION_${p.toUpperCase()}`) }}
-            </n-tag>
-            <n-tag v-for="tag in template.tags" :key="tag" size="small" :bordered="false">
-              {{ tag }}
-            </n-tag>
-          </n-flex>
+  <n-card justify="space-between" align="center" class="template-item" content-style="padding: 0;">
+    <n-flex align="center" class="template-content" @click="expanded = !expanded">
+      <n-flex align="center">
+        <n-flex align="center" class="template-icon">
+          <component :is="resolveTemplateIcon(template.icon)" class="template-view-svg" />
         </n-flex>
-        <n-text class="template-description">{{ template.description }}</n-text>
+        <n-flex align="center" class="template-info">
+          <n-flex align="center" class="template-name-wrapper">
+            <n-text class="template-name">{{ template.title }}</n-text>
+            <n-flex class="template-tags-wrapper">
+              <n-tag v-for="p in template.professions" :key="p" size="small" :bordered="false">
+                {{ t(`SETTINGS.PROFESSION.OPTION_${p.toUpperCase()}`) }}
+              </n-tag>
+              <n-tag v-for="tag in template.tags" :key="tag" size="small" :bordered="false">
+                {{ tag }}
+              </n-tag>
+            </n-flex>
+          </n-flex>
+          <n-text class="template-description">{{ template.description }}</n-text>
+        </n-flex>
+      </n-flex>
+      <n-flex align="center" @click.stop>
+        <n-switch :value="template.enabled" @update:value="handleToggle" />
+        <n-icon class="expand-icon">
+          <ChevronDownOutline v-if="!expanded" />
+          <ChevronUpOutline v-else />
+        </n-icon>
       </n-flex>
     </n-flex>
-    <n-flex class="action-buttons">
-      <n-flex class="action-button-more-wrapper">
-        <n-button text size="small" :title="t('ACTION.COMMON.VIEW')" @click.stop="handleView">
-          <n-icon>
-            <EyeOutline />
-          </n-icon>
+    <template v-if="expanded">
+      <n-divider class="divider" />
+      <n-flex class="action-buttons">
+        <n-button tertiary size="small" :title="t('ACTION.COMMON.VIEW')" @click.stop="handleView">
+          {{ t('ACTION.COMMON.VIEW') }}
         </n-button>
-        <n-button v-if="!template.builtIn" text size="small" :title="t('ACTION.COMMON.EDIT')" @click.stop="handleEdit">
-          <n-icon>
-            <CreateOutline />
-          </n-icon>
+        <n-button v-if="!template.builtIn" tertiary size="small" :title="t('ACTION.COMMON.EDIT')"
+          @click.stop="handleEdit">
+          {{ t('ACTION.COMMON.EDIT') }}
         </n-button>
-        <n-button v-if="!template.builtIn" text size="small" :title="t('ACTION.COMMON.DELETE')"
+        <n-button v-if="!template.builtIn" tertiary size="small" :title="t('ACTION.COMMON.DELETE')"
           @click.stop="handleDelete">
-          <n-icon>
-            <TrashOutline />
-          </n-icon>
+          {{ t('ACTION.COMMON.DELETE') }}
         </n-button>
-        <n-divider vertical />
       </n-flex>
-      <n-switch :value="template.enabled" size="small" @update:value="handleToggle" />
-
-    </n-flex>
-  </n-flex>
+    </template>
+  </n-card>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { EyeOutline, CreateOutline, TrashOutline } from '@vicons/ionicons5'
+import { ChevronDownOutline, ChevronUpOutline } from '@vicons/ionicons5'
 import type { TemplateItem } from '@/shared/types'
 import { resolveTemplateIcon } from "@/renderer/components/editor/slash/commands/template-icons";
 
 const { t } = useI18n()
 
+const expanded = ref(false)
+
 interface Props {
   template: TemplateItem
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'view'): void
@@ -81,28 +86,28 @@ const handleDelete = (): void => {
 const handleView = (): void => {
   emit('view')
 }
-
-
 </script>
 
 <style lang="scss" scoped>
 @use "@/renderer/styles/_variables.scss" as *;
 
-.template-item {
-  padding: $spacing-md;
-  border-radius: $radius-md;
-  transition: background-color 0.2s;
-  width: 100%;
-  border: 1px solid var(--border-color);
+.template-content {
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  padding: 20px;
+  border-radius: $radius-md $radius-md 0 0;
 
   &:hover {
     background-color: var(--bg-hover);
-    // border-color: var(--primary-color-hover);
   }
 }
 
-.template-info-wrapper {
-  gap: 12px;
+.template-item {
+  border-radius: $radius-md;
+  transition: background-color 0.2s;
+  width: 100%;
+  border: 1px solid transparent;
+  background-color: var(--bg-secondary);
 }
 
 .template-info {
@@ -111,9 +116,7 @@ const handleView = (): void => {
   align-items: flex-start !important;
 }
 
-
-
-.template-title {
+.template-name-wrapper {
   gap: $spacing-xs !important;
 }
 
@@ -123,12 +126,12 @@ const handleView = (): void => {
 }
 
 .template-tags-wrapper {
-  gap: $spacing-xs !important;
+  gap: $spacing-xs !important;  
 }
 
 .template-icon {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
 }
 
@@ -137,17 +140,18 @@ const handleView = (): void => {
   color: var(--text-primary);
 }
 
+.expand-icon {
+  color: var(--text-third);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.divider {
+  margin: 0;
+}
+
 .action-buttons {
-  gap: $spacing-xs !important;
-}
-
-.action-button-more-wrapper {
-  gap: $spacing-xs !important;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.template-item:hover .action-button-more-wrapper {
-  opacity: 1;
+  gap: $spacing-xs;
+  padding: 20px;
 }
 </style>
