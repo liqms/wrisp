@@ -10,7 +10,7 @@
         </n-flex>
       </n-flex>
       <n-flex align="center" @click.stop>
-        <n-switch v-model="props.provider.enabled" @change="handleToggle" />
+        <n-switch :value="props.provider.enabled" @update:value="handleToggle" />
         <n-icon class="expand-icon">
           <ChevronDownOutline v-if="!expanded" />
           <ChevronUpOutline v-else />

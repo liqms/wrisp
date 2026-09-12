@@ -63,7 +63,7 @@
     "katex": "^0.18.4",
     "lowlight": "^3.3.0",
     "marked": "^18.0.4",
-    "naive-ui": "^2.44.1",
+    "naive-ui": "^2.45.3",
     "openai": "^6.39.1",
     "pinia": "^3.0.4",
     "turndown": "^7.2.4",

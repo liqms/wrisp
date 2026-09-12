@@ -53,6 +53,10 @@ import {
   NDataTable,
   NTabs,
   NTab,
+  NBreadcrumb,
+  NBreadcrumbItem,
+  NCheckbox,
+  NCheckboxGroup,
 } from "naive-ui";
 
 // 创建 Naive UI 实例
@@ -112,6 +116,10 @@ const naive = create({
     NDataTable,
     NTabs,
     NTab,
+    NBreadcrumb,
+    NBreadcrumbItem,
+    NCheckbox,
+    NCheckboxGroup,
   ],
 });
 

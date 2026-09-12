@@ -205,6 +205,12 @@
       "path": "slash/todo.json",
       "version": "1.0.0",
       "sha256": "f63a777f1a1ee79785ae54ac676ad5315c7cf4b0944957e8c9580c0ee86b6e38"
+    },
+    {
+      "type": "model-meta",
+      "path": "model-meta/provider-models.json",
+      "version": "1.0.0",
+      "sha256": "86706ce9b8907bd2fb6aa87c4beb994e8c977fa6ffbc31267d132f838f44df1f"
     }
   ]
 }

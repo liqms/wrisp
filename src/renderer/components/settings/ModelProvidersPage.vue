@@ -26,7 +26,7 @@
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useDialog } from "naive-ui";
-import { useModel } from "@/renderer/composables";
+import { useModel, useFrontendNotification } from "@/renderer/composables";
 import type { AIProvider } from "@/shared/types";
 import { logger } from "@/renderer/utils/logger.utils";
 import ProviderItem from "./ProviderItem.vue";
@@ -34,6 +34,10 @@ import AddProviderModal from "./AddProviderModal.vue";
 
 const { t } = useI18n();
 const dialog = useDialog();
+const notify = useFrontendNotification({
+  title: t("SETTINGS.AI_SETTINGS.PROVIDER_EXISTS"),
+  content: "",
+});
 const { providers, enableCloudAi, addOrUpdateAIProvider, deleteAIProvider } =
   useModel();
 const showAddModal = ref(false);
@@ -50,6 +54,18 @@ function handleEditProvider(provider: AIProvider) {
 }
 
 async function handleAddProvider(provider: AIProvider) {
+  // 新增模式下，若已存在相同 id 的供应商则提示，避免重复添加
+  if (
+    !editingProvider.value &&
+    providers.value.some((p) => p.id === provider.id)
+  ) {
+    notify.warn(
+      t("SETTINGS.AI_SETTINGS.PROVIDER_EXISTS"),
+      provider.name,
+    );
+    showAddModal.value = false;
+    return;
+  }
   try {
     const success = await addOrUpdateAIProvider(provider);
     if (success) {
@@ -125,5 +141,4 @@ async function handleToggleProvider(provider: AIProvider) {
   gap: $spacing-sm;
   flex-wrap: wrap;
 }
-
 </style>

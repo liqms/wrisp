@@ -14,6 +14,7 @@ import {
 } from "@/main/core/apis/ai.api";
 import type { ApiResponse } from "@/shared/types";
 import type { LLMRequest, LLMResponse, CostSummary, CostRecord, Model } from "@/main/core/model-gateway/llm-gateway/types";
+import type { AIProvider } from "@/shared/types/model.types";
 
 export function registerAIHandlers() {
   ipcMain.handle(
@@ -54,8 +55,8 @@ export function registerAIHandlers() {
 
   ipcMain.handle(
     "ai:listModels",
-    async (_, providerId: string): Promise<ApiResponse<Model[]>> => {
-      return listModels(providerId);
+    async (_, provider: AIProvider): Promise<ApiResponse<Model[]>> => {
+      return listModels(provider);
     },
   );
 

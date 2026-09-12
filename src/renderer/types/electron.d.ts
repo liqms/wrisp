@@ -26,7 +26,7 @@ import type { Tag, TagCreate, TagUpdate, TagQuery, TagDetail, TagId } from "@/sh
 import type { Character } from "@/shared/types";
 import type { CreatePageInput, UpdatePageInput, MovePageInput, PageQuery } from "@/shared/types/page.types";
 import type { PaginationResult } from "@/shared/utils/pagination";
-import type { ModelType } from "@/shared/types/model.types";
+import type { ModelType, AIProvider } from "@/shared/types/model.types";
 import type { SkillListItem, CategoryNode, SkillExecuteResult, SkillExecutionRecord, SkillStreamChunk } from "@/shared/types/skill.types";
 import type { Concept, ConceptWithBlocks, Topic, TopicWithConceptsAndBlocks, Reflection, ReflectionWithBlocks, TemporalEventWithBlock } from "@/main/types/db";
 import type { UpdateAPI } from "@/main/preload/types/update";
@@ -167,7 +167,7 @@ export interface ElectronAPI {
     getCostRecords(count?: number): Promise<ApiResponse<CostRecord[]>>;
     getProviders(): Promise<ApiResponse<Array<{ providerId: string; providerName: string; models: unknown[]; isHealthy: boolean; enabled: boolean }>>>;
     testProviderConnection(providerId: string): Promise<ApiResponse<boolean>>;
-    listModels(providerId: string): Promise<ApiResponse<Model[]>>;
+    listModels(provider: AIProvider): Promise<ApiResponse<Model[]>>;
     refreshConfig(): Promise<ApiResponse<void>>;
     isLocalAvailable(): Promise<ApiResponse<boolean>>;
     isCloudAvailable(): Promise<ApiResponse<boolean>>;

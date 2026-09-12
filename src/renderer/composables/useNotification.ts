@@ -1,5 +1,5 @@
-import { computed } from 'vue'
 import { useNotificationStore } from '@/renderer/store/notification.store'
+import type { NotificationMessage } from '@/shared/types'
 import { TimeUtil } from '@/shared/utils'
 import { BrowserCryptoUtil as CryptoUtil } from '@/renderer/utils/crypto.utils'
 
@@ -11,45 +11,26 @@ export interface NotificationOptions {
 /**
  * 前端通知相关的组合函数
  */
-export function useFrontendNotification(options: NotificationOptions) {
+export function useFrontendNotification(_options: NotificationOptions) {
     const notificationStore = useNotificationStore()
-    const id = computed(() => CryptoUtil.generateUUID())
-    const now = Date.now()
-    const meta = TimeUtil.format(now, 'YYYY-MM-DD HH:mm')
-    const message = computed(() => ({
-        id: id.value,
-        content: options.content,
-        timestamp: now,
-        title: options.title,
-        meta: meta,
-        timeout: 2000,
-    }))
+
+    function add(level: NotificationMessage['level'], title: string, content: string) {
+        notificationStore.addNotification({
+            id: CryptoUtil.generateUUID(),
+            content,
+            timestamp: Date.now(),
+            title,
+            meta: TimeUtil.format(Date.now(), 'YYYY-MM-DD HH:mm'),
+            timeout: 2000,
+            level,
+        })
+    }
 
     return {
-        info: (title: string, content: string) => notificationStore.addNotification({
-            ...message.value,
-            level: 'info',
-            title: title,
-            content: content,
-        }),
-        success: (title: string, content: string) => notificationStore.addNotification({
-            ...message.value,
-            level: 'success',
-            title: title,
-            content: content,
-        }),
-        error: (title: string, content: string) => notificationStore.addNotification({
-            ...message.value,
-            level: 'error',
-            title: title,
-            content: content,
-        }),
-        warn: (title: string, content: string) => notificationStore.addNotification({
-            ...message.value,
-            level: 'warning',
-            title: title,
-            content: content,
-        }),
+        info: (title: string, content: string) => add('info', title, content),
+        success: (title: string, content: string) => add('success', title, content),
+        error: (title: string, content: string) => add('error', title, content),
+        warn: (title: string, content: string) => add('warning', title, content),
     }
 }
 
@@ -68,4 +49,3 @@ export function useSystemNotification() {
             window.electronAPI.system.showSystemNotification('warning', title, content),
     }
 }
-

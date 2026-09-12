@@ -11,7 +11,6 @@
           <n-breadcrumb-item v-for="(item, index) in breadcrumbItems" :key="item.key" class="breadcrumb-item"
             :clickable="index < breadcrumbItems.length - 1" @click="navigateBreadcrumb(item)">
             {{ item.label }}
-            <n-icon :component="ArrowForwardIosOutlined" size="12" class="nav-arrow" />
           </n-breadcrumb-item>
         </n-breadcrumb>
         <n-scrollbar class="settings-content">
@@ -36,7 +35,7 @@ import KeymapSettings from "@/renderer/components/settings/KeymapSettings.vue";
 import TemplateSettings from "@/renderer/components/settings/TemplateSettings.vue";
 import { DiceOutline, DocumentTextOutline, OptionsOutline } from "@vicons/ionicons5";
 
-import { ArrowForwardIosOutlined, KeyboardAltOutlined } from "@vicons/material";
+import { KeyboardAltOutlined } from "@vicons/material";
 import { useRouter } from "vue-router";
 
 const props = defineProps<{
@@ -156,7 +155,7 @@ const subPageBreadcrumbMap: Record<string, { key: string; labelKey: string }[]> 
   ],
   "model.defaults": [
     { key: "model", labelKey: "SETTINGS.AI_SETTINGS.INTELLIGENT" },
-    { key: "model.defaults", labelKey: "SETTINGS.DEFAULT_MODEL_GENERAL" },
+    { key: "model.defaults", labelKey: "SETTINGS.DEFAULT_MODEL" },
   ],
 };
 

@@ -4,11 +4,11 @@
       <!-- 通用默认模型（outputType 兜底） -->
       <n-flex class="setting-row">
         <n-flex align="center" class="setting-content">
-          <n-text class="setting-label">{{ t("SETTINGS.DEFAULT_MODEL_GENERAL") }}</n-text>
-          <n-text class="setting-desc">{{ t("SETTINGS.DEFAULT_MODEL_GENERAL_DESC") }}</n-text>
+          <n-text class="setting-label">{{ t("SETTINGS.DEFAULT_MODEL") }}</n-text>
+          <n-text class="setting-desc">{{ t("SETTINGS.DEFAULT_MODEL_DESC") }}</n-text>
         </n-flex>
         <n-select :value="getDefaultValue()" :options="textModelsOptions" class="setting-select" clearable
-          :placeholder="t('SETTINGS.SELECT_MODEL')"
+          :placeholder="t('SETTINGS.AI_SETTINGS.SELECT_MODEL')"
           @update:value="(v: string | null) => updateGeneralDefault(v)" />
       </n-flex>
 
@@ -19,7 +19,7 @@
           <n-text class="setting-desc">{{ t(`SETTINGS.TASK_TYPE.${task}_DESC`) }}</n-text>
         </n-flex>
         <n-select :value="getDefaultValue(task)" :options="textModelsOptions" class="setting-select" clearable
-          :placeholder="t('SETTINGS.SELECT_MODEL')"
+          :placeholder="t('SETTINGS.AI_SETTINGS.SELECT_MODEL')"
           @update:value="(v: string | null) => updateTaskDefault(task, v)" />
       </n-flex>
     </n-flex>

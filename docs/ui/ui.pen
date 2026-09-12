@@ -28,6 +28,34 @@
           "height": 256
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "T3sWEi",
+      "x": -450,
+      "y": -1072,
+      "name": "openai logo",
+      "clip": true,
+      "width": 256,
+      "height": 256,
+      "fill": "#FFFFFF",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "q84CU",
+          "x": 37,
+          "y": 37,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "image.png",
+            "mode": "fill"
+          },
+          "width": 182,
+          "height": 182
+        }
+      ]
     }
   ],
   "variables": {

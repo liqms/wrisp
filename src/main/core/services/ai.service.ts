@@ -6,6 +6,7 @@ import { modelService } from "@/main/core/services/model.service";
 import { configService } from "@/main/core/services/config.service";
 import { modelMetaService } from "@/main/core/services/model-meta.service";
 import { LLMRequest, LLMResponse, LLMStreamChunk, CostSummary, CostRecord, Model } from "@/main/core/model-gateway/llm-gateway/types";
+import { AIProvider } from "@/shared/types/model.types";
 import { Logger } from "@/main/utils/logger";
 
 class AIService {
@@ -84,13 +85,16 @@ class AIService {
   }
 
   /** 获取指定 Provider 支持的模型列表（调用厂商 /models 接口，并合并本地元信息） */
-  async listModels(providerId: string): Promise<Model[]> {
-    const adapter = this.ensureGateway().getProviderManager().getAdapterByProvider(providerId);
+  async listModels(provider: AIProvider): Promise<Model[]> {
+    const providerManager = this.ensureGateway().getProviderManager();
+    // 始终用传入配置构造临时适配器，确保使用表单中当前的 API Key/接口地址
+    // （新增时尚未持久化无法注册；编辑时已注册适配器仍持有旧配置）
+    const adapter = providerManager.createTemporaryAdapter(provider);
     if (!adapter) {
-      throw new Error(`Provider [${providerId}] 未注册或未启用`);
+      throw new Error(`Provider [${provider.id}] 未注册或未启用`);
     }
     const models = await adapter.listModels();
-    const metaMap = modelMetaService.getProviderModels(providerId);
+    const metaMap = modelMetaService.getProviderModels(provider.id);
     if (Object.keys(metaMap).length === 0) return models;
 
     return models.map((m) => {

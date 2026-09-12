@@ -43,28 +43,16 @@ export class ProviderManager {
 
   /** 根据 Provider ID 创建对应的适配器实例 */
   private createAdapter(provider: AIProvider): BaseAdapter | null {
-    try {
-      const pid = provider.id.toLowerCase();
-      if (pid === "deepseek") {
-        return new DeepSeekAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
-      }
-      if (pid === "qwen" || pid.includes("qwen") || pid.includes("tongyi")) {
-        return new QwenAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
-      }
-      if (pid === "claude" || pid.includes("anthropic")) {
-        return new ClaudeAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
-      }
-      if (pid === "local" || pid === "ollama" || pid.includes("ollama")) {
-        return new LocalAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
-      }
-      if (pid === "volcengine" || pid.includes("volc") || pid.includes("doubao")) {
-        return new VolcengineAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
-      }
-      return new OpenAIAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
-    } catch (error) {
-      Logger.error(`创建 Provider [${provider.id}] 适配器失败`, { error: String(error) });
-      return null;
-    }
+    return createProviderAdapter(provider);
+  }
+
+  /**
+   * 根据未保存的 Provider 配置创建一个临时适配器（不注册进管理器，供拉取模型等场景使用）。
+   * 页面新增 Provider 时尚未持久化，无法通过 getAdapterByProvider 获取，故需临时构造。
+   */
+  createTemporaryAdapter(provider: AIProvider): BaseAdapter | null {
+    if (!provider.enabled) return null;
+    return createProviderAdapter(provider);
   }
 
   /** 根据模型名称查找对应的适配器 */
@@ -144,5 +132,31 @@ export class ProviderManager {
   refreshAll(providers: AIProvider[], providerPriority: string[]): void {
     this.adapters.clear();
     this.initFromConfig(providers, providerPriority);
+  }
+}
+
+/** 根据 Provider 配置创建对应的适配器实例 */
+function createProviderAdapter(provider: AIProvider): BaseAdapter | null {
+  try {
+    const pid = provider.id.toLowerCase();
+    if (pid === "deepseek") {
+      return new DeepSeekAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
+    }
+    if (pid === "qwen" || pid.includes("qwen") || pid.includes("tongyi")) {
+      return new QwenAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
+    }
+    if (pid === "claude" || pid.includes("anthropic")) {
+      return new ClaudeAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
+    }
+    if (pid === "local" || pid === "ollama" || pid.includes("ollama")) {
+      return new LocalAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
+    }
+    if (pid === "volcengine" || pid.includes("volc") || pid.includes("doubao")) {
+      return new VolcengineAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
+    }
+    return new OpenAIAdapter(provider.id, provider.name, provider.baseUrl, provider.apiKey || '', provider.models);
+  } catch (error) {
+    Logger.error(`创建 Provider [${provider.id}] 适配器失败`, { error: String(error) });
+    return null;
   }
 }

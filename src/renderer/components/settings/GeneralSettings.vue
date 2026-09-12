@@ -1,5 +1,5 @@
 <template>
-  <n-scrollbar class="general-settings">
+  <n-scrollbar class="general-settings card-has-scrollbar-width">
     <n-card size="medium" :bordered="false" class="setting-card">
       <n-flex align="center" class="setting-row">
         <n-flex align="center" class="setting-content">
@@ -437,7 +437,6 @@ const selectWorkspace = async () => {
 .setting-label {
   width: 130px;
   font-size: $font-base;
-  margin-bottom: $spacing-xs;
 }
 
 .setting-desc {

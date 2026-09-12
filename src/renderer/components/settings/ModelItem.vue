@@ -1,24 +1,26 @@
 <template>
-    <n-flex justify="space-between" align="center" class="model-item" :class="{ clickable: selectable }" @click="handleClick">
+    <n-flex justify="space-between" align="center" class="model-item" :class="{ clickable: selectable }"
+        @click="handleClick">
         <n-flex align="center" class="model-info">
-            <n-checkbox v-if="selectable" :checked="checked" class="model-checkbox" @update:checked.stop="handleToggle" />
+            <n-checkbox v-if="selectable" :checked="checked" class="model-checkbox"
+                @update:checked.stop="handleToggle" />
             <n-text class="model-name">{{ model.name }}</n-text>
-            <n-space class="input-icons" align="center">
-                <n-icon v-if="model.isInputText" class="model-icon" size="16">
-                    <TextIcon />
-                </n-icon>
-                <n-icon v-if="model.isInputPic" class="model-icon" size="16">
-                    <ImageIcon />
-                </n-icon>
-                <n-icon v-if="model.isInputAudio" class="model-icon" size="16">
-                    <AudioIcon />
-                </n-icon>
-                <n-icon v-if="model.isInputVideo" class="model-icon" size="16">
-                    <VideoIcon />
-                </n-icon>
-            </n-space>
+
+            <n-icon v-if="model.isInputText" class="model-icon" size="14">
+                <TextIcon />
+            </n-icon>
+            <n-icon v-if="model.isInputPic" class="model-icon" size="14">
+                <ImageIcon />
+            </n-icon>
+            <n-icon v-if="model.isInputAudio" class="model-icon" size="14">
+                <AudioIcon />
+            </n-icon>
+            <n-icon v-if="model.isInputVideo" class="model-icon" size="14">
+                <VideoIcon />
+            </n-icon>
+
             <n-divider vertical class="model-divider" />
-            <n-icon class="model-icon" size="16">
+            <n-icon class="model-icon" size="14">
                 <Component :is="outputIcon" />
             </n-icon>
         </n-flex>
@@ -133,18 +135,14 @@ const handleToggle = (val: boolean): void => {
     color: var(--text-primary);
 }
 
-.input-icons {
-    gap: $spacing-xs !important;
-    display: inline-flex;
-    align-items: center;
-    height: 16px;
-}
-
 .model-icon {
     color: var(--icon-color);
     display: inline-flex;
     align-items: center;
+    margin: auto 0;
+    justify-content: center;
 }
+
 
 .model-divider {
     height: 10px;
