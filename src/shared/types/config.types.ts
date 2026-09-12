@@ -6,6 +6,7 @@ import {
 } from "@/shared/enums/config.enums";
 import type { Profession } from "@/shared/enums/profession.enums";
 import type { WritingPreference } from "./writing-preference.types";
+import type { LocalizedText } from "./template.types";
 
 export interface General {
   themeMode: ThemeMode;
@@ -48,6 +49,8 @@ export interface SkillsConfig {
 
 export interface KeymapItem {
   id: string;
+  /** 快捷键名称（双语，zh/en） */
+  name: LocalizedText;
   keys: string;
 }
 

@@ -1,6 +1,6 @@
 import { computed, watch } from "vue";
 import { useConfigStore } from "@/renderer/store/config.store";
-import type { AppConfig } from "@/shared/types";
+import type { AppConfig, KeymapItem } from "@/shared/types";
 import {
   THEME_MODE,
   LOCALE,
@@ -268,7 +268,7 @@ export function useConfig(options: UseConfigOptions = {}) {
   }
 
   async function updateShortcuts(
-    newShortcuts: { id: string; keys: string }[],
+    newShortcuts: KeymapItem[],
   ): Promise<boolean> {
     return await setValue("shortcuts", newShortcuts);
   }

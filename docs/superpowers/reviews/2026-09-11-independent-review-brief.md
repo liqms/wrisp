@@ -18,7 +18,7 @@
 - 本分支由 8 份计划、36 个任务按 TDD 执行而成；**计划里的复选框未被勾选**，进度请以 `git log` 为准，不要以计划文本为准。
 - 计划文本与最终代码存在**已记录的偏离**，散落在各计划的"执行时的偏离/裁定"段落与 `.superpowers/sdd/2026-09-10-material-retrieval-by-project/progress.md` 账本中。请把"代码与计划不一致"与"代码本身有缺陷"分开评价。
 - **接线层（IPC 四层 + 向导 UI）是有意未做的**，不要把它计为缺陷；但请指出"因为缺接线而产生的问题"（例如某个纯函数永远拿不到真实输入）。
-- 工作区有两处**非本分支产物**，请忽略：`src/renderer/components/settings/TemplateSettings.vue` 的未提交改动、未跟踪的 `config/`（开发运行时状态）。
+- 工作区有两处**非本分支产物**，请忽略：`src/renderer/components/settings/template/TemplateSettings.vue` 的未提交改动、未跟踪的 `config/`（开发运行时状态）。
 
 ## 请重点检查（按优先级）
 

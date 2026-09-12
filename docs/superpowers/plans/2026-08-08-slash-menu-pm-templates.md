@@ -38,7 +38,7 @@ src/renderer/components/editor/slash/commands/
 - `src/shared/types/config.types.ts` — `UserInfo.preferences` 新增 `profession?: Profession`（MODIFY）
 - `src/main/constants/config.constants.ts` — `preferences` 默认值新增 `profession: PROFESSION.PM`（MODIFY）
 - `src/renderer/components/editor/slash/SlashMenu.vue` — 删除内联命令组 + 格式/块命令，改用注册表并读取职业（MODIFY）
-- `src/renderer/components/settings/GeneralSettings.vue` — 新增「职业」下拉设置（MODIFY）
+- `src/renderer/components/settings/general/GeneralSettings.vue` — 新增「职业」下拉设置（MODIFY）
 - `src/shared/i18n/locales/zhCN.ts`、`enUS.ts` — 新增职业设置与模板分组键（MODIFY）
 
 **测试文件：**
@@ -681,7 +681,7 @@ function executeCommand(cmd: SlashCommand) {
 
 **Files:**
 
-- Modify: `src/renderer/components/settings/GeneralSettings.vue`
+- Modify: `src/renderer/components/settings/general/GeneralSettings.vue`
 
 - [ ] **Step 1: 新增职业选择行（仿照 KeymapSettings 的 `configStore.setValue` 模式）**
 

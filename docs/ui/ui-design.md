@@ -312,7 +312,7 @@ Block 可以是想法、待办、引用、语录、附件等类型。
 | `Enter` | 提交/发送当前输入 |
 | `Shift + Enter` | 换行（在输入框中） |
 
-> 参考组件：`components/settings/KeymapSettings.vue` 支持快捷键录制与自定义。
+> 参考组件：`components/settings/keymap/KeymapSettings.vue` 支持快捷键录制与自定义。
 
 ---
 

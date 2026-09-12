@@ -63,7 +63,7 @@
 | `src/renderer/store/template.store.ts` | 内置改走 IPC 加载、监听 `resource:updated` |
 | `src/renderer/components/editor/slash/commands/templates.ts` | 删除 `builtinTemplates` 字面量，保留 `buildTemplateGroup` |
 | `src/renderer/components/editor/slash/commands/template-merge.ts` | 入参类型从 `BuiltInTemplateDef[]` 改为 `TemplateResourceFile[]` |
-| `src/renderer/components/settings/TemplateSettings.vue` | 新增来源标识、版本号、tags 筛选、同步按钮 |
+| `src/renderer/components/settings/template/TemplateSettings.vue` | 新增来源标识、版本号、tags 筛选、同步按钮 |
 | `vite.config.mts` | 新增 `copyResources()` |
 | `tests/unit/renderer/template-merge.test.ts` | 适配新入参类型 |
 | `tests/unit/renderer/slash-templates.test.ts` | 适配删除 `builtinTemplates` |
@@ -2741,13 +2741,13 @@ git commit -m "feat(resource): register handlers and trigger async sync on start
 ### Task 23: TemplateSettings 新增版本/同步按钮
 
 **Files:**
-- Modify: `src/renderer/components/settings/TemplateSettings.vue`
+- Modify: `src/renderer/components/settings/template/TemplateSettings.vue`
 
 **说明：** 本任务为增强。新增：版本列、"立即检查模板更新"按钮、监听 `resource:updated` 刷新 store。
 
 - [ ] **Step 1: 修改 TemplateSettings.vue**
 
-修改 `src/renderer/components/settings/TemplateSettings.vue`。
+修改 `src/renderer/components/settings/template/TemplateSettings.vue`。
 
 在 `<script setup>` 中，在 `import { useTemplateStore }` 之后追加：
 
@@ -2850,7 +2850,7 @@ Expected: 通过
 - [ ] **Step 5: 提交**
 
 ```bash
-git add src/renderer/components/settings/TemplateSettings.vue src/shared/i18n/locales/zhCN.ts src/shared/i18n/locales/enUS.ts
+git add src/renderer/components/settings/template/TemplateSettings.vue src/shared/i18n/locales/zhCN.ts src/shared/i18n/locales/enUS.ts
 git commit -m "feat(ui): TemplateSettings adds version column and sync-now button"
 ```
 

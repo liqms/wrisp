@@ -45,7 +45,7 @@
 - `src/renderer/store/template.store.ts` — 按类型状态 + `allTemplates(type, locale)`
 - `src/renderer/components/editor/slash/commands/templates.ts`、`template-merge.ts`、`registry.ts` — 类型重命名/导入调整
 - `src/renderer/components/editor/slash/SlashMenu.vue` — 按 slash 类型取模板
-- `src/renderer/components/settings/TemplateSettings.vue` — 类型切换 + 按类型操作
+- `src/renderer/components/settings/template/TemplateSettings.vue` — 类型切换 + 按类型操作
 - `src/renderer/components/project/FileTree.vue` — 接入新建页面弹窗
 - `src/shared/i18n/locales/zhCN.ts`、`enUS.ts` — 新文案
 - `tests/unit/renderer/template-merge.test.ts`、`slash-templates.test.ts`、`tests/unit/main/template.api.test.ts` — 适配新类型/签名
@@ -80,7 +80,7 @@ Expected: 切换到新分支 `feature/template-types`，工作区干净。
 - Modify: `src/renderer/components/editor/slash/commands/templates.ts`（头部 import + 删除本地接口）
 - Modify: `src/renderer/components/editor/slash/commands/template-merge.ts`
 - Modify: `src/renderer/components/editor/slash/commands/registry.ts`
-- Modify: `src/main/core/services/template.service.ts`、`src/main/core/apis/template.api.ts`、`src/main/ipcMain/template.ipc.ts`、`src/main/preload/types/template.ts`、`src/renderer/store/template.store.ts`、`src/renderer/components/settings/TemplateSettings.vue`（仅类型名替换）
+- Modify: `src/main/core/services/template.service.ts`、`src/main/core/apis/template.api.ts`、`src/main/ipcMain/template.ipc.ts`、`src/main/preload/types/template.ts`、`src/renderer/store/template.store.ts`、`src/renderer/components/settings/template/TemplateSettings.vue`（仅类型名替换）
 - Modify: `tests/unit/renderer/template-merge.test.ts`、`tests/unit/renderer/slash-templates.test.ts`（类型名替换）
 
 - [ ] **Step 1: 在 `src/shared/enums/template.enums.ts` 顶部（文件注释之后、`TEMPLATE_ICON_NAMES` 之前）新增模板类型枚举**
@@ -253,7 +253,7 @@ export function mergeTemplates(
 | `src/main/ipcMain/template.ipc.ts` | `SlashTemplateFile` → `TemplateFile`（共 6 处） |
 | `src/main/preload/types/template.ts` | `SlashTemplateFile` → `TemplateFile`（共 6 处） |
 | `src/renderer/store/template.store.ts` | `SlashTemplateFile` → `TemplateFile`；`SlashTemplateItem` → `TemplateItem` |
-| `src/renderer/components/settings/TemplateSettings.vue` | `SlashTemplateItem` → `TemplateItem`（含 import 与全部类型标注） |
+| `src/renderer/components/settings/template/TemplateSettings.vue` | `SlashTemplateItem` → `TemplateItem`（含 import 与全部类型标注） |
 
 - [ ] **Step 7: 更新两个测试文件的类型名**
 
@@ -788,7 +788,7 @@ git commit -m "feat(template): add built-in page document templates"
 - Modify: `src/main/preload/types/template.ts`、`src/main/preload/modules/template.ts`
 - Modify: `src/renderer/store/template.store.ts`
 - Modify: `src/renderer/components/editor/slash/SlashMenu.vue`
-- Modify: `src/renderer/components/settings/TemplateSettings.vue`（最小适配）
+- Modify: `src/renderer/components/settings/template/TemplateSettings.vue`（最小适配）
 - Modify: `tests/unit/main/template.api.test.ts`
 
 - [ ] **Step 1: `src/main/constants/folder.constants.ts` 追加页面模板常量**
@@ -1283,7 +1283,7 @@ const items = templateStore
 
 （`.filter` 的职业过滤逻辑保持不变。）
 
-- [ ] **Step 9: 最小适配 `src/renderer/components/settings/TemplateSettings.vue`（暂固定 slash 类型，Task 5 再加切换）**
+- [ ] **Step 9: 最小适配 `src/renderer/components/settings/template/TemplateSettings.vue`（暂固定 slash 类型，Task 5 再加切换）**
 
 1. import 区新增：`import { TEMPLATE_TYPE } from "@/shared/enums/template.enums";`
 2. 第 54 行 `if (!store.loaded) store.fetch();` 改为：
@@ -1536,7 +1536,7 @@ git commit -m "feat(i18n): add template type and page create texts"
 ### Task 5: 设置页按类型切换管理模板
 
 **Files:**
-- Modify: `src/renderer/components/settings/TemplateSettings.vue`
+- Modify: `src/renderer/components/settings/template/TemplateSettings.vue`
 
 - [ ] **Step 1: 模板区新增类型 Tab 切换**
 
@@ -1629,7 +1629,7 @@ Expected: 均通过。
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/renderer/components/settings/TemplateSettings.vue
+git add src/renderer/components/settings/template/TemplateSettings.vue
 git commit -m "feat(settings): manage templates by type with tabs"
 ```
 

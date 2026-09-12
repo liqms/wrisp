@@ -159,7 +159,7 @@ export function resourcePathFromId(type: string, id: string): string {
 | `src/renderer/components/marketplace/TemplateCard.vue`                        | 资源卡片 + 展开详情（支持技能 emoji 图标）                              | 新增 |
 | `src/renderer/views/MarketplaceView.vue`                                      | 市场页（三 Tab/搜索/标签/网格/详情）                                    | 新增 |
 | `src/renderer/router/index.ts`                                                | 新增 `/marketplace` 路由                                                | 修改 |
-| `src/renderer/components/settings/TemplateSettings.vue`                       | 加「进入模板市场」按钮 + emit                                           | 修改 |
+| `src/renderer/components/settings/template/TemplateSettings.vue`                       | 加「进入模板市场」按钮 + emit                                           | 修改 |
 | `src/renderer/components/SettingsView.vue`                                    | 监听关闭事件 + 跳转市场路由                                             | 修改 |
 | `src/shared/i18n/locales/zhCN.ts` / `enUS.ts`                                 | 新增 `SETTINGS.MARKETPLACE.*` 与入口文案、技能 Tab 文案                 | 修改 |
 
@@ -1996,12 +1996,12 @@ git commit -m "feat: 模板 store 新增三类市场目录与安装/卸载动作
 
 **Files:**
 
-- Modify: `src/renderer/components/settings/TemplateSettings.vue`
+- Modify: `src/renderer/components/settings/template/TemplateSettings.vue`
 - Modify: `src/renderer/components/SettingsView.vue`
 
 - [ ] **Step 1: TemplateSettings 增加市场入口按钮与事件**
 
-修改 `src/renderer/components/settings/TemplateSettings.vue`：
+修改 `src/renderer/components/settings/template/TemplateSettings.vue`：
 
 1. 头部按钮区（`n-flex align="center" :size="8"` 内，放在「新建」下拉之前）插入：
 
@@ -2063,7 +2063,7 @@ Expected: 通过。
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/renderer/components/settings/TemplateSettings.vue src/renderer/components/SettingsView.vue
+git add src/renderer/components/settings/template/TemplateSettings.vue src/renderer/components/SettingsView.vue
 git commit -m "feat: 设置-模板管理页新增模板市场入口"
 ```
 

@@ -28,7 +28,7 @@
 - `src/main/preload/modules/index.ts` — 注册 update 模块
 - `src/main/preload/types/index.ts` — 合并 UpdateApi 类型（若以模块聚合）
 - `src/renderer/types/electron.d.ts` — 声明 `update` 域与进度监听
-- `src/renderer/components/settings/GeneralSettings.vue` — 接入"检查更新"与进度
+- `src/renderer/components/settings/general/GeneralSettings.vue` — 接入"检查更新"与进度
 - `src/shared/i18n/locales/zhCN.ts` / `enUS.ts` — 增加 UPDATE 文案 + ERROR.UPDATE
 - `src/shared/enums/errorCode.enums.ts` — 增加更新错误码
 
@@ -563,7 +563,7 @@ git commit -m "feat(update): add update i18n and error codes"
 ### Task 8: 设置页接入"检查更新"与进度
 
 **Files:**
-- Modify: `src/renderer/components/settings/GeneralSettings.vue`
+- Modify: `src/renderer/components/settings/general/GeneralSettings.vue`
 
 - [ ] **Step 1: 接入检查更新逻辑**
 
@@ -700,7 +700,7 @@ Expected: PASS
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/renderer/components/settings/GeneralSettings.vue src/renderer/components/UpdatePrompt.vue
+git add src/renderer/components/settings/general/GeneralSettings.vue src/renderer/components/UpdatePrompt.vue
 git commit -m "feat(update): wire check update button with progress and install"
 ```
 

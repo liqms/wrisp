@@ -502,8 +502,8 @@ export default {
       CONFLICT_WARNING: "快捷键冲突，请重新设置",
       PRESS_KEY: "点击修改",
       CANCEL_RECORD: "取消",
-      SETTINGS: "打开设置",
-      SEARCH: "全局搜索",
+      SEARCH_PLACEHOLDER: "搜索快捷键",
+      NO_MATCH: "无匹配的快捷键",
       SAVE_FAILED: "保存失败",
     },
     COLOR: {

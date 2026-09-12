@@ -1,15 +1,15 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useConfigStore } from "./config.store";
-import type { KeymapItem } from "@/shared/types";
+import type { KeymapItem, LocalizedText } from "@/shared/types";
 
 /** 快捷键动作标识 */
 export type ShortcutActionId = "settings" | "search";
 
-/** 可配置快捷键项（含默认值 + i18n 标签 key） */
+/** 可配置快捷键项（含默认值 + 双语名称） */
 export interface ShortcutItem {
   id: ShortcutActionId;
-  labelKey: string;
+  name: LocalizedText;
   defaultKeys: string;
   currentKeys: string;
 }
@@ -24,13 +24,13 @@ export interface ShortcutItem {
 export const DEFAULT_SHORTCUTS: ShortcutItem[] = [
   {
     id: "settings",
-    labelKey: "SETTINGS.SHORTCUT_SETTINGS.SETTINGS",
+    name: { zh: "打开设置", en: "Open Settings" },
     defaultKeys: "Ctrl+,",
     currentKeys: "Ctrl+,",
   },
   {
     id: "search",
-    labelKey: "SETTINGS.SHORTCUT_SETTINGS.SEARCH",
+    name: { zh: "全局搜索", en: "Global Search" },
     defaultKeys: "Ctrl+Shift+F",
     currentKeys: "Ctrl+Shift+F",
   },
@@ -38,19 +38,21 @@ export const DEFAULT_SHORTCUTS: ShortcutItem[] = [
 
 /**
  * 将已保存的快捷键配置与默认值合并。
- * 已保存的项按 id 覆盖默认值，未保存的项回退到默认值。
+ * 已保存的项按 id 覆盖默认值（keys 与 name），未保存的项回退到默认值。
  */
 export function resolveShortcuts(
   saved: KeymapItem[] | undefined,
   defaults: ShortcutItem[] = DEFAULT_SHORTCUTS,
 ): ShortcutItem[] {
-  const savedMap = new Map<string, string>(
-    (saved ?? []).map((s) => [s.id, s.keys]),
-  );
-  return defaults.map((d) => ({
-    ...d,
-    currentKeys: savedMap.get(d.id) ?? d.defaultKeys,
-  }));
+  const savedMap = new Map<string, KeymapItem>((saved ?? []).map((s) => [s.id, s]));
+  return defaults.map((d) => {
+    const savedItem = savedMap.get(d.id);
+    return {
+      ...d,
+      name: savedItem?.name ?? d.name,
+      currentKeys: savedItem?.keys ?? d.defaultKeys,
+    };
+  });
 }
 
 /** 修饰键规范顺序（用于规范化排序） */

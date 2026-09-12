@@ -510,8 +510,8 @@ export default {
       CONFLICT_WARNING: "Shortcut conflict, please re-record",
       PRESS_KEY: "Click to edit",
       CANCEL_RECORD: "Cancel",
-      SETTINGS: "Open Settings",
-      SEARCH: "Global Search",
+      SEARCH_PLACEHOLDER: "Search shortcuts",
+      NO_MATCH: "No matching shortcuts",
       SAVE_FAILED: "Failed to save, please retry",
     },
     COLOR: {

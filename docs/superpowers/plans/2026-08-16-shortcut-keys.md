@@ -40,7 +40,7 @@
 
 - `src/renderer/composables/index.ts` — 导出 `useShortcut`（MODIFY）
 - `src/shared/i18n/locales/zhCN.ts`、`enUS.ts` — 更新 `SHORTCUT_SETTINGS` 键（MODIFY，必须成对）
-- `src/renderer/components/settings/KeymapSettings.vue` — 配置回显 + 冲突提示 + 移除死项（MODIFY/REWRITE）
+- `src/renderer/components/settings/keymap/KeymapSettings.vue` — 配置回显 + 冲突提示 + 移除死项（MODIFY/REWRITE）
 - `src/renderer/App.vue` — 挂载 `GlobalSearch` + 注册/注销全局监听（MODIFY）
 - `src/renderer/components/AppHeader.vue` — 设置弹窗状态改用 store（MODIFY）
 
@@ -420,11 +420,11 @@ git commit -m "feat: 更新快捷键设置 i18n 键"
 
 **Files:**
 
-- Rewrite: `src/renderer/components/settings/KeymapSettings.vue`
+- Rewrite: `src/renderer/components/settings/keymap/KeymapSettings.vue`
 
 - [ ] **Step 1: 重写组件**
 
-Create（覆盖）`src/renderer/components/settings/KeymapSettings.vue`:
+Create（覆盖）`src/renderer/components/settings/keymap/KeymapSettings.vue`:
 
 ```vue
 <template>
@@ -558,7 +558,7 @@ Expected: PASS。
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/renderer/components/settings/KeymapSettings.vue
+git add src/renderer/components/settings/keymap/KeymapSettings.vue
 git commit -m "feat: 修复快捷键配置回显并增加冲突提示"
 ```
 

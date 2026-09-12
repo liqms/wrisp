@@ -1,5 +1,5 @@
 <template>
-  <n-scrollbar class="template-settings">
+  <n-scrollbar class="template-settings card-has-scrollbar-width">
     <!-- 社区模板市场 -->
     <n-card size="medium" :bordered="false" class="setting-card">
       <n-flex class="setting-row">

@@ -65,7 +65,7 @@ import { useI18n } from "vue-i18n";
 import { useModel } from "@/renderer/composables";
 import { ChevronForward } from "@vicons/ionicons5";
 import { useDownloadStore } from "@/renderer/store/download.store";
-import DownloadButton from "../base/DownloadButton.vue";
+import DownloadButton from "../../base/DownloadButton.vue";
 
 const PAGE_PROVIDERS = "model.providers";
 const PAGE_DEFAULTS = "model.defaults";

@@ -88,7 +88,7 @@ tests/unit/
 
 - Modify: `src/shared/enums/profession.enums.ts`
 - Modify: `src/shared/i18n/locales/zhCN.ts`、`enUS.ts`（`SETTINGS.PROFESSION.OPTION_*`）
-- Modify: `src/renderer/components/settings/GeneralSettings.vue`（职业下拉选项）
+- Modify: `src/renderer/components/settings/general/GeneralSettings.vue`（职业下拉选项）
 
 - [ ] **Step 1: 扩展职业枚举**
 
@@ -1289,14 +1289,14 @@ const commandGroups = computed<CommandGroup[]>(() => {
 
 **Files:**
 
-- Create: `src/renderer/components/settings/TemplateSettings.vue`
-- Create: `src/renderer/components/settings/TemplateEditModal.vue`
+- Create: `src/renderer/components/settings/template/TemplateSettings.vue`
+- Create: `src/renderer/components/settings/template/TemplateEditModal.vue`
 - Modify: `src/renderer/components/SettingsView.vue`
 
 - [ ] **Step 1: 编辑弹窗**
 
 ```vue
-<!-- src/renderer/components/settings/TemplateEditModal.vue -->
+<!-- src/renderer/components/settings/template/TemplateEditModal.vue -->
 <template>
   <n-modal
     v-model:show="show"
@@ -1421,7 +1421,7 @@ function submit() {
 - [ ] **Step 2: TemplateSettings 设置页**
 
 ```vue
-<!-- src/renderer/components/settings/TemplateSettings.vue -->
+<!-- src/renderer/components/settings/template/TemplateSettings.vue -->
 <template>
   <n-scrollbar class="template-settings">
     <n-card size="medium" :bordered="false" class="setting-card">
@@ -1509,7 +1509,7 @@ import type {
 } from "@/shared/types/template.types";
 import { useTemplateStore } from "@/renderer/store/template.store";
 import { useConfig } from "@/renderer/composables/useConfig";
-import TemplateEditModal from "@/renderer/components/settings/TemplateEditModal.vue";
+import TemplateEditModal from "@/renderer/components/settings/template/TemplateEditModal.vue";
 
 const { t } = useI18n();
 const message = useMessage();
@@ -1616,7 +1616,7 @@ function onDelete(item: SlashTemplateItem) {
 
 - [ ] **Step 3: SettingsView.vue 注册菜单**
 
-新增 import：`import TemplateSettings from "@/renderer/components/settings/TemplateSettings.vue";` 与图标 `import { DocumentTextOutline } from "@vicons/ionicons5";`。
+新增 import：`import TemplateSettings from "@/renderer/components/settings/template/TemplateSettings.vue";` 与图标 `import { DocumentTextOutline } from "@vicons/ionicons5";`。
 
 `menuOptions` 增加（放在 keymap 后）：
 

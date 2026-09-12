@@ -314,7 +314,7 @@
 | `components/project/ProjectList.vue` ※              | 项目列表/卡片               |
 | `components/project/OutlineTree.vue` ※              | 页面大纲树（拖拽排序）      |
 | `components/project/AiAssistantPanel.vue` ※         | AI 助手面板                 |
-| `components/settings/DataManagement.vue` ※          | 数据管理设置                |
+| `components/settings/general/DataManagement.vue` ※          | 数据管理设置                |
 | `components/welcome/WelcomeWorkspaceStep.vue` ※     | 向导：工作空间选择          |
 | `components/welcome/WelcomeModelDownloadStep.vue` ※ | 向导：模型下载              |
 | `components/welcome/WelcomeApiConfigStep.vue` ※     | 向导：API 配置              |

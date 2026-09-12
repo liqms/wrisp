@@ -61,7 +61,7 @@ pages(id, project_id REFERENCES projects(id) ON DELETE SET NULL, title, file_pat
 | 修改 | `src/renderer/types/electron.d.ts` | 渲染进程 `window.electronAPI` 声明 |
 | 修改 | `src/renderer/store/project.store.ts` | Pinia action |
 | 修改 | `src/renderer/composables/useProject.ts` | composable 包装 |
-| 修改 | `src/renderer/components/settings/GeneralSettings.vue` | 重建索引按钮调用两个重置 |
+| 修改 | `src/renderer/components/settings/general/GeneralSettings.vue` | 重建索引按钮调用两个重置 |
 | 修改 | `src/shared/i18n/locales/zhCN.ts` / `enUS.ts` | 文案 + 错误消息（两文件对称） |
 
 ---
@@ -828,7 +828,7 @@ git commit -m "feat: 新增 project:resetProjectTable IPC 通道"
 **Files:**
 - Modify: `src/renderer/store/project.store.ts`
 - Modify: `src/renderer/composables/useProject.ts`
-- Modify: `src/renderer/components/settings/GeneralSettings.vue`
+- Modify: `src/renderer/components/settings/general/GeneralSettings.vue`
 - Modify: `src/shared/i18n/locales/zhCN.ts`（DATA_MANAGER_SETTINGS 段，约 380-387 行）
 - Modify: `src/shared/i18n/locales/enUS.ts`（DATA_MANAGER_SETTINGS 段，约 383-390 行）
 
@@ -926,7 +926,7 @@ git commit -m "feat: 新增 project:resetProjectTable IPC 通道"
 
 - [ ] **Step 4: 设置页 rebuildIndex 调用两个重置**
 
-`src/renderer/components/settings/GeneralSettings.vue`：
+`src/renderer/components/settings/general/GeneralSettings.vue`：
 1. 导入区（`useJournal` 导入之后）追加：
 
 ```ts
@@ -976,7 +976,7 @@ pnpm test tests/unit/shared/locale-keys.test.ts
 预期：typecheck 无错误；locale-keys 测试 PASS（两语言键对称）。提交：
 
 ```bash
-git add src/renderer/store/project.store.ts src/renderer/composables/useProject.ts src/renderer/components/settings/GeneralSettings.vue src/shared/i18n/locales/zhCN.ts src/shared/i18n/locales/enUS.ts
+git add src/renderer/store/project.store.ts src/renderer/composables/useProject.ts src/renderer/components/settings/general/GeneralSettings.vue src/shared/i18n/locales/zhCN.ts src/shared/i18n/locales/enUS.ts
 git commit -m "feat: 设置页重建索引同时重载日志与项目数据"
 ```
 

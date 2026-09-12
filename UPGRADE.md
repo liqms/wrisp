@@ -67,7 +67,7 @@ pnpm prod --publish always
 
 ## 3. 用户侧自动更新
 
-设置 → 常规 →「检查更新」→ 下载 →「立即安装」→ 重启（[update.service.ts](src/main/core/services/update.service.ts) / [GeneralSettings.vue](src/renderer/components/settings/GeneralSettings.vue) / [UpdatePrompt.vue](src/renderer/components/UpdatePrompt.vue)）。
+设置 → 常规 →「检查更新」→ 下载 →「立即安装」→ 重启（[update.service.ts](src/main/core/services/update.service.ts) / [GeneralSettings.vue](src/renderer/components/settings/general/GeneralSettings.vue) / [UpdatePrompt.vue](src/renderer/components/UpdatePrompt.vue)）。
 
 生效前提：
 
@@ -119,6 +119,6 @@ pnpm prod --publish always
 | 数据库初始化             | [`src/main/schemas/init.sql`](src/main/schemas/init.sql)                                                                                       |
 | 配置 / 模型配置迁移      | [`config.migration.ts`](src/main/core/migration/config.migration.ts) / [`model.migration.ts`](src/main/core/migration/model.migration.ts)      |
 | 更新服务 / IPC           | [`update.service.ts`](src/main/core/services/update.service.ts) / [`update.api.ts`](src/main/core/apis/update.api.ts)                          |
-| 更新 UI                  | [`UpdatePrompt.vue`](src/renderer/components/UpdatePrompt.vue) / [`GeneralSettings.vue`](src/renderer/components/settings/GeneralSettings.vue) |
+| 更新 UI                  | [`UpdatePrompt.vue`](src/renderer/components/UpdatePrompt.vue) / [`GeneralSettings.vue`](src/renderer/components/settings/general/GeneralSettings.vue) |
 | 备份任务                 | [`backup.task.ts`](src/main/core/scheduler/backup.task.ts)                                                                                     |
 | CI 发布工作流            | [`.github/workflows/release.yml`](.github/workflows/release.yml)                                                                               |
