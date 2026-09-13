@@ -31,6 +31,7 @@ vi.mock("@/main/core/skills/project-skill.store", () => ({
   getProjectSkillsDir: (p: string) => `${p}/skills`,
 }));
 
+// setWorkspace 会关闭数据库连接并执行数据库迁移，单测中替换为轻量实现
 vi.mock("@/main/core/db/connection", () => ({
   closeDatabase: vi.fn(),
   setWorkspacePath: (p: string) => {
@@ -59,7 +60,7 @@ function writeBuiltinSkill(workspace: string, skillId: string): void {
       {
         id: skillId,
         name: { zh: skillId, en: skillId },
-        description: { zh: "", en: "" },
+        description: { zh: "测试技能", en: "Test skill" },
         icon: "📝",
         version: "1.0.0",
         author: "test",
@@ -84,20 +85,21 @@ function skillIds(): string[] {
   return skillManager.getSkills().map((s) => s.id);
 }
 
-describe("工作空间切换后技能加载", () => {
-  it("启动时配置里必有兜底工作空间（SkillManager 的“无 workspace”分支不可达）", () => {
+describe("SkillManager 随工作空间切换重新初始化", () => {
+  it("启动时配置里必有工作空间兜底值", () => {
+    // ConfigService.loadConfig 会把空 workspace 兜底为默认目录，
+    // 因此 SkillManager.initialize() 里的“无 workspace 跳过”分支在正常流程中不可达
     const workspace = configService.getValue<string>("workspace");
     expect(typeof workspace).toBe("string");
     expect((workspace ?? "").trim()).not.toBe("");
   });
 
-  it("切换工作空间后应加载新工作空间的技能、丢弃旧工作空间的技能", async () => {
+  it("切换工作空间后加载新工作空间的技能，并丢弃旧工作空间的技能", async () => {
     const wsA = mountWorkspace("skill-a");
 
     // setWorkspace 会在所选目录下再拼一层 Wrisp
     const pickedDir = fs.mkdtempSync(path.join(os.tmpdir(), "wrisp-pick-"));
-    const wsB = path.join(pickedDir, "Wrisp");
-    writeBuiltinSkill(wsB, "skill-b");
+    writeBuiltinSkill(path.join(pickedDir, "Wrisp"), "skill-b");
 
     // 启动：工作空间 A
     (globalThis as Record<string, unknown>).__WRISP_WORKSPACE_PATH__ = wsA;
