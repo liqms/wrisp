@@ -16,6 +16,9 @@ export const RESOURCES_DIR = "resources" as const;
 /** 主数据库文件名 */
 export const MAIN_DB_FILE = "wrisp.db" as const;
 
+/** 工作空间级备份目录（隐藏前缀，统一存放 config + sqlite 备份） */
+export const WORKSPACE_BACKUPS_DIR = ".wrisp-backups" as const;
+
 // ============ UserData 文件夹 ============
 
 /** 配置文件存储文件夹 (electron-store) */

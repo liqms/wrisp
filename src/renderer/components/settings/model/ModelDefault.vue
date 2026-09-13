@@ -1,8 +1,8 @@
 <template>
-  <n-card v-if="enableCloudAi && textModelsOptions.length > 0" size="medium" :bordered="false" class="setting-card">
-    <n-flex vertical class="setting-list">
-      <!-- 通用默认模型（outputType 兜底） -->
-      <n-flex class="setting-row">
+  <template v-if="enableCloudAi && textModelsOptions.length > 0">
+    <!-- 通用默认模型（outputType 兜底）：独立卡片 -->
+    <n-card size="medium" :bordered="false" class="setting-card">
+      <n-flex align="center" class="setting-row">
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{ t("SETTINGS.DEFAULT_MODEL") }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.DEFAULT_MODEL_DESC") }}</n-text>
@@ -11,19 +11,24 @@
           :placeholder="t('SETTINGS.AI_SETTINGS.SELECT_MODEL')"
           @update:value="(v: string | null) => updateGeneralDefault(v)" />
       </n-flex>
+    </n-card>
 
-      <!-- 按创作类型配置默认模型 -->
-      <n-flex v-for="task in taskTypes" :key="task" class="setting-row">
-        <n-flex align="center" class="setting-content">
-          <n-text class="setting-label">{{ t(`SETTINGS.TASK_TYPE.${task}`) }}</n-text>
-          <n-text class="setting-desc">{{ t(`SETTINGS.TASK_TYPE.${task}_DESC`) }}</n-text>
+    <!-- 按创作类型配置默认模型：同一卡片内，项间以横线分隔 -->
+    <n-card size="medium" :bordered="false" class="setting-card">
+      <template v-for="(task, index) in taskTypes" :key="task">
+        <n-divider v-if="index > 0" class="setting-divider" />
+        <n-flex align="center" class="setting-row">
+          <n-flex align="center" class="setting-content">
+            <n-text class="setting-label">{{ t(`SETTINGS.TASK_TYPE.${task}`) }}</n-text>
+            <n-text class="setting-desc">{{ t(`SETTINGS.TASK_TYPE.${task}_DESC`) }}</n-text>
+          </n-flex>
+          <n-select :value="getDefaultValue(task)" :options="textModelsOptions" class="setting-select" clearable
+            :placeholder="t('SETTINGS.AI_SETTINGS.SELECT_MODEL')"
+            @update:value="(v: string | null) => updateTaskDefault(task, v)" />
         </n-flex>
-        <n-select :value="getDefaultValue(task)" :options="textModelsOptions" class="setting-select" clearable
-          :placeholder="t('SETTINGS.AI_SETTINGS.SELECT_MODEL')"
-          @update:value="(v: string | null) => updateTaskDefault(task, v)" />
-      </n-flex>
-    </n-flex>
-  </n-card>
+      </template>
+    </n-card>
+  </template>
 </template>
 
 <script setup lang="ts">
@@ -86,10 +91,16 @@ const updateTaskDefault = async (taskType: TaskType, value: string | null) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/renderer/styles/variables.scss" as *;
+@use "@/renderer/styles/_variables.scss" as *;
 
-.setting-list {
-  gap: $spacing-md;
+.setting-card {
+  margin-bottom: $spacing-md;
+  background-color: var(--bg-secondary);
+  border-radius: $radius-md;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .setting-row {
@@ -97,6 +108,10 @@ const updateTaskDefault = async (taskType: TaskType, value: string | null) => {
   min-height: 34px;
   justify-content: space-between !important;
   flex-direction: row !important;
+}
+
+.setting-divider {
+  margin: $spacing-md 0;
 }
 
 .setting-content {

@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
-import { app } from "electron";
 import { Logger } from "@/main/utils/logger";
 import { skillSchemaValidator } from "./skill.schema.validator";
 import { RESOURCES_DIR } from "@/main/constants/folder.constants";
@@ -122,34 +121,48 @@ class SkillManager {
       const workspacePath: string = (globalThis as Record<string, unknown>)
         .__WRISP_WORKSPACE_PATH__ as string;
 
-      if (workspacePath && workspacePath.trim() !== "") {
-        this.skillsDir = path.join(workspacePath, "skills");
-      } else {
-        this.skillsDir = path.join(app.getPath("userData"), "skills");
+      if (!workspacePath || workspacePath.trim() === "") {
+        Logger.warn("工作空间路径未配置，SkillManager 初始化跳过", {
+          hint: "请在 ConfigService 设置 workspace 后再初始化技能",
+        });
+        return;
       }
 
+      // 所有 skills（自定义 + 内置 + manifest + settings）统一放在 <workspace>/skills/
+      // 内置/远程同步的 .skill.json 从 <workspace>/resources/skills/ 加载
+      // 历史：曾回退 userData/skills/，现要求必须显式配置 workspace
+      this.skillsDir = path.join(workspacePath, "skills");
+
       if (!fs.existsSync(this.skillsDir)) {
-        Logger.info("Skills directory not found, creating...");
+        Logger.info("Skills 目录不存在，创建...", { skillsDir: this.skillsDir });
         fs.mkdirSync(path.join(this.skillsDir, CUSTOM), { recursive: true });
       }
 
-      // 兼容旧版本：废弃目录日志提示
+      // 历史遗留路径提示：若存在 built-in/remote 子目录说明是旧版本产物
       const legacyBuiltIn = path.join(this.skillsDir, BUILT_IN);
       if (fs.existsSync(legacyBuiltIn)) {
-        Logger.warn("检测到废弃的 <skillsDir>/built-in/ 目录，已停止加载。新版本从 <workspace>/resources/skills/ 加载。", { legacyDir: legacyBuiltIn });
+        Logger.warn(
+          "检测到废弃的 <skillsDir>/built-in/ 目录，已停止加载。" +
+          "新版本从 <workspace>/resources/skills/ 加载内置技能。",
+          { legacyDir: legacyBuiltIn },
+        );
       }
       const legacyRemote = path.join(this.skillsDir, REMOTE);
       if (fs.existsSync(legacyRemote)) {
-        Logger.warn("检测到废弃的 <skillsDir>/remote/ 目录，已停止加载。远程同步由 resource-sync 处理。", { legacyDir: legacyRemote });
+        Logger.warn(
+          "检测到废弃的 <skillsDir>/remote/ 目录，已停止加载。" +
+          "远程同步由 resource-sync 统一处理。",
+          { legacyDir: legacyRemote },
+        );
       }
 
       this.loadSkills();
-      Logger.info("SkillManager initialized", {
+      Logger.info("SkillManager 初始化完成", {
         skillsDir: this.skillsDir,
         skillCount: this.skills.size,
       });
     } catch (error) {
-      Logger.error("SkillManager initialization failed", {
+      Logger.error("SkillManager 初始化失败", {
         error: String(error),
       });
     }
@@ -441,9 +454,10 @@ class SkillManager {
   private loadSkills(): void {
     const workspacePath: string = (globalThis as Record<string, unknown>)
       .__WRISP_WORKSPACE_PATH__ as string;
-    const builtinDir = workspacePath
-      ? path.join(workspacePath, RESOURCES_DIR, "skills")
-      : path.join(app.getPath("userData"), RESOURCES_DIR, "skills");
+    // 内置 + 远程同步技能：统一从 <workspace>/resources/skills/ 加载
+    // （无 workspace 时直接返回，initialize() 已提前跳过）
+    if (!workspacePath || workspacePath.trim() === "") return;
+    const builtinDir = path.join(workspacePath, RESOURCES_DIR, "skills");
     const customDir = path.join(this.skillsDir, CUSTOM);
 
     const sourceDirs: { dir: string; source: SkillSource }[] = [
@@ -702,19 +716,19 @@ class SkillManager {
     // 按当前语言解析 input 参数说明（浅拷贝，避免修改原始定义）
     const input: SkillListItem["input"] = skill.input
       ? {
-          ...skill.input,
-          properties: Object.fromEntries(
-            Object.entries(skill.input.properties).map(([key, prop]) => [
-              key,
-              {
-                ...prop,
-                description: prop.description
-                  ? resolveLocalized(prop.description, useEn)
-                  : undefined,
-              },
-            ]),
-          ),
-        }
+        ...skill.input,
+        properties: Object.fromEntries(
+          Object.entries(skill.input.properties).map(([key, prop]) => [
+            key,
+            {
+              ...prop,
+              description: prop.description
+                ? resolveLocalized(prop.description, useEn)
+                : undefined,
+            },
+          ]),
+        ),
+      }
       : undefined;
 
     return {

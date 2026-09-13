@@ -41,7 +41,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { SearchOutlined, EditOutlined } from "@vicons/material";
+import { SearchOutlined } from "@vicons/material";
 import type { AppConfig, LocalizedText } from "@/shared/types";
 import {
   resolveShortcuts,

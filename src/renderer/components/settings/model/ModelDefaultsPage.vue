@@ -1,5 +1,5 @@
 <template>
-  <n-scrollbar class="model-defaults-page">
+  <n-scrollbar class="model-defaults-page card-has-scrollbar-width">
     <ModelDefault />
   </n-scrollbar>
 </template>

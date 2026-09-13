@@ -296,6 +296,20 @@ class ConfigService {
       this.setValue("workspace", normalizedPath);
       setWorkspacePath(normalizedPath);
 
+      // 同步备份服务的路径（BackupTask 单例持有旧 workspace 路径）
+      // 使用动态 import 避免与 scheduler/backup.task.ts 形成循环依赖
+      try {
+        import("@/main/core/scheduler/backup.task").then(({ BackupTask }) => {
+          BackupTask.getInstance().refreshWorkspace();
+        }).catch((e) => {
+          Logger.warn("刷新备份任务路径失败", { error: String(e) });
+        });
+      } catch (e) {
+        Logger.warn("刷新备份任务路径失败", {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+
       databaseMigration.executeDatabaseMigration();
 
       Logger.info("工作空间设置完成", { path: normalizedPath });
