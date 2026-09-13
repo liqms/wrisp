@@ -4,7 +4,7 @@ import * as fs from 'fs'
 import { ZipArchive } from 'archiver'
 import { Logger } from '@/main/utils/logger'
 import { TimeUtil } from '@/shared/utils'
-import { BACKUPS_DIR, CONFIG_DIR } from '@/main/constants'
+import { BACKUPS_DIR, CONFIG_DIR, WORKSPACE_BACKUPS_DIR } from '@/main/constants'
 import { getDbPath } from '@/main/core/db/connection'
 import { configService } from '@/main/core/services/config.service'
 import { BackupConfig } from '@/main/constants/auto.constants'
@@ -53,31 +53,35 @@ async function copyFile(src: string, dest: string): Promise<void> {
 }
 
 /**
- * 备份任务类
- * 只负责执行备份操作，不管理调度逻辑
- * 
- * 备份策略：
- * - 应用配置文件和模型配置文件 → userData/backups/
- * - SQL 数据库文件 → workspace/backups/
+ * 备份任务类（全应用唯一备份入口，原 backup.service.ts 已删除并合并至此）
+ *
+ * 备份策略（两个目录职责明确，不再互相混淆）：
+ * - 应用配置 → `<userData>/backups/`（config_*.zip）
+ *   配置归属应用而非工作空间，放在 userData 保证工作空间损坏/迁移后配置仍可恢复。
+ * - 数据库 → `<workspace>/.wrisp-backups/`（sqlite_*.zip）
+ *   数据库属于用户数据、跟随工作空间迁移，使用隐藏前缀避免与作品目录并列时造成困惑。
+ *
+ * 说明：备份范围仅含配置与 SQLite（体积小、变更频繁）；
+ * vectors/attachments 等大体积、可重建或用户自行保管的内容不纳入滚动备份，避免磁盘膨胀。
  */
 export class BackupTask {
   /** 单例实例 */
   private static instance: BackupTask
-  /** 用户数据路径 */
-  private userDataPath: string
-  /** 应用备份文件路径 (userData/backups/) */
+  /** 工作空间根路径 */
+  private workspacePath: string
+  /** 应用配置备份目录：<userData>/backups/ */
   private appBackupsPath: string
-  /** 数据库备份文件路径 (workspace/backups/) */
+  /** 数据库备份目录：<workspace>/.wrisp-backups/ */
   private dbBackupsPath: string
 
   /**
    * 私有构造函数，实现单例模式
    */
   private constructor() {
-    this.userDataPath = app.getPath('userData')
-    this.appBackupsPath = path.join(this.userDataPath, BACKUPS_DIR)
-    this.dbBackupsPath = path.join(configService.getValue('workspace') || '', BACKUPS_DIR)
-    this.initBackupsPath()
+    this.workspacePath = configService.getValue('workspace') || ''
+    this.appBackupsPath = path.join(app.getPath('userData'), BACKUPS_DIR)
+    this.dbBackupsPath = path.join(this.workspacePath, WORKSPACE_BACKUPS_DIR)
+    void this.initBackupsPath()
   }
 
   /**
@@ -89,6 +93,15 @@ export class BackupTask {
       BackupTask.instance = new BackupTask()
     }
     return BackupTask.instance
+  }
+
+  /**
+   * 工作空间变更后调用，刷新数据库备份目录（配置目录与工作空间无关，保持不变）
+   */
+  public refreshWorkspace(): void {
+    this.workspacePath = configService.getValue('workspace') || ''
+    this.dbBackupsPath = path.join(this.workspacePath, WORKSPACE_BACKUPS_DIR)
+    void this.initBackupsPath()
   }
 
   /**
@@ -116,33 +129,32 @@ export class BackupTask {
   private getConfig(): BackupConfig {
     return {
       autoBackup: true,
-      backupInterval: 10,
+      backupInterval: 30,
       maxBackupFiles: 5
     }
   }
 
   /**
    * 生成备份文件名
-   * @param prefix - 备份文件前缀（区分应用备份和数据库备份）
+   * @param prefix - 备份文件前缀（区分配置备份和数据库备份）
    * @returns 备份文件名
    * @private
    */
   private generateBackupFilename(prefix: string = 'backup'): string {
-    const now = new Date()
-    const timestamp = now.toISOString().replace(/[:.]/g, '-')
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     return `${prefix}_${timestamp}.zip`
   }
 
   /**
-   * 获取需要备份的应用配置文件和模型配置文件列表
+   * 获取需要备份的应用配置文件列表
    * @returns 文件路径和目标路径的映射数组
    * @private
    */
   private async getFilesToBackup(): Promise<{ source: string; dest: string }[]> {
     const filesToBackup: { source: string; dest: string }[] = []
 
-    // 添加配置文件夹（包含应用配置和模型配置）
-    const configPath = path.join(this.userDataPath, CONFIG_DIR)
+    // 配置文件夹（包含应用配置和模型配置）
+    const configPath = path.join(app.getPath('userData'), CONFIG_DIR)
     if (await pathExists(configPath)) {
       filesToBackup.push({
         source: configPath,
@@ -240,10 +252,10 @@ export class BackupTask {
   private async createAppConfigBackup(): Promise<string | null> {
     const startTime = Date.now()
     try {
+      await ensureDir(this.appBackupsPath)
       const backupFilename = this.generateBackupFilename('config')
       const backupPath = path.join(this.appBackupsPath, backupFilename)
 
-      // 获取需要备份的应用配置文件列表
       const filesToBackup = await this.getFilesToBackup()
 
       if (filesToBackup.length === 0) {
@@ -251,10 +263,8 @@ export class BackupTask {
         return null
       }
 
-      // 创建备份压缩包
       const resultPath = await this.createBackupArchive(backupPath, filesToBackup)
 
-      // 记录成功信息
       const duration = Date.now() - startTime
       const stats = await fs.promises.stat(backupPath)
       Logger.info('应用配置备份创建成功', {
@@ -282,6 +292,10 @@ export class BackupTask {
   private async createDatabaseBackup(): Promise<string | null> {
     const startTime = Date.now()
     try {
+      if (!this.workspacePath) {
+        Logger.warn('工作空间路径未配置，跳过数据库备份')
+        return null
+      }
 
       // 初始化数据库备份目录
       await ensureDir(this.dbBackupsPath)
@@ -289,7 +303,6 @@ export class BackupTask {
       const backupFilename = this.generateBackupFilename('sqlite')
       const backupPath = path.join(this.dbBackupsPath, backupFilename)
 
-      // 获取需要备份的数据库文件列表
       const filesToBackup = await this.getDatabaseFilesToBackup()
 
       if (filesToBackup.length === 0) {
@@ -297,10 +310,8 @@ export class BackupTask {
         return null
       }
 
-      // 创建备份压缩包
       const resultPath = await this.createBackupArchive(backupPath, filesToBackup)
 
-      // 记录成功信息
       const duration = Date.now() - startTime
       const stats = await fs.promises.stat(backupPath)
       Logger.info('数据库备份创建成功', {
@@ -322,14 +333,15 @@ export class BackupTask {
 
   /**
    * 清理旧备份文件
-   * 删除超过最大备份数量的旧文件
    * @param backupDir - 备份目录路径
    * @param prefix - 备份文件前缀
    * @private
    */
-  private async cleanupOldBackups(backupDir: string, prefix: string = 'backup'): Promise<void> {
+  private async cleanupOldBackups(backupDir: string, prefix: string): Promise<void> {
     try {
       const config = this.getConfig()
+      if (!(await pathExists(backupDir))) return
+
       const files = await fs.promises.readdir(backupDir)
 
       const backupFiles: BackupFileInfo[] = files
@@ -347,7 +359,7 @@ export class BackupTask {
           await removeDir(file.path)
           Logger.debug('旧备份文件删除成功', { file: file.name })
         }
-        Logger.info('旧备份文件清理完成', { deleted: filesToDelete.length })
+        Logger.info('旧备份文件清理完成', { prefix, deleted: filesToDelete.length })
       }
     } catch (error) {
       Logger.error('旧备份文件清理失败', {
@@ -376,7 +388,6 @@ export class BackupTask {
       // 创建数据库备份
       const dbBackupPath = await this.createDatabaseBackup()
       if (dbBackupPath) {
-        // 获取数据库备份目录路径
         await this.cleanupOldBackups(this.dbBackupsPath, 'sqlite')
         success = true
       }
@@ -398,9 +409,11 @@ export class BackupTask {
    */
   public async getAppBackupList(): Promise<BackupFileInfo[]> {
     try {
+      if (!(await pathExists(this.appBackupsPath))) return []
+
       const files = await fs.promises.readdir(this.appBackupsPath)
 
-      const backupFiles: BackupFileInfo[] = files
+      return files
         .filter(file => file.startsWith('config_') && file.endsWith('.zip'))
         .map(file => ({
           name: file,
@@ -408,8 +421,6 @@ export class BackupTask {
           time: fs.statSync(path.join(this.appBackupsPath, file)).mtime.getTime()
         }))
         .sort((a, b) => b.time - a.time)
-
-      return backupFiles
     } catch (error) {
       Logger.error('获取应用配置备份列表失败', {
         path: 'main/core/scheduler/backup.task.ts',
@@ -432,16 +443,14 @@ export class BackupTask {
 
       const files = await fs.promises.readdir(this.dbBackupsPath)
 
-      const backupFiles: BackupFileInfo[] = files
-        .filter(file => file.startsWith('database_') && file.endsWith('.zip'))
+      return files
+        .filter(file => file.startsWith('sqlite_') && file.endsWith('.zip'))
         .map(file => ({
           name: file,
           path: path.join(this.dbBackupsPath, file),
           time: fs.statSync(path.join(this.dbBackupsPath, file)).mtime.getTime()
         }))
         .sort((a, b) => b.time - a.time)
-
-      return backupFiles
     } catch (error) {
       Logger.error('获取数据库备份列表失败', {
         path: 'main/core/scheduler/backup.task.ts',

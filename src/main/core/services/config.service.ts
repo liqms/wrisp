@@ -25,6 +25,8 @@ class ConfigService {
   private userDataPath: string;
   private configFileName: string;
   private defaultConfig: AppConfig | null = null;
+  /** 工作空间变更监听（切换工作空间后触发，供各服务重新初始化） */
+  private workspaceChangeListeners: Array<(workspacePath: string) => void> = [];
 
   /**
    * 私有构造函数
@@ -265,6 +267,30 @@ class ConfigService {
     }
   }
   /**
+   * 注册工作空间变更监听。
+   * 工作空间切换后触发，供依赖工作空间路径的服务重新初始化
+   * （如 SkillManager 重新加载 <workspace>/skills、<workspace>/resources/skills）。
+   * @param listener - 变更回调，入参为新的工作空间路径
+   */
+  public onWorkspaceChange(listener: (workspacePath: string) => void): void {
+    this.workspaceChangeListeners.push(listener);
+  }
+
+  /** 通知工作空间变更；单个监听器异常不影响其他监听器与主流程 */
+  private notifyWorkspaceChange(workspacePath: string): void {
+    for (const listener of this.workspaceChangeListeners) {
+      try {
+        listener(workspacePath);
+      } catch (error) {
+        Logger.error("工作空间变更监听执行失败", {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      }
+    }
+  }
+
+  /**
    * 设置工作空间路径并完成初始化
    * 关闭旧数据库连接 → 更新配置 → 创建目录 → 初始化新数据库
    * @param workspacePath - 新的工作空间路径
@@ -296,9 +322,26 @@ class ConfigService {
       this.setValue("workspace", normalizedPath);
       setWorkspacePath(normalizedPath);
 
+      // 同步备份服务的路径（BackupTask 单例持有旧 workspace 路径）
+      // 使用动态 import 避免与 scheduler/backup.task.ts 形成循环依赖
+      try {
+        import("@/main/core/scheduler/backup.task").then(({ BackupTask }) => {
+          BackupTask.getInstance().refreshWorkspace();
+        }).catch((e) => {
+          Logger.warn("刷新备份任务路径失败", { error: String(e) });
+        });
+      } catch (e) {
+        Logger.warn("刷新备份任务路径失败", {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+
       databaseMigration.executeDatabaseMigration();
 
       Logger.info("工作空间设置完成", { path: normalizedPath });
+
+      // 通知依赖工作空间路径的主进程服务重新初始化（在渲染进程刷新前完成）
+      this.notifyWorkspaceChange(normalizedPath);
 
       // 广播工作区变更事件，通知所有渲染进程刷新配置或重载相关资源
       try {
