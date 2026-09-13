@@ -128,6 +128,14 @@ class SkillManager {
         return;
       }
 
+      // 支持工作空间切换后重新初始化：先清空上一个工作空间加载的技能与缓存，
+      // 否则 loadSkills() 只做增量写入，旧工作空间的技能会残留
+      this.skills.clear();
+      this.skillSources.clear();
+      this.projectSkillsCache.clear();
+      this.manifest = null;
+      this.settings = null;
+
       // 所有 skills（自定义 + 内置 + manifest + settings）统一放在 <workspace>/skills/
       // 内置/远程同步的 .skill.json 从 <workspace>/resources/skills/ 加载
       // 历史：曾回退 userData/skills/，现要求必须显式配置 workspace
@@ -767,3 +775,7 @@ class SkillManager {
 
 export const skillManager = SkillManager.getInstance();
 export default SkillManager;
+
+// 工作空间切换后技能目录（<workspace>/skills、<workspace>/resources/skills）随之变化，
+// 需要重新初始化，否则技能会一直停留在旧工作空间
+configService.onWorkspaceChange(() => skillManager.initialize());
