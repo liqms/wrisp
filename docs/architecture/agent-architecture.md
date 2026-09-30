@@ -274,6 +274,7 @@ taskExecutor.startWorkers(3);
 ## 4. Model Gateway 子系统（模型网关）
 
 > 目录：`src/main/core/model-gateway/`
+> 路由策略与模型选型详见 [`model.md`](model/model.md)（任务路由表、模式定义、加载策略、配置界面）。本节仅描述 Model Gateway 的代码架构与实现机制。
 
 ### 4.1 职责
 

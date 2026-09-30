@@ -69,7 +69,7 @@ const menuOptions = computed<MenuOption[]>(() => [
     icon: renderIcon(TodayOutlined),
   },
   {
-    label: "作品",
+    label: t("APP.BASE.PROJECT"),
     key: "projects",
     icon: renderIcon(BookOutlined),
   },

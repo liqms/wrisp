@@ -9,6 +9,7 @@ import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import { TextStyleKit } from "@tiptap/extension-text-style";
 import { Markdown } from "@tiptap/markdown";
+import { Code } from "@tiptap/extension-code";
 import type { Extensions } from "@tiptap/core";
 import { getBlocks } from "./blocks/registry";
 import { registerWrispBlockBridge } from "./blocks/engine/marked-bridge";
@@ -34,6 +35,18 @@ registerAdmonitionBridge();
 // 在全局 marked 单例上注册 `- [ ]/- [x]` 任务行桥接（幂等）
 registerTaskItemBridge();
 
+/**
+ * 自定义 Code mark：覆盖 renderMarkdown 使用双反引号 + 空格填充（`` `content` `` → `` `` content `` ``）。
+ * 原生实现用单反引号包裹，当内容含反引号时序列化后的 Markdown 无法正确解析。
+ * 双反引号定界符允许内容中包含单反引号，符合 CommonMark 规范。
+ */
+const WrispCode = Code.extend({
+  renderMarkdown(node, h) {
+    if (!node.content) return "";
+    return "`` " + h.renderChildren(node.content) + " ``";
+  },
+});
+
 export function getExtensions(placeholder?: string): Extensions {
   const exts: Extensions = [
     StarterKit.configure({
@@ -43,11 +56,15 @@ export function getExtensions(placeholder?: string): Extensions {
       // tiptap v3 StarterKit 已内置 link 和 underline，此处关闭以去重
       link: false,
       underline: false,
+      // code 由 WrispCode 替代（修复含反引号的行内代码序列化问题）
+      code: false,
       // codeBlock 由 CodeBlockLowlight 替代（语法高亮 + 悬浮工具栏）
       codeBlock: false,
       // 块拖拽的落点指示由 DropLine 插入线替代，关闭原生竖线光标避免双重指示
       dropcursor: false,
     }),
+    // 行内代码：双反引号序列化，支持内容含反引号
+    WrispCode,
     // 块拖拽排序：左侧拖拽手柄（官方扩展负责手柄定位/dragstart/拖拽预览）
     // 手柄含"＋"添加块按钮：onNodeChange 记录当前悬停块供按钮定位插入点。
     // 官方 computePosition 用 absolute 策略，在 Naive UI 滚动布局下 offsetParent

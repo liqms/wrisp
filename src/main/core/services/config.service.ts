@@ -5,7 +5,12 @@ import path from "path";
 import { AppConfig } from "@/shared/types";
 import { TimeUtil, ObjectUtil } from "@/shared/utils";
 import { Logger, getAppVersion, needsMigration } from "@/main/utils";
-import { DEFAULT_APP_CONFIG } from "@/main/constants";
+import {
+  DEFAULT_APP_CONFIG,
+  DEV_WORKSPACE_SUFFIX,
+  DEFAULT_WORKSPACE_DIR,
+} from "@/main/constants";
+import { isDev } from "@/main/utils/env";
 import { configMigration } from "@/main/core/migration";
 import { closeDatabase, setWorkspacePath } from "@/main/core/db/connection";
 import { BrowserWindow } from "electron";
@@ -81,7 +86,9 @@ class ConfigService {
     const now = TimeUtil.toISOString(new Date());
     const appVersion = getAppVersion();
     const documentsPath = app.getPath("documents");
-    const defaultWorkspace = path.join(documentsPath, "Wrisp");
+    const defaultWorkspace = isDev()
+      ? path.join(documentsPath, DEFAULT_WORKSPACE_DIR + DEV_WORKSPACE_SUFFIX)
+      : path.join(documentsPath, DEFAULT_WORKSPACE_DIR);
 
     return {
       ...DEFAULT_APP_CONFIG,

@@ -1,10 +1,10 @@
-# Pentip 存储方案（v2）
+# Wrisp 存储方案（v2）
 
 ---
 
 ## 一、核心理念
 
-**"文件优先，数据库索引"** 是 Pentip 存储架构的根本原则。
+**"文件优先，数据库索引"** 是 Wrisp 存储架构的根本原则。
 
 - **用户数据 = Markdown 文件**（真实来源，用户可直接访问和管理）
 - **智能能力 = 数据库 + 向量库**（AI 索引，由系统自动维护）
@@ -292,11 +292,11 @@ LanceDB 向量表一览（详见 `lancedb.md`）：
 
 ## 九、架构定位
 
-PenTip 的存储系统本质上是 **File-first, Database-index Architecture**：
+Wrisp 的存储系统本质上是 **File-first, Database-index Architecture**：
 
 - **文件系统** 是用户数据的真实来源（source of truth），用户可以直接用文本编辑器访问和编辑
 - **SQLite 索引层** 负责文件元数据管理、全文搜索、知识图谱存储（详见 [`sqlite.md`](sqlite.md)）
 - **LanceDB 向量库** 负责语义搜索和相似性匹配（详见 [`lancedb.md`](lancedb.md)）
 - **AI 能力** 完全构建在索引层之上，不干扰用户数据的原始形态
 
-> Pentip 的数据库不是 Note Database，而是 **AI Index Layer on Top of Markdown Files**。用户的数据永远在自己手中，索引可以随时重建，智能能力来自数据库而非锁定用户数据。
+> Wrisp 的数据库不是 Note Database，而是 **AI Index Layer on Top of Markdown Files**。用户的数据永远在自己手中，索引可以随时重建，智能能力来自数据库而非锁定用户数据。

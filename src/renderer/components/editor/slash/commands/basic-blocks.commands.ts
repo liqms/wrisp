@@ -162,9 +162,9 @@ export function buildBasicBlocksGroup(t: (key: string) => string): CommandGroup 
       title: t("EDITOR.SLASH.BASIC_BLOCKS.ADMONITION_TITLE"),
       description: t("EDITOR.SLASH.BASIC_BLOCKS.ADMONITION_DESC"),
       icon: CampaignOutlined,
-      // 包裹当前块为提示块（默认 note 类型，插入后可经气泡菜单切换类型）
+      // 包裹当前块为提示块（默认 tip 类型，插入后可经气泡菜单切换类型）
       action: ({ editor, pos }) =>
-        run(editor, pos, (ed) => ed.chain().focus().toggleWrap("admonition", { type: "note" }).run()),
+        run(editor, pos, (ed) => ed.chain().focus().toggleWrap("admonition", { type: "tip" }).run()),
       // ::: 围栏在管道表格内会破坏 GFM 解析
       isEnabled: notInTableCell,
     },

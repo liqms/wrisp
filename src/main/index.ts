@@ -1,3 +1,5 @@
+import "./env.setup";
+
 import { app, BrowserWindow, Menu, ipcMain } from "electron";
 import path from "path";
 import { Logger } from "@/main/utils/logger";

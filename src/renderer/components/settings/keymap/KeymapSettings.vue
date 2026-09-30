@@ -26,7 +26,7 @@
                 <n-tag size="small" :bordered="false">{{ formatKeys(item.currentKeys) }}</n-tag>
                 <n-button ghost size="tiny" type="primary" :title="t('SETTINGS.SHORTCUT_SETTINGS.PRESS_KEY')"
                   @click.stop="startRecording(item.id)">
-                  修改
+                  {{ t('ACTION.COMMON.MODIFY') }}
                 </n-button>
               </template>
             </n-flex>

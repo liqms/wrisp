@@ -4,15 +4,11 @@
          mousedown/click .stop：阻断冒泡到 TiptapEditor wrapper 的 @click="focus"，
          避免编辑器抢走焦点导致下拉菜单一闪即关（同 CodeBlockView 工具栏） -->
     <div class="admonition-title" contenteditable="false" @mousedown.stop @click.stop>
-      <n-dropdown placement="bottom-start" trigger="click" :options="typeOptions" @select="onSelectType"
+      <n-dropdown placement="right-start" trigger="click" :options="typeOptions" @select="onSelectType"
         @update:show="menuShow = $event">
         <div class="admonition-title__trigger" :class="{ 'is-menu-open': menuShow }" title="切换提示块类型">
-          <n-icon :size="16">
+          <n-icon :size="20">
             <component :is="currentMeta.icon" />
-          </n-icon>
-          <span class="admonition-title__label">{{ currentMeta.label }}</span>
-          <n-icon :size="14" class="admonition-title__chevron">
-            <ExpandMoreOutlined />
           </n-icon>
         </div>
       </n-dropdown>
@@ -28,7 +24,6 @@ import { NIcon } from "naive-ui";
 import { NodeViewContent, NodeViewWrapper, nodeViewProps } from "@tiptap/vue-3";
 import {
   ErrorOutlined,
-  ExpandMoreOutlined,
   InfoOutlined,
   LightbulbOutlined,
   StickyNote2Outlined,

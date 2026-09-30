@@ -4,7 +4,7 @@
 
 **Goal:** 使用 electron-builder + electron-updater 的 GitHub provider，实现 GitHub Actions 自动打包发布到 GitHub Releases，并在应用内从 GitHub 完成检查/下载/安装升级。
 
-**Architecture:** 在 `package.json` 的 `build.publish` 配置 GitHub provider（owner=`liqms`, repo=`pentip`），electron-builder 打包时自动生成 `app-update.yml`（内含 provider 配置）。新增 `.github/workflows/release.yml`：推送 `v*` 标签时在 win/mac/linux 三平台构建并 `electron-builder --publish always`（用 `GH_TOKEN`）上传到 Releases。主进程复用现有基于 `autoUpdater` 的 `UpdateService`，完善事件转发（`update-available` / `download-progress` / `update-downloaded`）到渲染进程，并新增 `update` IPC 域（4 层模式）暴露 `check` / `download` / `install`。设置页"检查更新"触发，`UpdatePrompt.vue` 展示版本、更新说明与下载进度。
+**Architecture:** 在 `package.json` 的 `build.publish` 配置 GitHub provider（owner=`liqms`, repo=`Wrisp`），electron-builder 打包时自动生成 `app-update.yml`（内含 provider 配置）。新增 `.github/workflows/release.yml`：推送 `v*` 标签时在 win/mac/linux 三平台构建并 `electron-builder --publish always`（用 `GH_TOKEN`）上传到 Releases。主进程复用现有基于 `autoUpdater` 的 `UpdateService`，完善事件转发（`update-available` / `download-progress` / `update-downloaded`）到渲染进程，并新增 `update` IPC 域（4 层模式）暴露 `check` / `download` / `install`。设置页"检查更新"触发，`UpdatePrompt.vue` 展示版本、更新说明与下载进度。
 
 **Tech Stack:** electron-builder、electron-updater、GitHub Actions、Electron、Vue 3 + Naive UI。
 
@@ -13,6 +13,7 @@
 ## 文件结构
 
 **新增：**
+
 - `.github/workflows/release.yml` — GitHub Actions 打包发布工作流
 - `src/main/core/apis/update.api.ts` — IPC API 包装层
 - `src/main/ipcMain/update.ipc.ts` — IPC 处理器
@@ -21,6 +22,7 @@
 - `src/main/preload/listeners/update.ts` — 更新事件桥（转发下载进度）
 
 **修改：**
+
 - `package.json` — `build.publish` 增加 GitHub provider
 - `src/main/core/services/update.service.ts` — 完善 autoUpdater 事件与下载流程
 - `src/main/ipcMain/index.ts` — 注册 update handler
@@ -37,6 +39,7 @@
 ### Task 1: electron-builder GitHub publish 配置
 
 **Files:**
+
 - Modify: `package.json`
 
 - [ ] **Step 1: 增加 GitHub publish 配置**
@@ -45,12 +48,12 @@
 
 ```json
   "build": {
-    "appId": "com.pentip.app",
-    "productName": "PenTip",
+    "appId": "com.Wrisp.app",
+    "productName": "Wrisp",
     "publish": {
       "provider": "github",
       "owner": "liqms",
-      "repo": "pentip",
+      "repo": "Wrisp",
       "private": false,
       "releaseType": "release"
     },
@@ -82,6 +85,7 @@ git commit -m "build(update): configure electron-builder github publish provider
 ### Task 2: GitHub Actions 打包发布工作流
 
 **Files:**
+
 - Create: `.github/workflows/release.yml`
 
 - [ ] **Step 1: 创建 release 工作流**
@@ -158,6 +162,7 @@ git commit -m "ci(update): add github actions build & release workflow"
 ### Task 3: 完善 UpdateService（autoUpdater 事件 + 下载）
 
 **Files:**
+
 - Modify: `src/main/core/services/update.service.ts`
 
 > 现有 `UpdateService` 已用 `autoUpdater` 实现了 `check()` / `download()` / `install()`。本任务在保留其 electron-updater 用法基础上，增加：`autoDownload=false`、暴露下载进度与状态回调、支持外部注入事件处理。
@@ -214,7 +219,8 @@ class UpdateService {
       autoUpdater.on("update-available", (info) => {
         handlers.onAvailable?.({
           version: info.version,
-          releaseNotes: typeof info.releaseNotes === "string" ? info.releaseNotes : "",
+          releaseNotes:
+            typeof info.releaseNotes === "string" ? info.releaseNotes : "",
         });
       });
     }
@@ -295,6 +301,7 @@ git commit -m "feat(update): wire autoUpdater events and manual download flow"
 ### Task 4: IPC API 与事件转发
 
 **Files:**
+
 - Create: `src/main/core/apis/update.api.ts`
 - Create: `src/main/ipcMain/update.ipc.ts`
 - Modify: `src/main/ipcMain/index.ts`
@@ -320,7 +327,8 @@ export function registerUpdateApi(): void {
   // 事件桥：主进程 -> 渲染进程
   updateService.onEvents({
     onAvailable: (info) => broadcast("update:available", info),
-    onDownloadProgress: (progress) => broadcast("update:download-progress", progress),
+    onDownloadProgress: (progress) =>
+      broadcast("update:download-progress", progress),
     onDownloaded: (path) => broadcast("update:downloaded", path),
     onError: (message) => broadcast("update:error", message),
   });
@@ -392,6 +400,7 @@ git commit -m "feat(update): add update ipc api and event bridge"
 ### Task 5: 预加载模块与类型
 
 **Files:**
+
 - Create: `src/main/preload/types/update.ts`
 - Create: `src/main/preload/modules/update.ts`
 - Modify: `src/main/preload/modules/index.ts`
@@ -467,6 +476,7 @@ git commit -m "feat(update): expose update preload module"
 ### Task 6: 渲染进程类型声明
 
 **Files:**
+
 - Modify: `src/renderer/types/electron.d.ts`
 
 - [ ] **Step 1: 声明 update 域**
@@ -499,6 +509,7 @@ git commit -m "feat(update): declare update api in renderer types"
 ### Task 7: 国际化与错误码
 
 **Files:**
+
 - Modify: `src/shared/i18n/locales/zhCN.ts`
 - Modify: `src/shared/i18n/locales/enUS.ts`
 - Modify: `src/shared/enums/errorCode.enums.ts`
@@ -563,6 +574,7 @@ git commit -m "feat(update): add update i18n and error codes"
 ### Task 8: 设置页接入"检查更新"与进度
 
 **Files:**
+
 - Modify: `src/renderer/components/settings/general/GeneralSettings.vue`
 
 - [ ] **Step 1: 接入检查更新逻辑**
@@ -603,15 +615,21 @@ const checkUpdate = async (): Promise<void> => {
 };
 
 // 订阅更新事件（可用/进度/下载完成/错误）
-window.electronAPI.update.onEvent("available", (info: { version: string; releaseNotes?: string }) => {
-  updateVersion.value = info.version;
-  updateNotes.value = info.releaseNotes ?? "";
-  updateVisible.value = true;
-});
-window.electronAPI.update.onEvent("download-progress", (p: { percent: number }) => {
-  downloading.value = true;
-  updatePercent.value = Math.round(p.percent);
-});
+window.electronAPI.update.onEvent(
+  "available",
+  (info: { version: string; releaseNotes?: string }) => {
+    updateVersion.value = info.version;
+    updateNotes.value = info.releaseNotes ?? "";
+    updateVisible.value = true;
+  },
+);
+window.electronAPI.update.onEvent(
+  "download-progress",
+  (p: { percent: number }) => {
+    downloading.value = true;
+    updatePercent.value = Math.round(p.percent);
+  },
+);
 window.electronAPI.update.onEvent("downloaded", () => {
   downloading.value = false;
   installed.value = true;
@@ -677,14 +695,18 @@ percent?: number;
 ```vue
 <template #footer>
   <n-flex justify="end" align="center">
-    <n-text v-if="downloading" depth="3">{{ t("UPDATE.DOWNLOADING", { percent }) }}</n-text>
+    <n-text v-if="downloading" depth="3">{{
+      t("UPDATE.DOWNLOADING", { percent })
+    }}</n-text>
     <n-button v-else-if="installed" type="primary" @click="handleInstall">
       {{ t("UPDATE.INSTALLING") }}
     </n-button>
     <template v-else>
       <n-button @click="handleSkip">{{ t("UPDATE.SKIP") }}</n-button>
       <n-button @click="handleLater">{{ t("UPDATE.LATER") }}</n-button>
-      <n-button type="primary" @click="handleUpdate">{{ t("UPDATE.UPDATE_NOW") }}</n-button>
+      <n-button type="primary" @click="handleUpdate">{{
+        t("UPDATE.UPDATE_NOW")
+      }}</n-button>
     </template>
   </n-flex>
 </template>
@@ -724,11 +746,12 @@ Expected: 均 PASS
 - [ ] **Step 2: 本地构建验证（不发布）**
 
 Run: `pnpm prod`
-Expected: `release/` 下生成各平台安装包，且产物内包含 `app-update.yml`（可在 `release/win-unpacked/resources/app-update.yml` 找到，内含 `provider: github` / `owner: liqms` / `repo: pentip`）
+Expected: `release/` 下生成各平台安装包，且产物内包含 `app-update.yml`（可在 `release/win-unpacked/resources/app-update.yml` 找到，内含 `provider: github` / `owner: liqms` / `repo: Wrisp`）
 
 - [ ] **Step 3: 手动冒烟（可选）**
 
 推送一个 `v*` 标签触发 Actions，或本地 `pnpm prod --publish always` 上传后，打开应用设置页点击"检查更新"：
+
 - 有新版时弹出"发现新版本"，展示更新说明
 - 点击"立即更新"触发下载并展示进度
 - 下载完成后点击安装，应用退出并重启
@@ -746,6 +769,7 @@ git commit -m "chore(update): fix lint/type issues"
 ## 自检
 
 **Spec 覆盖：**
+
 - ✅ 使用 electron-updater 的 GitHub provider → Task 1 `build.publish` + Task 3 `autoUpdater`
 - ✅ 实现 GitHub Actions 打包 → Task 2 `release.yml`（三平台构建 + `--publish always`）
 - ✅ 从 GitHub 完成升级 → Task 1 生成 `app-update.yml`，Task 3~8 完成检查/下载/安装链路

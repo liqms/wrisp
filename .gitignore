@@ -69,3 +69,6 @@ coverage
 /.wrisp/
 /config/
 
+
+# JiuwenSwarm runtime file operation logs
+.agent_history/

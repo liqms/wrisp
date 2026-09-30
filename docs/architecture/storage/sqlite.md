@@ -2,7 +2,7 @@
 
 ## 数据库概述
 
-本数据库用于管理 PenTip 的核心索引数据，采用"文件优先，数据库索引"架构。用户数据以 Markdown 文件为唯一数据源，SQLite 仅存储文件的元数据索引和 AI 分析结果。
+本数据库用于管理 Wrisp 的核心索引数据，采用"文件优先，数据库索引"架构。用户数据以 Markdown 文件为唯一数据源，SQLite 仅存储文件的元数据索引和 AI 分析结果。
 
 ### 存储架构
 
@@ -28,6 +28,8 @@ file_index (文件索引) ---1:N---> semantic_chunks (语义块索引) ---N:N---
 ---
 
 ## 表结构设计
+
+> 本数据库共 26 张表（21 张普通表 + 5 张 FTS 虚拟表）。
 
 ### 1. 文件索引表 (file_index)
 
@@ -486,7 +488,37 @@ CREATE INDEX idx_project_chunks_chunk ON project_chunks(chunk_id);
 
 ---
 
-### 21. 页面表 (pages)
+### 21. 人物表 (characters)
+
+用于存储 @人物提及同步的数据，支持联系人（contact）和作品角色（project）两种归属类型。同名人物可归属不同作品。
+
+| 字段名        | 类型 | 约束                                      | 说明                                               |
+| :------------ | :--- | :---------------------------------------- | :------------------------------------------------- |
+| `id`          | TEXT | PRIMARY KEY                               | 人物唯一标识（UUID）                               |
+| `name`        | TEXT | NOT NULL                                  | 人物名称                                           |
+| `owner_type`  | TEXT | NOT NULL DEFAULT 'contact'                | 归属类型：`contact`（联系人） / `project`（作品角色） |
+| `owner_id`    | TEXT | REFERENCES projects(id) ON DELETE CASCADE | 归属作品 ID（owner_type 为 project 时关联）        |
+| `description` | TEXT | DEFAULT ''                                | 人物描述                                           |
+| `metadata`    | TEXT | DEFAULT '{}'                              | 人物元数据（JSON 格式）                            |
+| `created_at`  | TEXT | NOT NULL                                  | 创建时间（ISO 8601）                               |
+| `updated_at`  | TEXT | NOT NULL                                  | 最后更新时间（ISO 8601）                           |
+
+**约束：**
+
+- `CHECK (owner_type IN ('contact', 'project'))`
+
+**索引设计：**
+
+```sql
+-- 同名人物可归属不同作品（表达式唯一索引，NULL 归属按空串参与唯一比较）
+CREATE UNIQUE INDEX idx_characters_identity ON characters(name, owner_type, COALESCE(owner_id, ''));
+CREATE INDEX idx_characters_owner ON characters(owner_type, owner_id);
+CREATE INDEX idx_characters_name ON characters(name);
+```
+
+---
+
+### 22. 页面表 (pages)
 
 用于存储作品的页面/章节结构，页面内容存储在 `projects/{name}/*.md` 文件中。
 
@@ -520,7 +552,7 @@ CREATE INDEX idx_pages_summary ON pages(ai_summary);
 
 ---
 
-### 22. 数据库版本表 (migrations_db)
+### 23. 数据库版本表 (migrations_db)
 
 用于数据库迁移校验和版本管理。
 
@@ -541,7 +573,7 @@ CREATE INDEX idx_pages_summary ON pages(ai_summary);
 
 ---
 
-### 23. 通用任务队列表 (tasks)
+### 24. 通用任务队列表 (tasks)
 
 用于持久化异步任务队列（如 AI 智能任务、模型下载等），支持重试、分组与依赖关系。
 
@@ -578,7 +610,7 @@ CREATE INDEX idx_tasks_depends_on ON tasks(depends_on);
 
 ---
 
-### 24. Skill 执行历史表 (skill_executions)
+### 25. Skill 执行历史表 (skill_executions)
 
 用于记录 Skill 技能的执行历史，包括调用模型、token 消耗、耗时等。
 
@@ -602,6 +634,36 @@ CREATE INDEX idx_tasks_depends_on ON tasks(depends_on);
 ```sql
 CREATE INDEX idx_skill_executions_skill_id ON skill_executions(skill_id);
 CREATE INDEX idx_skill_executions_created_at ON skill_executions(created_at);
+```
+
+---
+
+### 26. 创作会话表 (creation_sessions)
+
+用于存储创作会话状态，支持可中断、可恢复的创作流程。每个会话绑定到特定作品（project）或页面（page），记录当前阶段和待确认操作。
+
+| 字段名         | 类型 | 约束                      | 说明                                                           |
+| :------------- | :--- | :------------------------ | :------------------------------------------------------------- |
+| `id`           | TEXT | PRIMARY KEY               | 会话唯一标识（UUID）                                           |
+| `scope`        | TEXT | NOT NULL                  | 会话范围：`work`（作品级） / `page`（页面级）                  |
+| `project_id`   | TEXT | NOT NULL                  | 关联作品 ID                                                    |
+| `page_id`      | TEXT |                           | 关联页面 ID（scope 为 page 时使用）                            |
+| `stage`        | TEXT | NOT NULL                  | 当前创作阶段                                                   |
+| `status`       | TEXT | NOT NULL DEFAULT 'active' | 状态：active / awaiting-confirm / paused / completed / aborted |
+| `pending_kind` | TEXT |                           | 待确认操作类型                                                 |
+| `delegation`   | TEXT | NOT NULL DEFAULT '{}'     | 委派信息（JSON 格式）                                          |
+| `created_at`   | TEXT | NOT NULL                  | 创建时间（ISO 8601）                                           |
+| `updated_at`   | TEXT | NOT NULL                  | 最后更新时间（ISO 8601）                                       |
+
+**约束：**
+
+- `CHECK (scope IN ('work', 'page'))`
+- `CHECK (status IN ('active', 'awaiting-confirm', 'paused', 'completed', 'aborted'))`
+
+**索引设计：**
+
+```sql
+CREATE INDEX idx_creation_sessions_project ON creation_sessions(project_id, status);
 ```
 
 ---
@@ -951,6 +1013,18 @@ CREATE TABLE IF NOT EXISTS project_chunks (
     FOREIGN KEY (chunk_id) REFERENCES semantic_chunks(id) ON DELETE CASCADE
 );
 
+-- 创建人物表（@人物提及同步，v0.2.0）
+CREATE TABLE IF NOT EXISTS characters (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    owner_type TEXT NOT NULL DEFAULT 'contact' CHECK (owner_type IN ('contact', 'project')),
+    owner_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+    description TEXT DEFAULT '',
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 -- 创建页面表
 CREATE TABLE IF NOT EXISTS pages (
     id TEXT PRIMARY KEY,
@@ -1021,6 +1095,22 @@ CREATE TABLE IF NOT EXISTS skill_executions (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 创建创作会话表（可中断、可恢复）
+CREATE TABLE IF NOT EXISTS creation_sessions (
+    id TEXT PRIMARY KEY,
+    scope TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    page_id TEXT,
+    stage TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active',
+    pending_kind TEXT,
+    delegation TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    CHECK (scope IN ('work', 'page')),
+    CHECK (status IN ('active', 'awaiting-confirm', 'paused', 'completed', 'aborted'))
+);
+
 -- 启用外键约束
 PRAGMA foreign_keys = ON;
 
@@ -1088,6 +1178,11 @@ CREATE INDEX IF NOT EXISTS idx_projects_type ON projects(type);
 CREATE INDEX IF NOT EXISTS idx_project_chunks_project ON project_chunks(project_id);
 CREATE INDEX IF NOT EXISTS idx_project_chunks_chunk ON project_chunks(chunk_id);
 
+-- 人物索引：同名人物可归属不同作品（表达式唯一索引，NULL 归属按空串参与唯一比较）
+CREATE UNIQUE INDEX IF NOT EXISTS idx_characters_identity ON characters(name, owner_type, COALESCE(owner_id, ''));
+CREATE INDEX IF NOT EXISTS idx_characters_owner ON characters(owner_type, owner_id);
+CREATE INDEX IF NOT EXISTS idx_characters_name ON characters(name);
+
 -- 页面表索引
 CREATE INDEX IF NOT EXISTS idx_pages_project ON pages(project_id);
 CREATE INDEX IF NOT EXISTS idx_pages_order ON pages(project_id, order_index);
@@ -1107,6 +1202,9 @@ CREATE INDEX IF NOT EXISTS idx_tasks_depends_on ON tasks(depends_on);
 -- Skill 执行历史索引
 CREATE INDEX IF NOT EXISTS idx_skill_executions_skill_id ON skill_executions(skill_id);
 CREATE INDEX IF NOT EXISTS idx_skill_executions_created_at ON skill_executions(created_at);
+
+-- 创作会话索引
+CREATE INDEX IF NOT EXISTS idx_creation_sessions_project ON creation_sessions(project_id, status);
 ```
 
 > 注意：FTS 同步不再使用触发器。应用层在创建或更新对应实体后，应通过以下方式手动同步 FTS 索引：

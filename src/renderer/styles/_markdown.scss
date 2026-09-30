@@ -72,7 +72,7 @@
   h4,
   h5,
   h6 {
-    margin: 14px 0 8px 0;
+    margin: 20px 0 8px 0;
     font-weight: 600;
     line-height: 1.5;
   }
@@ -107,21 +107,37 @@
   ul[data-type="taskList"] {
     list-style: none;
     padding: 0;
+    // 勾选框尺寸单一来源：编辑态/阅读态勾选框宽高与对齐补偿公式共用，
+    // 仅作用于任务列表局部级联范围，不透出全局、不污染普通列表样式
+    --task-checkbox-size: 16px;
   }
 
   ul[data-type="taskList"] li {
     display: flex;
-    align-items: center;
+    // 对齐基准为 li 顶部而非整体居中：嵌套子任务位于 > div 内部，
+    // center 会让勾选框随 li 总高被拉离主任务首行文本；禁止恢复 align-items: center
+    align-items: flex-start;
 
     > label {
       flex: 0 0 auto;
       margin-right: 0.5rem;
-      margin-top: 0.25rem;
+      // 首行行盒中心补偿：margin-top = 首行 p 上边距 + (行高 - 勾选框高) / 2。
+      // 契约依赖：.markdown-content 的 line-height: 1.5、双态统一后的首行
+      // p 上边距 4px，任一变动须同步更新本公式（等价简式 calc(0.75em - 4px)）。
+      // 基准字号 16px 下解析为 8px，勾选框垂直中心与首行行盒中心重合（偏差 0px）
+      margin-top: calc(4px + (1.5em - var(--task-checkbox-size)) / 2);
       user-select: none;
     }
 
     > div {
       flex: 1 1 auto;
+    }
+
+    // 双态首行 p 上边距契约：阅读态（v-html）首行 p 由全局 p 的 8px
+    // 收敛为与编辑态（.task-item-text :deep(p)）一致的 4px，使补偿公式
+    // 在编辑态与阅读态同时精确命中首行中心。后代选择器，对全部嵌套层级生效
+    > div > p:first-child {
+      margin-top: 4px;
     }
   }
 
@@ -132,8 +148,8 @@
     appearance: none;
     display: inline-block;
     flex-shrink: 0;
-    width: 16px;
-    height: 16px;
+    width: var(--task-checkbox-size);
+    height: var(--task-checkbox-size);
     margin: 0;
     border: 1.5px solid var(--text-quaternary);
     border-radius: 4px;
@@ -191,7 +207,7 @@
     border-radius: 4px;
     font-family: $font-family-mono;
     font-size: 14px;
-    color: var(--text-secondary);
+    color: var(--primary-color);
   }
 
   pre {
@@ -206,6 +222,7 @@
       padding: 0;
       font-size: 13px;
       line-height: 1.6;
+      color: inherit;
     }
 
     // lowlight/highlight.js 语法高亮（主题变量见 themes.scss 的 --hl-*）
@@ -287,12 +304,12 @@
     color: var(--text-secondary);
   }
 
-  // 提示块（admonition）：左边框卡片，类型色映射主题变量（明暗主题自动适配）
+  // 提示块（admonition）：左右结构，左侧类型图标，右侧内容
   [data-admonition] {
     --admonition-color: var(--primary-color);
+    position: relative;
     margin: 12px 0;
-    padding: 10px 14px;
-    border-left: 3px solid var(--admonition-color);
+    padding: 16px;
     border-radius: 4px;
     background: color-mix(in srgb, var(--admonition-color) 7%, transparent);
 
@@ -309,47 +326,54 @@
       --admonition-color: var(--error-color);
     }
 
-    // 类型标题行（阅读态与编辑态共用基础样式）
+    // 阅读态：::before 绝对定位在左侧显示类型图标
     &::before {
-      content: "笔记";
-      display: block;
-      font-weight: 600;
-      font-size: 0.9em;
-      margin-bottom: 4px;
+      content: "📝";
+      position: absolute;
+      left: 12px;
+      top: 10px;
+      font-size: 1.2em;
+      line-height: 1.4;
       color: var(--admonition-color);
     }
 
     &[data-type="tip"]::before {
-      content: "提示";
+      content: "💡";
     }
     &[data-type="info"]::before {
-      content: "信息";
+      content: "ℹ️";
     }
     &[data-type="warning"]::before {
-      content: "警告";
+      content: "⚠️";
     }
     &[data-type="danger"]::before {
-      content: "危险";
+      content: "❌";
     }
 
-    // 编辑态（Vue NodeView）：真实标题元素替代 ::before（点击下拉切换类型）
-    &.admonition-edit::before {
-      display: none;
+    // 编辑态（Vue NodeView）：flex 左右布局，隐藏 ::before
+    &.admonition-edit {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      padding-left: 16px;
+
+      &::before {
+        display: none;
+      }
     }
 
     .admonition-title {
-      margin-bottom: 4px;
+      flex-shrink: 0;
       user-select: none;
 
       .admonition-title__trigger {
-        display: inline-flex;
+        display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 5px;
-        padding: 1px 5px;
-        margin-left: -5px;
-        border-radius: 3px;
-        font-weight: 600;
-        font-size: 0.9em;
+        gap: 2px;
+        padding: 1px;
+        line-height: 1;
+        border-radius: 4px;
         color: var(--admonition-color);
         cursor: pointer;
         transition: background 100ms ease;
@@ -361,23 +385,21 @@
             transparent
           );
         }
-
-        // 下拉箭头：默认隐藏，悬浮标题或菜单展开时淡入（提示可点击切换类型）
-        .admonition-title__chevron {
-          opacity: 0;
-          transition: opacity 120ms ease;
-        }
-
-        &:hover .admonition-title__chevron,
-        &.is-menu-open .admonition-title__chevron {
-          opacity: 0.7;
-        }
       }
     }
 
-    // NodeViewContent 包裹层：让"最后一个子块无下边距"继续命中实际内容块
-    .admonition-content > :last-child {
-      margin-bottom: 0;
+    // NodeViewContent 包裹层：flex:1 占据右侧剩余空间
+    .admonition-content {
+      flex: 1;
+      min-width: 0;
+
+      > :first-child {
+        margin-top: 0;
+      }
+
+      > :last-child {
+        margin-bottom: 0;
+      }
     }
 
     // 嵌套时收紧内层边距，避免视觉上过度膨胀
@@ -537,12 +559,12 @@
     bottom: -2px;
     width: 2px;
     background-color: var(--primary-color);
-    pointer-events: none;    
+    pointer-events: none;
   }
 
   .ProseMirror.resize-cursor {
     cursor: ew-resize;
-    cursor: col-resize;    
+    cursor: col-resize;
   }
 
   hr {

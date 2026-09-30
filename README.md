@@ -2,131 +2,165 @@
 
 **English** | [中文](README.zh-CN.md)
 
-Wrisp is an **AI-native desktop app built specifically for Product Managers (PMs)**, powered by Electron + Vue 3 + TypeScript with a **Local-first** philosophy.
+**An AI-native knowledge workspace for deep thinkers.**
 
-It was born out of a real struggle shared by an internet product manager: recording fragmented thoughts every day and regularly producing stage deliverables — yet never finding a tool that truly fits. Generic note-taking apps are too loose, while many "AI-does-it-for-you" tools go too far. Handing all your knowledge over to AI may seem effortless, but it leaves your knowledge sitting in the computer instead of taking root in your brain.
+Capture without friction. Recall automatically. Make every output traceable.
 
-That's why Wrisp holds to one principle: **AI assists, never replaces**. AI handles understanding, linking, clustering, and retrieval, helping you distill fragmented inputs into a traceable knowledge base — but the processes of organizing, judging, and remembering always remain yours. When you write PRDs, competitive reports, or roadmaps, AI automatically recalls relevant material so every deliverable is grounded in evidence — and every retrieval doubles as an act of active recall.
+---
 
-If you share the same struggle, join us in shaping Wrisp into a knowledge workspace that truly works for people.
+## Why Wrisp
 
-## ✨ Core Highlights
+We capture fragments every day: a piece of feedback in a meeting, an idea on the commute, a competitor's update. But when it's time to write a PRD or do a retrospective, that one key insight is often nowhere to be found.
 
-| Feature                        | Description                                                                                                                                                                                       |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Block First**                | The smallest unit is not a document but a Block — capture fragments with zero organizing pressure                                                                                                 |
-| **AI Assists, Never Replaces** | AI is deeply embedded in the workflow: it handles understanding, linking, clustering, and retrieval, while judgment and memory stay with you — knowledge enters your mind, not just your computer |
-| **Local-first**                | Research data, competitive analyses, and unreleased roadmaps are stored entirely locally — privacy without compromise                                                                             |
-| **Traceable Decisions**        | The rationale behind every requirement, every cut, and every decision is always one semantic link away                                                                                            |
-| **Auto-crystallization**       | Fragments are automatically clustered into topics and grow into a knowledge system over time; report writing starts from assembly, not from scratch                                               |
-| **Reflection Stream**          | Continuously surfaces requirement patterns and decision contradictions, serving as your "thinking companion"                                                                                      |
+Generic note-taking apps are too loose. AI-does-everything tools make you lose control over your own knowledge.
 
-## 🎯 Target Users
+Wrisp holds one principle: **AI assists, never replaces.** AI handles understanding, linking, clustering, and recall. Judgment, organization, and memory always belong to you.
 
-**Purpose-built for Product Manager roles**, covering the following scenarios:
+---
 
-- **Product Manager (PM)**: requirement analysis, PRD writing, user research, competitive tracking
-- **Product Owner (PO)**: release planning, roadmap building, prioritization decisions
-- **Business Analyst**: requirement gathering, structured documentation, cross-team alignment
-- **Founder / Decision-maker**: business requirement capture, decision-chain tracing, long-term thinking evolution
+## Core Features
 
-## 🚀 Core Features
+| Feature | Description |
+|---------|-------------|
+| **Block First** | The smallest unit is a Block, not a document. Zero-friction capture — hit enter and it's saved |
+| **AI Assists, Never Replaces** | AI suggests links, clusters candidates, and recalls material. You confirm or reject. Knowledge enters your brain, not just your computer |
+| **Local-first** | All data stays on your device. Unreleased research, roadmaps, and competitive analysis never leave your machine |
+| **Traceable Decisions** | Every requirement, every cut, every trade-off — recall the reasoning behind it anytime through semantic links |
+| **Automatic Crystallization** | Fragments automatically cluster into topics, accumulating into a knowledge system over time |
+| **Reflection Feed** | Continuously surfaces thinking patterns and decision contradictions — a "second brain" for your thinking |
 
-### Journal — Daily Input
+---
 
-Capture fragmented requirements, competitive observations, meeting minutes, and data insights as Blocks with zero organizing cost.
+## Typical Scenarios
 
-### Wiki — Smart Organization
+### Product Managers
 
-AI automatically builds semantic links, clusters topics, and visualizes concept networks, so fragmented knowledge organizes itself.
+- Hear a user insight in a meeting — hit enter, no need to decide which folder it goes in
+- Writing a PRD? AI automatically recalls last month's research, competitive analysis, and user interviews
+- Three months later, your boss asks "why did we cut this feature?" — one click recalls the original discussion and rationale
+
+### Researchers / Analysts
+
+- Jot down ideas while reading papers — AI automatically links them to existing notes
+- Writing a report? Relevant material surfaces automatically, so you start from assembly, not from scratch
+
+### Content Creators
+
+- Fragments of inspiration automatically cluster into topics, ready to be called upon when writing
+- Track the evolution of your thinking on a topic over time, forming a personal timeline of ideas
+
+### Knowledge Workers
+
+- Meeting notes, learning logs, project retrospectives — all captured in one place
+- Semantic search recalls historical records in milliseconds when you need them
+
+---
+
+## Key Capabilities
+
+### Journal — Frictionless Capture
+
+Fragments, meeting notes, competitive observations, data insights — all captured as Blocks with zero organizational overhead. Supports Markdown syntax, `[[wiki links]]`, and `#tags`.
+
+### Wiki — Intelligent Organization
+
+AI automatically builds semantic links, clusters topics, and visualizes the concept network. Every AI suggestion can be confirmed, edited, or rejected by you.
 
 ### Project — Structured Output
 
-When writing PRDs, competitive reports, or roadmaps, AI recalls past material — start from assembly, not from scratch.
+When writing PRDs, reports, or articles, AI recalls historical material so you start from assembly, not from scratch. Supports Markdown export.
 
-### Reflection — Continuous Insight
+### Reflection — Insight Feed
 
-Automatically surfaces requirement patterns, decision contradictions, and data anomalies, becoming the PM's thinking companion.
+Automatically surfaces thinking patterns, decision contradictions, and interest shifts as insight cards, helping you review your knowledge system more comprehensively.
 
-## 📅 Roadmap
+---
 
-| Version                   | Goal                                             | Core Deliverables                                                                                         |
-| ------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| **V1 Journal Input**      | Content input & basic organization               | Block editing, PM input templates, decision blocks, @mentions, global search, calendar navigation         |
-| **V2 Smart Organization** | AI auto-organization & knowledge crystallization | Concept networks, topic clustering, semantic links, cross-date relations, decision/action-item extraction |
-| **V3 Output Scenarios**   | Structured output & deliverable production       | Project workspace, AI weekly report generation, inline AI chat, version upgrades                          |
+## Quick Start
 
-## 🛠️ Tech Stack
+### Download
 
-- **Frontend**: Vue 3 + TypeScript + Composition API
-- **Build tool**: Vite
-- **Desktop framework**: Electron
-- **State management**: Pinia
-- **Routing**: Vue Router
-- **UI components**: Naive UI
-- **Editor**: Tiptap 3 (block editor)
-- **Databases**: SQLite (better-sqlite3) + LanceDB (vector index)
-- **AI gateway**: Multi-provider adapters (OpenAI/Claude/DeepSeek/Qwen/local models)
-- **Code quality**: ESLint + TypeScript
-- **Packaging**: electron-builder
+Go to the [Releases page](https://github.com/liqms/wrisp/releases) to download the installer for your platform:
 
-## 🚀 Getting Started
-
-### Download & Install
-
-Download the installer for your platform from the [Releases page](https://github.com/liqms/wrisp/releases):
-
-| Platform    | Installer                                    |
-| ----------- | -------------------------------------------- |
+| Platform | Package |
+|----------|---------|
 | **Windows** | `.exe` (NSIS installer) or `.exe` (portable) |
-| **macOS**   | `.dmg` or `.pkg`                             |
-| **Linux**   | `.deb` / `.rpm` / `.AppImage`                |
+| **macOS** | `.dmg` or `.pkg` |
+| **Linux** | `.deb` / `.rpm` / `.AppImage` |
 
-Download and double-click to install.
+Double-click to install and you're ready to go.
 
-### First Run
+### First Use
 
 1. Launch the app and choose a data storage directory (defaults to your Documents folder)
-2. Configure your AI model in Settings (OpenAI/Claude/DeepSeek/Qwen or a local model)
-3. Open the Journal page and record your first requirement or idea
+2. Configure your AI model in Settings (supports OpenAI / Claude / DeepSeek / Qwen / local models)
+3. Go to the Journal page and start recording your first thought
 
-## 📄 License
+---
+
+## Roadmap
+
+| Version | Goal | Key Deliverables |
+|---------|------|------------------|
+| **V1 Capture** | Content input and basic organization | Block editing, input templates, @mentions, global search, calendar navigation |
+| **V2 Organize** | AI-powered organization and knowledge crystallization | Concept network, topic clustering, semantic links, cross-date associations, decision/action item extraction |
+| **V3 Output** | Structured output and deliverable creation | Project workspace, AI weekly report generation, inline AI chat, version upgrade |
+
+---
+
+## Tech Stack
+
+- **Frontend**: Vue 3 + TypeScript + Composition API
+- **Build Tool**: Vite
+- **Desktop Framework**: Electron
+- **State Management**: Pinia
+- **Router**: Vue Router
+- **UI Components**: Naive UI
+- **Editor**: Tiptap 3 (block editor)
+- **Database**: SQLite (better-sqlite3) + LanceDB (vector index)
+- **AI Gateway**: Multi-provider support (OpenAI / Claude / DeepSeek / Qwen / local models)
+- **Code Standards**: ESLint + TypeScript
+- **Packaging**: electron-builder
+
+---
+
+## License
 
 ### Personal Use
 
-This project is open source under the [GNU Affero General Public License v3.0 (AGPLv3)](LICENSE).
+This project is open-sourced under the [GNU Affero General Public License v3.0 (AGPLv3)](LICENSE).
+
 You are free to:
 
-- ✅ Use it personally — for learning, research, and personal projects
-- ✅ Share — copy and redistribute the work in any medium or format
-- ✅ Modify — remix, transform, or build upon the work
+- ✅ **Use** — for learning, research, and personal projects
+- ✅ **Share** — copy and redistribute the material in any medium or format
+- ✅ **Adapt** — remix, transform, and build upon the material
 
 Under the following terms:
 
-- 📝 Attribution — you must give appropriate credit, provide a link to the license, and indicate whether changes were made
-- 🚫 Non-commercial — you may not use the work for commercial purposes
-- 🔄 Share-alike — if you remix, transform, or build upon the work, you must distribute your contributions under the same license
+- 📝 **Attribution** — You must give appropriate credit, provide a link to the license, and indicate if changes were made
+- 🚫 **Non-Commercial** — You may not use the material for commercial purposes
+- 🔄 **ShareAlike** — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original
 
-### Commercial License
+### Commercial Licensing
 
 If you wish to use this project for commercial purposes (including but not limited to):
 
 - Offering paid services
-- Integrating into a commercial product
+- Integrating into commercial products
 - Operating as a SaaS service
-- Any other profit-generating use
-- Please contact the author to obtain a commercial license:
+- Other for-profit uses
+
+Please contact the author for commercial licensing.
 
 ### Disclaimer
 
-This software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the authors or copyright holders be liable for any claim, damages, or other liability.
-
-## 📞 Contact
-
-- Project homepage: https://github.com/liqms/wrisp
-- Issues: https://github.com/liqms/wrisp/issues
-- Email: liqms@msn.cn
+This software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the authors or copyright holders be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the software or the use or other dealings in the software.
 
 ---
 
-**Made with ❤️ for Product Managers**
+## Contact
+
+- Project Home: https://github.com/liqms/wrisp
+- Issues: https://github.com/liqms/wrisp/issues
+- Email: liqms@msn.com

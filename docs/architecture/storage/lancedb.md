@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档定义 PenTip 的向量数据库设计，基于 LanceDB 构建，用于支持语义搜索、智能推荐和知识结晶功能。
+本文档定义 Wrisp 的向量数据库设计，基于 LanceDB 构建，用于支持语义搜索、智能推荐和知识结晶功能。
 
 **设计目标：**
 
@@ -97,7 +97,7 @@ import fs from "fs";
 function getVectorDbPath(): string {
   const appDataPath = join(
     process.env.APPDATA || process.env.HOME || process.env.USERPROFILE || ".",
-    "pentip",
+    "Wrisp",
     "vectors",
   );
   if (!fs.existsSync(appDataPath)) {

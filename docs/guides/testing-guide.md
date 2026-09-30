@@ -1,4 +1,4 @@
-﻿# PenTip 单元测试指南
+﻿# Wrisp 单元测试指南
 
 ## 目录结构
 
@@ -26,6 +26,7 @@ tests/
 ```
 
 **原则**：
+
 - **单测** (`unit/`) — 纯逻辑验证，外部依赖全 mock，不含真实 IO/DB
 - **集测** (`integration/`) — 含真实 SQLite `:memory:` 数据库，验证 SQL 正确性
 
@@ -59,7 +60,7 @@ describe("validateId", () => {
 });
 ```
 
-### 2. renderer 层  — Pinia store
+### 2. renderer 层 — Pinia store
 
 需要 `setActivePinia(createPinia())` 隔离 store 实例：
 
@@ -82,7 +83,7 @@ describe("useNotificationStore", () => {
 
 > `tests/setup/renderer.ts` 已自动为所有 renderer 测试注入 `window.electronAPI` mock，无需手动 mock IPC。
 
-### 3. renderer 层  — Composable
+### 3. renderer 层 — Composable
 
 Composable 常依赖 Pinia store，需先初始化 store：
 
@@ -107,7 +108,7 @@ it("should reflect light mode", async () => {
 });
 ```
 
-### 4. main 层  — Config API（mock 下层 service）
+### 4. main 层 — Config API（mock 下层 service）
 
 使用 `vi.mock()` + `vi.hoisted()` 模式：
 
@@ -138,7 +139,7 @@ it("should return success response", async () => {
 
 > **关键规则**：`vi.mock()` 中的 factory 不能引用文件级变量。必须用 `vi.hoisted(() => ...)` 或 `vi.fn()` 字面量。
 
-### 5. main 层  — DAO 集成测试（真实 SQLite）
+### 5. main 层 — DAO 集成测试（真实 SQLite）
 
 DAO 测试需要完整的 SQLite + schema 初始化：
 
@@ -190,6 +191,7 @@ describe("TagDao", () => {
 ```
 
 **注意**：
+
 - 每个 `beforeEach` 需清空测试涉及的所有表（`DELETE FROM table`）
 - 有外键依赖的表，先删子表再删父表
 - schema 使用 `process.cwd()` 定位，不从 `__dirname` 推断
@@ -198,12 +200,12 @@ describe("TagDao", () => {
 
 ## 测试环境划分
 
-| 层 | 环境 | setup 文件 | 特点 |
-|---|---|---|---|
-| shared | `happy-dom`（默认） | 无 | 纯 TS 函数，无环境依赖 |
-| renderer | `happy-dom`（默认） | `tests/setup/renderer.ts` | 自动注入 `window.electronAPI` mock |
-| main (unit) | `node` (`@vitest-environment node`) | 在测试文件内 inline | 全 mock 下层依赖 |
-| main (integration) | `node` (`@vitest-environment node`) | 在测试文件内 inline | 真实 SQLite `:memory:` |
+| 层                 | 环境                                | setup 文件                | 特点                               |
+| ------------------ | ----------------------------------- | ------------------------- | ---------------------------------- |
+| shared             | `happy-dom`（默认）                 | 无                        | 纯 TS 函数，无环境依赖             |
+| renderer           | `happy-dom`（默认）                 | `tests/setup/renderer.ts` | 自动注入 `window.electronAPI` mock |
+| main (unit)        | `node` (`@vitest-environment node`) | 在测试文件内 inline       | 全 mock 下层依赖                   |
+| main (integration) | `node` (`@vitest-environment node`) | 在测试文件内 inline       | 真实 SQLite `:memory:`             |
 
 > **`@vitest-environment node`** 注解必须写在测试文件**第一行**（注释也可以），vitest 会据此切换环境。
 
@@ -216,6 +218,7 @@ describe("TagDao", () => {
 2. **`window.electronAPI`** — 仅在 happy-dom/jsdom 环境下存在。node 环境的 main 测试中不要引用 `window`。
 
 3. **`better-sqlite3` 版本** — 原生插件需与系统 Node.js 版本匹配。如遇 NODE_MODULE_VERSION 错误，执行：
+
    ```bash
    cd node_modules/better-sqlite3 && npx node-gyp rebuild
    ```

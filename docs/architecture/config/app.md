@@ -1,4 +1,4 @@
-# PenTip 应用配置文档
+# Wrisp 应用配置文档
 
 ## 概述
 
@@ -8,9 +8,9 @@
 
 ### 文件路径
 
-- **Windows**: `%APPDATA%/PenTip/config/app.json`
-- **macOS**: `~/Library/Application Support/PenTip/config/app.json`
-- **Linux**: `~/.config/PenTip/config/app.json`
+- **Windows**: `%APPDATA%/Wrisp/config/app.json`
+- **macOS**: `~/Library/Application Support/Wrisp/config/app.json`
+- **Linux**: `~/.config/Wrisp/config/app.json`
 
 ### 存储格式
 
@@ -23,9 +23,9 @@ JSON 格式，由 `electron-store` 管理。配置损坏时自动清除并恢复
 ```typescript
 // src/shared/types/config.types.ts
 export interface General {
-  themeMode: ThemeMode;       // 主题模式: 'light' | 'dark' | 'system'
-  themeColor: ThemeColor;     // 主题颜色: 'blue' | 'green' | 'orange' | 'purple' | 'pink' | 'cyan'
-  locale: Locale;             // 语言: 'zhCN' | 'enUS'
+  themeMode: ThemeMode; // 主题模式: 'light' | 'dark' | 'system'
+  themeColor: ThemeColor; // 主题颜色: 'blue' | 'green' | 'orange' | 'purple' | 'pink' | 'cyan'
+  locale: Locale; // 语言: 'zhCN' | 'enUS'
   updateChannel: UpdateChannel; // 更新渠道: 'stable' | 'beta'
 }
 ```
@@ -34,11 +34,11 @@ export interface General {
 
 ```typescript
 export interface MiniProgram {
-  id: string;        // 小程序唯一标识
-  name: string;      // 显示名称
-  url: string;       // 访问地址
-  icon: string;      // 图标地址
-  area: string;      // 区域: 'china' | 'overseas'
+  id: string; // 小程序唯一标识
+  name: string; // 显示名称
+  url: string; // 访问地址
+  icon: string; // 图标地址
+  area: string; // 区域: 'china' | 'overseas'
   isHidden: boolean; // 是否在列表隐藏
 }
 ```
@@ -47,18 +47,18 @@ export interface MiniProgram {
 
 ```typescript
 export interface UserInfo {
-  nickname: string;            // 用户昵称
-  avatar?: string;             // 头像路径（相对路径，如 'avatar/01.png'）
-  token?: string;              // 认证令牌
-  refreshToken?: string;       // 刷新令牌
-  registrationDate: string;    // 注册日期 (ISO 8601)
-  lastLoginDate?: string;      // 最后登录日期 (ISO 8601)
-  email?: string;              // 邮箱地址
-  bio?: string;                // 个人简介
+  nickname: string; // 用户昵称
+  avatar?: string; // 头像路径（相对路径，如 'avatar/01.png'）
+  token?: string; // 认证令牌
+  refreshToken?: string; // 刷新令牌
+  registrationDate: string; // 注册日期 (ISO 8601)
+  lastLoginDate?: string; // 最后登录日期 (ISO 8601)
+  email?: string; // 邮箱地址
+  bio?: string; // 个人简介
   preferences: {
-    country?: string;          // 国家或地区
-    timezone: string;          // 时区 (IANA 格式)
-    notification: boolean;     // 通知开关
+    country?: string; // 国家或地区
+    timezone: string; // 时区 (IANA 格式)
+    notification: boolean; // 通知开关
   };
 }
 ```
@@ -67,10 +67,10 @@ export interface UserInfo {
 
 ```typescript
 export interface FailoverConfig {
-  maxRetries: number;                // 最大重试次数
-  retryDelayMs: number;              // 重试间隔（毫秒）
-  circuitBreakerThreshold: number;   // 熔断阈值
-  cooldownMs: number;                // 冷却时间（毫秒）
+  maxRetries: number; // 最大重试次数
+  retryDelayMs: number; // 重试间隔（毫秒）
+  circuitBreakerThreshold: number; // 熔断阈值
+  cooldownMs: number; // 冷却时间（毫秒）
 }
 ```
 
@@ -78,8 +78,8 @@ export interface FailoverConfig {
 
 ```typescript
 export interface SkillsConfig {
-  remoteUpdateEnabled: boolean;      // 是否启用远程更新
-  remoteUpdateUrl: string;           // 远程更新地址
+  remoteUpdateEnabled: boolean; // 是否启用远程更新
+  remoteUpdateUrl: string; // 远程更新地址
 }
 ```
 
@@ -87,7 +87,7 @@ export interface SkillsConfig {
 
 ```typescript
 export interface KeymapItem {
-  id: string;   // 快捷键唯一标识
+  id: string; // 快捷键唯一标识
   keys: string; // 按键组合（如 'Ctrl+K'）
 }
 ```
@@ -96,19 +96,19 @@ export interface KeymapItem {
 
 ```typescript
 export interface AppConfig {
-  general: General;                  // 通用配置
-  miniPrograms: MiniProgram[];       // 小程序列表
-  defaultMiniProgramId?: string;     // 默认小程序 ID
-  userInfo: UserInfo;                // 用户信息
-  version: string;                   // 配置版本
-  workspace: string;                 // 工作目录路径
-  currentProjectId?: string;         // 当前项目 ID
-  isFirstLaunch: boolean;            // 是否首次启动
-  isUpdateLaunch: boolean;           // 是否更新后首次启动
-  updatedAt: string;                 // 最后更新时间 (ISO 8601)
-  failoverConfig: FailoverConfig;    // 降级/熔断配置
-  skillsConfig: SkillsConfig;        // Skills 远程更新配置
-  shortcuts?: KeymapItem[];          // 快捷键列表
+  general: General; // 通用配置
+  miniPrograms: MiniProgram[]; // 小程序列表
+  defaultMiniProgramId?: string; // 默认小程序 ID
+  userInfo: UserInfo; // 用户信息
+  version: string; // 配置版本
+  workspace: string; // 工作目录路径
+  currentProjectId?: string; // 当前项目 ID
+  isFirstLaunch: boolean; // 是否首次启动
+  isUpdateLaunch: boolean; // 是否更新后首次启动
+  updatedAt: string; // 最后更新时间 (ISO 8601)
+  failoverConfig: FailoverConfig; // 降级/熔断配置
+  skillsConfig: SkillsConfig; // Skills 远程更新配置
+  shortcuts?: KeymapItem[]; // 快捷键列表
 }
 ```
 
@@ -125,9 +125,30 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     updateChannel: UPDATE_CHANNEL.STABLE,
   },
   miniPrograms: [
-    { id: "deepseek", name: "DeepSeek", url: "https://chat.deepseek.com/", icon: "https://chat.deepseek.com/favicon.ico", area: "china", isHidden: false },
-    { id: "doubao", name: "Doubao", url: "https://www.doubao.com/chat/", icon: "https://lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/chat/favicon.png", area: "china", isHidden: false },
-    { id: "openai", name: "OpenAI Chat", url: "https://www.openai.com/chat/", icon: "https://lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/chat/favicon.png", area: "china", isHidden: false },
+    {
+      id: "deepseek",
+      name: "DeepSeek",
+      url: "https://chat.deepseek.com/",
+      icon: "https://chat.deepseek.com/favicon.ico",
+      area: "china",
+      isHidden: false,
+    },
+    {
+      id: "doubao",
+      name: "Doubao",
+      url: "https://www.doubao.com/chat/",
+      icon: "https://lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/chat/favicon.png",
+      area: "china",
+      isHidden: false,
+    },
+    {
+      id: "openai",
+      name: "OpenAI Chat",
+      url: "https://www.openai.com/chat/",
+      icon: "https://lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/chat/favicon.png",
+      area: "china",
+      isHidden: false,
+    },
   ],
   defaultMiniProgramId: "deepseek",
   userInfo: {
@@ -165,15 +186,26 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
 };
 ```
 
-> **注意**: `ConfigService.getDefaultConfig()` 会在默认值基础上覆盖 `workspace`（设为 `~/Documents/PenTip`）、`version`（设为当前应用版本）和 `updatedAt`（设为当前时间）。
+> **注意**: `ConfigService.getDefaultConfig()` 会在默认值基础上覆盖 `workspace`（设为 `~/Documents/Wrisp`）、`version`（设为当前应用版本）和 `updatedAt`（设为当前时间）。
 
 ## 枚举值
 
 相关枚举定义在 `src/shared/enums/config.enums.ts`：
 
 ```typescript
-export const THEME_MODE = { LIGHT: "light", DARK: "dark", SYSTEM: "system" } as const;
-export const THEME_COLOR = { BLUE: "blue", GREEN: "green", ORANGE: "orange", PURPLE: "purple", PINK: "pink", CYAN: "cyan" } as const;
+export const THEME_MODE = {
+  LIGHT: "light",
+  DARK: "dark",
+  SYSTEM: "system",
+} as const;
+export const THEME_COLOR = {
+  BLUE: "blue",
+  GREEN: "green",
+  ORANGE: "orange",
+  PURPLE: "purple",
+  PINK: "pink",
+  CYAN: "cyan",
+} as const;
 export const LOCALE = { ZH: "zhCN", EN: "enUS" } as const;
 export const UPDATE_CHANNEL = { STABLE: "stable", BETA: "beta" } as const;
 ```
@@ -197,6 +229,7 @@ class ConfigService {
 ```
 
 **关键行为**:
+
 - 配置加载时自动执行 `ObjectUtil.deepMerge` 合并默认值与用户配置
 - 版本升级时自动调用 `configMigration.migrateConfig()` 执行迁移
 - `setWorkspace()` 会关闭旧数据库连接 → 更新配置 → 创建目录 → 初始化新数据库 → 广播 `workspace:changed` 事件
@@ -208,7 +241,10 @@ class ConfigService {
 ```typescript
 async function getConfig(): Promise<ApiResponse<AppConfig>>;
 async function getValue(keyPath: string): Promise<ApiResponse<any>>;
-async function setValue(keyPath: string, value: any): Promise<ApiResponse<void>>;
+async function setValue(
+  keyPath: string,
+  value: any,
+): Promise<ApiResponse<void>>;
 async function resetConfig(): Promise<ApiResponse<void>>;
 async function setWorkspace(workspacePath: string): Promise<ApiResponse<void>>;
 ```
@@ -292,7 +328,14 @@ export function useConfig(options?: UseConfigOptions) {
 ```typescript
 import { useConfig } from "@/renderer/composables/useConfig";
 
-const { themeMode, themeColor, locale, setValue, updateThemeMode, updateLocale } = useConfig({ autoInit: true });
+const {
+  themeMode,
+  themeColor,
+  locale,
+  setValue,
+  updateThemeMode,
+  updateLocale,
+} = useConfig({ autoInit: true });
 
 // 更新主题模式
 await updateThemeMode("dark");
@@ -341,7 +384,11 @@ await updateWorkspace("/path/to/new/workspace");
 
 ```typescript
 if (needsMigration(configVersion, appVersion)) {
-  mergedConfig = configMigration.migrateConfig(mergedConfig, configVersion, appVersion);
+  mergedConfig = configMigration.migrateConfig(
+    mergedConfig,
+    configVersion,
+    appVersion,
+  );
 }
 ```
 
@@ -360,12 +407,12 @@ export enum ErrorCode {
 
 ### 处理策略
 
-| 场景 | 处理方式 |
-|------|----------|
-| 配置加载失败 | 使用默认配置，记录错误日志 |
-| 配置更新失败 | 抛出错误，不修改本地状态 |
+| 场景             | 处理方式                                             |
+| ---------------- | ---------------------------------------------------- |
+| 配置加载失败     | 使用默认配置，记录错误日志                           |
+| 配置更新失败     | 抛出错误，不修改本地状态                             |
 | 配置键路径不存在 | `getValue` 返回 `undefined`，`setValue` 记录错误日志 |
-| 配置损坏 | `electron-store` 自动清除并恢复默认值 |
+| 配置损坏         | `electron-store` 自动清除并恢复默认值                |
 
 ## 事件通信
 

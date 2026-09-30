@@ -1,4 +1,4 @@
-# PenTip 模型配置文档
+# Wrisp 模型配置文档
 
 ## 概述
 
@@ -8,9 +8,9 @@
 
 ### 文件路径
 
-- **Windows**: `%APPDATA%/PenTip/config/model.json`
-- **macOS**: `~/Library/Application Support/PenTip/config/model.json`
-- **Linux**: `~/.config/PenTip/config/model.json`
+- **Windows**: `%APPDATA%/Wrisp/config/model.json`
+- **macOS**: `~/Library/Application Support/Wrisp/config/model.json`
+- **Linux**: `~/.config/Wrisp/config/model.json`
 
 ### 存储格式
 

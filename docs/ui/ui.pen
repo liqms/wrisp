@@ -21,7 +21,7 @@
           "fill": {
             "type": "image",
             "enabled": true,
-            "url": "pentip.png",
+            "url": "Wrisp.png",
             "mode": "fill"
           },
           "width": 256,

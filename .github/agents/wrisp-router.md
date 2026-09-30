@@ -53,7 +53,8 @@
    ├─ Pinia store/composable → store-agent
    ├─ Naive UI/样式/n-icon → ui-component-agent
    ├─ 文案/i18n/enUS/zhCN  → i18n-agent
-   └─ 项目卡片/模板/职业    → project-domain-agent
+   ├─ 项目卡片/模板/职业    → project-domain-agent
+   └─ 测试/补测试/覆盖率/回归 → wrisp-test-agent (+ 按 source_roots 收敛的 Tier 1)
    │
 3. 派发(按依赖序):
    - 先 dao → 后 ipc-channel(若触库)
@@ -83,6 +84,7 @@
 | Naive UI / dropdown / 样式 / n-icon | renderer | ui-component |
 | 文案 / i18n / enUS / zhCN | renderer + shared | i18n |
 | 项目卡片 / 模板 / 职业 | renderer + main | project-domain |
+| 测试 / 补测试 / 跑测试 / 用例 / 覆盖率 / 快照 / 回归 / vitest | main + renderer + shared | wrisp-test-agent |
 
 ---
 
@@ -93,10 +95,14 @@
 ```yaml
 task: "<用户原始请求>"
 source_roots: [main | renderer | shared]
+affected_files:              # 强烈建议，测试智能体增量执行策略依赖，优先传递
+  - "src/.../xxx.ts"
 co_agents: [<Tier 2 agent 列表>]
+# 测试任务 co_agents 预置：按 source_roots 含 main → main-process-agent；含 renderer → renderer-agent；含 shared → shared-agent；再按触及子系统补 Tier 2 名单
 dependencies:
   - <先行 Agent>: <原因>
 known_pitfalls_active:
+  # 按本次触及域激活相关陷阱开关（如 v-html-sanitize / semantic-chunks-fields / cjs-worker-path），供测试智能体归因对照
   - <项目级相关陷阱开关>
 ```
 

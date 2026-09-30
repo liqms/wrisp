@@ -4,16 +4,16 @@
 
 ## 概述
 
-本文件描述了 PenTip 的用户数据目录结构。存储架构设计详见 [`storage.md`](storage.md)。
+本文件描述了 Wrisp 的用户数据目录结构。存储架构设计详见 [`storage.md`](storage.md)。
 
 ---
 
-## 应用数据目录（pentip）
+## 应用数据目录（Wrisp）
 
 用途：存储应用全局数据，包括配置、数据库、向量库、模型缓存等。独立于工作空间，不受 workspace 切换影响。
 
 ```
-pentip/
+Wrisp/
 ├── config/              # 配置文件目录
 │   ├── app.json         # 应用主配置
 │   ├── window.json      # 窗口配置
@@ -42,7 +42,7 @@ pentip/
 ## 工作空间目录结构
 
 用途：工作空间是用户数据的核心，所有用户内容以 Markdown 文件组织。
-工作空间默认路径为用户的 Documents 目录（`~/Documents/PenTip`），用户可在设置中修改。
+工作空间默认路径为用户的 Documents 目录（`~/Documents/Wrisp`），用户可在设置中修改。
 
 ```
 {workspace}/
@@ -71,7 +71,7 @@ pentip/
 - `journal/`：用户日常记录，按日期组织，每个文件为当天完整记录。
 - `projects/`：创作项目，按项目组织目录，支持多文件。
 - 用户可用 Obsidian、VS Code 等任何工具直接编辑。
-- 所有内容均为标准 Markdown 格式，不依赖 PenTip 即可读写。
+- 所有内容均为标准 Markdown 格式，不依赖 Wrisp 即可读写。
 
 ### 数据库：AI 智能索引层
 

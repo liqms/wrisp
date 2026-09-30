@@ -1,7 +1,7 @@
-# Pentip 技术方案（v5）
+# Wrisp 技术方案（v5）
 
 > 文档版本：v5（适配"文件优先，数据库索引"架构，对齐 PRD v3 + MRD v2 + SQLite v2 + LanceDB v2 + Model v2.2）
-> 本文档描述 Pentip 的目标架构，作为后续项目改造的技术蓝图。重构计划详见 [`refactor.md`](refactor.md)。
+> 本文档描述 Wrisp 的目标架构，作为后续项目改造的技术蓝图。
 > 最后更新：2026-06-28
 
 ---
@@ -10,7 +10,7 @@
 
 ### 1.1 产品定位
 
-Pentip 是一个以 Markdown 文件为数据源，以 AI 为智能索引的认知工作台。核心理念：
+Wrisp 是一个以 Markdown 文件为数据源，以 AI 为智能索引的认知工作台。核心理念：
 
 | 理念                 | 说明                                                          |
 | :------------------- | :------------------------------------------------------------ |
@@ -79,34 +79,34 @@ Pentip 是一个以 Markdown 文件为数据源，以 AI 为智能索引的认�
 │  Process    │         Preload Modules      │                           │
 │             │                              │  ┌─────────────────────┐  │
 │  Vue 3 App  │                              │  │  Service Layer       │  │
-│  Pinia (11) │                              │  │  ┌───────────────┐  │  │
-│  Router (4) │                              │  │  │ IPC Handlers   │  │  │
-│  Naive UI   │                              │  │  │  (13 channels) │  │  │
+│  Pinia (14) │                              │  │  ┌───────────────┐  │  │
+│  Router (6) │                              │  │  │ IPC Handlers   │  │  │
+│  Naive UI   │                              │  │  │  (23 channels) │  │  │
 │             │                              │  │  └───────┬───────┘  │  │
 │             │                              │  │          │          │  │
 │             │                              │  │  ┌───────▼───────┐  │  │
 │             │                              │  │  │ Core APIs     │  │  │
-│             │                              │  │  │  (13 modules) │  │  │
+│             │                              │  │  │  (22 modules) │  │  │
 │             │                              │  │  └───────┬───────┘  │  │
 │             │                              │  │          │          │  │
 │             │                              │  │  ┌───────▼───────┐  │  │
 │             │                              │  │  │ Business      │  │  │
-│             │                              │  │  │ Services (11) │  │  │
+│             │                              │  │  │ Services (54) │  │  │
 │             │                              │  │  └───────┬───────┘  │  │
 │             │                              │  └──────────┼──────────┘  │
 │             │                              │             │            │
 │             │                              │  ┌──────────▼──────────┐  │
-│             │                              │  │   DAO Layer (20)     │  │
-│             │                              │  │  block / tag /       │  │
+│             │                              │  │   DAO Layer (23)     │  │
+│             │                              │  │  chunk / tag /       │  │
 │             │                              │  │  taggedItem /        │  │
 │             │                              │  │  semanticLink /      │  │
-│             │                              │  │  concept / conceptBlock│
-│             │                              │  │  topic / topicBlock /│  │
+│             │                              │  │  concept / conceptChunk│
+│             │                              │  │  topic / topicChunk /│  │
 │             │                              │  │  topicConcept /      │  │
 │             │                              │  │  temporalEvent /     │  │
 │             │                              │  │  reflection /        │  │
-│             │                              │  │  reflectionBlock /   │  │
-│             │                              │  │  project / projectBlock│
+│             │                              │  │  reflectionChunk /   │  │
+│             │                              │  │  project / projectChunk│
 │             │                              │  │  page / migrationDb /│  │
 │             │                              │  │  skill-execution /   │  │
 │             │                              │  │  vector / task /     │  │
@@ -155,34 +155,39 @@ Pentip 是一个以 Markdown 文件为数据源，以 AI 为智能索引的认�
 
 ### 3.2 路由设计
 
-当前路由（`src/renderer/router/index.ts`）：
+当前路由（`src/renderer/router/index.ts`），共 6 个：
 
-| 路径        | 名称     | 视图组件          | 说明                           |
-| :---------- | :------- | :---------------- | :----------------------------- |
-| `/welcome`  | Welcome  | `Welcome.vue`     | 首次启动欢迎页 / 引导          |
-| `/journal`  | Journal  | `JournalView.vue` | Journal 每日日志页，块编辑入口 |
-| `/wiki`     | Wiki     | `WikiView.vue`    | AI 整理的知识体系（概念+主题） |
-| `/projects` | Projects | `ProjectView.vue` | 创作项目管理 + 编辑器          |
+| 路径                   | 名称         | 视图组件              | 说明                           |
+| :--------------------- | :----------- | :-------------------- | :----------------------------- |
+| `/welcome`             | Welcome      | `Welcome.vue`         | 首次启动欢迎页 / 引导          |
+| `/journal`             | Journal      | `JournalView.vue`     | Journal 每日日志页，块编辑入口 |
+| `/wiki`                | Wiki         | `WikiView.vue`        | AI 整理的知识体系（概念+主题） |
+| `/projects`            | Projects     | `ProjectView.vue`     | 创作项目管理 + 编辑器          |
+| `/projects/:projectId` | Page         | `PageView.vue`        | 项目页面编辑器                 |
+| `/marketplace`         | Marketplace  | `MarketplaceView.vue` | 模板市场                       |
 
-所有路由嵌套在 `MenuLayout.vue` 下，侧边栏提供 Journal、Wiki、Projects 三个导航入口。
+所有路由嵌套在 `MenuLayout.vue` 下，侧边栏提供 Journal、Wiki、Projects、Marketplace 四个导航入口。
 
 ### 3.3 Pinia Store 设计
 
-当前 Store（`src/renderer/store/`）：
+当前 Store（`src/renderer/store/`），共 14 个：
 
 | Store                | 用途                                                   |
 | :------------------- | :----------------------------------------------------- |
 | `ai.store`           | AI 智能层：Skills（技能）、Agent（规划）、Chat（对话） |
-| `journal.store`      | Journal 捕获流状态、块编辑状态                         |
-| `project.store`      | 创作项目、页面管理状态                                 |
-| `wiki.store`         | Wiki 知识体系（概念/主题/反思）                        |
 | `config.store`       | 应用配置（通用设置）                                   |
-| `model.store`        | AI 模型配置、下载状态                                  |
 | `download.store`     | 模型下载进度管理                                       |
-| `tag.store`          | 标签管理                                               |
-| `system.store`       | 系统信息                                               |
-| `webview.store`      | WebView 会话管理                                       |
+| `journal.store`      | Journal 捕获流状态、块编辑状态                         |
+| `model.store`        | AI 模型配置、下载状态                                  |
 | `notification.store` | 通知管理                                               |
+| `page.store`         | 页面编辑状态                                           |
+| `project.store`      | 创作项目、页面管理状态                                 |
+| `shortcut.store`     | 快捷键管理                                             |
+| `system.store`       | 系统信息                                               |
+| `tag.store`          | 标签管理                                               |
+| `template.store`     | 模板管理                                               |
+| `webview.store`      | WebView 会话管理                                       |
+| `wiki.store`         | Wiki 知识体系（概念/主题/反思）                        |
 
 ### 3.4 组件树
 
@@ -223,6 +228,40 @@ App.vue
 └── AppHeader.vue                     # 标题栏
 ```
 
+组件子目录（`src/renderer/components/`，共 7 个）：
+
+| 子目录        | 说明                           |
+| :------------ | :----------------------------- |
+| `base/`       | 基础通用组件                   |
+| `editor/`     | 编辑器相关组件                 |
+| `marketplace/`| 模板市场相关组件               |
+| `project/`    | 项目创作相关组件               |
+| `settings/`   | 设置相关组件                   |
+| `welcome/`    | 欢迎页相关组件                 |
+| `wiki/`       | Wiki 知识体系相关组件          |
+
+### 3.5 Composables
+
+`src/renderer/composables/` 提供 15 个组合式函数（+ `index.ts` 聚合）：
+
+| Composable        | 用途                           |
+| :---------------- | :----------------------------- |
+| `useAIStream`     | AI 流式响应管理                |
+| `useConfig`       | 配置读写                       |
+| `useJournal`      | Journal 状态与操作             |
+| `useModel`        | 模型配置与下载                 |
+| `useNotification` | 通知管理                       |
+| `usePage`         | 页面编辑状态与操作             |
+| `useProject`      | 项目状态与操作                 |
+| `useSearch`       | 全局搜索                       |
+| `useShortcut`     | 快捷键管理                     |
+| `useSkillStream`  | Skill 流式响应管理             |
+| `useSystem`       | 系统信息                       |
+| `useTag`          | 标签管理                       |
+| `useTheme`        | 主题管理                       |
+| `useWebView`      | WebView 会话管理               |
+| `useWiki`         | Wiki 知识体系状态与操作        |
+
 ---
 
 ## 四、主进程架构设计（Service Layer）
@@ -241,108 +280,161 @@ Preload Module → IPC Handler → Core API → Business Service → DAO
 
 | 层次                  | 职责                                    | 数量 |
 | :-------------------- | :-------------------------------------- | :--- |
-| **Preload Modules**   | 通过 contextBridge 暴露 API 给渲染进程  | 13   |
-| **IPC Handlers**      | 注册 IPC 通道，参数校验，调用 Core API  | 13   |
-| **Core APIs**         | 适配层，统一 ResponseWrapper 返回格式   | 13   |
-| **Business Services** | 封装业务逻辑，组合多个 DAO 完成复杂操作 | 11   |
+| **Preload Modules**   | 通过 contextBridge 暴露 API 给渲染进程  | 23   |
+| **IPC Handlers**      | 注册 IPC 通道，参数校验，调用 Core API  | 23   |
+| **Core APIs**         | 适配层，统一 ResponseWrapper 返回格式   | 22   |
+| **Business Services** | 封装业务逻辑，组合多个 DAO 完成复杂操作 | 54   |
 
 ### 4.2 IPC 通信层
 
 采用 4 层 IPC 模式：`preload module → API → ipcMain handler → Service/DAO`
 
-当前 IPC 域（`src/main/ipcMain/`，共 13 个）：
+当前 IPC 域（`src/main/ipcMain/`，共 23 个）：
 
-| IPC 域  | 文件                | 职责                                               |
-| :------ | :------------------ | :------------------------------------------------- |
-| config  | `config.ipc.ts`     | 配置读写                                           |
-| journal | `journal.ipc.ts`    | Journal 块 CRUD                                    |
-| project | `project.ipc.ts`    | 项目与页面管理                                     |
-| page    | `page.ipc.ts`       | 页面 CRUD、排序                                    |
-| ai      | `ai.ipc.ts`         | AI 任务触发与状态查询, 调用 AI Skills,智能任务调度 |
-| model   | `model.ipc.ts`      | 模型配置、下载管理                                 |
-| tag     | `tag.ipc.ts`        | 标签管理                                           |
-| wiki    | `concept.ipc.ts`    | 概念查询（列表/详情）                              |
-|         | `topic.ipc.ts`      | 主题查询（列表/详情）                              |
-|         | `reflection.ipc.ts` | 反思洞察查询（列表/详情）                          |
-| task    | `task.ipc.ts`       | 后台任务管理                                       |
-| webview | `webview.ipc.ts`    | WebView 生命周期                                   |
-| system  | `system.ipc.ts`     | 系统信息                                           |
-| logger  | `logger.ipc.ts`     | 日志记录                                           |
-| search  | `search.ipc.ts`     | 搜索功能                                           |
+| IPC 域     | 文件                  | 职责                                               |
+| :--------- | :-------------------- | :------------------------------------------------- |
+| ai         | `ai.ipc.ts`           | AI 任务触发与状态查询, 调用 AI Skills,智能任务调度 |
+| attachment | `attachment.ipc.ts`   | 附件管理                                           |
+| character  | `character.ipc.ts`    | 角色管理                                           |
+| concept    | `concept.ipc.ts`      | 概念查询（列表/详情）                              |
+| config     | `config.ipc.ts`       | 配置读写                                           |
+| journal    | `journal.ipc.ts`      | Journal 块 CRUD                                    |
+| logger     | `logger.ipc.ts`       | 日志记录                                           |
+| model      | `model.ipc.ts`        | 模型配置、下载管理                                 |
+| page       | `page.ipc.ts`         | 页面 CRUD、排序                                    |
+| project    | `project.ipc.ts`      | 项目与页面管理                                     |
+| reflection | `reflection.ipc.ts`   | 反思洞察查询（列表/详情）                          |
+| resource   | `resource.ipc.ts`     | 资源管理                                           |
+| search     | `search.ipc.ts`       | 搜索功能                                           |
+| skill      | `skill.ipc.ts`        | 技能管理                                           |
+| smart-task | `smart-task.ipc.ts`   | 智能任务管理                                       |
+| system     | `system.ipc.ts`       | 系统信息                                           |
+| tag        | `tag.ipc.ts`          | 标签管理                                           |
+| task       | `task.ipc.ts`         | 后台任务管理                                       |
+| template   | `template.ipc.ts`     | 模板管理                                           |
+| topic      | `topic.ipc.ts`        | 主题查询（列表/详情）                              |
+| update     | `update.ipc.ts`       | 应用更新                                           |
+| webview    | `webview.ipc.ts`      | WebView 生命周期                                   |
+| window     | `window.ipc.ts`       | 窗口管理                                           |
 
 ### 4.3 Preload 模块
 
-对应 IPC 域，`src/main/preload/modules/` 提供 15 个 preload 模块（由原 `think.ts` 拆分为 `concept.ts` / `topic.ts` / `reflection.ts`），通过 `contextBridge.exposeInMainWorld` 暴露给渲染进程。
+对应 IPC 域，`src/main/preload/modules/` 提供 23 个 preload 模块（由原 `think.ts` 拆分为 `concept.ts` / `topic.ts` / `reflection.ts`，新增 `attachment.ts` / `character.ts` / `resource.ts` / `skill.ts` / `smart-task.ts` / `template.ts` / `update.ts`），通过 `contextBridge.exposeInMainWorld` 暴露给渲染进程。
 
 ### 4.4 API 层
 
-`src/main/core/apis/` 提供 15 个 API 模块（`index.ts` 聚合），作为 IPC handler 与 Service/DAO 之间的适配层，统一返回 `ResponseWrapper` 格式。
+`src/main/core/apis/` 提供 22 个 API 模块（`index.ts` 聚合），作为 IPC handler 与 Service/DAO 之间的适配层，统一返回 `ResponseWrapper` 格式。
 
 当前 API 模块：
 
-| API          | 文件                | 职责                                               |
-| :----------- | :------------------ | :------------------------------------------------- |
-| config.api   | `config.api.ts`     | 配置读写                                           |
-| journal.api  | `journal.api.ts`    | Journal 块 CRUD                                    |
-| project.api  | `project.api.ts`    | 项目与页面管理                                     |
-| page.api     | `page.api.ts`       | 页面 CRUD、排序                                    |
-| ai.api       | `ai.api.ts`         | AI 任务触发与状态查询, 调用 AI Skills,智能任务调度 |
-| model.api    | `model.api.ts`      | 模型配置、下载管理                                 |
-| tag.api      | `tag.api.ts`        | 标签管理                                           |
-| wiki.api     | `concept.api.ts`    | 概念查询（列表/详情）                              |
-|              | `topic.api.ts`      | 主题查询（列表/详情）                              |
-|              | `reflection.api.ts` | 反思洞察查询（列表/详情）                          |
-| task.api     | `task.api.ts`       | 后台任务管理                                       |
-| webview\.api | `webview.api.ts`    | WebView 生命周期                                   |
-| system.api   | `system.api.ts`     | 系统信息、系统通知、窗口管理、升级                 |
-| logger.api   | `logger.api.ts`     | 日志记录                                           |
-| search.api   | `search.api.ts`     | 搜索功能                                           |
+| API           | 文件                  | 职责                                               |
+| :------------ | :-------------------- | :------------------------------------------------- |
+| ai.api        | `ai.api.ts`           | AI 任务触发与状态查询, 调用 AI Skills,智能任务调度 |
+| attachment.api| `attachment.api.ts`   | 附件管理                                           |
+| character.api | `character.api.ts`    | 角色管理                                           |
+| concept.api   | `concept.api.ts`      | 概念查询（列表/详情）                              |
+| config.api    | `config.api.ts`       | 配置读写                                           |
+| journal.api   | `journal.api.ts`      | Journal 块 CRUD                                    |
+| logger.api    | `logger.api.ts`       | 日志记录                                           |
+| model.api     | `model.api.ts`        | 模型配置、下载管理                                 |
+| page.api      | `page.api.ts`         | 页面 CRUD、排序                                    |
+| project.api   | `project.api.ts`      | 项目与页面管理                                     |
+| reflection.api| `reflection.api.ts`   | 反思洞察查询（列表/详情）                          |
+| resource.api  | `resource.api.ts`     | 资源管理                                           |
+| search.api    | `search.api.ts`       | 搜索功能                                           |
+| skill.api     | `skill.api.ts`        | 技能管理                                           |
+| smart-task.api| `smart-task.api.ts`   | 智能任务管理                                       |
+| system.api    | `system.api.ts`       | 系统信息、系统通知、窗口管理、升级                 |
+| tag.api       | `tag.api.ts`          | 标签管理                                           |
+| task.api      | `task.api.ts`         | 后台任务管理                                       |
+| template.api  | `template.api.ts`     | 模板管理                                           |
+| topic.api     | `topic.api.ts`        | 主题查询（列表/详情）                              |
+| update.api    | `update.api.ts`       | 应用更新                                           |
+| webview.api   | `webview.api.ts`      | WebView 生命周期                                   |
 
 ### 4.5 Business Services
 
-`src/main/core/services/` 提供 13 个服务模块（原 `think.service.ts` 拆分为 `concept.service.ts` / `topic.service.ts` / `reflection.service.ts`），封装业务逻辑给 API 调用：
+`src/main/core/services/` 根目录提供 51 个服务模块，封装业务逻辑给 API 调用：
 
-| Service          | 文件                    | 职责                                          |
-| :--------------- | :---------------------- | :-------------------------------------------- |
-| ai.service       | `ai.service.ts`         | AI 任务编排、模型调度                         |
-| journal.service  | `journal.service.ts`    | Journal 块管理、CRUD                          |
-| config.service   | `config.service.ts`     | 配置管理（详见 [`app.md`](../config/app.md)） |
-| model.service    | `model.service.ts`      | 模型下载/加载/卸载                            |
-| page.service     | `page.service.ts`       | 页面 CRUD 逻辑                                |
-| project.service  | `project.service.ts`    | 项目生命周期管理                              |
-| tag.service      | `tag.service.ts`        | 标签 CRUD 逻辑                                |
-| wiki.service     | `concept.service.ts`    | 概念查询逻辑（提取/搜索/合并）                |
-|                  | `topic.service.ts`      | 主题查询逻辑（聚类检测/管理）                 |
-|                  | `reflection.service.ts` | 反思洞察查询逻辑（趋势分析/矛盾检测）         |
-| webview\.service | `webview.service.ts`    | WebView 生命周期管理                          |
-| system.service   | `system.service.ts`     | 系统信息查询、系统通知、窗口管理、升级        |
-| search.service   | `search.service.ts`     | 搜索功能                                      |
+| Service                       | 文件                                   | 职责                                          |
+| :---------------------------- | :------------------------------------- | :-------------------------------------------- |
+| ai.service                    | `ai.service.ts`                        | AI 任务编排、模型调度                         |
+| attachment.service            | `attachment.service.ts`                | 附件管理                                      |
+| character.service             | `character.service.ts`                 | 角色管理                                      |
+| chunk.service                 | `chunk.service.ts`                     | 语义块管理                                    |
+| cleanup.service               | `cleanup.service.ts`                   | 定时清理任务                                  |
+| concept.service               | `concept.service.ts`                   | 概念查询逻辑（提取/搜索/合并）                |
+| config.service                | `config.service.ts`                    | 配置管理（详见 [`app.md`](config/app.md)） |
+| creation-session.service      | `creation-session.service.ts`          | 创作会话管理                                  |
+| download.service              | `download.service.ts`                  | 通用下载管理                                  |
+| gate-calibration.service      | `gate-calibration.service.ts`          | 门控校准                                      |
+| hard-constraint.service       | `hard-constraint.service.ts`           | 硬约束管理                                    |
+| inline-token-sync.service     | `inline-token-sync.service.ts`         | 内联 Token 同步                               |
+| journal.service               | `journal.service.ts`                   | Journal 块管理、CRUD                          |
+| material-search.service       | `material-search.service.ts`           | 素材搜索                                      |
+| model.service                 | `model.service.ts`                     | 模型下载/加载/卸载                            |
+| model-meta.service            | `model-meta.service.ts`                | 模型元数据管理                                |
+| notification.service          | `notification.service.ts`              | 系统通知管理                                  |
+| outline.parser.service        | `outline.parser.service.ts`            | 大纲解析                                      |
+| outline-material.prefetch     | `outline-material.prefetch.service.ts` | 大纲素材预取                                  |
+| page.service                  | `page.service.ts`                      | 页面 CRUD 逻辑                                |
+| page-creation.service         | `page-creation.service.ts`             | 页面创建                                      |
+| page-write-context.service    | `page-write-context.service.ts`        | 页面写作上下文                                |
+| preference-fragment.service   | `preference-fragment.service.ts`       | 偏好片段管理                                  |
+| preference-signals.service    | `preference-signals.service.ts`        | 偏好信号管理                                  |
+| project.service               | `project.service.ts`                   | 项目生命周期管理                              |
+| reflection.service            | `reflection.service.ts`                | 反思洞察查询逻辑（趋势分析/矛盾检测）         |
+| resource-http.client          | `resource-http.client.ts`              | 资源 HTTP 客户端                              |
+| resource-manifest.service     | `resource-manifest.service.ts`         | 资源清单管理                                  |
+| resource-sync.service         | `resource-sync.service.ts`             | 资源同步                                      |
+| review.service                | `review.service.ts`                    | 审阅管理                                      |
+| review-criteria.service       | `review-criteria.service.ts`           | 审阅标准管理                                  |
+| review-outcome.service        | `review-outcome.service.ts`            | 审阅结果管理                                  |
+| revision-instruction.service  | `revision-instruction.service.ts`      | 修订指令管理                                  |
+| search.service                | `search.service.ts`                    | 搜索功能                                      |
+| system.service                | `system.service.ts`                    | 系统信息查询、系统通知、窗口管理、升级        |
+| tag.service                   | `tag.service.ts`                       | 标签 CRUD 逻辑                                |
+| template.schema.validator     | `template.schema.validator.service.ts` | 模板 Schema 校验                              |
+| template.service              | `template.service.ts`                  | 模板管理                                      |
+| template-installed.service    | `template-installed.service.ts`        | 已安装模板管理                                |
+| template-market.service       | `template-market.service.ts`           | 模板市场管理                                  |
+| template-resource.parser      | `template-resource.parser.service.ts`  | 模板资源解析                                  |
+| topic.service                 | `topic.service.ts`                     | 主题查询逻辑（聚类检测/管理）                 |
+| tray.service                  | `tray.service.ts`                      | 系统托盘管理                                  |
+| update.service                | `update.service.ts`                    | 应用更新                                      |
+| vector.service                | `vector.service.ts`                    | LanceDB 向量操作封装                          |
+| webview.service               | `webview.service.ts`                   | WebView 生命周期管理                          |
+| window.service                | `window.service.ts`                    | 窗口管理                                      |
+| work-creation.service         | `work-creation.service.ts`             | 作品创作管理                                  |
+| work-intake.service           | `work-intake.service.ts`               | 作品接入管理                                  |
+| work-profile.store            | `work-profile.store.service.ts`        | 作品档案存储                                  |
+| writing-preference.service    | `writing-preference.service.ts`        | 写作偏好管理                                  |
 
-`src/main/core/services/base/` 提供 6 个服务模块，封装基础业务逻辑或仅后端调用：
+`src/main/core/services/base/` 提供 3 个基础服务模块，封装基础业务逻辑或仅后端调用：
 
-| Service              | 文件                      | 职责                 |
-| :------------------- | :------------------------ | :------------------- |
-| notification.service | `notification.service.ts` | 系统通知管理         |
-| cleanup.service      | `cleanup.service.ts`      | 定时清理任务         |
-| vector.service       | `vector.service.ts`       | LanceDB 向量操作封装 |
-| file.service         | `file.service.ts`         | 文件管理             |
-| auto.service         | `auto.service.ts`         | 自动任务管理         |
-| download.service     | `download.service.ts`     | 通用下载管理         |
+| Service           | 文件                        | 职责             |
+| :---------------- | :-------------------------- | :--------------- |
+| auto.service      | `auto.service.ts`           | 自动任务管理     |
+| file.service      | `file.service.ts`           | 文件管理         |
+| workspace-init    | `workspace-init.service.ts` | 工作空间初始化   |
 
 ### 4.6 DAO 层
 
 所有 DAO 继承 `BaseDao<T, C, U>`，使用 better-sqlite3 + WAL 模式。
 
-当前 DAO（`src/main/core/db/`，共 20 个 DAO 文件，不含 `base.dao`）：
+当前 DAO（`src/main/core/db/`，共 23 个 DAO 文件，不含 `base.dao`、`connection`、`index`）：
 
 | DAO                   | 对应表              | 说明               |
 | :-------------------- | :------------------ | :----------------- |
+| `character.dao`       | `characters`        | 角色实体           |
 | `chunk.dao`           | `semantic_chunks`   | 语义块 CRUD、搜索  |
+| `concept.dao`         | `concepts`          | 概念实体           |
+| `conceptChunk.dao`    | `concept_chunks`    | 概念-语义块关联    |
+| `creationSession.dao` | `creation_sessions` | 创作会话           |
+| `fileIndex.dao`       | `file_index`        | 文件索引           |
 | `tag.dao`             | `tags`              | 标签定义           |
 | `taggedItem.dao`      | `tagged_items`      | 标签关联           |
 | `semanticLink.dao`    | `semantic_links`    | 语义链接           |
-| `concept.dao`         | `concepts`          | 概念实体           |
-| `conceptChunk.dao`    | `concept_chunks`    | 概念-语义块关联    |
 | `topic.dao`           | `topics`            | 主题               |
 | `topicChunk.dao`      | `topic_chunks`      | 主题-语义块关联    |
 | `topicConcept.dao`    | `topic_concepts`    | 主题-概念关联      |
@@ -362,7 +454,7 @@ Preload Module → IPC Handler → Core API → Business Service → DAO
 
 ## 五、AI 认知层架构（Cognitive Layer）
 
-> 完整模型方案详见 [`model.md`](../model/model.md)（硬件配置、模型列表、路由设计、加载策略、配置界面）。本节仅描述架构集成要点。
+> 完整模型方案详见 [`model.md`](model/model.md)（硬件配置、模型列表、路由设计、加载策略、配置界面）。本节仅描述架构集成要点。
 
 ### 5.1 整体 AI 架构：Hybrid Cognitive Architecture
 
@@ -404,7 +496,7 @@ Main Process
 
 ## 六、存储与知识层架构
 
-> 存储方案详见 [`storage.md`](../storage/storage.md)（文件优先架构、三层数据模型），数据库设计详见 [`sqlite.md`](../storage/sqlite.md)（22 张表结构）和 [`lancedb.md`](../storage/lancedb.md)（向量库设计），用户数据目录详见 [`userData.md`](../storage/userData.md)。本节仅描述架构集成要点。
+> 存储方案详见 [`storage.md`](storage/storage.md)（文件优先架构、三层数据模型），数据库设计详见 [`sqlite.md`](storage/sqlite.md)（26 张表结构：21 普通表 + 5 FTS 表）和 [`lancedb.md`](storage/lancedb.md)（向量库设计），用户数据目录详见 [`userData.md`](storage/userData.md)。本节仅描述架构集成要点。
 
 ### 6.1 核心理念
 
@@ -425,6 +517,8 @@ Main Process
 │ temporal_events │      │                     │
 │ projects        │      │                     │
 │ pages           │      │                     │
+│ characters      │      │                     │
+│ creation_sessions│      │                     │
 │ tags            │      │                     │
 └─────────────────┘      └─────────────────────┘
 ```
@@ -592,12 +686,12 @@ AI 语义拆分 → 向量化（与 Journal 流相同机制）
 
 ### 9.2 硬件要求
 
-> 详见 [`model.md`](../model/model.md#一硬件配置要求)（硬件配置要求）。
+> 详见 [`model.md`](model/model.md#一硬件配置要求)（硬件配置要求）。
 
 ### 9.3 安全与隐私
 
 - 所有数据本地存储，用户完全可控
-- API Key 本地加密存储（详见 [`app.md`](../config/app.md)）
+- API Key 本地加密存储（详见 [`app.md`](config/app.md)）
 - 无云端数据收集，不采集用户隐私
 
 ---
@@ -630,15 +724,13 @@ pnpm rebuild       # 重编译 better-sqlite3（Node.js 升级后）
 
 | 文档                                  | 说明                                            |
 | :------------------------------------ | :---------------------------------------------- |
-| [prd.md](prd.md)                      | 产品功能设计文档                                |
-| [mrd.md](mrd.md)                      | 产品战略文档（市场、用户、竞争、需求优先级）    |
-| [mvp.md](mvp.md)                      | Phase 1 开发计划（Sprint 规划、风险、成功指标） |
-| [refactor.md](refactor.md)            | 重构计划（术语统一、架构清理、迁移步骤）        |
-| [model.md](../model/model.md)         | AI 模型方案（硬件配置、模型列表、路由设计）     |
-| [storage.md](../storage/storage.md)   | 存储方案总览（文件优先架构、三层数据模型）      |
-| [sqlite.md](../storage/sqlite.md)     | SQLite 表结构设计（22 张表）                    |
-| [lancedb.md](../storage/lancedb.md)   | LanceDB 向量数据库设计                          |
-| [userData.md](../storage/userData.md) | 用户数据目录结构                                |
+| [prd.md](../features/prd.md)          | 产品功能设计文档                                |
+| [mrd.md](../product/mrd.md)           | 产品战略文档（市场、用户、竞争、需求优先级）    |
+| [model.md](model/model.md)         | AI 模型方案（硬件配置、模型列表、路由设计）     |
+| [storage.md](storage/storage.md)   | 存储方案总览（文件优先架构、三层数据模型）      |
+| [sqlite.md](storage/sqlite.md)     | SQLite 表结构设计（26 张表：21 普通表 + 5 FTS 表）|
+| [lancedb.md](storage/lancedb.md)   | LanceDB 向量数据库设计                          |
+| [userData.md](storage/userData.md) | 用户数据目录结构                                |
 | [ui-design.md](../ui/ui-design.md)    | UI 概要设计文档                                 |
-| [app.md](../config/app.md)            | 应用配置文档                                    |
-| [model.md](../config/model.md)        | 模型配置文档（数据结构、API、Store）            |
+| [app.md](config/app.md)            | 应用配置文档                                    |
+| [model.md](config/model.md)        | 模型配置文档（数据结构、API、Store）            |

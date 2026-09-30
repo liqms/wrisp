@@ -25,7 +25,7 @@ export default {
       ALL: "All",
       JOURNAL: "Journal",
       THINK: "Think",
-      CREATE: "Create",
+      PROJECT: "Project",
       COLOR: "Color",
       NONE: "None",
       ROW_INDEX: "Index",
@@ -81,6 +81,7 @@ export default {
       NO_MORE_DATA: "No more data",
       VIEW: "View",
       SELECT_ALL: "Select All",
+      MODIFY: "Modify",
     },
     WINDOW: {
       MINIMIZE: "Minimize",

@@ -33,7 +33,10 @@ function onCheckboxChange(e: Event): void {
   padding: 0;
   margin: 0;
   display: flex;
-  align-items: center;
+  // 与全局契约 ul[data-type="taskList"] li 对齐基准一致（flex-start）：
+  // 嵌套子任务撑高 li 时勾选框恒定贴 li 顶部、对齐主任务首行，
+  // 不再以 li 整体高度居中偏移
+  align-items: flex-start;
 }
 
 /* contentDOM 内的 p 由 ProseMirror 直接渲染（无 data-v 属性），

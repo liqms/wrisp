@@ -24,7 +24,7 @@ export default {
       ALL: "全部",
       JOURNAL: "日志",
       THINK: "思考",
-      CREATE: "创造",
+      PROJECT: "作品",
       COLOR: "颜色",
       NONE: "无",
       ROW_INDEX: "序号",
@@ -80,6 +80,7 @@ export default {
       NO_MORE_DATA: "没有更多数据了",
       VIEW: "查看",
       SELECT_ALL: "全选",
+      MODIFY: "修改",
     },
     WINDOW: {
       MINIMIZE: "最小化",

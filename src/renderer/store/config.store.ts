@@ -238,9 +238,11 @@ export const useConfigStore = defineStore("config", () => {
     loading.value = false;
   };
 
-  // 监听 workspace 变更事件，刷新配置后由 Vue 响应式链条自动触发下游更新
-  onElectron("workspace:changed", async () => {
-    await fetchConfig();
+  // 监听 workspace 变更事件，整体刷新渲染进程：
+  // 各视图（作品/日记/页面等）数据均在其挂载时从工作空间拉取，
+  // 切换工作空间后需整体重载以重新初始化 Pinia 并从新工作空间加载数据
+  onElectron("workspace:changed", () => {
+    window.location.reload();
   });
 
   return {

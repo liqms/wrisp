@@ -61,6 +61,9 @@ export const DIST_ELECTRON_DIR = "dist-electron" as const;
 /** 默认工作空间文件夹名称（位于用户文档目录下） */
 export const DEFAULT_WORKSPACE_DIR = "Wrisp" as const;
 
+/** 开发环境工作空间后缀（开发数据与生产隔离） */
+export const DEV_WORKSPACE_SUFFIX = "-dev" as const;
+
 /** 作品文件夹 */
 export const PROJECT_DIR = "projects" as const;
 
