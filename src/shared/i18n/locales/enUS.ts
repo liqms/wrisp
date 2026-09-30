@@ -197,6 +197,13 @@ export default {
     },
     IMAGE_CAPTION_PLACEHOLDER: "Add a caption...",
     IMAGE_CAPTION_EDIT: "Click to edit caption",
+    LINK_EDIT_TITLE: "Edit Link",
+    LINK_EDIT_URL_LABEL: "URL",
+    LINK_EDIT_PLACEHOLDER: "Paste or type a link",
+    LINK_EDIT_SAVE: "Save",
+    LINK_EDIT_CANCEL: "Cancel",
+    LINK_EDIT_REMOVE: "Remove Link",
+    LINK_EDIT_OPEN: "Open in Browser",
     SLASH: {
       BASIC_BLOCKS: {
         GROUP_LABEL: "Basic Blocks",

@@ -255,6 +255,8 @@ import { isDraggingBlock } from "@/renderer/components/editor/features/drag-reor
 
 const props = defineProps<{
   editor: Editor | null;
+  /** 链接编辑回调（由宿主注入以复用统一链接编辑弹窗）；不注入时回退到内置 popover */
+  editLink?: (href: string) => void;
 }>();
 
 // 独立 PluginKey：与图片浮层（imageBubbleMenu）的插件状态隔离，
@@ -586,6 +588,12 @@ function confirmInput() {
 
 function handleLink() {
   if (!props.editor) return;
+  // 注入 editLink 回调时复用统一链接编辑弹窗（读取当前选中链接的 href）
+  if (props.editLink) {
+    const href = props.editor.getAttributes("link").href as string | undefined;
+    props.editLink(href ?? "");
+    return;
+  }
   if (props.editor.isActive("link")) {
     props.editor.chain().focus().extendMarkRange("link").unsetLink().run();
     return;

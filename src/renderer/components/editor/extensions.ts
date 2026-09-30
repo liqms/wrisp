@@ -76,7 +76,9 @@ export function getExtensions(placeholder?: string): Extensions {
     // 代码块：lowlight 语法高亮 + 语言选择/复制工具栏
     createCodeBlockLowlight(),
     Link.configure({
-      openOnClick: true,
+      // 点击链接不默认打开浏览器：由 TiptapEditor 的 handleClick 接管
+      // （普通点击弹窗编辑链接，Ctrl/Cmd+点击用系统浏览器打开）
+      openOnClick: false,
       HTMLAttributes: {
         target: "_blank",
         rel: "noopener noreferrer",

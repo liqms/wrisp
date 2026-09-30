@@ -9,6 +9,7 @@ import {
   dateEnUS,
 } from "naive-ui";
 import type { Editor } from "@tiptap/core";
+import type { EditorView } from "@tiptap/pm/view";
 import { formatDate } from "./helpers";
 import { i18n } from "@/renderer/plugins/i18n";
 import { LOCALE } from "@/shared/enums";
@@ -17,14 +18,18 @@ import { LOCALE } from "@/shared/enums";
  * 直接在光标附近弹出 Naive UI 的 Date Picker，选中日期后立即返回
  * 选中日期的字符串（YYYY-MM-DD），未选择（点击弹窗外部）时返回空字符串。
  * 面板文案（月份、星期、按钮等）跟随应用语言设置（中/英自动适配）。
+ * 支持传入 Tiptap Editor 或 EditorView（内部仅使用 view.coordsAtPos）。
  */
 // i18n 实例为联合类型，此处收敛为简单的 t(key) 签名
 const t = i18n.global.t as (key: string) => string;
 
+type PickDateTarget = Editor | Pick<EditorView, "coordsAtPos">;
+
 export function pickDate(
-  editor: Editor,
+  target: PickDateTarget,
   pos: number,
   placeholder = t("EDITOR.SLASH.DATETIME.DATE_PICKER_PLACEHOLDER"),
+  initial?: string,
 ): Promise<string> {
   return new Promise((resolve) => {
     const container = document.createElement("div");
@@ -32,8 +37,9 @@ export function pickDate(
     container.style.position = "fixed";
     container.style.zIndex = "99999";
 
-    // 定位到光标下方
-    const coords = editor.view.coordsAtPos(pos);
+    // 定位到光标下方（Editor 实例取其 .view）
+    const view = (target as Editor).view ?? (target as EditorView);
+    const coords = view.coordsAtPos(pos);
     container.style.left = `${coords.left}px`;
     container.style.top = `${coords.bottom + 4}px`;
 
@@ -82,6 +88,8 @@ export function pickDate(
                   type: "date",
                   placeholder,
                   panel: true,
+                  // 初始日期：定位到当前选中的日期（YYYY-MM-DD → 时间戳）
+                  value: initial ? new Date(`${initial}T00:00:00`).getTime() : null,
                   "on-update:value": (v: number | null) =>
                     finish(v ? formatDate(new Date(v)) : ""),
                 }),

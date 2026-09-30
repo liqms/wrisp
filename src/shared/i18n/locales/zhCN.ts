@@ -195,6 +195,13 @@ export default {
     },
     IMAGE_CAPTION_PLACEHOLDER: "添加图片描述...",
     IMAGE_CAPTION_EDIT: "点击编辑图片描述",
+    LINK_EDIT_TITLE: "编辑链接",
+    LINK_EDIT_URL_LABEL: "链接地址",
+    LINK_EDIT_PLACEHOLDER: "粘贴或输入链接",
+    LINK_EDIT_SAVE: "保存",
+    LINK_EDIT_CANCEL: "取消",
+    LINK_EDIT_REMOVE: "移除链接",
+    LINK_EDIT_OPEN: "在浏览器打开",
     SLASH: {
       BASIC_BLOCKS: {
         GROUP_LABEL: "基本块",

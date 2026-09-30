@@ -7,7 +7,7 @@
           <n-text class="setting-label">{{ t("SETTINGS.TEMPLATE_SETTINGS.MARKETPLACE_TITLE") }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.TEMPLATE_SETTINGS.MARKETPLACE_DESC") }}</n-text>
         </n-flex>
-        <n-button tertiary @click="enterMarketplace" class="button">
+        <n-button tertiary class="button" @click="enterMarketplace">
           {{ t("SETTINGS.TEMPLATE_SETTINGS.ENTER_MARKETPLACE") }}
         </n-button>
       </n-flex>
@@ -22,7 +22,7 @@
             t("SETTINGS.TEMPLATE_SETTINGS.CURRENT_TEMPLATES_DESC", { added: installedCount })
           }}</n-text>
         </n-flex>
-        <n-button tertiary :loading="syncing" @click="onSyncNow" class="button">
+        <n-button tertiary :loading="syncing" class="button" @click="onSyncNow">
           {{ t("SETTINGS.TEMPLATE_SETTINGS.SYNC_NOW") }}
         </n-button>
       </n-flex>

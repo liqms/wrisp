@@ -2,7 +2,7 @@
   <n-flex ref="wrapperRef" class="tiptap-editor-wrapper" :class="{ 'slash-active': showSlashMenu }"
     :style="wrapperStyle" @click="focus" @contextmenu="onContextMenu">
     <EditorContent :editor="editor" class="tiptap-editor markdown-content" />
-    <BubbleMenu v-if="editor && enableBubbleMenu" :editor="editor" />
+    <BubbleMenu v-if="editor && enableBubbleMenu" :editor="editor" :edit-link="openLinkModal" />
     <ImageBubbleMenu v-if="editor && enableBubbleMenu" :editor="editor" />
     <SlashMenu v-if="slashCommand && editor" :visible="showSlashMenu" :editor="editor" :start-pos="slashStartPos"
       :query="slashQuery" @close="closeSlashMenu" />
@@ -10,6 +10,8 @@
       @update:visible="contextVisible = $event" @cut="handleCut" @copy="handleCopy" @paste="handlePaste"
       @select-all="handleSelectAll" />
     <TableEdgeControls :editor="editor ?? null" />
+    <LinkEditModal :visible="linkModalVisible" :href="linkModalHref" :anchor-el="linkAnchorEl"
+      @update:visible="linkModalVisible = $event" @save="saveLink" @remove="removeLink" @open="openLinkExternal" />
   </n-flex>
 </template>
 
@@ -19,6 +21,9 @@ import { useI18n } from "vue-i18n";
 import { useEditor, EditorContent } from "@tiptap/vue-3";
 import { createEditorExtensions } from "./extensions";
 import type { Extensions, EditorOptions } from "@tiptap/core";
+import { TextSelection } from "@tiptap/pm/state";
+import type { EditorView } from "@tiptap/pm/view";
+import { pickDate } from "./slash/commands/datePicker";
 import { marked } from "marked";
 import type { PageCatalogItem } from "@/shared/types/page.types";
 import SlashMenu from "./slash/SlashMenu.vue";
@@ -26,6 +31,8 @@ import BubbleMenu from "./menus/BubbleMenu.vue";
 import ImageBubbleMenu from "./features/image/ImageBubbleMenu.vue";
 import TableEdgeControls from "./features/table/TableEdgeControls.vue";
 import ContextMenu from "./menus/ContextMenu.vue";
+import LinkEditModal from "./menus/LinkEditModal.vue";
+import { useFrontendNotification } from "@/renderer/composables/useNotification.ts";
 
 /** Markdown → HTML（异步，marked 返回 Promise<string>） */
 async function mdToHtml(md: string): Promise<string> {
@@ -86,6 +93,12 @@ const wrapperRef = ref<HTMLDivElement | null>(null);
 // 用于模板 ref 绑定，作为菜单定位的参考容器
 void wrapperRef;
 
+/** 链接编辑 popover 状态 */
+const linkModalVisible = ref(false);
+const linkModalHref = ref("");
+const linkAnchorEl = ref<HTMLElement | null>(null);
+const notify = useFrontendNotification({ title: "", content: "" });
+
 const wrapperStyle = computed(() => ({
   minHeight: `${props.minHeight}px`,
   maxHeight: `${props.maxHeight}px`,
@@ -141,6 +154,72 @@ function closeSlashMenu() {
   editor.value?.commands?.focus();
 }
 
+/** 保存链接编辑结果（空值表示移除链接） */
+function saveLink(href: string) {
+  const ed = editor.value;
+  if (!ed) return;
+  if (href) {
+    ed.chain().focus().extendMarkRange("link").setLink({ href }).run();
+  } else {
+    ed.chain().focus().extendMarkRange("link").unsetLink().run();
+  }
+  linkModalVisible.value = false;
+}
+
+/** 移除当前链接 */
+function removeLink() {
+  editor.value?.chain().focus().extendMarkRange("link").unsetLink().run();
+  linkModalVisible.value = false;
+}
+
+/** 日期文本命中信息 */
+interface DateRangeHit {
+  from: number;
+  to: number;
+  date: string;
+}
+
+/** 判断 pos 是否落在 `[[YYYY-MM-DD]]` 日期文本内；命中则返回其范围与日期 */
+function findDateRange(view: EditorView, pos: number): DateRangeHit | null {
+  const re = /\[\[(\d{4}-\d{2}-\d{2})\]\]/g;
+  let hit: DateRangeHit | null = null;
+  view.state.doc.descendants((node, nodePos) => {
+    if (hit) return false;
+    if (!node.isText) return true;
+    const text = node.text ?? "";
+    re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) {
+      const from = nodePos + m.index;
+      const to = from + m[0].length;
+      if (pos >= from && pos <= to) {
+        hit = { from, to, date: m[1] };
+        return false;
+      }
+    }
+    return true;
+  });
+  return hit;
+}
+
+/** 打开链接编辑 popover（供点击链接与 menu 组件共用） */
+function openLinkModal(href: string, anchorEl?: HTMLElement | null) {
+  linkModalHref.value = href;
+  linkAnchorEl.value = anchorEl ?? null;
+  linkModalVisible.value = true;
+}
+
+/** 在系统浏览器中打开当前编辑的链接 */
+function openLinkExternal() {
+  const href = linkModalHref.value;
+  if (!href) return;
+  void window.electronAPI.system.openExternal(href).then((res) => {
+    if (!res.success) {
+      notify.error("", t("SYSTEM.OPEN_EXTERNAL_ERROR"));
+    }
+  });
+}
+
 // 使用公用扩展工厂 createEditorExtensions（已在工厂内自动去重）
 // 未显式传入 placeholder 时使用 i18n 文案，避免硬编码中文
 const { t } = useI18n();
@@ -158,6 +237,55 @@ const editor = useEditor({
       class: "tiptap-editor",
       // 关闭浏览器拼写检查（红色波浪线消失）
       spellcheck: 'false',
+    },
+    handleClick: (view, pos, event) => {
+      // 先调用外部传入的 handleClick
+      if (props.editorProps?.handleClick?.(view, pos, event)) {
+        return true;
+      }
+      // 点击 [[YYYY-MM-DD]] 日期文本：打开日期选择器（初始定位到该日期），选择后替换
+      const dateHit = findDateRange(view, pos);
+      if (dateHit) {
+        event.preventDefault();
+        void pickDate(view, dateHit.from, undefined, dateHit.date)
+          .then((value) => {
+            if (!value || value === dateHit.date) return;
+            view.dispatch(view.state.tr.insertText(`[[${value}]]`, dateHit.from, dateHit.to));
+          })
+          .catch(() => {
+            // 选择器打开/解析失败时保持原文本不变
+          });
+        return true;
+      }
+
+      // 仅处理链接点击；其他点击交给编辑器默认行为
+      const anchor = (event.target as HTMLElement | null)?.closest?.("a");
+      if (!anchor) return false;
+      const href = anchor.getAttribute("href");
+      if (!href) return false;
+      event.preventDefault();
+      if (event.ctrlKey || event.metaKey) {
+        // Ctrl/Cmd + 点击：使用系统浏览器打开
+        void window.electronAPI.system.openExternal(href).then((res) => {
+          if (!res.success) {
+            notify.error("", t("SYSTEM.OPEN_EXTERNAL_ERROR"));
+          }
+        });
+        return true;
+      }
+      // 普通点击：弹出编辑链接 popover（锚定在被点击的链接下方）
+      // handleClick 返回 true 会阻止 ProseMirror 移动光标，这里手动把光标置入链接内，
+      // 以便保存时 extendMarkRange("link") 能定位到该链接
+      const linkStart = view.posAtDOM(anchor, 0);
+      if (linkStart != null) {
+        const docSize = view.state.doc.content.size;
+        const from = Math.min(linkStart, docSize);
+        view.dispatch(
+          view.state.tr.setSelection(TextSelection.create(view.state.doc, from, Math.min(from + 1, docSize))),
+        );
+      }
+      openLinkModal(href, anchor);
+      return true;
     },
     handleKeyDown: (view, event) => {
       // 先调用外部传入的 handleKeyDown

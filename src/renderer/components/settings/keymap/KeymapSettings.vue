@@ -9,7 +9,7 @@
     </n-input>
   </n-flex>
 
-  <n-card size="medium" :bordered="false" @keydown="handleKeyDown" class="keymap-settings card-has-scrollbar-width">
+  <n-card size="medium" :bordered="false" class="keymap-settings card-has-scrollbar-width" @keydown="handleKeyDown">
     <n-list class="shortcut-list">
       <template v-if="filteredShortcuts.length > 0">
         <n-list-item v-for="item in filteredShortcuts" :key="item.id" class="shortcut-item">
