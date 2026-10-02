@@ -1,4 +1,4 @@
-import { conceptService } from "@/main/core/services/concept.service";
+import { conceptService } from "@/main/core/services/content/concept.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";

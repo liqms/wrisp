@@ -1,4 +1,4 @@
-import { pageService } from "@/main/core/services/page.service";
+import { pageService } from "@/main/core/services/content/page.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode, type PageType } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";

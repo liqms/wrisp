@@ -1,4 +1,4 @@
-import WebViewService from "@/main/core/services/webview.service";
+import WebViewService from "@/main/core/services/system/webview.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type {

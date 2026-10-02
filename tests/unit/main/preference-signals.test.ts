@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractPreferenceSignals } from "@/main/core/services/preference-signals";
+import { extractPreferenceSignals } from "@/main/core/services/preference/preference-signals";
 
 describe("extractPreferenceSignals", () => {
   it("确认不产生任何建议（无信号）", () => {

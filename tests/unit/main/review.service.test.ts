@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { reviewService } from "@/main/core/services/review.service";
+import { reviewService } from "@/main/core/services/review/review.service";
 
 const base = {
   rawReview: '{"decision":"approve","confidence":0.95,"issues":[]}',

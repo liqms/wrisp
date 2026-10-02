@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPreferenceFragment } from "@/main/core/services/preference-fragment";
+import { buildPreferenceFragment } from "@/main/core/services/preference/preference-fragment";
 
 describe("buildPreferenceFragment", () => {
   it("无偏好时返回空串（不注入噪音）", () => {

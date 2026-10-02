@@ -1,4 +1,4 @@
-import { resourceSyncService } from "@/main/core/services/resource-sync.service";
+import { resourceSyncService } from "@/main/core/services/resource/resource-sync.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";

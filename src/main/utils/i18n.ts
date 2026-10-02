@@ -1,6 +1,6 @@
 import zhCNMessages from "@/shared/i18n/locales/zhCN";
 import enUSMessages from "@/shared/i18n/locales/enUS";
-import { configService } from "@/main/core/services/config.service";
+import { configService } from "@/main/core/services/system/config.service";
 
 const messages: Record<string, Record<string, unknown>> = {
   zhCN: zhCNMessages,

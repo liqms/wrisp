@@ -6,8 +6,8 @@ import { app } from "electron";
 import fs from "fs";
 import path from "path";
 import { Logger } from "@/main/utils/logger";
-import { configService } from "@/main/core/services/config.service";
-import { downloadService } from "@/main/core/services/download.service";
+import { configService } from "@/main/core/services/system/config.service";
+import { downloadService } from "@/main/core/services/system/download.service";
 import { localAiManager } from "./manager";
 import { ModelState } from "./types";
 import {

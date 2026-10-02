@@ -14,7 +14,7 @@ vi.mock("@/main/core/db", () => ({
   },
 }));
 
-import { creationSessionService } from "@/main/core/services/creation-session.service";
+import { creationSessionService } from "@/main/core/services/creation/creation-session.service";
 
 describe("CreationSessionService", () => {
   it("start 创建 active 会话，初始阶段按作用域决定", () => {

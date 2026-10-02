@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { windowService } from '@/main/core/services/window.service'
+import { windowService } from '@/main/core/services/system/window.service'
 
 // 注册窗口控制相关的 IPC 处理函数
 export function registerWindowHandlers() {

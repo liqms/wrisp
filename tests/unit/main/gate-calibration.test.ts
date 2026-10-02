@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { isCalibrated } from "@/main/core/services/gate-calibration";
-import type { GateHistoryEntry } from "@/main/core/services/gate-calibration";
+import { isCalibrated } from "@/main/core/services/review/gate-calibration";
+import type { GateHistoryEntry } from "@/main/core/services/review/gate-calibration";
 
 const h = (
   kind: GateHistoryEntry["kind"],

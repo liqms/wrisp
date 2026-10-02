@@ -12,7 +12,7 @@ vi.mock("electron", () => ({
   },
 }));
 
-vi.mock("@/main/core/services/config.service", () => ({
+vi.mock("@/main/core/services/system/config.service", () => ({
   configService: {
     getValue: (key: string) =>
       key === "writingPreference" ? store.value : undefined,
@@ -25,7 +25,7 @@ vi.mock("@/main/core/services/config.service", () => ({
 import {
   mergePreferences,
   writingPreferenceService,
-} from "@/main/core/services/writing-preference.service";
+} from "@/main/core/services/preference/writing-preference.service";
 
 describe("mergePreferences", () => {
   it("标量字段被建议覆盖", () => {

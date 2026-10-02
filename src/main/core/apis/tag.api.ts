@@ -1,4 +1,4 @@
-import { tagService } from "@/main/core/services/tag.service";
+import { tagService } from "@/main/core/services/project/tag.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type {

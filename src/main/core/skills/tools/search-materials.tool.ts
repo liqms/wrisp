@@ -1,7 +1,7 @@
 import {
   materialSearchService,
   type MaterialKind,
-} from "@/main/core/services/material-search.service";
+} from "@/main/core/services/content/material-search.service";
 import { Logger } from "@/main/utils/logger";
 import type { RegisteredTool } from "@/shared/types/skill.types";
 

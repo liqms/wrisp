@@ -8,7 +8,7 @@ const streamChunks = [
   { content: "", finishReason: "stop", usage: { promptTokens: 5, completionTokens: 2, totalTokens: 7 } },
 ];
 
-vi.mock("@/main/core/services/ai.service", () => ({
+vi.mock("@/main/core/services/ai/ai.service", () => ({
   aiService: {
     chatCompletionStream: vi.fn(async function* () {
       for (const c of streamChunks) yield c;
@@ -42,7 +42,7 @@ vi.mock("@/main/core/skills/tool.registry", () => ({
   },
 }));
 
-vi.mock("@/main/core/services/config.service", () => ({
+vi.mock("@/main/core/services/system/config.service", () => ({
   configService: {
     getValue: vi.fn().mockReturnValue("zhCN"),
   },
@@ -57,7 +57,7 @@ vi.mock("@/main/utils/logger", () => ({
 }));
 
 import { skillExecutor } from "@/main/core/skills/skill.executor";
-import { aiService } from "@/main/core/services/ai.service";
+import { aiService } from "@/main/core/services/ai/ai.service";
 import { skillManager } from "@/main/core/skills/skill.manager";
 
 describe("SkillExecutor L1 Stream", () => {

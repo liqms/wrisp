@@ -6,7 +6,7 @@ import { Logger } from '@/main/utils/logger'
 import { TimeUtil } from '@/shared/utils'
 import { BACKUPS_DIR, CONFIG_DIR, WORKSPACE_BACKUPS_DIR } from '@/main/constants'
 import { getDbPath } from '@/main/core/db/connection'
-import { configService } from '@/main/core/services/config.service'
+import { configService } from '@/main/core/services/system/config.service'
 import { BackupConfig } from '@/main/constants/auto.constants'
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseReviewOutcome } from "@/main/core/services/review-outcome";
+import { parseReviewOutcome } from "@/main/core/services/review/review-outcome";
 
 describe("parseReviewOutcome", () => {
   it("解析普通 JSON 输出", () => {

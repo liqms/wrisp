@@ -1,6 +1,6 @@
 import { TaskExecutor, TaskContext, TaskResult } from "../types";
 import { ChunkDao, ProjectChunkDao } from "@/main/core/db";
-import { vectorService } from "@/main/core/services/vector.service";
+import { vectorService } from "@/main/core/services/ai/vector.service";
 import { semanticLinkDao } from "@/main/core/db/semanticLink.dao";
 import { localGateway } from "@/main/core/model-gateway/local-gateway";
 import { progressManager } from "@/main/core/smart-tasks/progress.manager";

@@ -1,4 +1,4 @@
-import { CleanupService, CleanupResult } from '@/main/core/services/cleanup.service'
+import { CleanupService, CleanupResult } from '@/main/core/services/system/cleanup.service'
 import { Logger } from '@/main/utils/logger'
 import { DEFAULT_CLEANUP_CONFIG } from '@/main/constants/auto.constants'
 

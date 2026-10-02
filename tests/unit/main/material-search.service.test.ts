@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("@/main/core/services/chunk.service", () => ({
+vi.mock("@/main/core/services/content/chunk.service", () => ({
   chunkService: {
     search: vi.fn(async () => [
       {
@@ -17,7 +17,7 @@ vi.mock("@/main/core/services/chunk.service", () => ({
   },
 }));
 
-import { materialSearchService } from "@/main/core/services/material-search.service";
+import { materialSearchService } from "@/main/core/services/content/material-search.service";
 
 describe("materialSearchService", () => {
   it("缺少 projectId 时抛错", async () => {

@@ -1,4 +1,4 @@
-import { reflectionService } from "@/main/core/services/reflection.service";
+import { reflectionService } from "@/main/core/services/project/reflection.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";

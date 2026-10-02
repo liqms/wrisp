@@ -57,7 +57,7 @@ vi.mock('@/main/core/db/connection', () => ({
 
 import { ProjectDao, PageDao, TagDao } from '@/main/core/db'
 import { getDatabase } from '@/main/core/db/connection'
-import { projectService } from '@/main/core/services/project.service'
+import { projectService } from '@/main/core/services/project/project.service'
 
 /** 模拟磁盘文件：key 为正斜杠相对路径，value 为文件内容 */
 function mockDiskData(files: Record<string, string>) {

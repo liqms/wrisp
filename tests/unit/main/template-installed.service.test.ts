@@ -12,7 +12,7 @@ vi.mock("@/main/utils/logger", () => ({
   },
 }));
 const mockGetWorkspace = vi.hoisted(() => vi.fn(() => "/tmp/wrisp-test-ws"));
-vi.mock("@/main/core/services/config.service", () => ({
+vi.mock("@/main/core/services/system/config.service", () => ({
   configService: { getValue: mockGetWorkspace },
 }));
 const mockFs = vi.hoisted(() => ({
@@ -32,7 +32,7 @@ vi.mock("fs", () => ({
   unlinkSync: mockFs.unlinkSync,
 }));
 
-import { installedTemplateService } from "@/main/core/services/template-installed.service";
+import { installedTemplateService } from "@/main/core/services/template/template-installed.service";
 import type { RemoteManifest } from "@/shared/types/resource.types";
 
 const remote: RemoteManifest = {

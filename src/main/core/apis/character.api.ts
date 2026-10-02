@@ -1,4 +1,4 @@
-import { characterService } from "@/main/core/services/character.service";
+import { characterService } from "@/main/core/services/content/character.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { Character, ApiResponse } from "@/shared/types";

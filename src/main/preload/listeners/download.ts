@@ -1,5 +1,5 @@
 import { BrowserWindow } from "electron";
-import { downloadService } from "@/main/core/services/download.service";
+import { downloadService } from "@/main/core/services/system/download.service";
 import type { DownloadProgress } from "@/main/types/download.types";
 
 export function setupDownloadListeners(): void {

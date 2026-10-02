@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildIntakeQuestions,
   answersToWorkBrief,
-} from "@/main/core/services/work-intake";
+} from "@/main/core/services/creation/work-intake";
 import { PROJECT_TYPE } from "@/shared/enums/project.enums";
 
 describe("work-intake", () => {

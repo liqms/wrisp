@@ -57,7 +57,7 @@ const mockTemplateService = vi.hoisted(() => {
   }
 })
 
-vi.mock("@/main/core/services/template.service", () => ({
+vi.mock("@/main/core/services/template/template.service", () => ({
   templateService: mockTemplateService,
   default: vi.fn(() => mockTemplateService),
 }))
@@ -95,7 +95,7 @@ const mockMarketService = vi.hoisted(() => ({
   })),
 }))
 
-vi.mock("@/main/core/services/template-market.service", () => ({
+vi.mock("@/main/core/services/template/template-market.service", () => ({
   templateMarketService: mockMarketService,
 }))
 

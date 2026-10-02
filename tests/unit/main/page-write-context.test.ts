@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPageWriteInputs } from "@/main/core/services/page-write-context";
+import { buildPageWriteInputs } from "@/main/core/services/creation/page-write-context";
 
 describe("buildPageWriteInputs", () => {
   it("把作品信息、页面概述与模板骨架装配为技能输入", () => {

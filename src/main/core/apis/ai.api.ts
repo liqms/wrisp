@@ -1,4 +1,4 @@
-import { aiService } from "@/main/core/services/ai.service";
+import { aiService } from "@/main/core/services/ai/ai.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";

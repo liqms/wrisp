@@ -11,7 +11,7 @@ vi.mock("electron", () => ({
   },
 }));
 
-import { workProfileStore } from "@/main/core/services/work-profile.store";
+import { workProfileStore } from "@/main/core/services/creation/work-profile.store";
 
 describe("workProfileStore", () => {
   let dir: string;

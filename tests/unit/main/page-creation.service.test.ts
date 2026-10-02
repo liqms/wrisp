@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pageCreationService } from "@/main/core/services/page-creation.service";
+import { pageCreationService } from "@/main/core/services/creation/page-creation.service";
 
 describe("pageCreationService", () => {
   it("用户选择不生成大纲时跳过大纲阶段", () => {

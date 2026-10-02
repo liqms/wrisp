@@ -1,4 +1,4 @@
-import { journalService } from "@/main/core/services/journal.service";
+import { journalService } from "@/main/core/services/content/journal.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type {

@@ -4,7 +4,7 @@ import {
   parseManifest,
   computeFileHash,
   compareManifests,
-} from "@/main/core/services/resource-manifest";
+} from "@/main/core/services/resource/resource-manifest";
 import type { RemoteManifest, LocalManifest } from "@/shared/types/resource.types";
 
 const entry = (path: string, version: string, sha256: string) => ({

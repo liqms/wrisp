@@ -38,7 +38,7 @@ vi.mock("@/main/utils", () => ({
 
 // getValue 惰性读取：mock 工厂执行时只创建闭包，workspace 在 beforeAll 赋值
 let workspace = "";
-vi.mock("@/main/core/services/config.service", () => ({
+vi.mock("@/main/core/services/system/config.service", () => ({
   configService: {
     getValue: vi.fn((key: string) =>
       key === "workspace" ? workspace : undefined,

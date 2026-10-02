@@ -5,7 +5,7 @@ const fetchMock = vi.fn();
 global.fetch = fetchMock as unknown as typeof global.fetch;
 const sleepMock = vi.spyOn(global, "setTimeout");
 
-import { resourceHttpClient } from "@/main/core/services/resource-http.client";
+import { resourceHttpClient } from "@/main/core/services/resource/resource-http.client";
 
 describe("ResourceHttpClient", () => {
   beforeEach(() => {

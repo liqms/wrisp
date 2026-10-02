@@ -14,7 +14,7 @@ vi.mock("@/main/core/db", () => ({
   },
 }));
 
-vi.mock("@/main/core/services/work-profile.store", () => ({
+vi.mock("@/main/core/services/creation/work-profile.store", () => ({
   workProfileStore: {
     merge: mocks.profileMerge,
     write: vi.fn(),
@@ -38,7 +38,7 @@ vi.mock("@/main/core/skills/skill.manager", () => ({
   },
 }));
 
-import { workCreationService } from "@/main/core/services/work-creation.service";
+import { workCreationService } from "@/main/core/services/creation/work-creation.service";
 
 const SOURCE_SKILL = {
   id: "outline",

@@ -42,7 +42,7 @@ const mockConfigService = vi.hoisted(() => ({
   setWorkspace: vi.fn(),
 }))
 
-vi.mock('@/main/core/services/config.service', () => ({
+vi.mock('@/main/core/services/system/config.service', () => ({
   configService: mockConfigService,
   default: vi.fn(() => mockConfigService),
 }))

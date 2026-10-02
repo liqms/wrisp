@@ -1,4 +1,4 @@
-import { searchService } from "@/main/core/services/search.service";
+import { searchService } from "@/main/core/services/system/search.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";

@@ -25,7 +25,7 @@ const mockAttachmentService = vi.hoisted(() => ({
   copyImageToWorkspace: vi.fn(),
 }))
 
-vi.mock("@/main/core/services/attachment.service", () => ({
+vi.mock("@/main/core/services/resource/attachment.service", () => ({
   attachmentService: mockAttachmentService,
   default: vi.fn(() => mockAttachmentService),
 }))

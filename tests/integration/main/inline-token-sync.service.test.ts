@@ -73,7 +73,7 @@ vi.mock("@/main/core/db/connection", () => ({
   isDatabaseConnected: () => memDb !== null,
 }));
 
-import { inlineTokenSyncService } from "@/main/core/services/inline-token-sync.service";
+import { inlineTokenSyncService } from "@/main/core/services/content/inline-token-sync.service";
 import { TagDao } from "@/main/core/db/tag.dao";
 import { CharacterDao } from "@/main/core/db/character.dao";
 import { getDatabase } from "@/main/core/db/connection";

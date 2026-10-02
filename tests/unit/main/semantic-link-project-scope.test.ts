@@ -28,7 +28,7 @@ vi.mock("@/main/core/db/semanticLink.dao", () => ({
   },
 }));
 
-vi.mock("@/main/core/services/vector.service", () => ({
+vi.mock("@/main/core/services/ai/vector.service", () => ({
   vectorService: {
     findBlockEmbeddingByBlockId: m.findBlockEmbeddingByBlockId,
     searchBlockEmbeddings: m.searchBlockEmbeddings,

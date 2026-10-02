@@ -11,16 +11,16 @@ vi.mock("electron", () => ({
   BrowserWindow: { getAllWindows: vi.fn(() => []) },
 }));
 const mockGetWorkspace = vi.hoisted(() => vi.fn(() => "/tmp/wrisp-test-ws"));
-vi.mock("@/main/core/services/config.service", () => ({
+vi.mock("@/main/core/services/system/config.service", () => ({
   configService: { getValue: mockGetWorkspace },
 }));
 const mockFetchText = vi.hoisted(() => vi.fn());
-vi.mock("@/main/core/services/resource-http.client", () => ({
+vi.mock("@/main/core/services/resource/resource-http.client", () => ({
   resourceHttpClient: { fetchText: mockFetchText },
 }));
 const mockParse = vi.hoisted(() => vi.fn());
 const mockHash = vi.hoisted(() => vi.fn(() => "h"));
-vi.mock("@/main/core/services/resource-manifest", () => ({
+vi.mock("@/main/core/services/resource/resource-manifest", () => ({
   parseManifest: mockParse,
   computeFileHash: mockHash,
   compareManifests: vi.fn(() => ({ toAdd: [], toUpdate: [], toRemove: [] })),
@@ -42,7 +42,7 @@ vi.mock("fs", () => ({
   unlinkSync: mockFs.unlinkSync,
 }));
 
-import { templateMarketService } from "@/main/core/services/template-market.service";
+import { templateMarketService } from "@/main/core/services/template/template-market.service";
 import type { RemoteManifest } from "@/shared/types/resource.types";
 
 const remote: RemoteManifest = {

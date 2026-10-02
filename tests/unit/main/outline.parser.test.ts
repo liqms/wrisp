@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseOutline } from "@/main/core/services/outline.parser";
+import { parseOutline } from "@/main/core/services/creation/outline.parser";
 
 describe("parseOutline", () => {
   it("按 Markdown 列表解析为节点，状态初始为 pending", () => {

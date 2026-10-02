@@ -4,7 +4,7 @@ import * as crypto from "crypto";
 import { Logger } from "@/main/utils/logger";
 import { skillSchemaValidator } from "./skill.schema.validator";
 import { RESOURCES_DIR } from "@/main/constants/folder.constants";
-import { configService } from "@/main/core/services/config.service";
+import { configService } from "@/main/core/services/system/config.service";
 import type {
   SkillDefinition,
   SkillManifest,

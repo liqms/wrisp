@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow } from "electron";
-import { updateService } from "@/main/core/services/update.service";
+import { updateService } from "@/main/core/services/system/update.service";
 
 /** 将更新事件转发到所有窗口的渲染进程 */
 function broadcast(channel: string, payload: unknown): void {

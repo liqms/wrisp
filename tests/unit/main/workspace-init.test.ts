@@ -12,7 +12,7 @@ vi.mock("@/main/utils/logger", () => ({
   },
 }));
 const mockGetWorkspace = vi.hoisted(() => vi.fn(() => "/tmp/wrisp-test-ws"));
-vi.mock("@/main/core/services/config.service", () => ({
+vi.mock("@/main/core/services/system/config.service", () => ({
   configService: { getValue: mockGetWorkspace },
 }));
 vi.mock("electron", () => ({ app: { getAppPath: vi.fn(() => "/app") } }));

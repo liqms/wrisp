@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseTemplateResource } from "@/main/core/services/template-resource.parser";
+import { parseTemplateResource } from "@/main/core/services/template/template-resource.parser";
 
 describe("parseTemplateResource", () => {
   it("保留 skills 字段", () => {

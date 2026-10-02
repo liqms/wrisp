@@ -1,4 +1,4 @@
-import { projectService } from "@/main/core/services/project.service";
+import { projectService } from "@/main/core/services/project/project.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";

@@ -1,4 +1,4 @@
-import SystemService from '@/main/core/services/system.service'
+import SystemService from '@/main/core/services/system/system.service'
 import { response } from "@/main/utils/response";
 import { ErrorCode } from '@/shared/enums'
 import type { ApiResponse, SystemInfo, NotificationLevel } from '@/shared/types'

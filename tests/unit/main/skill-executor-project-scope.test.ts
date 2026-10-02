@@ -28,7 +28,7 @@ vi.mock("@/main/core/skills/tool.registry", () => ({
   },
 }));
 
-vi.mock("@/main/core/services/ai.service", () => ({
+vi.mock("@/main/core/services/ai/ai.service", () => ({
   aiService: { chatCompletion: vi.fn() },
 }));
 

@@ -8,7 +8,7 @@ vi.mock("electron", () => ({
   },
 }));
 
-import { prefetchOutlineMaterials } from "@/main/core/services/outline-material.prefetch";
+import { prefetchOutlineMaterials } from "@/main/core/services/creation/outline-material.prefetch";
 
 const node = (id: string, title: string, summary = "") => ({
   id,

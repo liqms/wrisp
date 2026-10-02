@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRevisionInstruction } from "@/main/core/services/revision-instruction";
+import { buildRevisionInstruction } from "@/main/core/services/review/revision-instruction";
 
 describe("buildRevisionInstruction", () => {
   it("把问题清单组织为局部修正指令，并限定只改被点名处", () => {

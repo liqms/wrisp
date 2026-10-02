@@ -4,8 +4,8 @@ import { app, BrowserWindow, Menu, ipcMain } from "electron";
 import path from "path";
 import { Logger } from "@/main/utils/logger";
 import dotenv from "dotenv";
-import { configService } from "@/main/core/services/config.service";
-import { windowService } from "@/main/core/services/window.service";
+import { configService } from "@/main/core/services/system/config.service";
+import { windowService } from "@/main/core/services/system/window.service";
 import { scheduler } from '@/main/core/scheduler'
 import { DIST_RENDERER_DIR } from "@/main/constants";
 
@@ -48,13 +48,13 @@ import { databaseMigration } from "@/main/core/migration";
 import { setWorkspacePath } from "@/main/core/db/connection";
 import { registerProtocolHandler } from "@/main/protocol";
 import { skillManager } from "@/main/core/skills/skill.manager";
-import { vectorService } from "@/main/core/services/vector.service";
-import { trayService } from "@/main/core/services/tray.service";
+import { vectorService } from "@/main/core/services/ai/vector.service";
+import { trayService } from "@/main/core/services/system/tray.service";
 import { taskQueue, taskExecutor } from "@/main/core/task-queue";
-import { downloadService } from "@/main/core/services/download.service";
+import { downloadService } from "@/main/core/services/system/download.service";
 import { setupDownloadListeners } from "@/main/preload/listeners/download";
 import { workspaceInitService } from "@/main/core/services/base/workspace-init.service";
-import { resourceSyncService } from "@/main/core/services/resource-sync.service";
+import { resourceSyncService } from "@/main/core/services/resource/resource-sync.service";
 
 // 使用传统的 Node.js 路径处理方式
 const __dirname = path.dirname(__filename || process.argv[1] || ".");

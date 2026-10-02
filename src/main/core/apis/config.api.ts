@@ -1,4 +1,4 @@
-import { configService } from "@/main/core/services/config.service";
+import { configService } from "@/main/core/services/system/config.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { AppConfig, ApiResponse } from "@/shared/types";

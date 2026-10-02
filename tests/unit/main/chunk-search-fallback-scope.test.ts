@@ -26,7 +26,7 @@ vi.mock("@/main/core/db", () => ({
   },
 }));
 
-vi.mock("@/main/core/services/vector.service", () => ({
+vi.mock("@/main/core/services/ai/vector.service", () => ({
   vectorService: { searchBlockEmbeddings: vi.fn(async () => []) },
 }));
 
@@ -40,7 +40,7 @@ vi.mock("@/main/core/model-gateway/local-gateway", () => ({
   rerank: vi.fn(),
 }));
 
-import { chunkService } from "@/main/core/services/chunk.service";
+import { chunkService } from "@/main/core/services/content/chunk.service";
 import { SEARCH_TYPE } from "@/shared/enums";
 import { modelRouter } from "@/main/core/model-gateway/router";
 import { embed } from "@/main/core/model-gateway/local-gateway";

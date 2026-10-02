@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectHardConstraintHit } from "@/main/core/services/hard-constraint";
+import { detectHardConstraintHit } from "@/main/core/services/review/hard-constraint";
 
 describe("detectHardConstraintHit", () => {
   it("命中禁忌词时返回命中项", () => {

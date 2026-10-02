@@ -48,7 +48,7 @@ vi.mock("@/main/core/scheduler/backup.task", () => ({
 }));
 
 import { skillManager } from "@/main/core/skills/skill.manager";
-import { configService } from "@/main/core/services/config.service";
+import { configService } from "@/main/core/services/system/config.service";
 
 /** 在指定工作空间写入一个内置技能（<workspace>/resources/skills/<id>.skill.json） */
 function writeBuiltinSkill(workspace: string, skillId: string): void {

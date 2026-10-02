@@ -1,8 +1,8 @@
-import { aiService } from '@/main/core/services/ai.service';
+import { aiService } from '@/main/core/services/ai/ai.service';
 import { skillManager } from './skill.manager';
 import { toolRegistry } from './tool.registry';
 import { Logger } from '@/main/utils/logger';
-import { configService } from '@/main/core/services/config.service';
+import { configService } from '@/main/core/services/system/config.service';
 import type {
   SkillDefinition,
   SkillPreProcess,

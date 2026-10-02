@@ -6,7 +6,7 @@ const mockSync = vi.hoisted(() => ({
   getStatus: vi.fn(() => ({ syncing: false, lastSyncAt: null, lastSyncSuccess: false, lastError: null })),
   checkAndSync: vi.fn(async () => ({ success: true, changedTypes: [], added: [], updated: [] })),
 }));
-vi.mock("@/main/core/services/resource-sync.service", () => ({ resourceSyncService: mockSync }));
+vi.mock("@/main/core/services/resource/resource-sync.service", () => ({ resourceSyncService: mockSync }));
 
 import { getSyncStatus, syncNow } from "@/main/core/apis/resource.api";
 

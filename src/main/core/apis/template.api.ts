@@ -1,5 +1,5 @@
-import { templateService } from "@/main/core/services/template.service";
-import { templateMarketService } from "@/main/core/services/template-market.service";
+import { templateService } from "@/main/core/services/template/template.service";
+import { templateMarketService } from "@/main/core/services/template/template-market.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { TemplateType } from "@/shared/enums/template.enums";

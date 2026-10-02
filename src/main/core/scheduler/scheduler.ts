@@ -1,7 +1,7 @@
 import { BackupTask } from './backup.task'
 import { DEFAULT_BACKUP_CONFIG, DEFAULT_CLEANUP_CONFIG, DEFAULT_LOG_CLEANUP_CONFIG } from '@/main/constants/auto.constants'
 import { CleanupTask } from './cleanup.task'
-import { resourceSyncService } from '@/main/core/services/resource-sync.service'
+import { resourceSyncService } from '@/main/core/services/resource/resource-sync.service'
 import { Logger } from '@/main/utils/logger'
 
 /** 资源（模板 + 模型元信息）同步间隔：24 小时 */

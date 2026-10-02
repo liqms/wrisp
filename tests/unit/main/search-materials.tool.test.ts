@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("@/main/core/services/material-search.service", () => ({
+vi.mock("@/main/core/services/content/material-search.service", () => ({
   materialSearchService: {
     search: vi.fn(async () => [
       { kind: "chunk", id: "c1", content: "素材A" },
@@ -9,7 +9,7 @@ vi.mock("@/main/core/services/material-search.service", () => ({
 }));
 
 import { searchMaterialsTool } from "@/main/core/skills/tools/search-materials.tool";
-import { materialSearchService } from "@/main/core/services/material-search.service";
+import { materialSearchService } from "@/main/core/services/content/material-search.service";
 
 describe("search_materials 工具", () => {
   it("缺少 projectId 时返回错误而不抛异常", async () => {

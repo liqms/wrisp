@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildReviewCriteria } from "@/main/core/services/review-criteria";
+import { buildReviewCriteria } from "@/main/core/services/review/review-criteria";
 
 describe("buildReviewCriteria", () => {
   it("把禁忌与作品约束列为硬性标准", () => {

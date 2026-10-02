@@ -57,7 +57,7 @@ vi.mock('@/main/core/db/connection', () => ({
 import { PageDao } from '@/main/core/db/page.dao'
 import { ProjectDao } from '@/main/core/db/project.dao'
 import { getDatabase } from '@/main/core/db/connection'
-import { pageService } from '@/main/core/services/page.service'
+import { pageService } from '@/main/core/services/content/page.service'
 import { PAGE_TYPE, PROJECT_TYPE } from '@/shared/enums'
 
 describe('PageService', () => {

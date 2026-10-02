@@ -1,6 +1,6 @@
 import {
   attachmentService,
-} from "@/main/core/services/attachment.service";
+} from "@/main/core/services/resource/attachment.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse, ImportedImage } from "@/shared/types";

@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { app } from "electron";
 import { Logger } from "@/main/utils/logger";
-import { configService } from "@/main/core/services/config.service";
+import { configService } from "@/main/core/services/system/config.service";
 import { RESOURCE_TYPE } from "@/shared/enums/resource.enums";
 import {
   SQLITE_DIR,

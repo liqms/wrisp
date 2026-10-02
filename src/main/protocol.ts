@@ -2,7 +2,7 @@ import { protocol, net } from 'electron'
 import path from 'path'
 import { pathToFileURL } from 'url'
 import { Logger } from '@/main/utils/logger'
-import { configService } from '@/main/core/services/config.service'
+import { configService } from '@/main/core/services/system/config.service'
 
 /**
  * 注册自定义协议处理器

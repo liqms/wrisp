@@ -3,7 +3,7 @@
  * 根据任务类型、用户开关和模型源可用性，决定使用本地还是云端 AI
  */
 import { TaskType, TASK_TYPE } from "@/shared/enums";
-import { modelService } from "@/main/core/services/model.service";
+import { modelService } from "@/main/core/services/ai/model.service";
 import { modelManager } from "@/main/core/model-gateway/local-gateway/model-manager";
 import type { AIProvider } from "@/shared/types/model.types";
 import { Logger } from "@/main/utils/logger";

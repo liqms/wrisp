@@ -3,13 +3,13 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("@/main/utils/logger", () => ({ Logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), log: vi.fn() } }));
 const mockGetWorkspace = vi.hoisted(() => vi.fn(() => "/tmp/wrisp-test-ws"));
-vi.mock("@/main/core/services/config.service", () => ({ configService: { getValue: mockGetWorkspace } }));
+vi.mock("@/main/core/services/system/config.service", () => ({ configService: { getValue: mockGetWorkspace } }));
 const mockFetchText = vi.hoisted(() => vi.fn());
-vi.mock("@/main/core/services/resource-http.client", () => ({ resourceHttpClient: { fetchText: mockFetchText } }));
+vi.mock("@/main/core/services/resource/resource-http.client", () => ({ resourceHttpClient: { fetchText: mockFetchText } }));
 const mockParse = vi.hoisted(() => vi.fn());
 const mockCompare = vi.hoisted(() => vi.fn());
 const mockHash = vi.hoisted(() => vi.fn(() => "fake-hash"));
-vi.mock("@/main/core/services/resource-manifest", () => ({ parseManifest: mockParse, compareManifests: mockCompare, computeFileHash: mockHash }));
+vi.mock("@/main/core/services/resource/resource-manifest", () => ({ parseManifest: mockParse, compareManifests: mockCompare, computeFileHash: mockHash }));
 vi.mock("electron", () => ({ app: { getPath: vi.fn() }, BrowserWindow: { getAllWindows: vi.fn(() => []) } }));
 const mockFs = vi.hoisted(() => ({ existsSync: vi.fn(() => false), mkdirSync: vi.fn(), readFileSync: vi.fn(), writeFileSync: vi.fn(), unlinkSync: vi.fn() }));
 vi.mock("fs", () => ({
@@ -23,7 +23,7 @@ vi.mock("fs", () => ({
 }));
 
 import path from "path";
-import { resourceSyncService } from "@/main/core/services/resource-sync.service";
+import { resourceSyncService } from "@/main/core/services/resource/resource-sync.service";
 import type { RemoteManifest } from "@/shared/types/resource.types";
 
 describe("ResourceSyncService", () => {

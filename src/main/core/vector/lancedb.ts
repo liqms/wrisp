@@ -14,7 +14,7 @@ import {
 import { join } from "path";
 import fs from "fs";
 import { createRequire } from "node:module";
-import { configService } from "@/main/core/services/config.service";
+import { configService } from "@/main/core/services/system/config.service";
 import { Id } from "@/shared/types";
 import {
   Schema,

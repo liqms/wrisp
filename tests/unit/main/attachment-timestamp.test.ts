@@ -3,7 +3,7 @@ import { vi, describe, it, expect } from "vitest";
 
 // ── Mocks（隔离 electron / config / logger 依赖，仅测纯函数）──
 vi.mock("electron", () => ({ dialog: { showOpenDialog: vi.fn() } }))
-vi.mock("@/main/core/services/config.service", () => ({
+vi.mock("@/main/core/services/system/config.service", () => ({
   configService: { getWorkspacePath: vi.fn(() => "/mock/ws") },
   default: vi.fn(),
 }))
@@ -12,7 +12,7 @@ vi.mock("@/main/utils/logger", () => ({
 }))
 vi.mock("@/main/utils/i18n", () => ({ t: (key: string) => key }))
 
-import { buildTimestampName } from "@/main/core/services/attachment.service"
+import { buildTimestampName } from "@/main/core/services/resource/attachment.service"
 
 describe("buildTimestampName 时间戳文件名", () => {
   it("按 YYYYMMDDHHmmssSSS 生成 17 位主干", () => {

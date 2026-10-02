@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { configService } from "@/main/core/services/config.service";
+import { configService } from "@/main/core/services/system/config.service";
 import { Logger, NodeCryptoUtil } from "@/main/utils";
 
 class FileService {

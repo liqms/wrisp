@@ -1,4 +1,4 @@
-import { topicService } from "@/main/core/services/topic.service";
+import { topicService } from "@/main/core/services/content/topic.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { ApiResponse } from "@/shared/types";
