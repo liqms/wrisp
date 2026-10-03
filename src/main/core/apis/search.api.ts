@@ -1,7 +1,8 @@
+// AI生成
 import { searchService } from "@/main/core/services/system/search.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
-import type { ApiResponse } from "@/shared/types";
+import type { ApiResponse, SearchResult } from "@/shared/types";
 import { Logger } from "@/main/utils/logger";
 
 /**
@@ -12,7 +13,7 @@ import { Logger } from "@/main/utils/logger";
 async function search(
   keyword: string,
   limit?: number,
-): Promise<ApiResponse<unknown[]>> {
+): Promise<ApiResponse<SearchResult[]>> {
   try {
     const results = await searchService.search(keyword, limit);
     return response.success(results);

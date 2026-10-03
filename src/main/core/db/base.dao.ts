@@ -666,6 +666,18 @@ export abstract class BaseDao<T, C extends object, U extends object> {
   }
 
   /**
+   * 构建 LIKE 子串匹配模式（转义 %/_/\），配合 SQL `LIKE ? ESCAPE '\'` 使用。
+   * FTS5 默认 unicode61 分词器把连续中文视为单个 token，无法做子串匹配，
+   * 因此文本检索统一走 LIKE。
+   * @param keyword - 用户输入的关键词
+   * @returns 形如 %keyword% 的匹配模式
+   */
+  protected buildLikePattern(keyword: string): string {
+    const escaped = keyword.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+    return `%${escaped}%`;
+  }
+
+  /**
    * 执行原生 SQL 查询并返回原始结果
    * @param sql - SQL 查询语句
    * @param params - SQL 参数数组

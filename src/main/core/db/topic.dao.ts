@@ -1,3 +1,4 @@
+// AI生成
 import { BaseDao } from './base.dao'
 import {
   Topic,
@@ -14,6 +15,22 @@ import {
 export class TopicDao extends BaseDao<Topic, TopicCreate, TopicUpdate> {
   constructor() {
     super('topics')
+  }
+
+  /**
+   * 全文搜索主题（LIKE 子串匹配，兼容中文）
+   * @param query 搜索关键词
+   * @param limit 返回结果数量限制
+   */
+  searchFts(query: string, limit: number = 50): Topic[] {
+    const sql = `
+      SELECT * FROM ${this.tableName}
+      WHERE status = 'active' AND (title LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\')
+      ORDER BY created_at DESC
+      LIMIT ?
+    `
+    const pattern = this.buildLikePattern(query)
+    return this.query(sql, [pattern, pattern, limit])
   }
 
   /**

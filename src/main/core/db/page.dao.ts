@@ -1,3 +1,4 @@
+// AI生成
 import { BaseDao } from './base.dao'
 import {
   Page,
@@ -17,6 +18,22 @@ type UpdateField = 'order_index' | 'status' | 'word_count'
 export class PageDao extends BaseDao<Page, PageCreate, PageUpdate> {
   constructor() {
     super('pages')
+  }
+
+  /**
+   * 全文搜索页面（LIKE 子串匹配，兼容中文）
+   * @param query 搜索关键词
+   * @param limit 返回结果数量限制
+   */
+  searchFts(query: string, limit: number = 50): Page[] {
+    const sql = `
+      SELECT * FROM ${this.tableName}
+      WHERE status = 'active' AND (title LIKE ? ESCAPE '\\' OR ai_summary LIKE ? ESCAPE '\\')
+      ORDER BY created_at DESC
+      LIMIT ?
+    `
+    const pattern = this.buildLikePattern(query)
+    return this.query(sql, [pattern, pattern, limit])
   }
 
   /**
@@ -182,3 +199,5 @@ export class PageDao extends BaseDao<Page, PageCreate, PageUpdate> {
     return { sql, values }
   }
 }
+
+export const pageDao = new PageDao()

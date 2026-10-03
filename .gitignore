@@ -1,5 +1,8 @@
 # Logs
 logs
+error
+info
+warn
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -72,3 +75,23 @@ coverage
 
 # JiuwenSwarm runtime file operation logs
 .agent_history/
+
+# officeAce temp files
+.office-claw
+prompt_attachment
+todo
+context
+AGENT.md
+BACKLOG.md
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+USER.md
+memory
+messages
+coding_memory
+
+
+# agent runtime temp files
+agents
+skills

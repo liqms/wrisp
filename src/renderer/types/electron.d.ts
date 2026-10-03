@@ -17,6 +17,7 @@ import type {
   CostSummary,
   ImportedImage,
   Model,
+  SearchResult,
 } from "@/shared/types";
 import type { LOG_LEVEL, PageType } from "@/shared/enums";
 import type { LogContext } from "@/main/utils/logger";
@@ -256,6 +257,11 @@ export interface ElectronAPI {
       }): Promise<ApiResponse<PaginationResult<Reflection>>>;
       detail(id: string): Promise<ApiResponse<ReflectionWithBlocks | null>>;
     };
+  };
+
+  // 全局搜索
+  search: {
+    search(keyword: string, limit?: number): Promise<ApiResponse<SearchResult[]>>;
   };
 
   // 更新相关

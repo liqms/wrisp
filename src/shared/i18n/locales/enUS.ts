@@ -1,3 +1,4 @@
+// AI生成
 export default {
   APP: {
     BASE: {
@@ -175,6 +176,16 @@ export default {
     },
     SEARCH: {
       SEARCH_PROJECT: "Search project name...",
+    },
+    GLOBAL_SEARCH: {
+      PLACEHOLDER: "Search chunks, concepts, topics, projects, pages...",
+      NO_RESULTS: "No results found",
+      LOADING: "Searching...",
+      SECTION_CHUNK: "Semantic Chunks",
+      SECTION_CONCEPT: "Concepts",
+      SECTION_TOPIC: "Topics",
+      SECTION_PROJECT: "Projects",
+      SECTION_PAGE: "Pages",
     },
     JOURNAL: {
       SEND: "Quick Capture",

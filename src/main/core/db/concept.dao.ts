@@ -1,3 +1,4 @@
+// AI生成
 import { BaseDao } from './base.dao'
 import {
   Concept,
@@ -13,6 +14,22 @@ import {
 export class ConceptDao extends BaseDao<Concept, ConceptCreate, ConceptUpdate> {
   constructor() {
     super('concepts')
+  }
+
+  /**
+   * 全文搜索概念（LIKE 子串匹配，兼容中文）
+   * @param query 搜索关键词
+   * @param limit 返回结果数量限制
+   */
+  searchFts(query: string, limit: number = 50): Concept[] {
+    const sql = `
+      SELECT * FROM ${this.tableName}
+      WHERE title LIKE ? ESCAPE '\\' OR evolving_summary LIKE ? ESCAPE '\\'
+      ORDER BY created_at DESC
+      LIMIT ?
+    `
+    const pattern = this.buildLikePattern(query)
+    return this.query(sql, [pattern, pattern, limit])
   }
 
   /**

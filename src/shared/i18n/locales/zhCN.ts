@@ -1,3 +1,4 @@
+// AI生成
 export default {
   APP: {
     BASE: {
@@ -173,6 +174,16 @@ export default {
     },
     SEARCH: {
       SEARCH_PROJECT: "搜索作品名称...",
+    },
+    GLOBAL_SEARCH: {
+      PLACEHOLDER: "搜索语义块、概念、主题、作品、页面...",
+      NO_RESULTS: "无搜索结果",
+      LOADING: "搜索中...",
+      SECTION_CHUNK: "语义块",
+      SECTION_CONCEPT: "概念",
+      SECTION_TOPIC: "主题",
+      SECTION_PROJECT: "作品",
+      SECTION_PAGE: "页面",
     },
     JOURNAL: {
       SEND: "快速记录",

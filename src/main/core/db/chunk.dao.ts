@@ -25,18 +25,19 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
   }
 
   /**
-   * 全文搜索 Chunk
-   * @param query 搜索关键词 (FTS5 MATCH 语法)
+   * 全文搜索 Chunk（LIKE 子串匹配，兼容中文）
+   * @param query 搜索关键词
    * @param limit 返回结果数量限制
    */
   searchFts(query: string, limit: number = 50): Chunk[] {
     const sql = `
-      SELECT b.* FROM ${this.tableName} b
-      JOIN semantic_chunks_fts f ON b.rowid = f.rowid
-      WHERE f.content MATCH ? AND b.status = 'active' ORDER BY b.created_at DESC
+      SELECT * FROM ${this.tableName}
+      WHERE status = 'active' AND (content LIKE ? ESCAPE '\\' OR ai_summary LIKE ? ESCAPE '\\')
+      ORDER BY created_at DESC
       LIMIT ?
     `;
-    return this.query(sql, [query, limit]);
+    const pattern = this.buildLikePattern(query);
+    return this.query(sql, [pattern, pattern, limit]);
   }
 
   /**

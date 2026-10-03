@@ -1,3 +1,4 @@
+// AI生成
 import { BaseDao } from "./base.dao";
 import {
   Project,
@@ -15,6 +16,24 @@ import { PAGE_TYPE } from "@/shared/enums";
 export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
   constructor() {
     super("projects");
+  }
+
+  /**
+   * 全文搜索作品（LIKE 子串匹配，兼容中文）
+   * @param query 搜索关键词
+   * @param limit 返回结果数量限制
+   */
+  searchFts(query: string, limit: number = 50): Project[] {
+    const sql = `
+      SELECT * FROM ${this.tableName}
+      WHERE status = 'active' AND (
+        name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' OR ai_summary LIKE ? ESCAPE '\\'
+      )
+      ORDER BY created_at DESC
+      LIMIT ?
+    `;
+    const pattern = this.buildLikePattern(query);
+    return this.query(sql, [pattern, pattern, pattern, limit]);
   }
 
   findByTypeAndTagIds(type?: string, tagIds?: string[]): Project[] {
@@ -245,5 +264,7 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
     return result?.exists === 1;
   }
 }
+
+export const projectDao = new ProjectDao();
 
 

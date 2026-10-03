@@ -83,7 +83,7 @@ docs/
 |------|------|
 | `prd.md` | 产品功能设计文档（概述）：产品定位、交互流程、模块总览、Phase 1 范围 |
 | `journal-features.md` | Journal 模块：每日日志页、块编辑、TODO 周期、AI 增强、PM 场景扩展、技术实现（架构/数据模型/IPC/状态管理/AI 流水线/编辑器集成/实现状态） |
-| `wiki-features.md` | Wiki 模块：概念网络（气泡图）、主题聚类、生命周期管理 |
+| `wiki-features.md` | Wiki 模块：概览页（知识统计+Top10）、概念页（卡片+网络视图）、主题页（卡片视图）、智能整理、技术实现 |
 | `project-features.md` | Project 模块：结构化创作工作台、项目类型、创建流程、AI 辅助 |
 | `reflection-features.md` | Reflection 模块：6 类 14 种反思、数据模型、UI 呈现、生成频率 |
 | `settings-features.md` | 基础功能：首次引导、设置面板、升级机制 |

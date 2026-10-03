@@ -269,7 +269,7 @@ class ChunkService {
     limit: number,
     searchType: SearchType,
     projectId: Id,
-  ): Promise<ChunkItem[]> {
+  ): Promise<ChunkInfo[]> {
     return this.runSearch(keyword, limit, searchType, projectId);
   }
 
@@ -281,7 +281,7 @@ class ChunkService {
     keyword: string,
     limit: number = 50,
     searchType?: SearchType,
-  ): Promise<ChunkItem[]> {
+  ): Promise<ChunkInfo[]> {
     return this.runSearch(keyword, limit, searchType);
   }
 
@@ -290,7 +290,7 @@ class ChunkService {
     limit: number,
     searchType?: SearchType,
     projectId?: Id,
-  ): Promise<ChunkItem[]> {
+  ): Promise<ChunkInfo[]> {
     try {
       if (searchType === SEARCH_TYPE.KEYWORD) {
         const blocks = this.chunkDao.searchFts(keyword, limit);
@@ -329,7 +329,7 @@ class ChunkService {
     keyword: string,
     limit: number,
     projectId?: Id,
-  ): Promise<ChunkItem[]> {
+  ): Promise<ChunkInfo[]> {
     try {
       const ANN_TOP_K = 50;
       const RERANK_TOP_K = 10;
@@ -458,7 +458,7 @@ class ChunkService {
    * 用于降级路径（本地模型不可用时的全文检索）——那条路径没有向量层的
    * `.where()` 保护，必须在此显式过滤，否则会跨作品召回。
    */
-  private filterByProject(chunks: ChunkItem[], projectId: Id): ChunkItem[] {
+  private filterByProject<T extends ChunkItem>(chunks: T[], projectId: Id): T[] {
     const allowed = new Set(this.getProjectChunkIds(projectId));
     return chunks.filter((c) => allowed.has(c.id));
   }

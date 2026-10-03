@@ -39,6 +39,7 @@ import {
   registerReflectionHandlers,
   registerSmartTaskHandlers,
   registerTaskHandlers,
+  registerSearchHandlers,
   registerUpdateHandlers,
   registerTemplateHandlers,
   registerAttachmentHandlers,
@@ -198,6 +199,7 @@ app.whenReady().then(async () => {
   registerReflectionHandlers();
   registerSmartTaskHandlers();
   registerTaskHandlers();
+  registerSearchHandlers();
   registerUpdateHandlers();
   registerTemplateHandlers();
   registerAttachmentHandlers();
