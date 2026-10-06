@@ -9,3 +9,4 @@ export * from "./download.store";
 export * from "./ai.store";
 export * from "./wiki.store";
 export * from "./page.store";
+export * from "./smart-task.store";

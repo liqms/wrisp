@@ -4,8 +4,12 @@
  */
 import { localAiManager } from "./manager";
 import { modelManager } from "./model-manager";
-import { EmbeddingResult, EmbeddingConfig, RerankResult, RerankConfig } from "./types";
+import { getFamilyModelId } from "./model-registry";
+import { EmbeddingResult, EmbeddingConfig, RerankResult, RerankConfig, LlmGenerateOptions, DEFAULT_LLM_CONFIG } from "./types";
 import { Logger } from "@/main/utils/logger";
+
+/** 搜索模型空闲保留期：搜索是高频短任务，冷启动（加载 2.3GB + 1.8GB）远贵于常驻 */
+const SEARCH_MODEL_KEEPALIVE_MS = 30 * 60 * 1000;
 
 export interface GatewayEmbedOptions {
   modelId?: string;
@@ -31,7 +35,8 @@ class LocalGateway {
       if (config) {
         await localAiManager.ensureEmbeddingModel(config);
       }
-      modelManager.touchModel("jina-embeddings-v3");
+      const embeddingId = getFamilyModelId("embedding");
+      if (embeddingId) modelManager.touchModel(embeddingId);
 
       const result = await localAiManager.embed(
         text,
@@ -56,7 +61,8 @@ class LocalGateway {
       if (config) {
         await localAiManager.ensureEmbeddingModel(config);
       }
-      modelManager.touchModel("jina-embeddings-v3");
+      const embeddingId = getFamilyModelId("embedding");
+      if (embeddingId) modelManager.touchModel(embeddingId);
 
       const results = await localAiManager.embedBatch(
         texts,
@@ -93,21 +99,53 @@ class LocalGateway {
   }
 
   /**
-   * 文本生成（预留，未来 LLM 集成时实现）
+   * 预热搜索所需模型（嵌入 + 重排序）。
+   * 首次语义搜索若在请求路径上加载权重（2.3GB + 1.8GB）会阻塞数秒，
+   * 故在用户打开搜索/输入时提前加载；同时延长两者的空闲保留期，
+   * 避免 5 分钟空闲卸载造成的反复冷启动。
    */
-  public async generate(_prompt: string, _options?: unknown): Promise<string> {
-    throw new Error("本地 LLM 生成功能尚未实现");
+  public async warmupSearchModels(): Promise<void> {
+    const embeddingId = getFamilyModelId("embedding");
+    const rerankerId = getFamilyModelId("reranker");
+    if (embeddingId) modelManager.setIdleTimeoutFor(embeddingId, SEARCH_MODEL_KEEPALIVE_MS);
+    if (rerankerId) modelManager.setIdleTimeoutFor(rerankerId, SEARCH_MODEL_KEEPALIVE_MS);
+
+    await localAiManager.ensureEmbeddingModel();
+    await localAiManager.ensureRerankModel();
   }
 
   /**
-   * 流式文本生成（预留，未来 LLM 集成时实现）
+   * 本地 LLM 文本生成
+   */
+  public async generate(prompt: string, options?: LlmGenerateOptions): Promise<string> {
+    try {
+      const modelPath = modelManager.getModelPath(DEFAULT_LLM_CONFIG.modelId);
+      await localAiManager.ensureLlmModel({ modelPath });
+      modelManager.touchModel(DEFAULT_LLM_CONFIG.modelId);
+      return await localAiManager.generate(prompt, options);
+    } catch (error) {
+      Logger.error("[LocalGateway] 本地 LLM 生成失败", { error: String(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * 本地 LLM 流式文本生成
    */
   public async generateStream(
-    _prompt: string,
-    _options?: unknown,
-    _onToken?: (token: string) => void,
+    prompt: string,
+    options?: LlmGenerateOptions,
+    onToken?: (token: string) => void,
   ): Promise<string> {
-    throw new Error("本地 LLM 流式生成功能尚未实现");
+    try {
+      const modelPath = modelManager.getModelPath(DEFAULT_LLM_CONFIG.modelId);
+      await localAiManager.ensureLlmModel({ modelPath });
+      modelManager.touchModel(DEFAULT_LLM_CONFIG.modelId);
+      return await localAiManager.generateStream(prompt, options, onToken);
+    } catch (error) {
+      Logger.error("[LocalGateway] 本地 LLM 流式生成失败", { error: String(error) });
+      throw error;
+    }
   }
 }
 

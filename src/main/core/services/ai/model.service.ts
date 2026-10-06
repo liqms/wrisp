@@ -15,6 +15,7 @@ import { notificationService } from "@/main/core/services/system/notification.se
 import { t } from "@/main/utils/i18n";
 import { modelConfigMigration } from "@/main/core/migration/model.migration";
 import { needsMigration, getAppVersion } from "@/main/utils/version";
+import { CONFIG_DIR } from "@/main/constants";
 
 class ModelService {
   private static instance: ModelService | null = null;
@@ -26,7 +27,7 @@ class ModelService {
   private constructor() {
     this.userDataPath = app.getPath("userData");
 
-    const configDir = path.join(this.userDataPath, "config");
+    const configDir = path.join(this.userDataPath, CONFIG_DIR);
     fs.mkdirSync(configDir, { recursive: true });
 
     this.defaultConfig = this.getDefaultConfig();
@@ -222,7 +223,7 @@ class ModelService {
 
   /**
    * 下载 启用本地智能需要的模型文件
-   * base 包含jina-embeddings-v3、bge-reranker-v2-m3
+   * base 包含bge-m3、bge-reranker-v2-m3
    * core 包含Qwen3.5-4B-Instruct(本期不做)
    * 根据语言设置选择国内/国际镜像源，使用 TaskQueue 分发下载任务
    * @param type 模型类型，base 或 core
@@ -237,7 +238,7 @@ class ModelService {
     // 从模型注册表获取需要下载的模型
     const modelsToDownload = type === "base"
       ? BUILTIN_MODELS.filter((m) => m.family === "embedding" || m.family === "reranker")
-      : [];
+      : BUILTIN_MODELS.filter((m) => m.family === "llm");
 
     if (modelsToDownload.length === 0) {
       return groupId;
@@ -289,9 +290,7 @@ class ModelService {
     const baseDir = "models";
     const result: Record<string, boolean> = {};
 
-    const modelsToCheck = BUILTIN_MODELS.filter(
-      (m) => m.family === "embedding" || m.family === "reranker",
-    );
+    const modelsToCheck = BUILTIN_MODELS;
 
     for (const spec of modelsToCheck) {
       const variant = spec.variants.find((v) => v.variantId === spec.defaultVariant);

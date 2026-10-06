@@ -6,12 +6,14 @@ import {
   JournalFileUpdate,
   Id,
 } from "@/shared/types";
-import { FileIndexDao } from "@/main/core/db";
+import { ChunkDao, FileIndexDao } from "@/main/core/db";
 import { FileIndexCreate, FileIndexUpdate } from "@/main/types/db";
 import { NodeCryptoUtil } from "@/main/utils";
 import { TimeUtil } from "@/shared/utils";
 import { JOURNAL_DIR } from "@/main/constants/folder.constants";
 import { inlineTokenSyncService } from "@/main/core/services/content/inline-token-sync.service";
+import { chunkIndexService } from "@/main/core/services/content/chunk-index.service";
+import { chunkService } from "@/main/core/services/content/chunk.service";
 
 /**
  * Journal 服务
@@ -22,9 +24,11 @@ import { inlineTokenSyncService } from "@/main/core/services/content/inline-toke
 class JournalService {
   private static instance: JournalService;
   private fileIndexDao: FileIndexDao;
+  private chunkDao: ChunkDao;
 
   private constructor() {
     this.fileIndexDao = new FileIndexDao();
+    this.chunkDao = new ChunkDao();
   }
   /**
    * 获取日志服务实例
@@ -117,7 +121,11 @@ class JournalService {
       );
 
       if (newFileIndexes.length > 0) {
-        this.fileIndexDao.createBatch(newFileIndexes);
+        const ids = this.fileIndexDao.createBatch(newFileIndexes);
+        // 新增索引（含首次补齐的历史文件）逐个调度切分
+        ids.forEach((id, i) => {
+          chunkIndexService.schedule(id, newFileIndexes[i].file_hash || "");
+        });
         Logger.info("本地日志文件同步完成", { count: newFileIndexes.length });
       } else {
         Logger.debug("本地日志文件已全部同步，无需更新");
@@ -133,9 +141,9 @@ class JournalService {
   /**
    * 创建日志
    * 1. 写入 md 文件
-   * 2. 保存到文件索引表（pages）
-   * 3. 委托 chunkService 创建语义块
-   * @returns 创建的 block ID
+   * 2. 保存到文件索引表（file_index）
+   * 3. 调度语义块切分（静默窗口合并，由任务队列异步执行）
+   * @returns 文件索引 ID
    */
   public create(journal: JournalFileCreate): string {
     const today = journal.date || this.getTodayDateString();
@@ -160,9 +168,13 @@ class JournalService {
         updated_at: fileInfo?.modifiedAt || now,
         sync_status: "pending",
       };
-      this.fileIndexDao.create(fileIndexCreate);
+      // 调度语义块切分（静默窗口合并，由任务队列异步执行）
+      const fileIndexId = this.fileIndexDao.create(fileIndexCreate);
+      // 以库中实际记录为准取 hash：路径已存在时 create 返回既有记录且不更新字段
+      const stored = this.fileIndexDao.findById(fileIndexId);
+      chunkIndexService.schedule(fileIndexId, stored?.file_hash || "");
 
-      return fileIndexCreate.id || "";
+      return fileIndexId;
 
     } catch (error) {
       Logger.error("创建日志失败", { error: String(error), journal });
@@ -172,8 +184,9 @@ class JournalService {
 
   /**
    * 更新日志
-   * 1. 委托 chunkService 更新语义块
-   * 2. 同步更新 md 文件和文件索引表
+   * 1. 同步更新 md 文件和文件索引表
+   * 2. 同步行内 token（#标签 / @人物）
+   * 3. 调度语义块切分（静默窗口合并，由任务队列异步执行）
    */
   public update(journal: JournalFileUpdate): boolean {
     try {
@@ -196,6 +209,9 @@ class JournalService {
         sync_status: "pending",
       };
       this.fileIndexDao.update(fileIndex.id, fileIndexUpdate);
+
+      // 调度语义块切分（静默窗口合并，由任务队列异步执行）
+      chunkIndexService.schedule(fileIndex.id, fileIndexUpdate.file_hash || "");
 
       // 同步行内 token：#标签入标签表、@人物入人物表（失败不影响保存）
       inlineTokenSyncService.syncFromMarkdown(journal.content || "", {
@@ -240,25 +256,67 @@ class JournalService {
   /**
    * 根据 journal 文件的实际文件重置 file_index 表
    * 扫描 journal/ 目录下的 .md 文件，清空 file_index 表后重新填充。
-   * 注意：此操作会同时清空 semantic_chunks 表（外键引用 file_index）。
+   * 注意：此操作仅作用于日志子集——清空 chunk_type = 'journal' 的语义块及其
+   * 无级联外键关联（semantic_links / temporal_events），并删除 journal/ 下的
+   * file_index 记录；作品页面等其它来源不受影响。事务提交后重新调度全部日志
+   * 文件的切分，以重建日志语义块。
+   *
+   * 被删块的 LanceDB 向量行同样要清：向量层没有外键级联，不清就留下永远命中不到
+   * 正文的孤儿向量，白占 ANN 召回名额。清理放在事务提交之后（回滚时块还在，向量
+   * 不能跟着删），且异步不阻塞——向量层是可重建的派生数据，删除失败只记日志。
+   *
    * @returns 重置后的记录数
    */
-  public resetJournalTable(): number {
+  public async resetJournalTable(): Promise<number> {
     try {
       const newFileIndexes = this.scanJournalFiles();
 
+      // 仅作用于日志子集：file_index / semantic_chunks 同时承载日志与作品页面
+      // （方案 A），重置时不得误删页面语义块及其文件索引
+      const journalChunkIds = "SELECT id FROM semantic_chunks WHERE chunk_type = 'journal'";
+      const createdIds: string[] = [];
+      let staleChunkIds: string[] = [];
       this.fileIndexDao.transaction(() => {
-        // 先删除 semantic_chunks（外键引用 file_index）
-        this.fileIndexDao.execute("DELETE FROM semantic_chunks");
-        // 清空 file_index
-        this.fileIndexDao.execute("DELETE FROM file_index");
-        // 重新填充
+        // 先清理引用日志语义块且未声明 ON DELETE CASCADE 的关联表，
+        // 否则随后的删除会触发 FOREIGN KEY constraint failed
+        this.fileIndexDao.execute(
+          `DELETE FROM semantic_links WHERE source_chunk_id IN (${journalChunkIds}) OR target_chunk_id IN (${journalChunkIds})`,
+        );
+        this.fileIndexDao.execute(
+          `DELETE FROM temporal_events WHERE chunk_id IN (${journalChunkIds})`,
+        );
+        // 记下要被删掉的块 id，供事务提交后清理向量
+        staleChunkIds = (
+          this.chunkDao.query(
+            "SELECT id FROM semantic_chunks WHERE chunk_type = 'journal'",
+          ) as Array<{ id: string }>
+        ).map((row) => row.id);
+        // 再删除日志语义块（外键引用 file_index）
+        this.fileIndexDao.execute("DELETE FROM semantic_chunks WHERE chunk_type = 'journal'");
+        // external-content FTS 不随主表自动同步，删除后需重建索引（含保留的页面块）
+        this.chunkDao.rebuildFts();
+        // 仅删除日志目录下的文件索引，保留作品页面等其他来源
+        this.fileIndexDao.execute("DELETE FROM file_index WHERE file_path LIKE ?", [
+          `${JOURNAL_DIR}/%`,
+        ]);
+        // 重新填充（记录实际生成的 id，供事务提交后调度切分）
         for (const item of newFileIndexes) {
-          this.fileIndexDao.create(item);
+          createdIds.push(this.fileIndexDao.create(item));
         }
       });
 
-      Logger.info("file_index 表重置完成", { count: newFileIndexes.length });
+      await chunkService.dropVectorsByIds(staleChunkIds);
+
+      // 事务提交后再调度切分：语义块已被清空，需重新切分才能回填；
+      // 且 processFile 依赖已落库的 file_index 记录
+      newFileIndexes.forEach((item, index) => {
+        chunkIndexService.schedule(createdIds[index], item.file_hash || "");
+      });
+
+      Logger.info("file_index 表重置完成", {
+        count: newFileIndexes.length,
+        vectorsDropped: staleChunkIds.length,
+      });
       return newFileIndexes.length;
     } catch (error) {
       Logger.error("重置 file_index 表失败", { error: String(error) });

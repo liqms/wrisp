@@ -1,4 +1,4 @@
-// AI生成
+
 import { BaseDao } from './base.dao'
 import {
   Topic,
@@ -12,17 +12,38 @@ import {
   Id
 } from '@/main/types/db'
 
+/** topics_fts 索引的列：仅当这些列变化时才需要重建索引 */
+const FTS_INDEXED_FIELDS = ['title', 'summary'] as const
+
 export class TopicDao extends BaseDao<Topic, TopicCreate, TopicUpdate> {
   constructor() {
     super('topics')
   }
 
+  /** 参与主题全文索引的列 */
+  protected get ftsIndexedFields(): readonly string[] {
+    return FTS_INDEXED_FIELDS
+  }
+
   /**
-   * 全文搜索主题（LIKE 子串匹配，兼容中文）
+   * 全文搜索主题（FTS5 trigram 子串匹配，中文可用）
+   * 关键词 >= 3 字符时走 topics_fts 索引；不足 3 字符时回退 LIKE 子串匹配。
    * @param query 搜索关键词
    * @param limit 返回结果数量限制
    */
   searchFts(query: string, limit: number = 50): Topic[] {
+    const phrase = this.buildFtsPhrase(query)
+    if (phrase) {
+      const sql = `
+        SELECT c.* FROM ${this.tableName} c
+        JOIN ${this.tableName}_fts ON ${this.tableName}_fts.rowid = c.rowid
+        WHERE c.status = 'active' AND ${this.tableName}_fts MATCH ?
+        ORDER BY c.created_at DESC
+        LIMIT ?
+      `
+      return this.query(sql, [phrase, limit])
+    }
+
     const sql = `
       SELECT * FROM ${this.tableName}
       WHERE status = 'active' AND (title LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\')

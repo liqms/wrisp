@@ -13,7 +13,14 @@ describe("getTaskLayers", () => {
     const layers = getTaskLayers();
     const layer0 = layers[0];
     expect(layer0).toContain("chunk-summary");
-    expect(layer0).toContain("chunk-vectorize");
+    expect(layer0).not.toContain("chunk-vectorize");
+  });
+
+  it("chunk-vectorize 排在 chunk-summary 之后（依赖摘要）", () => {
+    const layers = getTaskLayers();
+    const idxSummary = layers.findIndex((l) => l.includes("chunk-summary"));
+    const idxVectorize = layers.findIndex((l) => l.includes("chunk-vectorize"));
+    expect(idxVectorize).toBeGreaterThan(idxSummary);
   });
 
   it("每层任务不依赖同层其他任务", () => {
@@ -36,25 +43,31 @@ describe("getTaskLayers", () => {
     }
   });
 
-  it("第 1 层依赖 chunk-vectorize", () => {
+  it("第 1 层为 chunk-vectorize（依赖 chunk-summary）", () => {
     const layers = getTaskLayers();
     const layer1 = layers[1];
-    expect(layer1).toContain("semantic-link");
+    expect(layer1).toContain("chunk-vectorize");
   });
 
-  it("第 2 层包含 topic-detection", () => {
+  it("第 2 层包含 semantic-link 与 concept-extract", () => {
     const layers = getTaskLayers();
     const layer2 = layers[2];
-    expect(layer2).toContain("topic-detection");
+    expect(layer2).toContain("semantic-link");
+    expect(layer2).toContain("concept-extract");
+  });
+
+  it("第 3 层包含 topic-detection", () => {
+    const layers = getTaskLayers();
+    const layer3 = layers[3];
+    expect(layer3).toContain("topic-detection");
   });
 });
 
 describe("getTaskLayers 精确分层", () => {
   it("semantic-link 与 concept-extract 同层并行", () => {
     const layers = getTaskLayers();
-    const layer1 = layers[1];
-    expect(layer1).toContain("semantic-link");
-    expect(layer1).toContain("concept-extract");
+    const layer = layers.find((l) => l.includes("semantic-link"));
+    expect(layer).toContain("concept-extract");
   });
 
   it("topic-detection 在 concept-extract 之后层", () => {
@@ -73,8 +86,8 @@ describe("getTaskLayers 精确分层", () => {
 
   it("层总数与 MVP_DAG 最长链深度一致（无 break 退化）", () => {
     const layers = getTaskLayers();
-    // 现有 DAG 最长链 = summary -> concept-extract -> topic-detection -> topic-summary = 4 层
-    expect(layers.length).toBe(4);
+    // 最长链 = summary -> vectorize -> concept-extract -> topic-detection -> topic-summary = 5 层
+    expect(layers.length).toBe(5);
   });
 
   it("每层节点全部来自 MVP_TASK_DAG", () => {

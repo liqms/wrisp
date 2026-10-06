@@ -1,6 +1,7 @@
 import { BackupTask } from './backup.task'
-import { DEFAULT_BACKUP_CONFIG, DEFAULT_CLEANUP_CONFIG, DEFAULT_LOG_CLEANUP_CONFIG } from '@/main/constants/auto.constants'
+import { DEFAULT_BACKUP_CONFIG, DEFAULT_CLEANUP_CONFIG, DEFAULT_LOG_CLEANUP_CONFIG, DEFAULT_TEMPORAL_SCORE_CONFIG } from '@/main/constants/auto.constants'
 import { CleanupTask } from './cleanup.task'
+import { TemporalScoreTask } from './temporal-score.task'
 import { resourceSyncService } from '@/main/core/services/resource/resource-sync.service'
 import { Logger } from '@/main/utils/logger'
 
@@ -23,6 +24,8 @@ export class Scheduler {
   private backupTask: BackupTask
   /** 清理任务实例 */
   private cleanupTask: CleanupTask
+  /** 时间热度分重算任务实例 */
+  private temporalScoreTask: TemporalScoreTask
   /** 备份定时器ID */
   private backupIntervalId: NodeJS.Timeout | null = null
   /** 清理定时器ID */
@@ -31,6 +34,8 @@ export class Scheduler {
   private logCleanupIntervalId: NodeJS.Timeout | null = null
   /** 资源同步定时器ID */
   private resourceSyncIntervalId: NodeJS.Timeout | null = null
+  /** 时间热度分重算定时器ID */
+  private temporalScoreIntervalId: NodeJS.Timeout | null = null
 
   /**
    * 私有构造函数，实现单例模式
@@ -38,6 +43,7 @@ export class Scheduler {
   private constructor() {
     this.backupTask = BackupTask.getInstance()
     this.cleanupTask = CleanupTask.getInstance()
+    this.temporalScoreTask = TemporalScoreTask.getInstance()
   }
 
   /**
@@ -219,6 +225,52 @@ export class Scheduler {
     this.startResourceSyncSchedule()
   }
 
+  // ==================== 时间热度分调度 ====================
+
+  /**
+   * 启动时间热度分重算定时任务。
+   * 启动时立即重算一次（衰减分数随时间失效，不能等首个周期到点），
+   * 之后按配置间隔周期性重算。
+   */
+  public startTemporalScoreSchedule(): void {
+    this.stopTemporalScoreSchedule()
+
+    const { enabled, intervalHours, halfLifeDays } = DEFAULT_TEMPORAL_SCORE_CONFIG
+    if (!enabled) {
+      Logger.info('时间热度分重算已禁用，跳过调度')
+      return
+    }
+
+    const intervalMs = intervalHours * 60 * 60 * 1000
+
+    Logger.info('启动时间热度分重算定时任务', { intervalHours, halfLifeDays, intervalMs })
+
+    // 延后到事件循环空闲时执行，避免同步重算阻塞启动流程
+    setTimeout(() => this.temporalScoreTask.recompute(), 0)
+
+    this.temporalScoreIntervalId = setInterval(() => {
+      this.temporalScoreTask.recompute()
+    }, intervalMs)
+  }
+
+  /**
+   * 停止时间热度分重算定时任务
+   */
+  public stopTemporalScoreSchedule(): void {
+    if (this.temporalScoreIntervalId) {
+      clearInterval(this.temporalScoreIntervalId)
+      this.temporalScoreIntervalId = null
+      Logger.info('时间热度分重算定时任务已停止')
+    }
+  }
+
+  /**
+   * 重启时间热度分重算定时任务
+   */
+  public restartTemporalScoreSchedule(): void {
+    this.startTemporalScoreSchedule()
+  }
+
   // ==================== 全局调度 ====================
 
   /**
@@ -229,6 +281,7 @@ export class Scheduler {
     this.startCleanupSchedule()
     this.startLogCleanupSchedule()
     this.startResourceSyncSchedule()
+    this.startTemporalScoreSchedule()
     Logger.info('所有定时任务已启动')
   }
 
@@ -240,6 +293,7 @@ export class Scheduler {
     this.stopCleanupSchedule()
     this.stopLogCleanupSchedule()
     this.stopResourceSyncSchedule()
+    this.stopTemporalScoreSchedule()
     Logger.info('所有定时任务已停止')
   }
 

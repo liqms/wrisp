@@ -36,6 +36,8 @@ export interface ModelSpec {
   backend: ModelBackend;
   description: string;
   defaultVariant: string;
+  /** 输出向量维度（仅 embedding 模型有意义） */
+  dimension?: number;
   variants: ModelVariant[];
   fallbackVariantId?: string;
 }
@@ -54,26 +56,27 @@ export function resolveModelUrl(remotePath: string, mirror: MirrorType = "en"): 
 /** 内置模型清单 */
 export const BUILTIN_MODELS: ModelSpec[] = [
   {
-    modelId: "jina-embeddings-v3",
-    name: "Jina Embeddings v3",
+    modelId: "bge-m3",
+    name: "BGE-M3",
     family: "embedding",
     backend: "transformers.js",
-    description: "高性能通用文本嵌入模型，支持多种检索任务，输出 1024 维向量",
+    description: "多语言通用文本嵌入模型，输出 1024 维向量",
     defaultVariant: "fp16",
+    dimension: 1024,
     variants: [
       {
         variantId: "fp16",
         precision: "FP16",
         requiredFiles: [
-          { remotePath: "jinaai/jina-embeddings-v3/resolve/main/onnx/model_fp16.onnx", localPath: "onnx/model_fp16.onnx" },
-          { remotePath: "jinaai/jina-embeddings-v3/resolve/main/tokenizer.json", localPath: "tokenizer.json" },
-          { remotePath: "jinaai/jina-embeddings-v3/resolve/main/tokenizer_config.json", localPath: "tokenizer_config.json" },
-          { remotePath: "jinaai/jina-embeddings-v3/resolve/main/config.json", localPath: "config.json" },
-          { remotePath: "jinaai/jina-embeddings-v3/resolve/main/special_tokens_map.json", localPath: "special_tokens_map.json" },
+          { remotePath: "Xenova/bge-m3/resolve/main/onnx/model_fp16.onnx", localPath: "onnx/model_fp16.onnx" },
+          { remotePath: "Xenova/bge-m3/resolve/main/tokenizer.json", localPath: "tokenizer.json" },
+          { remotePath: "Xenova/bge-m3/resolve/main/tokenizer_config.json", localPath: "tokenizer_config.json" },
+          { remotePath: "Xenova/bge-m3/resolve/main/config.json", localPath: "config.json" },
+          { remotePath: "Xenova/bge-m3/resolve/main/special_tokens_map.json", localPath: "special_tokens_map.json" },
         ],
         minMemoryGB: 2,
         minVRAMGB: 1,
-        sizeGB: 2.3,
+        sizeGB: 1.13,
       },
     ],
   },
@@ -101,6 +104,29 @@ export const BUILTIN_MODELS: ModelSpec[] = [
       },
     ],
   },
+  {
+    modelId: "qwen3.5-4b",
+    name: "Qwen3.5 4B",
+    family: "llm",
+    backend: "node-llama-cpp",
+    description: "4B 级本地生成模型，Unsloth Dynamic Q4_K_XL 量化，约 2.9GB",
+    defaultVariant: "ud_q4_k_xl",
+    variants: [
+      {
+        variantId: "ud_q4_k_xl",
+        precision: "UD-Q4_K_XL",
+        requiredFiles: [
+          {
+            remotePath: "unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+            localPath: "Qwen3.5-4B-UD-Q4_K_XL.gguf",
+          },
+        ],
+        minMemoryGB: 5,
+        minVRAMGB: 4,
+        sizeGB: 2.9,
+      },
+    ],
+  },
 ];
 
 /**
@@ -116,3 +142,54 @@ export function getModelSpec(modelId: string): ModelSpec | undefined {
 export function getModelsByFamily(family: ModelFamily): ModelSpec[] {
   return BUILTIN_MODELS.filter((m) => m.family === family);
 }
+
+/**
+ * 获取某个 family 当前使用的默认模型 ID（family→modelId 的唯一映射来源，
+ * 供按 family 加载/卸载时集中引用，避免魔数散落）。
+ */
+export function getFamilyModelId(family: ModelFamily): string | undefined {
+  return BUILTIN_MODELS.find((m) => m.family === family)?.modelId;
+}
+
+/**
+ * 获取某 family 默认变体的最低内存要求（GB）。
+ * 用于加载前的可用内存校验：未注册或缺少默认变体时返回 0。
+ */
+export function getFamilyMinMemoryGB(family: ModelFamily): number {
+  const modelId = getFamilyModelId(family);
+  if (!modelId) return 0;
+  const spec = getModelSpec(modelId);
+  if (!spec) return 0;
+  return spec.variants.find((v) => v.variantId === spec.defaultVariant)?.minMemoryGB ?? 0;
+}
+
+/**
+ * 解析 transformers.js 定位本地模型文件所需的信息。
+ * 下载产物布局为 `<模型根目录>/<modelId>/<localPath>`（见 model.service 下载逻辑），
+ * 与 transformers.js 的 `localModelPath + 模型目录 + 文件名` 解析规则对齐，
+ * 使 worker 直接从下载目录读取（而非回退到远程或模块内缓存）。
+ */
+export function getTransformersArtifacts(
+  modelId: string,
+): { modelDir: string; modelFileName: string } | null {
+  const spec = getModelSpec(modelId);
+  if (!spec) return null;
+  const variant = spec.variants.find((v) => v.variantId === spec.defaultVariant);
+  if (!variant) return null;
+  const onnxFile = variant.requiredFiles.find(
+    (f) => f.localPath.startsWith("onnx/") && f.localPath.endsWith(".onnx"),
+  );
+  if (!onnxFile) return null;
+  return {
+    modelDir: modelId,
+    // transformers.js 自行拼接 `onnx/<name>.onnx`，此处只取基名
+    modelFileName: onnxFile.localPath.slice("onnx/".length, -".onnx".length),
+  };
+}
+
+/**
+ * 当前嵌入模型的输出维度。
+ * 向量库表结构与检索向量长度均以此为准，避免"换了模型、表维度没跟着换"的漂移。
+ */
+export const EMBEDDING_DIMENSION =
+  BUILTIN_MODELS.find((m) => m.family === "embedding")?.dimension ?? 1024;

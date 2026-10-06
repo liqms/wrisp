@@ -4,6 +4,7 @@
  */
 import { BrowserWindow } from "electron";
 import { ProgressUpdate, TaskResult } from "./types";
+import { stepManager } from "./step.manager";
 import { Logger } from "@/main/utils/logger";
 
 class ProgressManager {
@@ -29,6 +30,8 @@ class ProgressManager {
   /** 更新某个任务的进度（节流推送，避免并行时高频 IPC） */
   public update(taskName: string, current: number, total: number): void {
     this.taskProgress.set(taskName, { current, total });
+    // 同步到步骤明细：填充"执行任务"节点的数据量与已处理条数
+    stepManager.updateTaskProgress(taskName, current, total);
     const now = Date.now();
     if (now - this.lastPushTime >= this.PUSH_THROTTLE_MS) {
       this.lastPushTime = now;
@@ -43,6 +46,8 @@ class ProgressManager {
     if (p) {
       p.current = p.total;
     }
+    // 同步到步骤明细：写入任务终态与处理结果
+    stepManager.completeTask(result);
     this.lastPushTime = Date.now();
     this.pushProgress();
   }

@@ -46,3 +46,21 @@ export const DEFAULT_LOG_CLEANUP_CONFIG: LogCleanupConfig = {
   intervalHours: 24,
   keepDays: 30,
 }
+
+/**
+ * 时间热度分配置接口
+ */
+export interface TemporalScoreConfig {
+  /** 是否启用定时重算 */
+  enabled: boolean
+  /** 重算间隔（小时） */
+  intervalHours: number
+  /** 时间衰减半衰期（天） */
+  halfLifeDays: number
+}
+
+export const DEFAULT_TEMPORAL_SCORE_CONFIG: TemporalScoreConfig = {
+  enabled: true,
+  intervalHours: 24,
+  halfLifeDays: 30,
+}

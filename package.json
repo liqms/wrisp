@@ -13,7 +13,7 @@
     "build": "vue-tsc && vite build",
     "start": "electron .",
     "bump": "node scripts/bump-version.mjs",
-    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "rebuild": "electron-rebuild -f -w better-sqlite3 -w node-llama-cpp",
     "rebuild:node": "cd node_modules/better-sqlite3 && prebuild-install",
     "prod": "vite build && electron-builder",
     "lint": "eslint . --fix",
@@ -65,6 +65,7 @@
     "lowlight": "^3.3.0",
     "marked": "^18.0.4",
     "naive-ui": "^2.45.3",
+    "node-llama-cpp": "^3.22.1",
     "openai": "^6.39.1",
     "pinia": "^3.0.4",
     "turndown": "^7.2.4",
@@ -121,6 +122,10 @@
       "dist-renderer/**/*",
       "dist-electron/**/*",
       "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/node-llama-cpp/**",
+      "node_modules/@node-llama-cpp/**"
     ],
     "win": {
       "target": [

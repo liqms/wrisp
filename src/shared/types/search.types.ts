@@ -1,4 +1,4 @@
-// AI生成
+
 /** 搜索结果类型 */
 export type SearchResultType = "chunk" | "concept" | "topic" | "project" | "page";
 

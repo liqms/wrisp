@@ -74,7 +74,7 @@
             </n-flex>
             <n-flex v-if="enableAiMode" class="welcome-enable-ai-mode-desc-item">
               <DownloadButton v-for="model in modelList" :key="model.id" :title="model.label" :desc="model.desc"
-                :progress="model.progress" :localpath="model.localpath" />
+                :progress="model.progress" :localpath="model.localpath" @click="handleDownload(model)" />
             </n-flex>
           </n-flex>
         </n-flex>
@@ -115,6 +115,7 @@ const {
   enableAiMode,
   updateEnableAiMode,
   checkModelExist,
+  downloadModel,
 } = useModel();
 
 const currentWorkspace = computed(() => {
@@ -163,9 +164,12 @@ const features = computed(() => [
 
 // 模型定义（与后端 model-registry.ts 保持一致）
 const MODEL_DEFS = [
-  { id: "jina-embeddings-v3", labelKey: "MODELS.EMBEDDINGS", descKey: "MODELS.EMBEDDINGS_DESC" },
-  { id: "bge-reranker-v2-m3", labelKey: "MODELS.RERANKER", descKey: "MODELS.RERANKER_DESC" },
+  { id: "bge-m3", family: "embedding", labelKey: "MODELS.EMBEDDINGS", descKey: "MODELS.EMBEDDINGS_DESC" },
+  { id: "bge-reranker-v2-m3", family: "reranker", labelKey: "MODELS.RERANKER", descKey: "MODELS.RERANKER_DESC" },
+  { id: "qwen3.5-4b", family: "llm", labelKey: "MODELS.LANGUAGE", descKey: "MODELS.LANGUAGE_DESC" },
 ] as const;
+
+type ModelDef = (typeof MODEL_DEFS)[number];
 
 const downloadStore = useDownloadStore();
 // 模型下载状态（从后端查询）
@@ -200,6 +204,12 @@ async function refreshModelStatus() {
   }
 }
 
+// 触发模型下载：llm 走 core，其余走 base
+async function handleDownload(model: { family: ModelDef["family"] }) {
+  await downloadModel(model.family === "llm" ? "core" : "base");
+  await refreshModelStatus();
+}
+
 // 模型列表（合并后端状态和下载进度）
 const modelList = computed(() => {
   return MODEL_DEFS.map((def) => {
@@ -212,7 +222,7 @@ const modelList = computed(() => {
     for (const group of downloadStore.allGroupsProgress) {
       if (!group) continue;
       for (const file of group.files) {
-        if (file.url.includes(def.id)) {
+        if (file.url.toLowerCase().includes(def.id.toLowerCase())) {
           progress = file.progress;
           if (file.status === "completed") {
             localpath = file.localPath || "downloaded";
@@ -224,6 +234,7 @@ const modelList = computed(() => {
 
     return {
       id: def.id,
+      family: def.family,
       label: t(def.labelKey),
       desc: t(def.descKey),
       progress,

@@ -1,4 +1,4 @@
-import "./env.setup";
+import "@/main/utils/env";
 
 import { app, BrowserWindow, Menu, ipcMain } from "electron";
 import path from "path";
@@ -36,6 +36,7 @@ import {
   registerPageHandlers,
   registerConceptHandlers,
   registerTopicHandlers,
+  registerWikiHandlers,
   registerReflectionHandlers,
   registerSmartTaskHandlers,
   registerTaskHandlers,
@@ -53,6 +54,7 @@ import { vectorService } from "@/main/core/services/ai/vector.service";
 import { trayService } from "@/main/core/services/system/tray.service";
 import { taskQueue, taskExecutor } from "@/main/core/task-queue";
 import { downloadService } from "@/main/core/services/system/download.service";
+import { chunkIndexService } from "@/main/core/services/content/chunk-index.service";
 import { setupDownloadListeners } from "@/main/preload/listeners/download";
 import { workspaceInitService } from "@/main/core/services/base/workspace-init.service";
 import { resourceSyncService } from "@/main/core/services/resource/resource-sync.service";
@@ -88,6 +90,7 @@ async function initializeDatabase(): Promise<void> {
     // 幂等补齐旧库缺失的 schema 字段
     databaseMigration.ensureProjectPinnedColumn();
     databaseMigration.ensurePageTypeColumn();
+    databaseMigration.ensureChunkVectorizedColumn();
 
     // 幂等修复历史数据：pages.status 被旧版 updatePage 写为 NULL 的记录
     databaseMigration.repairPagesNullStatus();
@@ -178,6 +181,20 @@ app.whenReady().then(async () => {
     await downloadService.download(url, subDir, { groupId, fileName });
   });
 
+  // 注册文件切分任务处理器（保存 → 静默合并 → 异步切分语义块）
+  taskExecutor.registerHandler("file:chunk", async (task) => {
+    const payload = typeof task.payload === "string" ? JSON.parse(task.payload) : task.payload;
+    const { fileId, fileHash, chunkType, projectId } = payload ?? {};
+    await chunkIndexService.processFile(fileId, fileHash, chunkType, projectId);
+  });
+
+  // 注册 L3 语义精修处理器（仅在本地嵌入模型可用时改切分边界，失败保留 L2 结果）
+  taskExecutor.registerHandler("file:chunk-refine", async (task) => {
+    const payload = typeof task.payload === "string" ? JSON.parse(task.payload) : task.payload;
+    const { fileId, fileHash, chunkType, projectId } = payload ?? {};
+    await chunkIndexService.processRefine(fileId, fileHash, chunkType, projectId);
+  });
+
   createWindow();
   Menu.setApplicationMenu(null);
   trayService.initialize();
@@ -196,6 +213,7 @@ app.whenReady().then(async () => {
   registerPageHandlers();
   registerConceptHandlers();
   registerTopicHandlers();
+  registerWikiHandlers();
   registerReflectionHandlers();
   registerSmartTaskHandlers();
   registerTaskHandlers();

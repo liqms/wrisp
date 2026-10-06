@@ -54,6 +54,15 @@ class AIService {
     const priority = request.taskType ? "high" : "low";
     const release = await this.concurrencyController.acquireSlotManual(priority);
     try {
+      // 如果请求携带 taskType 且无 tools（L2 不走本地路由），使用路由器决策
+      if (request.taskType && !request.tools) {
+        const target = await modelRouter.route(request.taskType);
+        if (target === "local") {
+          yield* this.localChatCompletionStream(request);
+          return;
+        }
+      }
+      // 默认走云端
       yield* this.ensureGateway().chatCompletionStream(request);
     } finally {
       release();
@@ -140,11 +149,32 @@ class AIService {
     return modelRouter.getAllRouteStatus();
   }
 
+  /** 组装适合本地 chat 模型的 prompt：system 消息置前，取最后一条 user 消息作为输入 */
+  private buildLocalPrompt(request: LLMRequest): string {
+    const systemContent = request.messages
+      .filter((m) => m.role === "system")
+      .map((m) => m.content)
+      .join("\n\n");
+    const lastUser = [...request.messages].reverse().find((m) => m.role === "user");
+    const prompt = [systemContent, lastUser?.content]
+      .filter((part): part is string => !!part && part.trim().length > 0)
+      .join("\n\n");
+    if (!prompt) throw new Error("本地 LLM 未就绪：无可用的用户消息");
+    return prompt;
+  }
+
   /** 本地模型推理（调用 local-gateway） */
   private async localChatCompletion(request: LLMRequest): Promise<LLMResponse> {
     Logger.info("[AIService] 使用本地模型推理", { taskType: request.taskType });
-    const prompt = request.messages.map((m) => `${m.role}: ${m.content}`).join("\n");
-    const result = await localGateway.generate(prompt);
+    const prompt = this.buildLocalPrompt(request);
+    let result: string;
+    try {
+      result = await localGateway.generate(prompt);
+    } catch (error) {
+      // 保留底层清晰错误（如「本地 LLM 加载失败：缺少模型文件路径」/「本地 LLM 未加载」）
+      Logger.error("[AIService] 本地 LLM 未就绪或推理失败", { error: String(error) });
+      throw error;
+    }
     return {
       id: `local-${Date.now()}`,
       model: "local",
@@ -157,6 +187,58 @@ class AIService {
         totalTokens: 0,
       },
     };
+  }
+
+  /** 本地模型流式推理：把 local-gateway 的逐 token 回调桥接为生成器 yield */
+  private async *localChatCompletionStream(request: LLMRequest): AsyncIterable<LLMStreamChunk> {
+    Logger.info("[AIService] 使用本地模型流式推理", { taskType: request.taskType });
+    const prompt = this.buildLocalPrompt(request);
+
+    const queue: string[] = [];
+    let notify: (() => void) | null = null;
+    let done = false;
+    let error: unknown = null;
+
+    // 唤醒正在等待的消费者（若有）
+    const wake = (): void => {
+      if (notify) {
+        const resolve = notify;
+        notify = null;
+        resolve();
+      }
+    };
+
+    const generation = localGateway.generateStream(prompt, undefined, (token) => {
+      queue.push(token);
+      wake();
+    });
+    generation.then(
+      () => {
+        done = true;
+        wake();
+      },
+      (err) => {
+        error = err;
+        done = true;
+        wake();
+      },
+    );
+
+    while (true) {
+      if (queue.length > 0) {
+        yield { content: queue.shift() as string, finishReason: null, usage: null };
+        continue;
+      }
+      if (error) throw error;
+      if (done) break;
+      await new Promise<void>((resolve) => {
+        notify = resolve;
+      });
+      // await 返回后回到循环顶部，重新检查 queue / error / done，避免漏 token 或竞态
+    }
+
+    // 结束标记（与 openai 适配器一致：最后一个 chunk 携带 stop）
+    yield { content: "", finishReason: "stop", usage: null };
   }
 }
 

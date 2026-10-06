@@ -156,14 +156,14 @@ Smart Tasks 是面向文档内容的"后台智能处理"流水线。用户对文
 [task-dag.ts](file:///d:/Code/Github/Wrisp/src/main/core/smart-tasks/task-dag.ts)：
 
 ```
-第 0 层（无依赖，可并行）：
+第 0 层（无依赖）：
   chunk-summary     → Block 摘要生成
-  chunk-vectorize   → Chunk 向量化
 
 第 1 层：
-  semantic-link     → 语义链接生成（依赖 chunk-vectorize）
+  chunk-vectorize   → Chunk 向量化（依赖 chunk-summary，需先有 ai_summary）
 
-第 2 层：
+第 2 层（可并行）：
+  semantic-link     → 语义链接生成（依赖 chunk-vectorize）
   concept-extract   → 概念提取（依赖 chunk-summary + chunk-vectorize）
 
 第 3 层：

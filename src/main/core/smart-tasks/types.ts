@@ -1,7 +1,16 @@
 /**
  * 智能任务执行器类型定义
  */
-import { Timestamp } from "@/shared/types";
+import { Timestamp, type SmartTaskRunStatus } from "@/shared/types";
+
+export type {
+  SmartTaskStep,
+  SmartTaskStepKind,
+  SmartTaskStepState,
+  SmartTaskSnapshot,
+  SmartTaskModelFamily,
+  SmartTaskRunStatus,
+} from "@/shared/types";
 
 /** 任务执行上下文 */
 export interface TaskContext {
@@ -51,8 +60,8 @@ export interface ProgressUpdate {
   overallPercent: number;
 }
 
-/** 任务状态 */
-export type TaskStatus = "idle" | "running" | "paused" | "completed" | "failed" | "cancelled";
+/** 任务状态（与共享类型 SmartTaskRunStatus 同源） */
+export type TaskStatus = SmartTaskRunStatus;
 
 /** 调度器状态 */
 export interface SchedulerState {

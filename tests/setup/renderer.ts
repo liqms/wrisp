@@ -3,6 +3,13 @@ import { ErrorCode } from '@/shared/enums'
 import type { ApiResponse } from '@/shared/types'
 import type { ElectronAPI } from '@/renderer/types/electron'
 
+// 测试环境隔离：关闭 winston 的文件日志。否则 Logger 会经 app.getPath("logs")
+// （测试里的 electron mock 常把非 userData 路径返回为 cwd）或 LOG_DIR=logs 兜底分支，
+// 把 logs/ 写到项目根（进程 cwd）。
+// 预置 LOG_LEVEL 可阻止 Logger 内部 dotenv({ override: true }) 用 .env 的 LOG_FILE=true 覆盖它。
+process.env.LOG_LEVEL = process.env.LOG_LEVEL || 'debug'
+process.env.LOG_FILE = 'false'
+
 // Guard: only define window.electronAPI in DOM-like environments (happy-dom/jsdom)
 if (typeof window !== 'undefined') {
   const mockConfigStore: Record<string, unknown> = {

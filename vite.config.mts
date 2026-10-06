@@ -170,9 +170,11 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron', '@xenova/transformers'],
+              external: ['electron', '@xenova/transformers', 'node-llama-cpp'],
               output: {
-                format: 'cjs'
+                format: 'cjs',
+                // node-llama-cpp 为 ESM 包，CJS worker 必须保留真正的 import() 动态加载
+                dynamicImportInCjs: true
               }
             },
             target: 'node22',

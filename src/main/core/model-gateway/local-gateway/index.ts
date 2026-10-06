@@ -22,3 +22,5 @@ export const embed = (text: string, config?: Partial<EmbeddingConfig>) => localG
 export const embedBatch = (texts: string[], config?: Partial<EmbeddingConfig>) => localGateway.embedBatch(texts, config);
 /** 对文档列表进行重排序（代理方法） */
 export const rerank = (query: string, documents: string[], config?: Partial<RerankConfig>) => localGateway.rerank(query, documents, config);
+/** 预热搜索所需的本地模型（嵌入 + 重排序）并延长其空闲保留期（代理方法） */
+export const warmupSearchModels = () => localGateway.warmupSearchModels();

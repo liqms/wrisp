@@ -5,6 +5,8 @@
 import { TaskType, TASK_TYPE } from "@/shared/enums";
 import { modelService } from "@/main/core/services/ai/model.service";
 import { modelManager } from "@/main/core/model-gateway/local-gateway/model-manager";
+import { getFamilyMinMemoryGB, getFamilyModelId } from "@/main/core/model-gateway/local-gateway/model-registry";
+import { canLoadModel } from "@/main/core/model-gateway/local-gateway/hardware";
 import type { AIProvider } from "@/shared/types/model.types";
 import { Logger } from "@/main/utils/logger";
 
@@ -30,38 +32,99 @@ const taskRules: Record<TaskType, RoutingRule> = {
 
 class ModelRouter {
   /**
-   * 根据任务类型路由到 local 或 cloud
+   * 根据任务类型路由到 local 或 cloud。
+   * 默认「云端优先」：启用云端增强且有可用 provider 时走云端，不加载本地 LLM。
+   * 用户可在 localLlmTasks 中逐个指定任务走本地；本地不可用时回退云端（D4）。
    * @param task 任务类型
    * @returns RouteTarget
-   * @throws 如果首选源和备选源都不可用
+   * @throws 首选源与备选源都不可用
    */
   public async route(task: TaskType): Promise<RouteTarget> {
-    const rule = taskRules[task];
-    if (!rule) throw new Error(`未知任务类型: ${task}`);
+    if (!taskRules[task]) throw new Error(`未知任务类型: ${task}`);
 
-    if (await this.isSourceAvailable(rule.primary)) {
-      Logger.info("[ModelRouter] 路由决策", { task, target: rule.primary });
-      return rule.primary;
+    const preferLocal = this.getLocalLlmTasks().includes(task);
+
+    if (preferLocal) {
+      if (await this.isLocalLlmAvailable()) {
+        Logger.info("[ModelRouter] 路由决策", { task, target: "local", reason: "user-preference" });
+        return "local";
+      }
+      if (this.isCloudAvailable()) {
+        Logger.info("[ModelRouter] 本地不可用，回退云端", { task });
+        return "cloud";
+      }
+      throw new Error(`本地 LLM 不可用且云端不可用，无法执行任务: ${task}`);
     }
 
-    if (rule.fallback && await this.isSourceAvailable(rule.fallback)) {
-      Logger.info("[ModelRouter] 降级路由", { task, primary: rule.primary, fallback: rule.fallback });
-      return rule.fallback;
+    if (this.isCloudAvailable()) {
+      Logger.info("[ModelRouter] 路由决策", { task, target: "cloud" });
+      return "cloud";
     }
+    if (await this.isLocalLlmAvailable()) {
+      Logger.info("[ModelRouter] 云端不可用，降级本地", { task });
+      return "local";
+    }
+    throw new Error(`云端不可用且本地 LLM 未就绪，无法执行任务: ${task}`);
+  }
 
-    throw new Error(`没有可用的 AI 源执行任务: ${task}`);
+  /** 读取用户指定「走本地 LLM」的任务类型列表；缺失或非法时返回空数组 */
+  private getLocalLlmTasks(): TaskType[] {
+    const tasks = modelService.getValue<TaskType[]>("localLlmTasks");
+    return Array.isArray(tasks) ? tasks : [];
   }
 
   /**
-   * 检查本地 AI 是否可用
-   * 判断标准：enableAiMode 开关启用 + 至少嵌入模型已下载
+   * 检查本地嵌入/重排序能力是否可用
+   * 判断标准：enableAiMode 开关启用 + 嵌入模型已下载 + 可用内存足够同时驻留两类模型
    */
-  public async isLocalAvailable(): Promise<boolean> {
+  public async isLocalEmbeddingAvailable(): Promise<boolean> {
     const enabled = modelService.getValue<boolean>("enableAiMode");
     if (!enabled) return false;
 
     try {
-      const checkResult = await modelManager.checkModelFiles("jina-embeddings-v3");
+      const embeddingId = getFamilyModelId("embedding");
+      if (!embeddingId) return false;
+      const checkResult = await modelManager.checkModelFiles(embeddingId);
+      if (!checkResult.complete) return false;
+
+      // 语义搜索需同时驻留嵌入 + 重排序模型；可用内存不足时宁可降级 FTS5，
+      // 也不要硬加载数 GB 权重拖垮机器。
+      const requiredGB = getFamilyMinMemoryGB("embedding") + getFamilyMinMemoryGB("reranker");
+      if (!canLoadModel(requiredGB)) {
+        Logger.info("[ModelRouter] 可用内存不足，跳过本地语义能力", { requiredGB });
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * 检查本地 AI（嵌入能力）是否可用
+   * 保持原语义，wiki 智能整理的 gate 依赖此返回值
+   */
+  public async isLocalAvailable(): Promise<boolean> {
+    return this.isLocalEmbeddingAvailable();
+  }
+
+  /**
+   * 检查本地 LLM 生成能力是否可用
+   * 判断标准：enableAiMode 开关启用 + 可用内存足够 + LLM 模型已下载
+   */
+  public async isLocalLlmAvailable(): Promise<boolean> {
+    const enabled = modelService.getValue<boolean>("enableAiMode");
+    if (!enabled) return false;
+
+    // 与 isLocalEmbeddingAvailable 对齐：内存不足时不选中本地 LLM，避免加载后卡死（P6）
+    const requiredGB = getFamilyMinMemoryGB("llm");
+    if (!canLoadModel(requiredGB)) {
+      Logger.info("[ModelRouter] 可用内存不足，跳过本地 LLM", { requiredGB });
+      return false;
+    }
+
+    try {
+      const checkResult = await modelManager.checkModelFiles("qwen3.5-4b");
       return checkResult.complete;
     } catch {
       return false;
@@ -95,14 +158,6 @@ class ModelRouter {
       }
     }
     return result as Record<TaskType, { primary: RouteTarget; fallback?: RouteTarget; current: RouteTarget } | { error: string }>;
-  }
-
-  /** 检查模型源是否可用 */
-  private async isSourceAvailable(source: RouteTarget): Promise<boolean> {
-    if (source === "local") {
-      return this.isLocalAvailable();
-    }
-    return this.isCloudAvailable();
   }
 }
 

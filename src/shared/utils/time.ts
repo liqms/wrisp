@@ -274,6 +274,32 @@ export class TimeUtil {
     const date = timestamp instanceof Date ? timestamp : new Date(timestamp)
     return date.toISOString()
   }
+
+  /**
+   * 计算时间热度分（指数衰减）。
+   * 公式：score = exp(-λ · ageDays)，λ = ln2 / halfLifeDays。
+   * 以内容自身时间（如语义块 created_at）为基准，新内容趋近 1，越旧越趋近 0。
+   * @param date - 内容时间
+   * @param now - 当前时间
+   * @param halfLifeDays - 半衰期（天），默认 30
+   * @returns [0, 1] 区间的时间热度分；参数非法时返回 0
+   */
+  static temporalScore(
+    date: Date | number | string,
+    now: Date | number | string = new Date(),
+    halfLifeDays: number = 30,
+  ): number {
+    const base = new Date(date).getTime()
+    const current = new Date(now).getTime()
+    if (Number.isNaN(base) || Number.isNaN(current) || halfLifeDays <= 0) {
+      return 0
+    }
+    const ageDays = (current - base) / (1000 * 60 * 60 * 24)
+    if (ageDays <= 0) {
+      return 1
+    }
+    return Math.exp((-Math.LN2 / halfLifeDays) * ageDays)
+  }
 }
 
 export const time = TimeUtil

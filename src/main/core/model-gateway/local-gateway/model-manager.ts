@@ -2,17 +2,18 @@
  * 模型管理器
  * 单例模式，管理本地模型的生命周期：下载、加载、卸载、空闲回收
  */
-import { app } from "electron";
 import fs from "fs";
 import path from "path";
 import { Logger } from "@/main/utils/logger";
 import { configService } from "@/main/core/services/system/config.service";
 import { downloadService } from "@/main/core/services/system/download.service";
+import { MODELS_DIR } from "@/main/constants/folder.constants";
 import { localAiManager } from "./manager";
 import { ModelState } from "./types";
 import {
   ModelSpec,
   MirrorType,
+  BUILTIN_MODELS,
   getModelSpec,
   resolveModelUrl,
 } from "./model-registry";
@@ -33,17 +34,19 @@ export interface DownloadProgress {
 class ModelManager {
   private static instance: ModelManager | null = null;
 
-  private userDataPath: string;
   private modelsBasePath: string;
   private idleTimeoutMs = 5 * 60 * 1000; // 默认 5 分钟
   private idleTimers = new Map<string, NodeJS.Timeout>();
+  /** 单模型空闲超时覆盖（ms），优先于全局 idleTimeoutMs */
+  private idleTimeoutOverrides = new Map<string, number>();
   private idleTimerHandle: NodeJS.Timeout | null = null;
   private idleTimerRunning = false;
 
   /** 初始化模型存储路径 */
   private constructor() {
-    this.userDataPath = app.getPath("userData");
-    this.modelsBasePath = path.join(this.userDataPath, "models");
+    // 与下载落盘路径保持一致：downloadService 以 <userData>/Cache 为根，
+    // 模型统一写入其下 models/ 目录（见 model.service 的下载逻辑）。
+    this.modelsBasePath = path.join(downloadService.getCachePath(), MODELS_DIR);
     fs.mkdirSync(this.modelsBasePath, { recursive: true });
   }
 
@@ -55,6 +58,11 @@ class ModelManager {
     return ModelManager.instance;
   }
 
+  /** 获取本地模型根目录（绝对路径）——与下载产物落盘位置一致 */
+  public getModelsBasePath(): string {
+    return this.modelsBasePath;
+  }
+
   // ==================== 规格查询 ====================
 
   /** 获取模型规格 */
@@ -64,19 +72,16 @@ class ModelManager {
 
   /** 获取所有模型规格 */
   public getAllModelSpecs(): ModelSpec[] {
-    return ["jina-embeddings-v3", "bge-reranker-v2-m3"]
-      .map((id) => getModelSpec(id))
-      .filter((s): s is ModelSpec => s !== undefined);
+    return [...BUILTIN_MODELS];
   }
 
   // ==================== 文件路径管理 ====================
 
-  /** 获取模型在磁盘上的存储路径 */
-  public getModelPath(modelId: string, variantId?: string): string {
+  /** 获取模型在磁盘上的存储路径（下载布局为 <modelsBasePath>/<modelId>，不含变体层级） */
+  public getModelPath(modelId: string): string {
     const spec = getModelSpec(modelId);
     if (!spec) throw new Error(`未知模型: ${modelId}`);
-    const variant = variantId || spec.defaultVariant;
-    return path.join(this.modelsBasePath, modelId, variant);
+    return path.join(this.modelsBasePath, modelId);
   }
 
   /** 获取当前 locale 对应的镜像类型 */
@@ -95,7 +100,7 @@ class ModelManager {
     const variant = spec.variants.find((v) => v.variantId === (variantId || spec.defaultVariant));
     if (!variant) return { complete: false, missingFiles: [`未知变体: ${variantId}`] };
 
-    const modelPath = this.getModelPath(modelId, variant.variantId);
+    const modelPath = this.getModelPath(modelId);
     const missingFiles: string[] = [];
 
     for (const file of variant.requiredFiles) {
@@ -125,7 +130,7 @@ class ModelManager {
 
     for (const file of variant.requiredFiles) {
       const url = resolveModelUrl(file.remotePath, mirror);
-      const subDir = path.join("models", modelId, variant.variantId, path.dirname(file.localPath));
+      const subDir = path.join(MODELS_DIR, modelId, path.dirname(file.localPath));
 
       Logger.info("[ModelManager] 下载模型文件", { url, subDir });
 
@@ -171,6 +176,9 @@ class ModelManager {
       case "reranker":
         await localAiManager.loadRerankModel({ modelName: `Xenova/${modelId}` });
         break;
+      case "llm":
+        await localAiManager.loadLlmModel({ modelPath: this.getModelPath(modelId), modelId });
+        break;
       default:
         throw new Error(`不支持的模型类型: ${spec.family}`);
     }
@@ -195,6 +203,9 @@ class ModelManager {
       case "reranker":
         await localAiManager.unloadRerankModel();
         break;
+      case "llm":
+        await localAiManager.unloadLlmModel();
+        break;
     }
   }
 
@@ -202,6 +213,7 @@ class ModelManager {
   public async unloadAll(): Promise<void> {
     await localAiManager.unloadEmbeddingModel();
     await localAiManager.unloadRerankModel();
+    await localAiManager.unloadLlmModel();
     for (const [, timer] of this.idleTimers) {
       clearTimeout(timer);
     }
@@ -220,6 +232,8 @@ class ModelManager {
         return localAiManager.getEmbeddingModelStatus();
       case "reranker":
         return localAiManager.getRerankModelStatus();
+      case "llm":
+        return localAiManager.getLlmModelStatus();
       default:
         return undefined;
     }
@@ -227,10 +241,12 @@ class ModelManager {
 
   /** 获取所有模型状态 */
   public getAllModelStatus(): Record<string, ModelState> {
-    return {
-      "jina-embeddings-v3": localAiManager.getEmbeddingModelStatus(),
-      "bge-reranker-v2-m3": localAiManager.getRerankModelStatus(),
-    };
+    const result: Record<string, ModelState> = {};
+    for (const spec of BUILTIN_MODELS) {
+      const status = this.getModelStatus(spec.modelId);
+      if (status) result[spec.modelId] = status;
+    }
+    return result;
   }
 
   // ==================== 空闲卸载 ====================
@@ -240,9 +256,28 @@ class ModelManager {
     this.idleTimeoutMs = ms;
   }
 
+  /**
+   * 为单个模型覆盖空闲超时（ms）。
+   * 用于搜索这类高频短任务：冷启动成本远高于常驻成本，需延长保留期避免反复冷启动。
+   */
+  public setIdleTimeoutFor(modelId: string, ms: number): void {
+    this.idleTimeoutOverrides.set(modelId, ms);
+  }
+
+  /** 清除单个模型的空闲超时覆盖，回退到全局 idleTimeoutMs */
+  public clearIdleTimeoutOverride(modelId: string): void {
+    this.idleTimeoutOverrides.delete(modelId);
+  }
+
+  /** 该模型是否被显式设置了空闲保留期（如搜索预热），设置后不宜被立即释放 */
+  public hasIdleTimeoutOverride(modelId: string): boolean {
+    return this.idleTimeoutOverrides.has(modelId);
+  }
+
   /** 更新模型最后使用时间 */
   public touchModel(modelId: string): void {
-    if (this.idleTimeoutMs <= 0) return;
+    const timeoutMs = this.idleTimeoutOverrides.get(modelId) ?? this.idleTimeoutMs;
+    if (timeoutMs <= 0) return;
 
     const existing = this.idleTimers.get(modelId);
     if (existing) clearTimeout(existing);
@@ -250,11 +285,21 @@ class ModelManager {
     this.idleTimers.set(
       modelId,
       setTimeout(() => {
+        const spec = getModelSpec(modelId);
+        // 本地 LLM 存在在途生成请求时不发起卸载：避免空闲卸载腰斩正在进行的（尤其流式）生成。
+        // 此处不空洞地跳过，而是重新调度一次空闲计时器，待推理真正结束后再判定卸载，
+        // 否则若生成结束后无新请求，模型将永远不会被空闲回收。
+        if (spec?.family === "llm" && localAiManager.isLlmBusy()) {
+          Logger.info("[ModelManager] 本地 LLM 推理进行中，跳过本次空闲卸载", { modelId });
+          this.touchModel(modelId);
+          return;
+        }
+
         Logger.info("[ModelManager] 空闲超时，卸载模型", { modelId });
         this.unloadModel(modelId).catch((error) => {
           Logger.error("[ModelManager] 空闲卸载失败", { modelId, error: String(error) });
         });
-      }, this.idleTimeoutMs),
+      }, timeoutMs),
     );
   }
 
@@ -276,6 +321,9 @@ class ModelManager {
             break;
           case "reranker":
             isLoaded = localAiManager.getRerankModelStatus().status === "loaded";
+            break;
+          case "llm":
+            isLoaded = localAiManager.getLlmModelStatus().status === "loaded";
             break;
         }
 

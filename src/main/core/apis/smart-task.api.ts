@@ -3,6 +3,7 @@
  * 封装 SmartTaskScheduler 调用，供 IPC handler 使用
  */
 import { smartTaskScheduler } from "@/main/core/smart-tasks";
+import { modelRouter } from "@/main/core/model-gateway/router";
 import { response } from "@/main/utils/response";
 import { ApiResponse } from "@/shared/types";
 import { ErrorCode } from "@/shared/enums";
@@ -10,6 +11,10 @@ import { Logger } from "@/main/utils/logger";
 
 async function startSmartTasks(): Promise<ApiResponse<{ executionId: string }>> {
   try {
+    if (!(await modelRouter.isLocalAvailable())) {
+      Logger.warn("启动智能任务被拒绝：本地智能未启用或模型未下载");
+      return response.error(ErrorCode.SMART_TASK_START_FAILED, new Error("本地智能未启用或模型未下载"));
+    }
     const result = await smartTaskScheduler.start();
     return response.success(result);
   } catch (error) {

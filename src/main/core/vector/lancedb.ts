@@ -15,6 +15,7 @@ import { join } from "path";
 import fs from "fs";
 import { createRequire } from "node:module";
 import { configService } from "@/main/core/services/system/config.service";
+import { EMBEDDING_DIMENSION } from "@/main/core/model-gateway/local-gateway/model-registry";
 import { Id } from "@/shared/types";
 import {
   Schema,
@@ -136,6 +137,53 @@ async function indexExists(table: Table, columnName: string): Promise<boolean> {
   }
 }
 
+/** embedding 列的定长维度；非定长列表或字段缺失时返回 undefined */
+function getEmbeddingListSize(schema: Schema): number | undefined {
+  const field = schema.fields.find((f) => f.name === "embedding");
+  const listSize = (field?.type as { listSize?: number } | undefined)?.listSize;
+  return listSize;
+}
+
+/** embedding 字段定义（维度取自嵌入模型注册表） */
+function buildEmbeddingField(): Field {
+  return new Field(
+    "embedding",
+    new FixedSizeList(EMBEDDING_DIMENSION, new Field("item", new Float32(), false)),
+    false,
+  );
+}
+
+/**
+ * 确保向量表存在且 embedding 列维度与当前嵌入模型一致。
+ * 表不存在 → 按当前维度创建；表已存在但维度不符（历史库按旧模型建表）→ 删除重建：
+ * 旧向量与当前模型不在同一向量空间，保留无意义。
+ * @returns 已存在的表（供调用方补列）；刚创建或重建时为 null
+ */
+async function ensureEmbeddingTable(
+  db: Connection,
+  tableName: "block_embeddings" | "pages_embeddings",
+  buildSchema: () => Schema,
+): Promise<Table | null> {
+  if (!(await tableExists(db, tableName))) {
+    console.log(`[LanceDB] 创建向量表 ${tableName}（维度 ${EMBEDDING_DIMENSION}）...`);
+    await db.createEmptyTable(tableName, buildSchema());
+    return null;
+  }
+
+  const table = await db.openTable(tableName);
+  const listSize = getEmbeddingListSize(await table.schema());
+  if (listSize !== undefined && listSize !== EMBEDDING_DIMENSION) {
+    console.warn(
+      `[LanceDB] 向量表 ${tableName} 维度不符（现有 ${listSize}，期望 ${EMBEDDING_DIMENSION}），删除并重建`,
+    );
+    await db.dropTable(tableName);
+    await db.createEmptyTable(tableName, buildSchema());
+    return null;
+  }
+
+  return table;
+}
+
 /**
  * 初始化所有向量表
  */
@@ -143,22 +191,15 @@ export async function initVectorTables(db: Connection): Promise<void> {
   console.log("[LanceDB] 开始初始化向量表...");
 
   // ==================== Block 向量表 ====================
-  if (!(await tableExists(db, "block_embeddings"))) {
-    console.log("[LanceDB] 创建 Block 向量表...");
-    const schema = new Schema([
+  const blockTable = await ensureEmbeddingTable(db, "block_embeddings", () =>
+    new Schema([
       new Field("block_id", new Utf8(), false),
       new Field("project_id", new Utf8(), true),
-      new Field(
-        "embedding",
-        new FixedSizeList(1536, new Field("item", new Float32(), false)),
-        false,
-      ),
-    ]);
-    await db.createEmptyTable("block_embeddings", schema);
-    console.log("[LanceDB] Block 向量表创建完成");
-  } else {
+      buildEmbeddingField(),
+    ]),
+  );
+  if (blockTable) {
     console.log("[LanceDB] Block 向量表已存在");
-    const blockTable = await db.openTable("block_embeddings");
     const fields = await blockTable.schema();
     const hasProjectId = fields.fields.some((f) => f.name === "project_id");
     if (!hasProjectId) {
@@ -166,24 +207,22 @@ export async function initVectorTables(db: Connection): Promise<void> {
       await blockTable.addColumns(new Field("project_id", new Utf8(), true));
       console.log("[LanceDB] project_id 列补充完成（存量行为 null）");
     }
+  } else {
+    console.log("[LanceDB] Block 向量表创建完成");
   }
 
   // ==================== 页面向量表 ====================
-  if (!(await tableExists(db, "pages_embeddings"))) {
-    console.log("[LanceDB] 创建页面向量表...");
-    const schema = new Schema([
+  const pageTable = await ensureEmbeddingTable(db, "pages_embeddings", () =>
+    new Schema([
       new Field("page_id", new Utf8(), false),
       new Field("project_id", new Utf8(), false),
-      new Field(
-        "embedding",
-        new FixedSizeList(1536, new Field("item", new Float32(), false)),
-        false,
-      ),
-    ]);
-    await db.createEmptyTable("pages_embeddings", schema);
-    console.log("[LanceDB] 页面向量表创建完成");
-  } else {
+      buildEmbeddingField(),
+    ]),
+  );
+  if (pageTable) {
     console.log("[LanceDB] 页面向量表已存在");
+  } else {
+    console.log("[LanceDB] 页面向量表创建完成");
   }
 }
 

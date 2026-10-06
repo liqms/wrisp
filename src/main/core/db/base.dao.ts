@@ -60,6 +60,33 @@ export abstract class BaseDao<T, C extends object, U extends object> {
     }
   }
 
+  /** 表的实际列名集合，首次使用时探测并缓存 */
+  private tableColumns: Set<string> | null = null;
+
+  /**
+   * 探测表的列名集合
+   * 关联表（concept_chunks / topic_chunks / topic_concepts / tagged_items 等）以复合主键为键，
+   * 既没有 id 列，也不一定有 created_at / updated_at 列，自动补列必须以真实 schema 为准。
+   * @returns 列名集合；表尚未创建（未迁移）时为空集合
+   */
+  protected getTableColumns(): Set<string> {
+    if (this.tableColumns === null) {
+      const rows = this.db
+        .prepare(`PRAGMA table_info(${this.tableName})`)
+        .all() as Array<{ name: string }>;
+      this.tableColumns = new Set(rows.map((row) => row.name));
+    }
+    return this.tableColumns;
+  }
+
+  /**
+   * 表是否含有指定列
+   * @param column - 列名
+   */
+  protected hasColumn(column: string): boolean {
+    return this.getTableColumns().has(column);
+  }
+
   /**
    * 获取数据库连接实例
    * @returns Database.Database 数据库实例
@@ -93,23 +120,17 @@ export abstract class BaseDao<T, C extends object, U extends object> {
     const timestamp = this.getCurrentTimestamp();
     const enhancedData = { ...data };
 
+    const assignIfColumn = (field?: string): void => {
+      if (field && this.hasColumn(field)) {
+        Object.assign(enhancedData, { [field]: timestamp });
+      }
+    };
+
     if (isCreate) {
-      if (this.timestampConfig.createdAtField) {
-        Object.assign(enhancedData, {
-          [this.timestampConfig.createdAtField]: timestamp,
-        });
-      }
-      if (this.timestampConfig.updatedAtField) {
-        Object.assign(enhancedData, {
-          [this.timestampConfig.updatedAtField]: timestamp,
-        });
-      }
+      assignIfColumn(this.timestampConfig.createdAtField);
+      assignIfColumn(this.timestampConfig.updatedAtField);
     } else {
-      if (this.timestampConfig.updatedAtField) {
-        Object.assign(enhancedData, {
-          [this.timestampConfig.updatedAtField]: timestamp,
-        });
-      }
+      assignIfColumn(this.timestampConfig.updatedAtField);
     }
 
     return enhancedData;
@@ -135,8 +156,9 @@ export abstract class BaseDao<T, C extends object, U extends object> {
 
   /**
    * 创建单条记录
+   * 自动补 id 与时间戳前会先核对表的实际列，复合主键关联表（无 id 列）不会被补出多余列
    * @param data - 创建数据对象
-   * @returns 新创建记录的 ID（UUID 字符串）
+   * @returns 新创建记录的 ID（UUID 字符串）；表无 id 列时返回空字符串
    * @throws {Error} 当数据为空或数据库操作失败时抛出错误
    */
   create(data: C): string {
@@ -150,7 +172,7 @@ export abstract class BaseDao<T, C extends object, U extends object> {
         throw new Error("创建操作需要提供数据");
       }
 
-      if (!enhancedData.id) {
+      if (this.hasColumn("id") && !enhancedData.id) {
         enhancedData.id = NodeCryptoUtil.generateUUID();
         keys.push("id" as keyof C);
       }
@@ -167,11 +189,14 @@ export abstract class BaseDao<T, C extends object, U extends object> {
       const stmt = this.db.prepare(sql);
       stmt.run(values);
 
-      Logger.debug(`创建记录，id: ${enhancedData.id}`, {
+      Logger.debug(`创建记录，id: ${enhancedData.id ?? "(复合主键)"}`, {
         id: enhancedData.id,
       });
 
-      return enhancedData.id;
+      // 主表已变更：本表若声明了 FTS 索引列则重建全文索引
+      this.refreshFts();
+
+      return enhancedData.id ?? "";
     } catch (error) {
       Logger.error(`创建记录失败，表名: ${this.tableName}:`, {
         error: String(error),
@@ -308,6 +333,11 @@ export abstract class BaseDao<T, C extends object, U extends object> {
       const stmt = this.db.prepare(sql);
       const result = stmt.run(values);
 
+      // 仅当本次更新涉及 FTS 索引列时才重建索引
+      if (result.changes > 0) {
+        this.refreshFts(enhancedData);
+      }
+
       Logger.debug(`更新 ${result.changes} 条记录`);
       return result.changes;
     } catch (error) {
@@ -334,6 +364,11 @@ export abstract class BaseDao<T, C extends object, U extends object> {
 
       const stmt = this.db.prepare(sql);
       const result = stmt.run(id);
+
+      // 删除后重建 FTS 索引，避免索引中残留已删除行
+      if (result.changes > 0) {
+        this.refreshFts();
+      }
 
       Logger.debug(`删除 ${result.changes} 条记录`);
       return result.changes;
@@ -362,6 +397,11 @@ export abstract class BaseDao<T, C extends object, U extends object> {
 
       const stmt = this.db.prepare(sql);
       const result = stmt.run(ids);
+
+      // 批量删除后重建 FTS 索引，避免索引中残留已删除行
+      if (result.changes > 0) {
+        this.refreshFts();
+      }
 
       Logger.debug(`删除 ${result.changes} 条记录`);
       return result.changes;
@@ -484,11 +524,11 @@ export abstract class BaseDao<T, C extends object, U extends object> {
         return false;
       }
 
-      const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE id = ?) as exists`;
+      const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE id = ?) AS exists_flag`;
       const stmt = this.db.prepare(sql);
-      const result = stmt.get(id) as { exists: number };
+      const result = stmt.get(id) as { exists_flag: number };
 
-      return result?.exists === 1;
+      return result?.exists_flag === 1;
     } catch (error) {
       Logger.error(`查询失败，表名: ${this.tableName}:`, {
         error: String(error),
@@ -667,14 +707,111 @@ export abstract class BaseDao<T, C extends object, U extends object> {
 
   /**
    * 构建 LIKE 子串匹配模式（转义 %/_/\），配合 SQL `LIKE ? ESCAPE '\'` 使用。
-   * FTS5 默认 unicode61 分词器把连续中文视为单个 token，无法做子串匹配，
-   * 因此文本检索统一走 LIKE。
+   * 用于两类场景：关键词不足 3 个字符（trigram 分词器无法命中）时的回退，
+   * 以及本身没有 FTS 索引的列。
    * @param keyword - 用户输入的关键词
    * @returns 形如 %keyword% 的匹配模式
    */
   protected buildLikePattern(keyword: string): string {
     const escaped = keyword.replace(/[\\%_]/g, (ch) => `\\${ch}`);
     return `%${escaped}%`;
+  }
+
+  /**
+   * FTS5 trigram 分词器可命中的最短子串长度（按字符计）。
+   * trigram 只索引「每 3 个字符」构成的三元组，少于 3 个字符的关键词无法命中，
+   * 调用方需要回退到 LIKE 子串匹配。
+   */
+  protected static readonly FTS_MIN_CHARS = 3;
+
+  /** {@link withFtsDeferred} 的作用域嵌套深度（>0 表示当前处于批量写入中） */
+  private ftsDeferredDepth = 0;
+
+  /**
+   * 本表 FTS5 全文索引包含的列。
+   * 无 FTS 索引的表返回空数组，写操作不会触发索引重建；
+   * 有 FTS 索引的子类应覆写此 getter，声明参与索引的列。
+   */
+  protected get ftsIndexedFields(): readonly string[] {
+    return [];
+  }
+
+  /**
+   * 将关键词转换为 FTS5 短语查询串（trigram 分词器下等价于子串匹配）。
+   * 关键词不足 {@link BaseDao.FTS_MIN_CHARS} 个字符时返回 null，调用方应回退 LIKE。
+   * 内部双引号按 FTS5 语法双写转义，避免特殊字符破坏查询解析。
+   * @param keyword - 用户输入的关键词
+   * @returns 可直接绑定到 `MATCH ?` 的查询串；需回退 LIKE 时为 null
+   */
+  protected buildFtsPhrase(keyword: string): string | null {
+    if ([...keyword].length < BaseDao.FTS_MIN_CHARS) {
+      return null;
+    }
+    return `"${keyword.replace(/"/g, '""')}"`;
+  }
+
+  /**
+   * 重建本表对应的 FTS5 全文索引（表名约定为 `<tableName>_fts`）。
+   *
+   * FTS5 表是 external-content（`content='<tableName>'`），索引不会随主表自动同步，
+   * 主表变更后必须显式重建。统一使用 `'rebuild'`：它幂等、自愈——即使索引此前
+   * 已与主表脱节，也不会像逐行 `'delete'` 那样损坏索引。
+   */
+  protected rebuildFts(): void {
+    const ftsTable = `${this.tableName}_fts`;
+    this.execute(`INSERT INTO ${ftsTable}(${ftsTable}) VALUES('rebuild')`);
+  }
+
+  /**
+   * 主表写入后按需重建 FTS 索引。
+   * - 表未声明 {@link ftsIndexedFields}（无 FTS 索引）时什么都不做；
+   * - 处于 {@link withFtsDeferred} 作用域内时什么都不做，由最外层统一重建；
+   * - 传入 data（更新场景）时，仅当数据涉及索引列才重建，避免 status / relevance
+   *   等非索引列的更新也触发全量重建。
+   * @param data - 本次写入的数据对象（创建/删除场景可省略）
+   */
+  protected refreshFts(data?: object): void {
+    if (this.ftsDeferredDepth > 0) {
+      return;
+    }
+    if (this.ftsIndexedFields.length === 0) {
+      return;
+    }
+    if (
+      data &&
+      !this.ftsIndexedFields.some(
+        (field) => (data as Record<string, unknown>)[field] !== undefined,
+      )
+    ) {
+      return;
+    }
+    this.rebuildFts();
+  }
+
+  /**
+   * 批量写入作用域：抑制作用域内每次 create/update/delete 的逐行索引重建，
+   * 退出最外层时统一重建一次。
+   *
+   * `'rebuild'` 是**全表**重建，而 FTS 索引表是全库共享的：一次 N 行的批量写入
+   * 若不做延迟，代价是 N+1 次全库重建（典型场景是语义块按文件整体替换）。
+   * 计数器用**深度**而不是布尔，是为了让嵌套批量（全库重建时按文件循环）
+   * 只在最外层收尾一次。
+   *
+   * 回调必须同步执行：延迟期间任何读到本表的调用方都会看到旧索引。
+   * @param fn - 批量写入回调
+   * @returns fn 的返回值
+   */
+  protected withFtsDeferred<T>(fn: () => T): T {
+    this.ftsDeferredDepth += 1;
+    try {
+      return fn();
+    } finally {
+      this.ftsDeferredDepth -= 1;
+      // 异常路径下的重建会被外层事务回滚带走，无需额外判别
+      if (this.ftsDeferredDepth === 0 && this.ftsIndexedFields.length > 0) {
+        this.rebuildFts();
+      }
+    }
   }
 
   /**

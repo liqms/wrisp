@@ -1,3 +1,4 @@
+
 export { registerWindowHandlers } from './window.ipc'
 export { registerSystemHandlers } from './system.ipc'
 export { registerLoggerHandlers } from './logger.ipc'
@@ -13,6 +14,7 @@ export { registerCharacterHandlers } from './character.ipc'
 export { registerPageHandlers } from './page.ipc'
 export { registerConceptHandlers } from './concept.ipc'
 export { registerTopicHandlers } from './topic.ipc'
+export { registerWikiHandlers } from './wiki.ipc'
 export { registerReflectionHandlers } from './reflection.ipc'
 export { registerSmartTaskHandlers } from './smart-task.ipc'
 export { registerTaskHandlers } from './task.ipc'

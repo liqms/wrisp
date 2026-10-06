@@ -66,9 +66,9 @@ Wiki 页面顶部全局栏显示**待整理资源数**和**智能整理按钮**�
 点击「⚡ 整理」触发智能整理流水线，按 DAG 依赖关系分层执行：
 
 ```
-Layer 0: chunk-summary + chunk-vectorize    (并行)
-Layer 1: semantic-link                      (依赖 vectorize)
-Layer 2: concept-extract                    (依赖 summary + vectorize)
+Layer 0: chunk-summary                      (无依赖)
+Layer 1: chunk-vectorize                    (依赖 summary，需先有 ai_summary)
+Layer 2: semantic-link + concept-extract    (并行，依赖 vectorize)
 Layer 3: topic-detection                    (依赖 concept-extract)
 Layer 4: topic-summary                      (依赖 topic-detection)
 ```

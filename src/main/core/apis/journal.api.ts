@@ -117,13 +117,14 @@ async function syncLocalFiles(): Promise<ApiResponse<number>> {
 
 /**
  * 根据 journal 文件的实际文件重置 file_index 表
- * 扫描 journal/ 目录下的 .md 文件，清空 file_index 表后重新填充。
- * 注意：此操作会同时清空 semantic_chunks 表（外键引用 file_index）。
+ * 扫描 journal/ 目录下的 .md 文件，清空 journal/ 下的 file_index 记录后重新填充。
+ * 注意：此操作仅清理 chunk_type = 'journal' 的语义块及其关联，并重新调度日志切分；
+ * 作品页面（chunk_type = 'page'）等其它来源不受影响。
  * @returns 重置后的记录数
  */
 async function resetJournalTable(): Promise<ApiResponse<number>> {
   try {
-    const count = journalService.resetJournalTable();
+    const count = await journalService.resetJournalTable();
     return response.success(count);
   } catch (error) {
     Logger.error("重置 file_index 表失败", { error: String(error) });

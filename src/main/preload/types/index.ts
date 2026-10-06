@@ -1,3 +1,4 @@
+
 import type { ConfigAPI } from "./config";
 import type { WindowAPI } from "./window";
 import type { SystemAPI } from "./system";
@@ -12,6 +13,7 @@ import type { TagAPI } from "./tag";
 import type { CharacterAPI } from "./character";
 import type { ConceptAPI } from "./concept";
 import type { TopicAPI } from "./topic";
+import type { WikiAPI } from "./wiki";
 import type { ReflectionAPI } from "./reflection";
 import type { SmartTaskAPI } from "./smart-task";
 import type { TaskAPI } from "./task";
@@ -19,6 +21,8 @@ import type { SearchAPI } from "./search";
 import type { PageAPI } from "./page";
 import type { UpdateAPI } from "./update";
 import type { TemplateAPI } from "./template";
+import type { AttachmentAPI } from "./attachment";
+import type { ResourceAPI } from "./resource";
 import type { NotificationMessage } from "@/shared/types";
 
 export interface ElectronAPI {
@@ -35,11 +39,17 @@ export interface ElectronAPI {
   tag: TagAPI;
   character: CharacterAPI;
   page: PageAPI;
+  concept: ConceptAPI;
+  topic: TopicAPI;
+  wiki: WikiAPI;
+  reflection: ReflectionAPI;
   smartTask: SmartTaskAPI;
   task: TaskAPI;
   search: SearchAPI;
   update: UpdateAPI;
   template: TemplateAPI;
+  attachment: AttachmentAPI;
+  resource: ResourceAPI;
 
   // 通用 IPC 方法（保持向后兼容）
   send: (channel: string, data: unknown) => void;
@@ -66,6 +76,7 @@ export type {
   CharacterAPI,
   ConceptAPI,
   TopicAPI,
+  WikiAPI,
   ReflectionAPI,
   SmartTaskAPI,
   TaskAPI,
@@ -73,4 +84,6 @@ export type {
   PageAPI,
   UpdateAPI,
   TemplateAPI,
+  AttachmentAPI,
+  ResourceAPI,
 };

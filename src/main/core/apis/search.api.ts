@@ -1,4 +1,4 @@
-// AI生成
+
 import { searchService } from "@/main/core/services/system/search.service";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
@@ -23,4 +23,18 @@ async function search(
   }
 }
 
-export { search };
+/**
+ * 预热本地语义搜索模型（嵌入 + 重排序）
+ * 供渲染进程在打开搜索框等时机提前调用，把冷启动挪出搜索关键路径。
+ */
+async function warmupSearch(): Promise<ApiResponse<null>> {
+  try {
+    await searchService.warmup();
+    return response.empty();
+  } catch (error) {
+    Logger.error("搜索模型预热失败", { error: JSON.stringify(error) });
+    return response.error(ErrorCode.COMMON_UNKNOWN, error as Error);
+  }
+}
+
+export { search, warmupSearch };

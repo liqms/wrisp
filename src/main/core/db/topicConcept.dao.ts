@@ -32,10 +32,10 @@ export class TopicConceptDao extends BaseDao<TopicConcept, TopicConceptCreate, T
    * @param conceptId 概念 ID
    */
   existsByTopicAndConcept(topicId: Id, conceptId: Id): boolean {
-    const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE topic_id = ? AND concept_id = ?) as exists`
+    const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE topic_id = ? AND concept_id = ?) AS exists_flag`
     const stmt = this.db.prepare(sql)
-    const result = stmt.get([topicId, conceptId]) as unknown as { exists: number }
-    return result?.exists === 1
+    const result = stmt.get([topicId, conceptId]) as unknown as { exists_flag: number }
+    return result?.exists_flag === 1
   }
 
   /**

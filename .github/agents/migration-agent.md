@@ -13,7 +13,7 @@
 | 层级 | Tier 2 |
 | 依赖的 Tier 1 | `main-process-agent` |
 | 常协同 | `dao-agent`(字段变更)、`shared-agent`(版本类型) |
-| 参考文档 | [AGENTS.md](../../../AGENTS.md) |
+| 参考文档 | [AGENTS.md](../../AGENTS.md) |
 
 ---
 

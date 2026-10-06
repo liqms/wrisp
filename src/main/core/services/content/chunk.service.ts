@@ -7,19 +7,28 @@ import {
 } from "@/main/core/db";
 import {
   type ChunkInfo,
-  type ChunkCreate as SharedChunkCreate,
   type ChunkUpdate as SharedChunkUpdate,
   type ChunkQuery,
   type ChunkItem,
   type ChunkDateItem,
 } from "@/shared/types/chunk.types";
-import { Chunk, ChunkCreate } from "@/main/types/db";
+import { Chunk, ChunkCreate, ChunkSyncResult, ChunkType } from "@/main/types/db";
+import { type SplitChunk } from "./chunk-splitter";
 import { Id } from "@/shared/types";
 import { vectorService } from "../ai/vector.service";
 import { modelRouter } from "@/main/core/model-gateway/router";
 import { SEARCH_TYPE, SearchType } from "@/shared/enums";
 import { PaginationResult } from "@/shared/utils/pagination";
 import { embed, rerank } from "@/main/core/model-gateway/local-gateway";
+
+/** 重排候选上限：rerank 代价随文档数线性增长，不随调用方 limit 放大；返回条数同样封顶在此值 */
+const RERANK_INPUT_MAX = 50;
+/** ANN 召回相对 limit 的放大倍数：重叠去重会吃掉候选，1 倍凑不满 limit */
+const ANN_CANDIDATE_RATIO = 4;
+/** ANN 召回下限（历史上的固定值，小 limit 时不让召回变薄） */
+const ANN_CANDIDATE_MIN = 50;
+/** ANN 召回上限，含作品作用域的超额补偿路径 */
+const ANN_CANDIDATE_MAX = 200;
 
 /**
  * Chunk 服务（语义块服务）
@@ -111,31 +120,95 @@ class ChunkService {
     }
   }
 
-  // ──────── 创建语义块 ────────
+  /**
+   * 将某文件的全部语义块归属到指定作品（用于作品页面内容的语义化归属）。
+   * 页面切分完成后调用，使页面块参与作品内检索与语义链接的作品收敛。
+   * @param fileId 文件索引 ID
+   * @param projectId 作品 ID；为空时不做任何关联
+   */
+  public associateFileChunksWithProject(fileId: Id, projectId: Id | null): void {
+    if (!projectId) return;
+    try {
+      const blocks = this.chunkDao.query(
+        "SELECT * FROM semantic_chunks WHERE file_id = ?",
+        [fileId],
+      ) as Chunk[];
+      for (const block of blocks) {
+        this.syncProjectAssociation(block.id, projectId);
+      }
+      Logger.info("页面语义块作品归属完成", { fileId, projectId, count: blocks.length });
+    } catch (error) {
+      Logger.error("页面语义块作品归属失败", { error: String(error), fileId, projectId });
+      throw error;
+    }
+  }
+
+  // ──────── 切分结果落库 ────────
 
   /**
-   * 创建语义块（semantic_chunks 表）
-   * @param journal 创建参数
-   * @returns 创建的 block ID
+   * 让某文件的语义块与切分结果一致（按 `content_hash` 差异同步）。
+   *
+   * 切分本身不触发任何 AI 语义化；正文未变的块复用原 id，因此它的摘要、向量、
+   * 作品归属不会被无谓作废。返回值里的 `removedIds` 交给 {@link dropVectorsByIds}
+   * 清理向量层（LanceDB 无外键级联，不清理就累积孤儿向量）。
+   *
+   * @param fileId 文件索引 ID（file_index.id）
+   * @param filePath 文件相对路径（写入 semantic_chunks.file_path）
+   * @param chunks 切分结果
+   * @param chunkType 语义块来源类型，默认 journal
    */
-  public create(journal: SharedChunkCreate): string {
+  public replaceFileChunks(
+    fileId: Id,
+    filePath: string,
+    chunks: SplitChunk[],
+    chunkType: ChunkType = "journal",
+  ): ChunkSyncResult {
     try {
-      const blockCreate: ChunkCreate = {
-        content: journal.content,
+      const records: ChunkCreate[] = chunks.map((chunk) => ({
+        file_id: fileId,
+        file_path: filePath,
+        start_line: chunk.startLine,
+        end_line: chunk.endLine,
+        section_title: chunk.sectionTitle,
+        content: chunk.content,
+        content_hash: chunk.contentHash,
+        chunk_type: chunkType,
+        word_count: chunk.wordCount,
         status: "active",
-      };
-      const createdBlockId = this.chunkDao.create(blockCreate);
+      }));
 
-      if (createdBlockId && journal.project_id) {
-        this.projectChunkDao.addChunksToProject(journal.project_id, [
-          createdBlockId,
-        ]);
-      }
-
-      return createdBlockId;
+      const result = this.chunkDao.syncByFile(fileId, records);
+      Logger.info("语义块同步完成", {
+        fileId,
+        filePath,
+        total: result.total,
+        reused: result.reused,
+        inserted: result.inserted,
+        removed: result.removedIds.length,
+      });
+      return result;
     } catch (error) {
-      Logger.error("创建语义块失败", { error: String(error), journal });
+      Logger.error("同步语义块失败", { error: String(error), fileId, filePath });
       throw error;
+    }
+  }
+
+  /**
+   * 删除指定语义块在向量库中的行（只清正文已消失的块）。
+   *
+   * LanceDB 的向量行按 block_id 存储、没有外键级联，不清理会随每次重切分累积
+   * 孤儿向量（命中后取不到正文，白占 ANN 召回名额）。删除失败只记日志：向量层是
+   * 可重建的派生数据，不该让一次重切分因为 LanceDB 抖动而整体失败。
+   */
+  public async dropVectorsByIds(chunkIds: Id[]): Promise<void> {
+    if (chunkIds.length === 0) return;
+    try {
+      await vectorService.deleteBlockEmbeddings(chunkIds);
+    } catch (error) {
+      Logger.warn("清理语义块向量失败（不影响切分）", {
+        count: chunkIds.length,
+        error: String(error),
+      });
     }
   }
 
@@ -331,16 +404,18 @@ class ChunkService {
     projectId?: Id,
   ): Promise<ChunkInfo[]> {
     try {
-      const ANN_TOP_K = 50;
-      const RERANK_TOP_K = 10;
+      // 返回条数由调用方决定，不再硬截断为 10；上限是重排规模的天花板。
+      const topK = Math.min(Math.max(Math.trunc(limit) || 1, 1), RERANK_INPUT_MAX);
+      const annTopK = Math.min(
+        Math.max(ANN_CANDIDATE_MIN, topK * ANN_CANDIDATE_RATIO),
+        ANN_CANDIDATE_MAX,
+      );
 
-      const { vector } = await embed(keyword, {
-        modelName: "Xenova/jina-embeddings-v3",
-      });
+      const { vector } = await embed(keyword);
 
       const searchResults = await vectorService.searchBlockEmbeddings({
         vector,
-        topK: ANN_TOP_K,
+        topK: annTopK,
         projectId,
       });
 
@@ -359,7 +434,7 @@ class ChunkService {
         if (liveFiltered.length === 0) {
           const overFetched = await vectorService.searchBlockEmbeddings({
             vector,
-            topK: ANN_TOP_K * 4,
+            topK: Math.min(annTopK * ANN_CANDIDATE_RATIO, ANN_CANDIDATE_MAX),
           });
           scoped = overFetched.filter((r) => allowed.has(r.item.block_id));
         } else {
@@ -379,29 +454,35 @@ class ChunkService {
       }
 
       const blockMap = new Map(candidateBlocks.map((b) => [b.id, b]));
-      const candidateContents: string[] = [];
-      const orderedBlocks: Chunk[] = [];
-
+      const annOrdered: Chunk[] = [];
       for (const blockId of candidateBlockIds) {
         const block = blockMap.get(blockId);
         if (block) {
-          candidateContents.push(block.content);
-          orderedBlocks.push(block);
+          annOrdered.push(block);
         }
       }
 
-      const rerankResults = await rerank(keyword, candidateContents, {
-        modelName: "Xenova/bge-reranker-v2-m3",
-      });
+      // ANN 会把相邻语义块一起召回：L2 的重叠区让上下两块共享若干行，
+      // 用户看到的结果是同一段文字连着出现两次。去重放在 rerank **之前**：
+      // 交集判定只看行区间，谁先被保留由 ANN 顺序决定，rerank 的输入也因此少一半。
+      const orderedBlocks = this.dropSpanOverlaps(annOrdered);
+      // 重排规模不随 limit 增长：limit 放大换来的是召回变深，不是推理变重
+      const rerankTargets = orderedBlocks.slice(0, RERANK_INPUT_MAX);
+
+      const rerankResults = await rerank(
+        keyword,
+        rerankTargets.map((block) => block.content),
+        { modelName: "Xenova/bge-reranker-v2-m3" },
+      );
 
       const topKBlocks = rerankResults
-        .slice(0, RERANK_TOP_K)
-        .map((r) => orderedBlocks[r.index])
+        .slice(0, topK)
+        .map((r) => rerankTargets[r.index])
         .filter(Boolean);
 
-      return this.blocksToRecordList(topKBlocks, (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
+      // 直接按 rerank 顺序返回，**不能**走 blocksToRecordList：那条路径末尾按
+      // created_at DESC 重排，会把重排好的相关性顺序抹掉（语义检索最要的排序）。
+      return topKBlocks.map((block) => this.blockToChunkInfo(block));
     } catch (error) {
       Logger.error("向量语义搜索失败，回退到 SQL FTS", {
         error: String(error),
@@ -416,6 +497,31 @@ class ChunkService {
       // 而它正是"本地模型损坏/LanceDB 异常"时唯一会走到的路径。
       return projectId ? this.filterByProject(fallback, projectId) : fallback;
     }
+  }
+
+  /**
+   * 丢弃与已保留块**行区间有交集**的候选（限同一文件）。
+   *
+   * 语义块是行区间，只要共享一行，正文就有肉眼可见的重复。入参顺序即优先级，
+   * 越靠前越先保留——调用方负责按相关性排好序。跨文件的同区间不去重：
+   * 它们是各自文档的独立出处。
+   */
+  private dropSpanOverlaps(blocks: Chunk[]): Chunk[] {
+    const kept: Chunk[] = [];
+
+    for (const block of blocks) {
+      const overlaps = kept.some(
+        (other) =>
+          other.file_id === block.file_id &&
+          other.start_line <= block.end_line &&
+          block.start_line <= other.end_line,
+      );
+      if (!overlaps) {
+        kept.push(block);
+      }
+    }
+
+    return kept;
   }
 
   // ──────── 查询方法 ────────

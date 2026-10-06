@@ -1,4 +1,4 @@
-// AI生成
+
 import { ref } from "vue";
 import type { SearchResult } from "@/shared/types";
 
@@ -32,6 +32,16 @@ export function useSearch() {
     }
   };
 
+  /**
+   * 预热本地搜索模型（嵌入 + 重排序）。
+   * 打开搜索框时提前调用，把数秒冷启动挪出搜索关键路径；失败静默，不影响搜索。
+   */
+  const warmup = (): void => {
+    window.electronAPI.search.warmup().catch(() => {
+      // 预热失败不影响搜索（后续搜索会自动降级/懒加载）
+    });
+  };
+
   const clear = (): void => {
     results.value = [];
     error.value = null;
@@ -40,6 +50,7 @@ export function useSearch() {
 
   return {
     search,
+    warmup,
     clear,
     results,
     loading,

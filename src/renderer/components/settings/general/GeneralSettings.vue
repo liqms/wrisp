@@ -119,6 +119,7 @@ import type { AppConfig } from "@/shared/types";
 import { useConfig } from "@/renderer/composables/useConfig";
 import { useJournal } from "@/renderer/composables/useJournal";
 import { useProject } from "@/renderer/composables/useProject";
+import { useWiki } from "@/renderer/composables/useWiki";
 import { useMessage } from "naive-ui";
 import ColorCard from "@/renderer/components/base/ColorCard.vue";
 import UpdatePrompt from "@/renderer/components/UpdatePrompt.vue";
@@ -141,6 +142,7 @@ const { t } = useI18n();
 const message = useMessage();
 const { resetJournalTable } = useJournal();
 const { resetProjectTable } = useProject();
+const { loadOverview, loadPendingCount, loadConceptCards, loadTopicCards } = useWiki();
 const rebuildingIndex = ref(false);
 const configStore = useConfig();
 const {
@@ -372,6 +374,16 @@ const rebuildIndex = async () => {
       resetJournalTable(),
       resetProjectTable(),
     ]);
+
+    // 重建后刷新 Wiki 视图数据（与 WikiView onMounted 一致），
+    // 否则概览统计要等手动重载页面才会更新
+    await Promise.all([
+      loadOverview(),
+      loadPendingCount(),
+      loadConceptCards(),
+      loadTopicCards(),
+    ]);
+
     message.success(
       t("SETTINGS.DATA_MANAGER_SETTINGS.REBUILD_INDEX_SUCCESS", {
         journals: journalCount,

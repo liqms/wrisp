@@ -5,16 +5,16 @@
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{
             t("SETTINGS.AI_SETTINGS.ENABLE_AI_MODE")
-            }}</n-text>
+          }}</n-text>
           <n-text class="setting-desc">{{ t("SETTINGS.AI_SETTINGS.ENABLE_AI_MODE_DESC") }}{{
             t("SETTINGS.AI_SETTINGS.ENABLE_AI_MODE_DESC_3")
-            }}</n-text>
+          }}</n-text>
         </n-flex>
         <n-switch :value="enableAiMode" class="setting-switch" @update:value="updateEnableAiMode" />
       </n-flex>
       <n-flex v-if="enableAiMode" class="models-item">
         <DownloadButton v-for="model in modelList" :key="model.id" :title="model.label" :desc="model.desc"
-          :progress="model.progress" :localpath="model.localpath" />
+          :progress="model.progress" :localpath="model.localpath" @click="handleDownload(model)" />
       </n-flex>
     </n-card>
     <n-card size="medium" :bordered="false" class="setting-card">
@@ -22,12 +22,31 @@
         <n-flex align="center" class="setting-content">
           <n-text class="setting-label">{{
             t("SETTINGS.AI_SETTINGS.ENABLE_AI_CLOUD")
-            }}</n-text>
+          }}</n-text>
           <n-text class="setting-desc">{{
             t("SETTINGS.AI_SETTINGS.ENABLE_AI_CLOUD_DESC_3")
-            }}</n-text>
+          }}</n-text>
         </n-flex>
         <n-switch :value="enableCloudAi" class="setting-switch" @update:value="updateEnableCloudAi" />
+      </n-flex>
+    </n-card>
+    <!-- 云端增强下的本地模型使用范围：默认云端优先，可逐个指定走本地 -->
+    <n-card v-if="enableCloudAi" size="medium" :bordered="false" class="setting-card">
+      <n-flex align="center" class="setting-row">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.AI_SETTINGS.LOCAL_LLM_TASKS")
+          }}</n-text>
+          <n-text class="setting-desc">{{
+            t("SETTINGS.AI_SETTINGS.LOCAL_LLM_TASKS_DESC")
+          }}</n-text>
+        </n-flex>
+      </n-flex>
+      <n-flex vertical class="local-task-list">
+        <n-checkbox v-for="task in LLM_TASK_DEFS" :key="task.value" :checked="localLlmTasks.includes(task.value)"
+          :disabled="!enableAiMode" @update:checked="(checked: boolean) => toggleLocalTask(task.value, checked)">
+          {{ t(task.labelKey) }}
+        </n-checkbox>
       </n-flex>
     </n-card>
     <n-card v-if="enableCloudAi" size="medium" :bordered="false" class="setting-card nav-card clickable"
@@ -66,6 +85,7 @@ import { useModel } from "@/renderer/composables";
 import { ChevronForward } from "@vicons/ionicons5";
 import { useDownloadStore } from "@/renderer/store/download.store";
 import DownloadButton from "../../base/DownloadButton.vue";
+import { toggleLocalLlmTask } from "@/renderer/utils/local-llm-tasks";
 
 const PAGE_PROVIDERS = "model.providers";
 const PAGE_DEFAULTS = "model.defaults";
@@ -77,14 +97,56 @@ const emit = defineEmits<{
 const downloadStore = useDownloadStore();
 
 const { t } = useI18n();
-const { enableAiMode, enableCloudAi, updateEnableAiMode, updateEnableCloudAi, checkModelExist } =
-  useModel();
+const {
+  config,
+  enableAiMode,
+  enableCloudAi,
+  updateEnableAiMode,
+  updateEnableCloudAi,
+  checkModelExist,
+  downloadModel,
+  setValue,
+} = useModel();
+
+/** 可指定「走本地」的 3 个 LLM 任务（与后端 TASK_LLM_TASK_TYPE 对应） */
+const LLM_TASK_DEFS = [
+  { value: "summary", labelKey: "SETTINGS.AI_SETTINGS.LOCAL_LLM_TASK_SUMMARY" },
+  {
+    value: "concept_naming",
+    labelKey: "SETTINGS.AI_SETTINGS.LOCAL_LLM_TASK_CONCEPT",
+  },
+  {
+    value: "topic_summary",
+    labelKey: "SETTINGS.AI_SETTINGS.LOCAL_LLM_TASK_TOPIC",
+  },
+] as const;
+
+type LlmTaskType = (typeof LLM_TASK_DEFS)[number]["value"];
+
+/** 已勾选「走本地」的任务类型 */
+const localLlmTasks = computed<LlmTaskType[]>(
+  () => (config.value?.localLlmTasks ?? []) as LlmTaskType[],
+);
+
+/** 切换某任务的「走本地」勾选并持久化 */
+async function toggleLocalTask(
+  task: LlmTaskType,
+  checked: boolean,
+): Promise<void> {
+  await setValue(
+    "localLlmTasks",
+    toggleLocalLlmTask(localLlmTasks.value, task, checked),
+  );
+}
 
 // 模型定义（与后端 model-registry.ts 保持一致）
 const MODEL_DEFS = [
-  { id: "jina-embeddings-v3", labelKey: "MODELS.EMBEDDINGS", descKey: "MODELS.EMBEDDINGS_DESC" },
-  { id: "bge-reranker-v2-m3", labelKey: "MODELS.RERANKER", descKey: "MODELS.RERANKER_DESC" },
+  { id: "bge-m3", family: "embedding", labelKey: "MODELS.EMBEDDINGS", descKey: "MODELS.EMBEDDINGS_DESC" },
+  { id: "bge-reranker-v2-m3", family: "reranker", labelKey: "MODELS.RERANKER", descKey: "MODELS.RERANKER_DESC" },
+  { id: "qwen3.5-4b", family: "llm", labelKey: "MODELS.LANGUAGE", descKey: "MODELS.LANGUAGE_DESC" },
 ] as const;
+
+type ModelDef = (typeof MODEL_DEFS)[number];
 
 // 模型下载状态（从后端查询）
 const modelExistStatus = ref<Record<string, boolean>>({});
@@ -103,6 +165,12 @@ async function refreshModelStatus() {
   }
 }
 
+// 触发模型下载：llm 走 core，其余走 base
+async function handleDownload(model: { family: ModelDef["family"] }) {
+  await downloadModel(model.family === "llm" ? "core" : "base");
+  await refreshModelStatus();
+}
+
 // 模型列表（合并后端状态和下载进度）
 const modelList = computed(() => {
   return MODEL_DEFS.map((def) => {
@@ -115,7 +183,7 @@ const modelList = computed(() => {
     for (const group of downloadStore.allGroupsProgress) {
       if (!group) continue;
       for (const file of group.files) {
-        if (file.url.includes(def.id)) {
+        if (file.url.toLowerCase().includes(def.id.toLowerCase())) {
           progress = file.progress;
           if (file.status === "completed") {
             localpath = file.localPath || "downloaded";
@@ -127,6 +195,7 @@ const modelList = computed(() => {
 
     return {
       id: def.id,
+      family: def.family,
       label: t(def.labelKey),
       desc: t(def.descKey),
       progress,
@@ -209,5 +278,10 @@ watch(enableAiMode, (val) => {
 .nav-arrow {
   color: var(--text-third);
   flex-shrink: 0;
+}
+
+.local-task-list {
+  gap: 8px;
+  margin-top: $spacing-xs;
 }
 </style>

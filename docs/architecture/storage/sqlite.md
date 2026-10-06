@@ -77,6 +77,7 @@ CREATE INDEX idx_file_index_status ON file_index(sync_status);
 | `word_count`              | INTEGER | DEFAULT 0                          | 字数统计                                                   |
 | `temporal_score`          | REAL    | DEFAULT 0.0                        | 时间热度分数                                               |
 | `last_smart_processed_at` | TEXT    |                                    | 智能任务（摘要/向量化/语义链接等）最后处理时间（ISO 8601） |
+| `last_vectorized_at`      | TEXT    |                                    | 向量化任务的专用标记：null 表示尚未写入向量库              |
 | `status`                  | TEXT    | DEFAULT 'active'                   | 状态：active / deleted（软删除）                           |
 | `created_at`              | TEXT    | NOT NULL                           | 创建时间（ISO 8601）                                       |
 | `updated_at`              | TEXT    | NOT NULL                           | 最后更新时间（ISO 8601）                                   |
@@ -492,16 +493,16 @@ CREATE INDEX idx_project_chunks_chunk ON project_chunks(chunk_id);
 
 用于存储 @人物提及同步的数据，支持联系人（contact）和作品角色（project）两种归属类型。同名人物可归属不同作品。
 
-| 字段名        | 类型 | 约束                                      | 说明                                               |
-| :------------ | :--- | :---------------------------------------- | :------------------------------------------------- |
-| `id`          | TEXT | PRIMARY KEY                               | 人物唯一标识（UUID）                               |
-| `name`        | TEXT | NOT NULL                                  | 人物名称                                           |
+| 字段名        | 类型 | 约束                                      | 说明                                                  |
+| :------------ | :--- | :---------------------------------------- | :---------------------------------------------------- |
+| `id`          | TEXT | PRIMARY KEY                               | 人物唯一标识（UUID）                                  |
+| `name`        | TEXT | NOT NULL                                  | 人物名称                                              |
 | `owner_type`  | TEXT | NOT NULL DEFAULT 'contact'                | 归属类型：`contact`（联系人） / `project`（作品角色） |
-| `owner_id`    | TEXT | REFERENCES projects(id) ON DELETE CASCADE | 归属作品 ID（owner_type 为 project 时关联）        |
-| `description` | TEXT | DEFAULT ''                                | 人物描述                                           |
-| `metadata`    | TEXT | DEFAULT '{}'                              | 人物元数据（JSON 格式）                            |
-| `created_at`  | TEXT | NOT NULL                                  | 创建时间（ISO 8601）                               |
-| `updated_at`  | TEXT | NOT NULL                                  | 最后更新时间（ISO 8601）                           |
+| `owner_id`    | TEXT | REFERENCES projects(id) ON DELETE CASCADE | 归属作品 ID（owner_type 为 project 时关联）           |
+| `description` | TEXT | DEFAULT ''                                | 人物描述                                              |
+| `metadata`    | TEXT | DEFAULT '{}'                              | 人物元数据（JSON 格式）                               |
+| `created_at`  | TEXT | NOT NULL                                  | 创建时间（ISO 8601）                                  |
+| `updated_at`  | TEXT | NOT NULL                                  | 最后更新时间（ISO 8601）                              |
 
 **约束：**
 
@@ -812,6 +813,7 @@ CREATE TABLE IF NOT EXISTS semantic_chunks (
     word_count INTEGER DEFAULT 0,
     temporal_score REAL DEFAULT 0.0,
     last_smart_processed_at TEXT,      -- 智能任务最后处理时间
+    last_vectorized_at TEXT,           -- 向量化专用标记（null=尚未写入向量库）
     status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL

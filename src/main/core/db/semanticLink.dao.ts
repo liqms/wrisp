@@ -67,10 +67,10 @@ export class SemanticLinkDao extends BaseDao<SemanticLink, SemanticLinkCreate, S
    * @param targetChunkId 目标 chunk ID
    */
   checkLinkExists(sourceChunkId: string, targetChunkId: string): boolean {
-    const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE source_chunk_id = ? AND target_chunk_id = ?) as exists`
+    const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE source_chunk_id = ? AND target_chunk_id = ?) AS exists_flag`
     const stmt = this.db.prepare(sql)
-    const result = stmt.get([sourceChunkId, targetChunkId]) as { exists: number }
-    return result?.exists === 1
+    const result = stmt.get([sourceChunkId, targetChunkId]) as { exists_flag: number }
+    return result?.exists_flag === 1
   }
 
   /**

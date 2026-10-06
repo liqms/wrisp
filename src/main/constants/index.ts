@@ -3,4 +3,5 @@ export * from './model.constants';
 export * from './folder.constants';
 export * from './auto.constants';
 export * from './system.constants';
+export * from './chunk.constants';
 export * from './resource.constants';

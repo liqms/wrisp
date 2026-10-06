@@ -1,12 +1,17 @@
 /**
  * Local AI Worker 线程入口
- * 在独立线程中执行模型推理，消息路由到各 handler
+ * 每个模型 family 由独立 Worker 承载（创建时通过 workerData.family 指定），
+ * 仅处理本 family 的消息，使三类模型可真正并行、且加载/卸载与崩溃相互隔离。
  */
-import { parentPort } from "node:worker_threads";
+import { parentPort, workerData } from "node:worker_threads";
 import * as embeddingHandler from "./embedding-handler";
 import * as rerankHandler from "./rerank-handler";
 import * as llmHandler from "./llm-handler";
+import type { TransformersModelPaths } from "../types";
 import { Logger } from "@/main/utils/logger";
+
+/** 本 Worker 承载的模型类别（与 model-registry 的 ModelFamily 一致，独立声明以免 worker 打包额外模块） */
+type WorkerFamily = "embedding" | "reranker" | "llm";
 
 interface WorkerMessage {
   id: string;
@@ -21,9 +26,9 @@ interface WorkerResponse {
   error?: string;
 }
 
-// 消息路由表
+// 消息路由表（三类模型处理器的并集，实际可用项由 FAMILY_MESSAGE_TYPES 过滤）
 const handlers: Record<string, (payload?: unknown) => Promise<unknown>> = {
-  "load-embedding": (payload) => embeddingHandler.load(payload as { modelName?: string }),
+  "load-embedding": (payload) => embeddingHandler.load(payload as { modelName?: string; transformers?: TransformersModelPaths }),
   "embed": (payload) => {
     const { text, pooling, normalize } = payload as { text: string; pooling?: "mean" | "cls" | "none"; normalize?: boolean };
     return embeddingHandler.embed(text, pooling, normalize);
@@ -34,19 +39,36 @@ const handlers: Record<string, (payload?: unknown) => Promise<unknown>> = {
   },
   "unload-embedding": () => embeddingHandler.unload(),
 
-  "load-rerank": (payload) => rerankHandler.load(payload as { modelName?: string }),
+  "load-rerank": (payload) => rerankHandler.load(payload as { modelName?: string; transformers?: TransformersModelPaths }),
   "rerank": (payload) => {
     const { query, documents } = payload as { query: string; documents: string[] };
     return rerankHandler.rerank(query, documents);
   },
   "unload-rerank": () => rerankHandler.unload(),
 
-  "load-llm": (payload) => llmHandler.load(payload as { modelName?: string }),
+  "load-llm": (payload) => llmHandler.load(payload as {
+    modelPath?: string;
+    contextSize?: number;
+    maxTokens?: number;
+    temperature?: number;
+    gpu?: "auto" | "cpu";
+    concurrency?: number;
+  }),
   "generate": (payload) => {
-    const { prompt, options } = payload as { prompt: string; options?: unknown };
+    const { prompt, options } = payload as {
+      prompt: string;
+      options?: { maxTokens?: number; temperature?: number };
+    };
     return llmHandler.generate(prompt, options);
   },
   "unload-llm": () => llmHandler.unload(),
+};
+
+/** family → 本 Worker 允许处理的消息类型 */
+const FAMILY_MESSAGE_TYPES: Record<WorkerFamily, readonly string[]> = {
+  embedding: ["load-embedding", "embed", "embed-batch", "unload-embedding"],
+  reranker: ["load-rerank", "rerank", "unload-rerank"],
+  llm: ["load-llm", "generate", "generate-stream", "unload-llm"],
 };
 
 // 响应类型映射
@@ -60,14 +82,39 @@ const responseTypeMap: Record<string, string> = {
   "unload-rerank": "rerank-unloaded",
   "load-llm": "llm-loaded",
   "generate": "llm-result",
+  "generate-stream": "llm-result",
   "unload-llm": "llm-unloaded",
 };
 
-/** Worker 消息入口 - 根据消息类型路由到对应的 handler */
+/** 本 Worker 承载的 family（由主进程注入） */
+const family = (workerData as { family?: WorkerFamily } | undefined)?.family ?? null;
+/** 本 Worker 允许处理的消息类型；未注入 family 时退化为全部（兼容直接加载本入口的场景） */
+const allowedTypes = new Set<string>(family ? FAMILY_MESSAGE_TYPES[family] : Object.keys(handlers));
+
+Logger.info("[Worker] 线程启动", { family: family ?? "all" });
+
+/** Worker 消息入口 - 按 family 过滤后路由到对应的 handler */
 parentPort?.on("message", async (event: WorkerMessage) => {
   const { id, type, payload } = event;
 
   try {
+    if (!allowedTypes.has(type)) {
+      throw new Error(`未知消息类型: ${type}`);
+    }
+
+    // 流式生成需按请求 id 逐 token 推送，特判处理（不走 handlers 映射）
+    if (type === "generate-stream") {
+      const { prompt, options } = (payload ?? {}) as {
+        prompt: string;
+        options?: { maxTokens?: number; temperature?: number };
+      };
+      const text = await llmHandler.generateStream(prompt, options, (token) => {
+        parentPort?.postMessage({ id, type: "llm-token", payload: { token } } satisfies WorkerResponse);
+      });
+      parentPort?.postMessage({ id, type: "llm-result", payload: { text } } satisfies WorkerResponse);
+      return;
+    }
+
     const handler = handlers[type];
     if (!handler) {
       throw new Error(`未知消息类型: ${type}`);
@@ -78,7 +125,7 @@ parentPort?.on("message", async (event: WorkerMessage) => {
 
     parentPort?.postMessage({ id, type: responseType, payload: result } satisfies WorkerResponse);
   } catch (error) {
-    Logger.error("[Worker] 处理消息失败", { type, error: String(error) });
+    Logger.error("[Worker] 处理消息失败", { family: family ?? "all", type, error: String(error) });
     parentPort?.postMessage({ id, type: "error", error: String(error) } satisfies WorkerResponse);
   }
 });

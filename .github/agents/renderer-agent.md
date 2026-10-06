@@ -13,7 +13,7 @@
 | 层级 | Tier 1 |
 | 触源 | `src/renderer/**` 任意修改 |
 | 子域派发 | editor / store / ui-component / i18n / project-domain |
-| 参考文档 | [AGENTS.md](../../../AGENTS.md) |
+| 参考文档 | [AGENTS.md](../../AGENTS.md) |
 
 ---
 

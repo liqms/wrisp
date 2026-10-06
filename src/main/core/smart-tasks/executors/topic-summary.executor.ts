@@ -1,9 +1,10 @@
 import { TaskExecutor, TaskContext, TaskResult } from "../types";
 import { topicDao } from "@/main/core/db/topic.dao";
-import { localGateway } from "@/main/core/model-gateway/local-gateway";
+import { aiService } from "@/main/core/services/ai/ai.service";
 import { progressManager } from "@/main/core/smart-tasks/progress.manager";
 import { Topic, TopicUpdate } from "@/main/types/db";
 import { Logger } from "@/main/utils/logger";
+import { TASK_TYPE } from "@/shared/enums";
 
 export class TopicSummaryExecutor implements TaskExecutor {
   public name = "topic-summary";
@@ -42,7 +43,10 @@ export class TopicSummaryExecutor implements TaskExecutor {
 
   private async generateTopicSummary(topic: Topic): Promise<string> {
     const prompt = `请用1-2句话概括以下主题的核心内容：\n\n主题：${topic.title}\n描述：${topic.summary || "暂无"}\n\n摘要：`;
-    const result = await localGateway.generate(prompt);
-    return result;
+    const result = await aiService.chatCompletion({
+      messages: [{ role: "user", content: prompt }],
+      taskType: TASK_TYPE.TOPIC_SUMMARY,
+    });
+    return result.content;
   }
 }

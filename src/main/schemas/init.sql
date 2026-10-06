@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS semantic_chunks (
     word_count INTEGER DEFAULT 0,
     temporal_score REAL DEFAULT 0.0,
     last_smart_processed_at TEXT,
+    last_vectorized_at TEXT,
     status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
@@ -51,7 +52,8 @@ CREATE VIRTUAL TABLE IF NOT EXISTS semantic_chunks_fts USING fts5(
     content,
     ai_summary,
     content='semantic_chunks',
-    content_rowid='rowid'
+    content_rowid='rowid',
+    tokenize='trigram'
 );
 
 -- 创建概念 FTS5 全文索引
@@ -59,7 +61,8 @@ CREATE VIRTUAL TABLE IF NOT EXISTS concepts_fts USING fts5(
     title,
     evolving_summary,
     content='concepts',
-    content_rowid='rowid'
+    content_rowid='rowid',
+    tokenize='trigram'
 );
 
 -- 创建主题 FTS5 全文索引
@@ -67,7 +70,8 @@ CREATE VIRTUAL TABLE IF NOT EXISTS topics_fts USING fts5(
     title,
     summary,
     content='topics',
-    content_rowid='rowid'
+    content_rowid='rowid',
+    tokenize='trigram'
 );
 
 -- 创建作品 FTS5 全文索引
@@ -76,7 +80,8 @@ CREATE VIRTUAL TABLE IF NOT EXISTS projects_fts USING fts5(
     description,
     ai_summary,
     content='projects',
-    content_rowid='rowid'
+    content_rowid='rowid',
+    tokenize='trigram'
 );
 
 -- 创建页面 FTS5 全文索引
@@ -84,7 +89,8 @@ CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(
     title,
     ai_summary,
     content='pages',
-    content_rowid='rowid'
+    content_rowid='rowid',
+    tokenize='trigram'
 );
 
 -- 创建标签表
@@ -329,6 +335,19 @@ CREATE TABLE IF NOT EXISTS skill_executions (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 创建智能整理执行记录表
+CREATE TABLE IF NOT EXISTS task_execution_log (
+    id TEXT PRIMARY KEY,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    status TEXT NOT NULL DEFAULT 'running',
+    tasks_summary TEXT NOT NULL DEFAULT '{}',
+    processed_until TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    CHECK (status IN ('running', 'paused', 'succeeded', 'failed', 'cancelled'))
+);
+
 -- 启用外键约束
 PRAGMA foreign_keys = ON;
 
@@ -420,6 +439,10 @@ CREATE INDEX IF NOT EXISTS idx_tasks_depends_on ON tasks(depends_on);
 -- Skill 执行历史索引
 CREATE INDEX IF NOT EXISTS idx_skill_executions_skill_id ON skill_executions(skill_id);
 CREATE INDEX IF NOT EXISTS idx_skill_executions_created_at ON skill_executions(created_at);
+
+-- 智能整理执行记录索引
+CREATE INDEX IF NOT EXISTS idx_task_execution_log_status ON task_execution_log(status);
+CREATE INDEX IF NOT EXISTS idx_task_execution_log_started_at ON task_execution_log(started_at);
 
 -- ==================== 插入初始迁移记录 ====================
 

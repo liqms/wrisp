@@ -13,7 +13,7 @@
 | 层级 | Tier 1 |
 | 触源 | `src/shared/**` 任意修改,或需新增跨进程共享类型/枚举 |
 | 常协同 | 几乎所有 Tier 2(IPC/DAO 都需 shared 类型) |
-| 参考文档 | [AGENTS.md](../../../AGENTS.md) |
+| 参考文档 | [AGENTS.md](../../AGENTS.md) |
 
 ---
 

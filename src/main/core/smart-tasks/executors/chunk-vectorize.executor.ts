@@ -2,6 +2,7 @@ import { TaskExecutor, TaskContext, TaskResult } from "../types";
 import { ChunkDao, ProjectChunkDao } from "@/main/core/db";
 import { vectorService } from "@/main/core/services/ai/vector.service";
 import { buildBlockEmbeddings } from "@/main/core/vector/vector-payload";
+import { buildEmbeddingText } from "@/main/core/services/content/splitting/embedding-text";
 import { localGateway } from "@/main/core/model-gateway/local-gateway";
 import { progressManager } from "@/main/core/smart-tasks/progress.manager";
 import { Chunk, ChunkUpdate } from "@/main/types/db";
@@ -9,7 +10,8 @@ import { Logger } from "@/main/utils/logger";
 
 export class ChunkVectorizeExecutor implements TaskExecutor {
   public name = "chunk-vectorize";
-  public dependencies: string[] = [];
+  // 依赖摘要：向量化选取要求 ai_summary 已生成，且需要 summary 先于本任务运行。
+  public dependencies = ["chunk-summary"];
 
   private chunkDao = new ChunkDao();
   private projectChunkDao = new ProjectChunkDao();
@@ -36,7 +38,7 @@ export class ChunkVectorizeExecutor implements TaskExecutor {
       }
 
       const batch = blocks.slice(i, i + batchSize);
-      const texts = batch.map((b) => b.ai_summary || b.content);
+      const texts = batch.map((block) => buildEmbeddingText(block));
 
       try {
         const results = await localGateway.embedBatch(texts);
@@ -49,7 +51,7 @@ export class ChunkVectorizeExecutor implements TaskExecutor {
         await vectorService.createBlockEmbeddings(vectors);
 
         for (const b of batch) {
-          const update: ChunkUpdate = { last_smart_processed_at: new Date().toISOString() };
+          const update: ChunkUpdate = { last_vectorized_at: new Date().toISOString() };
           this.chunkDao.update(b.id, update);
         }
 
@@ -66,14 +68,17 @@ export class ChunkVectorizeExecutor implements TaskExecutor {
   }
 
   private getUnprocessedBlocks(processedUntil: string | null): Chunk[] {
+    // 以本任务专用的 last_vectorized_at 判定"未向量化"，避免与 chunk-summary
+    // 等任务共用的 last_smart_processed_at 冲突（后者会被 summary 提前写入，
+    // 导致向量化永远选出 0 条）。
     if (processedUntil) {
       return this.chunkDao.query(
-        `SELECT * FROM semantic_chunks WHERE (last_smart_processed_at IS NULL OR last_smart_processed_at < updated_at) AND updated_at > ? AND ai_summary IS NOT NULL`,
+        `SELECT * FROM semantic_chunks WHERE last_vectorized_at IS NULL AND ai_summary IS NOT NULL AND updated_at > ?`,
         [processedUntil],
       ) as Chunk[];
     }
     return this.chunkDao.query(
-      `SELECT * FROM semantic_chunks WHERE ai_summary IS NOT NULL AND last_smart_processed_at IS NULL`,
+      `SELECT * FROM semantic_chunks WHERE last_vectorized_at IS NULL AND ai_summary IS NOT NULL`,
     ) as Chunk[];
   }
 }

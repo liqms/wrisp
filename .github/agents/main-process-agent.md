@@ -13,7 +13,7 @@
 | 层级 | Tier 1 |
 | 触源 | `src/main/**` 任意修改 |
 | 子域派发 | dao / ipc-channel / migration / model-gateway / smart-tasks / task-queue / vector / skills / scheduler |
-| 参考文档 | [AGENTS.md](../../../AGENTS.md) |
+| 参考文档 | [AGENTS.md](../../AGENTS.md) |
 
 ---
 

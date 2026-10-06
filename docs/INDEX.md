@@ -11,7 +11,6 @@
 ```
 docs/
 ├── INDEX.md                      # 本文件 — 文档目录索引
-├── docs-reorganization-report.md # 文档重组报告（历史记录）
 ├── architecture/                 # 技术设计
 │   ├── tech.md                   # 技术方案总览
 │   ├── structure.md              # 项目结构与代码架构
@@ -36,6 +35,7 @@ docs/
 │   ├── search-features.md        # 全局搜索功能设计
 │   ├── editor-features.md        # 编辑器功能文档
 │   ├── template-marketplace.md   # 模板市场设计
+│   └── TEMPLATE.md               # features/ 文档写作模板
 ├── product/                      # 产品策略
 │   ├── mrd.md                    # 产品战略文档（市场、用户、竞争）
 │   ├── roadmap.md                # 版本路线图（4 Phase 框架）
@@ -49,7 +49,10 @@ docs/
 │   ├── change-log.md             # 变更日志
 │   └── testing-guide.md          # 测试指南
 ├── ui/                           # UI 设计
-│   └── ui-design.md              # UI 概要设计文档
+│   ├── ui-design.md              # UI 概要设计文档
+│   ├── ui.pen                    # UI 设计源文件
+│   ├── image.png                 # 设计配图
+│   └── pentip.png                # 提示块（admonition）视觉参考
 ├── decisions/                    # 决策记录（待填充）
 ├── discussions/                  # 讨论记录（待填充）
 └── superpowers/                  # 开发计划与技术规格
@@ -90,6 +93,7 @@ docs/
 | `search-features.md` | 全局搜索：交互设计、搜索策略（向量优先+FTS5兜底）、FTS5 索引、向量搜索、素材搜索、实现状态 |
 | `editor-features.md` | 编辑器功能文档：架构、11 个扩展、菜单、Slash 命令、自定义数据块 |
 | `template-marketplace.md` | 模板市场设计：模板类型、分发、同步 |
+| `TEMPLATE.md` | `features/` 下模块功能文档的写作模板（配合命名规范 `<module>-features.md`） |
 
 ### product/ — 产品策略
 
@@ -120,6 +124,8 @@ docs/
 | 文件 | 说明 |
 |------|------|
 | `ui-design.md` | UI 概要设计文档 |
+| `ui.pen` | UI 设计源文件（矢量稿，非文档） |
+| `image.png` / `pentip.png` | 设计配图与提示块视觉参考（资源文件，`ui-design.md` 未内嵌引用） |
 
 ### superpowers/ — 开发计划与技术规格
 
@@ -129,11 +135,12 @@ docs/
 | `reviews/` | 评审记录（如独立评审 brief 和 findings） |
 | `specs/` | 技术规格设计（如 admonition block、drag reorder、creation agent） |
 
-### 根目录文件
+**待迭代 backlog**
 
 | 文件 | 说明 |
 |------|------|
-| `docs-reorganization-report.md` | 文档重组报告（历史记录） |
+| `plans/2026-10-06-chunk-splitting-followups.md` | 语义块四层切分（L1~L4）**未实现部分清单**：L4 延迟分块、L3 算法与阈值校准、切分层落库、存量重切入口、优先级建议（§3.1 摘要复用与 §3.3 检索去重已标注完成） |
+| `plans/2026-10-06-chunk-splitting-optimization-plan.md` | 上条清单的**可执行优化方案**：迭代 0~8 的问题定位、改动文件与代码骨架、验收标准、风险回滚与落地节奏。迭代 0（集成测试 ABI）、迭代 1（写路径 upsert 化 + FTS 批量重建）、迭代 7.3/7.5/7.6/7.7（检索重叠块去重、按 rerank 相关性排序、Journal 重置的孤儿向量清理、接上入参 `limit`）**已于 2026-10-06 落地**，各节标注实测验收与与方案的出入，附录给出改动落点 |
 
 ---
 

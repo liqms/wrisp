@@ -1,4 +1,4 @@
-import { PageDao, ProjectDao } from "@/main/core/db";
+import { FileIndexDao, PageDao, ProjectDao } from "@/main/core/db";
 import type {
   Page,
   PageCreate,
@@ -18,6 +18,7 @@ import { NodeCryptoUtil } from "@/main/utils";
 import { PAGE_TYPE } from "@/shared/enums";
 import { PROJECT_SETTINGS_DIR, CHAPTER_DIR } from "@/main/constants/folder.constants";
 import { inlineTokenSyncService } from "@/main/core/services/content/inline-token-sync.service";
+import { chunkIndexService } from "@/main/core/services/content/chunk-index.service";
 
 /**
  * 页面服务
@@ -33,10 +34,12 @@ class PageService {
   private static instance: PageService | null = null;
   private pageDao: PageDao;
   private projectDao: ProjectDao;
+  private fileIndexDao: FileIndexDao;
 
   private constructor() {
     this.pageDao = new PageDao();
     this.projectDao = new ProjectDao();
+    this.fileIndexDao = new FileIndexDao();
   }
 
   /**
@@ -51,16 +54,19 @@ class PageService {
 
   /**
    * 生成页面文件路径
-   * 格式：projects/{projectDir}/{settings|chapters}/{timestamp}.md
+   * 格式：projects/{projectDir}/{settings|chapters}/{timestamp}-{suffix}.md
    * projectDir 取作品的真实文件夹（project.file_path，形如 projects/{timestamp}/），
    * 避免使用作品 UUID 作为文件夹名，导致章节落到错误的目录。
-   * 文件名使用 Unix 时间戳（与作品文件夹命名规则一致），日志文件仍保持日期格式。
+   * 文件名使用 Unix 时间戳 + 随机后缀（避免同秒创建多个同类型页面时冲突），日志文件仍保持日期格式。
    */
   private generateFilePath(
     projectId: string | null,
     pageType: PAGE_TYPE
   ): string {
     const timestamp = Math.floor(Date.now() / 1000);
+    // 追加随机后缀：同秒创建多个同类型页面时避免文件名冲突
+    //（否则会共用同一条 file_index 与同一批语义块）
+    const suffix = NodeCryptoUtil.generateRandomString(6).toLowerCase();
     const dir =
       pageType === PAGE_TYPE.PROJECT_SETTING
         ? PROJECT_SETTINGS_DIR
@@ -68,9 +74,9 @@ class PageService {
     if (projectId) {
       const project = this.projectDao.findById(projectId);
       const projectDir = project?.file_path || `projects/${projectId}/`;
-      return `${projectDir}${dir}/${timestamp}.md`;
+      return `${projectDir}${dir}/${timestamp}-${suffix}.md`;
     }
-    return `pages/${timestamp}.md`;
+    return `pages/${timestamp}-${suffix}.md`;
   }
 
   /**
@@ -98,6 +104,62 @@ class PageService {
       fileService.writeFile(jsonPath, JSON.stringify(pages, null, 2));
     } catch (error) {
       Logger.error("同步页面 JSON 文件失败", { error: String(error), projectId });
+    }
+  }
+
+  /**
+   * 为页面 md 文件建立/更新 file_index 记录（方案 A：页面内容复用统一文件索引做语义化）。
+   * 按 file_path upsert，写入最新 hash / 大小 / 修改时间，使后续切分任务能通过 fileId 读取该文件。
+   * @param filePath 页面 md 相对路径
+   * @returns 文件索引 ID；文件信息读取失败时返回 null
+   */
+  private syncPageFileIndex(filePath: string): string | null {
+    const fileInfo = fileService.getFileInfo(filePath);
+    if (!fileInfo) return null;
+
+    const now = new Date().toISOString();
+    const existing = this.fileIndexDao.findByFilePath(filePath);
+    if (existing) {
+      this.fileIndexDao.update(existing.id, {
+        file_size: fileInfo.size,
+        file_hash: fileInfo.hash,
+        updated_at: fileInfo.modifiedAt || now,
+        sync_status: "pending",
+      });
+      return existing.id;
+    }
+
+    return this.fileIndexDao.create({
+      id: NodeCryptoUtil.generateUUID(),
+      file_path: filePath,
+      file_hash: fileInfo.hash,
+      file_size: fileInfo.size,
+      date: null,
+      name: filePath.split("/").pop() || filePath,
+      updated_at: fileInfo.modifiedAt || now,
+      sync_status: "pending",
+    });
+  }
+
+  /**
+   * 调度页面内容切分（与日志保存保持一致：静默窗口合并 + 任务队列异步执行）。
+   * 页面正文以 chunk_type = "page" 落库，供智能任务做摘要 / 向量 / 概念等语义化；
+   * 传入 projectId 以便切分完成后建立 project_chunks 作品归属。
+   * @param filePath 页面 md 相对路径
+   * @param projectId 页面所属作品 ID，可为空
+   */
+  private schedulePageChunking(filePath: string, projectId: string | null): void {
+    try {
+      const fileIndexId = this.syncPageFileIndex(filePath);
+      if (!fileIndexId) {
+        Logger.warn("页面文件索引同步失败，跳过切分调度", { filePath });
+        return;
+      }
+      // 以库中实际记录为准取 hash（与 journal.create 保持一致）
+      const stored = this.fileIndexDao.findById(fileIndexId);
+      chunkIndexService.schedule(fileIndexId, stored?.file_hash || "", "page", projectId);
+    } catch (error) {
+      Logger.error("调度页面切分失败", { error: String(error), filePath });
     }
   }
 
@@ -199,6 +261,9 @@ class PageService {
       // 1. 写入 md 文件
       fileService.writeFile(filePath, data.content || "");
 
+      // 调度页面内容的语义块切分（复用统一文件索引，静默窗口合并后异步执行）
+      this.schedulePageChunking(filePath, data.projectId ?? null);
+
       // 2. 保存到页面表（转换为 db 类型）
       const pageCreate: PageCreate = {
         id: pageId,
@@ -243,6 +308,9 @@ class PageService {
       // 1. 更新 md 文件
       if (updateData.content !== undefined) {
         fileService.writeFile(existing.file_path, updateData.content || "");
+
+        // 调度页面内容的语义块切分（与日志保存保持一致）
+        this.schedulePageChunking(existing.file_path, existing.project_id);
 
         // 同步行内 token：#标签入标签表、@人物入人物表（失败不影响保存）
         // 作品页面的人物归属该作品；无 project_id 时退化为联系人

@@ -13,7 +13,8 @@ type CountByField = 'tag_id' | 'entity_type'
 
 export class TaggedItemDao extends BaseDao<TaggedItem, TaggedItemCreate, TaggedItemUpdate> {
   constructor() {
-    super('tagged_items')
+    // 关联表以 (tag_id, entity_type, entity_id) 为复合主键，时间戳列只有 added_at
+    super('tagged_items', { enabled: true, createdAtField: 'added_at' })
   }
 
   /**
@@ -82,10 +83,11 @@ export class TaggedItemDao extends BaseDao<TaggedItem, TaggedItemCreate, TaggedI
    * @param entityId 实体 ID
    */
   existsByTagAndEntity(tagId: Id, entityType: EntityType, entityId: string): boolean {
-    const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE tag_id = ? AND entity_type = ? AND entity_id = ?) as exists`
+    // `exists` 是 SQLite 保留字，不能直接作列别名
+    const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE tag_id = ? AND entity_type = ? AND entity_id = ?) AS exists_flag`
     const stmt = this.db.prepare(sql)
-    const result = stmt.get([tagId, entityType, entityId]) as unknown as { exists: number }
-    return result?.exists === 1
+    const result = stmt.get([tagId, entityType, entityId]) as unknown as { exists_flag: number }
+    return result?.exists_flag === 1
   }
 
   /**

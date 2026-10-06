@@ -32,10 +32,10 @@ export class ReflectionChunkDao extends BaseDao<ReflectionChunk, ReflectionChunk
    * @param chunkId 块 ID
    */
   existsByReflectionAndChunk(reflectionId: Id, chunkId: Id): boolean {
-    const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE reflection_id = ? AND chunk_id = ?) as exists`
+    const sql = `SELECT EXISTS(SELECT 1 FROM ${this.tableName} WHERE reflection_id = ? AND chunk_id = ?) AS exists_flag`
     const stmt = this.db.prepare(sql)
-    const result = stmt.get([reflectionId, chunkId]) as unknown as { exists: number }
-    return result?.exists === 1
+    const result = stmt.get([reflectionId, chunkId]) as unknown as { exists_flag: number }
+    return result?.exists_flag === 1
   }
 
   /**

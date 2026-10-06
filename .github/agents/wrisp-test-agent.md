@@ -42,6 +42,7 @@
 | `pnpm test:watch` | `vitest`，watch 模式 |
 | `pnpm test:coverage` | `vitest run --coverage`，V8 覆盖率（`@vitest/coverage-v8`） |
 | `pnpm test <filter>` | 按路径/名称过滤执行（增量优先） |
+| `pnpm rebuild:node` | **触库前置**：`node_modules/better-sqlite3` 的 `prebuild-install`，修复原生模块与当前 Node ABI 不匹配；凡触数据库测试前必须先行执行 |
 | `vue-tsc -p tsconfig.vitest.json --noEmit` | 测试文件独立类型检查（陷阱 #13） |
 
 ### 目录约定
@@ -57,7 +58,7 @@
 - `environment: 'happy-dom'` 为全局默认；Node 侧用例文件头部标注 `// @vitest-environment node` 覆盖
 - `setupFiles: ['tests/setup/renderer.ts']` 全局注入渲染侧 mock
 - `coverage.provider: 'v8'`，include `src/**/*.ts` + `src/**/*.vue`，排除 preload/types/enums/tests
-- `server.deps.inline` 含 `better-sqlite3` 等原生依赖，集成测试可直接实例化真实数据库
+- `server.deps.inline` 含 `better-sqlite3` 等原生依赖，集成测试可直接实例化真实数据库；**但原生模块须与当前 Node ABI 匹配——触库测试前先 `pnpm rebuild:node`**（vitest 跑在 Node，须 node ABI；`pnpm rebuild` 是 Electron ABI，不适用）
 - 定向采集：`pnpm test:coverage --coverage.include=<affected_files 路径>`（用 CLI 覆盖全局 include）
 
 ### 渲染侧 mock 基线（`tests/setup/renderer.ts`）
@@ -87,7 +88,7 @@
 
 1. **测试规划**：识别影响范围，判定测试等级（纯逻辑→单测；触 DAO/跨服务→集成；双涉→双规划），高风险改动先输出策略预览
 2. **用例设计**：以 `.codeartsdoer/specs/*/spec.md` 的 EARS 验收条件为预期依据，产出正/负/边界/防御用例并标注来源
-3. **执行与归因**：统一走 `pnpm test` 标准入口，失败归因到"被测代码缺陷 / 用例自身缺陷 / 环境问题"三类之一并给依据
+3. **执行与归因**：统一走 `pnpm test` 标准入口；**触数据库测试（集成用例实例化真实 better-sqlite3）执行前必须先跑 `pnpm rebuild:node` 修复 Node ABI**；失败归因到"被测代码缺陷 / 用例自身缺陷 / 环境问题"三类之一并给依据
 4. **缺陷修复联动**：只定位不实现，输出结构化七字段缺陷契约转交 Tier 1/2，修复后强制复跑受影响+关联回归集
 5. **覆盖率守护**：V8 覆盖率基线采集、缺口→真实验收场景映射、增量不倒退、禁止无断言僵尸用例
 
@@ -102,7 +103,7 @@
 - 🔒 **spec.md 只读消费**：需求与代码现状冲突时输出"疑似 spec 过期项"提示，不擅改（spec 5.1.3 异常 2）
 - 🔒 **build/prod 构建、lint 整改、数据库迁移**不属于本组件职责，转交对应 Agent
 
-### PITFALL 归因索引（对照 [../../../AGENTS.md](../../../AGENTS.md) Key pitfalls，只读消费）
+### PITFALL 归因索引（对照 [../../AGENTS.md](../../AGENTS.md) Key pitfalls，只读消费）
 
 | 编号 | 现象 | 正确姿势 | 归因判定 |
 |---|---|---|---|
@@ -112,6 +113,7 @@
 | #15 | 渲染侧断言 `v-html` 渲染结果未转义 | 经 `sanitizeHtml()` 后再断言 | 渲染侧用例 → 用例缺陷 |
 | #16 | 触 worker 用例因路径解析失败/消息 API 不匹配报错 | CJS 用 `createRequire(__filename)`、worker 独立 CJS 打包、`parentPort.on('message')` | 环境/用例缺陷（按场景判定） |
 | #17 | 触编辑器用例在节点边界扫文本得到空串、slash 反向搜索越块 | `doc.textBetween` 以 `""` 为终止条件；反向搜索下界用 `doc.resolve(pos).start()` | 编辑器用例断言陷阱 → 用例缺陷 |
+| #19 | 触库用例报 better-sqlite3 原生模块加载失败（`NODE_MODULE_VERSION` 不匹配 / `was compiled against a different Node.js version`） | 执行前必须先跑 `pnpm rebuild:node`（`node_modules/better-sqlite3` 的 prebuild-install）修复 Node ABI，再重跑；勿改工程配置 | 环境问题 → 前置/绕过，不算用例缺陷 |
 
 ### 归因禁则
 
@@ -234,6 +236,7 @@ S5 --> [*] : 增量覆盖达标
 
 ### EXECUTE 执行归因
 
+- **触库前置**：集成测试实例化真实 better-sqlite3（触 DAO/迁移）时，执行前必须先跑 `pnpm rebuild:node` 修复 Node ABI，否则原生模块加载失败会被误判为用例缺陷（对照 PITFALL #19）
 - 标准入口执行：`pnpm test <filter>`（增量优先），禁止绕过 Vitest 直接跑脚本（spec 5.3.1 规则 1）
 - **失败三类归因**（每条含依据：堆栈/断言输出/Spec 期望对照）：被测代码缺陷 / 用例自身缺陷 / 环境问题（spec 5.3.1 规则 2）
 - 环境问题（端口占用/平台差异/路径分隔符）独立列出并给绕过建议，不得计入被测代码缺陷；Windows 路径按 `win32` 语义归一化（spec 5.3.1 规则 3 / 5.3.3 异常 2）
@@ -298,6 +301,7 @@ defect:
 
 ## 退出标准
 
+- [ ] 触库用例执行前已运行 `pnpm rebuild:node`（Node ABI 修复）
 - [ ] 未修改 `src/**` 生产代码（越权红线零触碰）
 - [ ] 失败用例归因完整（三类之一且含依据）
 - [ ] 缺陷转交契约七字段齐全（若发生转交）

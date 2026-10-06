@@ -156,6 +156,7 @@ class DownloadService {
       const parsedUrl = new URL(url);
 
       const fullSubDir = path.join(this.cachePath, subDir);
+      // 落盘文件名始终取 URL 文件名（即模型自身的文件名），options.fileName 仅用于进度展示
       const fileName = this.sanitizeFileName(path.basename(parsedUrl.pathname));
       const localPath = path.join(fullSubDir, fileName);
 

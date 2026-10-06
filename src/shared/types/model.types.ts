@@ -41,6 +41,11 @@ export interface ModelConfig {
   providerPriority: string[];
   enableAiMode?: boolean; // 是否启用本地AI模式
   enableCloudAi?: boolean; // 是否启用云AI
+  /**
+   * 指定必须走本地 LLM 的任务类型；缺省 = 云端优先。仅对 LLM 类任务有意义。
+   * 可配置范围限定为智能整理的 3 个 LLM 场景（summary / concept_naming / topic_summary）。
+   */
+  localLlmTasks?: TaskType[];
   version: string; // 配置文件版本
   updatedAt: string; // 更新时间
 }

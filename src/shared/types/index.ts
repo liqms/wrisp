@@ -1,4 +1,4 @@
-// AI生成
+
 export * from "./api.types";
 export * from "./base.types";
 export * from "./notification.types";
@@ -23,3 +23,5 @@ export * from "./writing-preference.types";
 export * from "./work-profile.types";
 export * from "./outline.types";
 export * from "./search.types";
+export * from "./wiki.types";
+export * from "./smart-task.types";

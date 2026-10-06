@@ -1,3 +1,4 @@
+
 import { configModule } from "./config";
 import { windowModule } from "./window";
 import { systemModule } from "./system";
@@ -13,6 +14,7 @@ import { characterModule } from "./character";
 import { pageModule } from "./page";
 import { conceptModule } from "./concept";
 import { topicModule } from "./topic";
+import { wikiModule } from "./wiki";
 import { reflectionModule } from "./reflection";
 import { smartTaskModule } from "./smart-task";
 import { taskModule } from "./task";
@@ -38,6 +40,7 @@ export const modules = {
   page: pageModule,
   concept: conceptModule,
   topic: topicModule,
+  wiki: wikiModule,
   reflection: reflectionModule,
   smartTask: smartTaskModule,
   task: taskModule,

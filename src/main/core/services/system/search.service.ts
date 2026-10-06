@@ -1,9 +1,11 @@
-// AI生成
+
 import { chunkService } from "@/main/core/services/content/chunk.service";
 import { conceptDao } from "@/main/core/db/concept.dao";
 import { topicDao } from "@/main/core/db/topic.dao";
 import { projectDao } from "@/main/core/db/project.dao";
 import { pageDao } from "@/main/core/db/page.dao";
+import { modelRouter } from "@/main/core/model-gateway/router";
+import { warmupSearchModels } from "@/main/core/model-gateway/local-gateway";
 import { SEARCH_TYPE } from "@/shared/enums";
 import type { SearchResult } from "@/shared/types";
 import { Logger } from "@/main/utils/logger";
@@ -25,7 +27,7 @@ function makeSnippet(text: string | null | undefined): string {
 class SearchService {
   private static instance: SearchService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SearchService {
     if (!SearchService.instance) {
@@ -47,6 +49,20 @@ class SearchService {
     } catch (error) {
       Logger.warn("向量搜索失败，回退到文本搜索", { error: String(error) });
       return this.textSearch(keyword, max);
+    }
+  }
+
+  /**
+   * 预热本地语义搜索模型（嵌入 + 重排序）。
+   * 在用户打开搜索框等时机提前调用，把数秒的冷启动挪出搜索关键路径；
+   * 若本地能力不可用（开关关闭 / 未下载 / 内存不足）则静默跳过。
+   */
+  public async warmup(): Promise<void> {
+    try {
+      if (!(await modelRouter.isLocalAvailable())) return;
+      await warmupSearchModels();
+    } catch (error) {
+      Logger.warn("本地搜索模型预热失败", { error: String(error) });
     }
   }
 

@@ -69,6 +69,11 @@ const menuOptions = computed<MenuOption[]>(() => [
     icon: renderIcon(TodayOutlined),
   },
   {
+    label: t("APP.BASE.WIKI"),
+    key: "wiki",
+    icon: renderIcon(BookOutlined),
+  },
+  {
     label: t("APP.BASE.PROJECT"),
     key: "projects",
     icon: renderIcon(BookOutlined),
@@ -77,8 +82,8 @@ const menuOptions = computed<MenuOption[]>(() => [
 
 const routeConfigMap: Record<string, { key: string; path: string }> = {
   journal: { key: "journal", path: "/journal" },
-  wiki: { key: "wiki", path: "/wiki" },
   think: { key: "think", path: "/think" },
+  wiki: { key: "wiki", path: "/wiki" },
   create: { key: "create", path: "/create" },
   projects: { key: "projects", path: "/projects" },
 };

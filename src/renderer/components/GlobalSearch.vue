@@ -1,13 +1,8 @@
 <template>
-  <n-modal v-model:show="visible" preset="card" :style="{ maxWidth: '640px', borderRadius: '12px' }" :mask-closable="true" @after-leave="reset">
-    <n-input
-      v-model:value="query"
-      :placeholder="t('TIPS.GLOBAL_SEARCH.PLACEHOLDER')"
-      clearable
-      autofocus
-      size="large"
-      @keydown="handleKeydown"
-    >
+  <n-modal v-model:show="visible" preset="card" :style="{ maxWidth: '640px', borderRadius: '12px' }"
+    :mask-closable="true" @after-leave="reset">
+    <n-input v-model:value="query" :placeholder="t('TIPS.GLOBAL_SEARCH.PLACEHOLDER')" clearable autofocus size="large"
+      @keydown="handleKeydown">
       <template #prefix>
         <n-icon :component="SearchIcon" />
       </template>
@@ -23,14 +18,9 @@
             <span>{{ group.label }}</span>
             <n-text depth="3" class="search-group-count">{{ group.items.length }}</n-text>
           </div>
-          <div
-            v-for="item in group.items"
-            :key="item.type + item.id"
-            class="search-item"
-            :class="{ active: flatIndex(item) === selectedIndex }"
-            @click="navigateTo(item)"
-            @mouseenter="selectedIndex = flatIndex(item)"
-          >
+          <div v-for="item in group.items" :key="item.type + item.id" class="search-item"
+            :class="{ active: flatIndex(item) === selectedIndex }" @click="navigateTo(item)"
+            @mouseenter="selectedIndex = flatIndex(item)">
             <div class="search-item-title">{{ item.title }}</div>
             <div v-if="item.content" class="search-item-content">{{ item.content }}</div>
           </div>
@@ -62,7 +52,7 @@ import type { SearchResult, SearchResultType } from "@/shared/types";
 
 const { t } = useI18n();
 const router = useRouter();
-const { search, results, loading, clear } = useSearch();
+const { search, warmup, results, loading, clear } = useSearch();
 
 const props = withDefaults(
   defineProps<{
@@ -138,6 +128,8 @@ watch(visible, (val) => {
   if (val) {
     query.value = "";
     selectedIndex.value = 0;
+    // 提前预热本地语义搜索模型：用户输入 + 防抖期间完成加载，避免首次搜索阻塞
+    warmup();
   }
 });
 

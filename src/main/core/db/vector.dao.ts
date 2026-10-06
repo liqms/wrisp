@@ -13,6 +13,7 @@ import type {
 } from "@/main/types/db/vector.types";
 import { Logger } from "@/main/utils/logger";
 import { buildProjectFilter } from "@/main/core/vector/project-filter";
+import { EMBEDDING_DIMENSION } from "@/main/core/model-gateway/local-gateway/model-registry";
 
 /**
  * 向量数据访问对象基类
@@ -141,7 +142,7 @@ export class BlockVectorDao extends BaseVectorDao {
     try {
       const table = await this.getTable("block_embeddings");
       const results = await table
-        .search([0])
+        .query()
         .where(`block_id = '${blockId}'`)
         .limit(1)
         .toArray();
@@ -205,7 +206,7 @@ export class BlockVectorDao extends BaseVectorDao {
       return {
         tableName: "block_embeddings",
         rowCount: count,
-        dimension: 1536,
+        dimension: EMBEDDING_DIMENSION,
         indexed: indexes.length > 0,
       };
     } catch (error) {
@@ -315,7 +316,7 @@ export class PageVectorDao extends BaseVectorDao {
     try {
       const table = await this.getTable("pages_embeddings");
       const results = await table
-        .search([0])
+        .query()
         .where(`page_id = '${pageId}'`)
         .limit(1)
         .toArray();
@@ -333,7 +334,7 @@ export class PageVectorDao extends BaseVectorDao {
     try {
       const table = await this.getTable("pages_embeddings");
       const results = await table
-        .search([0])
+        .query()
         .where(`project_id = '${projectId}'`)
         .limit(1000)
         .toArray();
@@ -397,7 +398,7 @@ export class PageVectorDao extends BaseVectorDao {
       return {
         tableName: "pages_embeddings",
         rowCount: count,
-        dimension: 1536,
+        dimension: EMBEDDING_DIMENSION,
         indexed: indexes.length > 0,
       };
     } catch (error) {

@@ -1,99 +1,108 @@
 <template>
   <n-flex class="wiki-view" vertical>
-    <n-spin v-if="loading" class="loading" />
-    <n-flex v-else class="wiki-content" gap="12">
-      <!-- 左侧：概念列表 -->
-      <n-flex class="wiki-panel wiki-panel-left" vertical>
-        <n-text class="wiki-panel-title" depth="1">
-          {{ t("APP.BASE.CONCEPTS") }}
-        </n-text>
-        <n-divider class="panel-divider" />
-        <n-scrollbar class="wiki-list">
-          <n-flex v-for="concept in concepts" :key="concept.id" class="wiki-item"
-            :class="{ active: currentConcept?.id === concept.id }" @click="selectConcept(concept.id)">
-            <n-ellipsis class="wiki-item-text">
-              {{ concept.title }}
-            </n-ellipsis>
-          </n-flex>
-          <n-empty v-if="concepts.length === 0" description="暂无概念" />
-        </n-scrollbar>
+    <!-- 全局栏：待整理资源数 + 智能整理按钮 -->
+    <n-flex class="wiki-header" align="center" justify="space-between">
+      <n-flex align="center" :size="8">
+        <n-tag v-if="pendingCount > 0" type="warning" size="small" round>
+          {{ t("TIPS.WIKI.PENDING_RESOURCES") }}: {{ pendingCount }}
+        </n-tag>
       </n-flex>
-
-      <!-- 中间：主题详情 -->
-      <n-flex class="wiki-panel wiki-panel-middle" vertical>
-        <n-text class="wiki-panel-title" depth="1">
-          {{ t("APP.BASE.TOPICS") }}
-        </n-text>
-        <n-divider class="panel-divider" />
-        <n-scrollbar class="wiki-list">
-          <n-flex v-for="topic in topics" :key="topic.id" class="wiki-item"
-            :class="{ active: currentTopic?.id === topic.id }" @click="selectTopic(topic.id)">
-            <n-ellipsis class="wiki-item-text">
-              {{ topic.title }}
-            </n-ellipsis>
-          </n-flex>
-          <n-empty v-if="topics.length === 0" description="暂无主题" />
-        </n-scrollbar>
-      </n-flex>
-
-      <!-- 右侧：反思时间线 -->
-      <n-flex class="wiki-panel wiki-panel-right" vertical>
-        <n-text class="wiki-panel-title" depth="1">
-          {{ t("APP.BASE.REFLECTIONS") }}
-        </n-text>
-        <n-divider class="panel-divider" />
-        <n-scrollbar class="wiki-list">
-          <n-flex v-for="reflection in reflections" :key="reflection.id" class="wiki-item wiki-item-reflection">
-            <n-flex vertical class="wiki-item-reflection-content">
-              <n-text class="reflection-type" depth="3">
-                {{ reflection.type }}
-              </n-text>
-              <n-ellipsis class="wiki-item-text" :line-clamp="2">
-                {{ reflection.title }}
-              </n-ellipsis>
-              <n-text class="reflection-date" depth="3">
-                {{ reflection.created_at?.slice(0, 10) }}
-              </n-text>
-            </n-flex>
-          </n-flex>
-          <n-empty v-if="reflections.length === 0" description="暂无反思" />
-        </n-scrollbar>
+      <n-flex align="center" :size="8">
+        <n-button v-if="!organizing" type="primary" size="small" :loading="organizing" @click="handleOrganize">
+          <template #icon><n-icon>
+              <AutoMergeIcon />
+            </n-icon></template>
+          {{ t("TIPS.WIKI.SMART_ORGANIZE") }}
+        </n-button>
+        <n-flex v-else align="center" :size="8">
+          <n-spin size="small" />
+          <n-text depth="3">{{ t("TIPS.WIKI.ORGANIZING") }}</n-text>
+          <n-button size="small" @click="handleCancelOrganize">
+            {{ t("TIPS.WIKI.ORGANIZE_CANCEL") }}
+          </n-button>
+        </n-flex>
       </n-flex>
     </n-flex>
+
+    <!-- Tab 导航 -->
+    <n-tabs v-model:value="activeTab" type="line" animated class="wiki-tabs">
+      <n-tab-pane name="overview" :tab="t('TIPS.WIKI.TAB_OVERVIEW')">
+        <WikiOverview />
+      </n-tab-pane>
+      <n-tab-pane name="concepts" :tab="t('TIPS.WIKI.TAB_CONCEPTS')">
+        <ConceptCardList />
+      </n-tab-pane>
+      <n-tab-pane name="topics" :tab="t('TIPS.WIKI.TAB_TOPICS')">
+        <TopicCardList />
+      </n-tab-pane>
+    </n-tabs>
   </n-flex>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { ref, onMounted, onUnmounted, h } from "vue";
 import {
   NFlex,
   NText,
+  NTabs,
+  NTabPane,
+  NTag,
+  NButton,
+  NIcon,
   NSpin,
-  NEmpty,
-  NScrollbar,
-  NDivider,
-  NEllipsis,
 } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import { useWiki } from "@/renderer/composables/useWiki";
+import WikiOverview from "@/renderer/components/wiki/WikiOverview.vue";
+import ConceptCardList from "@/renderer/components/wiki/ConceptCardList.vue";
+import TopicCardList from "@/renderer/components/wiki/TopicCardList.vue";
+
+const AutoMergeIcon = () => h("span", { style: "font-size:14px" }, "⚡");
 
 const { t } = useI18n();
 const {
-  concepts,
-  topics,
-  reflections,
-  currentConcept,
-  currentTopic,
-  loading,
-  loadConcepts,
-  loadTopics,
-  loadReflections,
-  selectConcept,
-  selectTopic,
+  pendingCount,
+  organizing,
+  loadOverview,
+  loadPendingCount,
+  loadConceptCards,
+  loadTopicCards,
+  startOrganize,
+  cancelOrganize,
 } = useWiki();
 
+const activeTab = ref("overview");
+
+const handleOrganize = async () => {
+  await startOrganize();
+};
+
+const handleCancelOrganize = async () => {
+  await cancelOrganize();
+};
+
+const loadWikiData = async () => {
+  await Promise.all([
+    loadOverview(),
+    loadPendingCount(),
+    loadConceptCards(),
+    loadTopicCards(),
+  ]);
+};
+
+let disposeWikiUpdated: (() => void) | null = null;
+
 onMounted(async () => {
-  await Promise.all([loadConcepts(), loadTopics(), loadReflections()]);
+  // 主进程切分 / 智能整理完成后广播 wiki:updated，自动刷新视图数据
+  disposeWikiUpdated = window.electronAPI.wiki.onUpdated(() => {
+    void loadWikiData();
+  });
+  await loadWikiData();
+});
+
+onUnmounted(() => {
+  disposeWikiUpdated?.();
+  disposeWikiUpdated = null;
 });
 </script>
 
@@ -103,77 +112,17 @@ onMounted(async () => {
   padding: 16px;
 }
 
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
+.wiki-header {
+  padding: 4px 0 8px;
 }
 
-.wiki-content {
-  height: 100%;
+.wiki-tabs {
   flex: 1;
-}
-
-.wiki-panel {
-  flex: 1;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 12px;
-  min-width: 200px;
   overflow: hidden;
 }
 
-.wiki-panel-title {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.panel-divider {
-  margin: 4px 0;
-}
-
-.wiki-list {
-  flex: 1;
+:deep(.n-tab-pane) {
+  height: 100%;
   overflow-y: auto;
-}
-
-.wiki-item {
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  width: 100%;
-
-  &:hover {
-    background-color: #f5f5f5;
-  }
-
-  &.active {
-    background-color: #e8f4fd;
-  }
-}
-
-.wiki-item-text {
-  width: 100%;
-  font-size: 14px;
-}
-
-.wiki-item-reflection {
-  cursor: default;
-}
-
-.wiki-item-reflection-content {
-  width: 100%;
-  gap: 2px;
-}
-
-.reflection-type {
-  font-size: 11px;
-  text-transform: uppercase;
-}
-
-.reflection-date {
-  font-size: 12px;
 }
 </style>

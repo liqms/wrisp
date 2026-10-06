@@ -6,10 +6,18 @@ const { resolveSkillDefinition } = vi.hoisted(() => ({
 }));
 
 // 单测环境没有 Electron 运行时
+// userData 指向临时目录下的 wrisp-dev，避免 ConfigService 把 config/ 写到项目根（进程 cwd）
+const testUserData = vi.hoisted(() => {
+  const base =
+    process.env.TEMP || process.env.TMPDIR || process.env.TMP || "/tmp";
+  return `${base}/wrisp-dev`;
+});
+
 vi.mock("electron", () => ({
   app: {
     getAppPath: () => process.cwd(),
-    getPath: () => process.cwd(),
+    getPath: (name?: string) =>
+      name === "userData" ? testUserData : process.cwd(),
   },
 }));
 

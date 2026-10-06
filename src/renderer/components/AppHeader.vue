@@ -12,15 +12,27 @@
     <!-- 标题 -->
     <n-text class="title">{{ title }}</n-text>
 
+    <!-- 智能整理进度按钮 -->
+    <n-button v-if="smartTaskStore.visible" class="control-btn smart-task-btn" text :title="$t('SMART_TASK.TITLE')"
+      @click="showSmartTaskModal = true">
+      <n-text class="smart-task-label">
+        {{ smartTaskStore.isRunning
+          ? $t('SMART_TASK.IN_PROGRESS', { percent: smartTaskStore.percent })
+          : $t('SMART_TASK.FINISHED')
+        }}
+      </n-text>
+    </n-button>
+
     <!-- 下载进度按钮 -->
-    <n-popover v-if="isDownloadActive" trigger="click" placement="bottom-end" class="download-progress-popover">
+    <n-popover v-if="showDownloadButton" trigger="click" placement="bottom-end" class="download-progress-popover">
       <template #trigger>
         <n-button class="control-btn" text :title="$t('DOWNLOAD.TITLE')">
-          <n-badge :value="activeDownloadCount" dot>
-            <n-icon size="17">
-              <FileDownloadOutlined />
-            </n-icon>
-          </n-badge>
+          <n-text class="download-label">
+            {{ isDownloadActive
+              ? $t('DOWNLOAD.IN_PROGRESS', { percent: downloadPercent })
+              : $t('DOWNLOAD.FINISHED')
+            }}
+          </n-text>
         </n-button>
       </template>
       <DownloadProgressPanel />
@@ -58,10 +70,15 @@
     </n-flex>
   </n-flex>
   <SettingsView v-model:show="showSettings" @close="handleCloseSettings" />
+
+  <!-- 智能整理任务节点明细 -->
+  <n-modal v-model:show="showSmartTaskModal" preset="card" :title="$t('SMART_TASK.TITLE')" style="width: 440px">
+    <SmartTaskProgressPanel />
+  </n-modal>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import {
   MinimizeOutlined,
   FullscreenOutlined,
@@ -69,12 +86,13 @@ import {
   CloseOutlined,
   SettingsOutlined,
   MenuOutlined,
-  FileDownloadOutlined,
 } from "@vicons/material";
 import { useI18n } from "vue-i18n";
 import SettingsView from "@/renderer/components/SettingsView.vue";
 import DownloadProgressPanel from "@/renderer/components/base/DownloadProgressPanel.vue";
+import SmartTaskProgressPanel from "@/renderer/components/base/SmartTaskProgressPanel.vue";
 import { useDownloadStore } from "@/renderer/store/download.store";
+import { useSmartTaskStore } from "@/renderer/store/smart-task.store";
 import { useShortcut } from "@/renderer/composables/useShortcut";
 
 const { t } = useI18n();
@@ -112,19 +130,51 @@ const isElectron = computed(() => {
 // 下载进度
 const downloadStore = useDownloadStore();
 const isDownloadActive = computed(() => downloadStore.hasActiveDownloads);
-// const isDownloadActive = ref(true);
-const activeDownloadCount = computed(() => {
+
+// 智能整理进度
+const smartTaskStore = useSmartTaskStore();
+const showSmartTaskModal = ref(false);
+
+// 整体下载百分比（所有文件进度加权平均）
+const downloadPercent = computed(() => {
+  let sum = 0;
   let count = 0;
   for (const group of downloadStore.allGroupsProgress) {
     if (!group) continue;
     for (const file of group.files) {
-      if (file.status === "downloading" || file.status === "pending") {
-        count++;
-      }
+      sum += file.progress || 0;
+      count++;
     }
   }
-  return count;
+  return count > 0 ? Math.round(sum / count) : 0;
 });
+
+// 下载完成后保留 5 秒“下载完成”提示
+const showCompleted = ref(false);
+let completedTimer: ReturnType<typeof setTimeout> | undefined;
+
+watch(isDownloadActive, (active, wasActive) => {
+  if (active) {
+    showCompleted.value = false;
+    if (completedTimer) {
+      clearTimeout(completedTimer);
+      completedTimer = undefined;
+    }
+    return;
+  }
+  if (wasActive) {
+    showCompleted.value = true;
+    if (completedTimer) clearTimeout(completedTimer);
+    completedTimer = setTimeout(() => {
+      showCompleted.value = false;
+      completedTimer = undefined;
+    }, 5000);
+  }
+});
+
+const showDownloadButton = computed(
+  () => isDownloadActive.value || showCompleted.value,
+);
 
 // 方法
 function handleMenuClick(): void {
@@ -162,7 +212,13 @@ async function handleClose(): Promise<void> {
 onMounted(async () => {
   if (isElectron.value) {
     isMaximized.value = await window.electronAPI.window.isMaximized();
+    void smartTaskStore.init();
   }
+});
+
+onUnmounted(() => {
+  if (completedTimer) clearTimeout(completedTimer);
+  smartTaskStore.dispose();
 });
 </script>
 
@@ -199,5 +255,18 @@ onMounted(async () => {
 .control-btn {
   font-size: $font-sm;
   -webkit-app-region: no-drag;
+}
+
+.download-label {
+  font-size: $font-xs;
+}
+
+.smart-task-btn {
+  margin-right: $spacing-sm;
+  -webkit-app-region: no-drag;
+}
+
+.smart-task-label {
+  font-size: $font-xs;
 }
 </style>

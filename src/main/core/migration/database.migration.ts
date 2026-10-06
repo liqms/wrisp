@@ -210,6 +210,34 @@ export class DatabaseMigration {
   }
 
   /**
+   * 确保 semantic_chunks 表存在 last_vectorized_at 字段（幂等）。
+   * 该字段是 chunk-vectorize 的专用「已向量化」标记：此前向量化任务误用
+   * last_smart_processed_at（被 chunk-summary 等任务共用）判定是否已向量化，
+   * 导致语义块向量化永远选出 0 条。旧库需补齐该列。
+   */
+  public ensureChunkVectorizedColumn(): void {
+    try {
+      const db = getDatabase();
+      const columns = db
+        .prepare("PRAGMA table_info(semantic_chunks)")
+        .all() as { name: string }[];
+
+      if (columns.some((col) => col.name === "last_vectorized_at")) {
+        return;
+      }
+
+      db.exec("ALTER TABLE semantic_chunks ADD COLUMN last_vectorized_at TEXT");
+      Logger.info("已为 semantic_chunks 表新增 last_vectorized_at 字段");
+    } catch (error) {
+      Logger.error("为 semantic_chunks 表新增 last_vectorized_at 字段失败:", {
+        dbPath: getDbPath(),
+        error: String(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
    * 移除 pages 表的 is_container 字段（幂等）。
    * 该字段为 v1「容器页」设计遗留，现已无任何代码引用。
    * 由于字段被 CHECK 约束与 idx_pages_container 索引引用，无法直接 DROP COLUMN，
