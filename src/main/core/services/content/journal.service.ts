@@ -11,7 +11,12 @@ import {
   JournalImportResult,
   Id,
 } from "@/shared/types";
-import { JOURNAL_ENTRY_SOURCE, JOURNAL_ENTRY_TYPE } from "@/shared/enums";
+import {
+  JOURNAL_ENTRY_SOURCE,
+  JOURNAL_ENTRY_TYPE,
+  type JournalEntrySource,
+  type JournalEntryType,
+} from "@/shared/enums";
 import { ChunkDao, FileIndexDao, JournalEntryDao, ProjectDao } from "@/main/core/db";
 import {
   FileIndexCreate,
@@ -25,7 +30,11 @@ import { inlineTokenSyncService } from "@/main/core/services/content/inline-toke
 import { chunkIndexService } from "@/main/core/services/content/chunk-index.service";
 import { chunkService } from "@/main/core/services/content/chunk.service";
 import { parseEntryTokens } from "./journal/journal-entry.tokens";
-import { renderJournalDay, parseJournalDayFile } from "./journal/journal-render";
+import {
+  renderJournalDay,
+  parseJournalDayFile,
+  isEntryOwnedJournalMarkdown,
+} from "./journal/journal-render";
 import { tagService } from "@/main/core/services/project/tag.service";
 import { characterService } from "@/main/core/services/content/character.service";
 
@@ -459,14 +468,18 @@ class JournalService {
     }
     updates.updated_at = new Date().toISOString();
 
-    this.journalEntryDao.update(record.id, updates);
+    // 与 deleteEntry 同理检查影响行数：读到行后、写之前被并发删除时 update 影响 0 行，
+    // 此时不得报告成功，也不得重渲染/调度（旧内容已不属于本条目）
+    if (this.journalEntryDao.update(record.id, updates) === 0) return false;
     this.afterEntryWrite(record.id, content, oldDate, newDate);
     return true;
   }
 
   /**
    * 软删除一条日志条目（写 deleted_at 留 tombstone，导入不复活）
-   * 关联即刻清空；该条目的语义块由按日切块任务收敛。
+   * 关联即刻清空；该条目的语义块与向量也在此刻按条目维度直清——
+   * `listDirtyByDate` 只取活跃条目（deleted_at IS NULL），`processFile` 又对条目
+   * 接管文件让位，软删条目进不了任何一条后续路径，不清就永远可被检索命中。
    * @returns 删除成功返回 true，条目不存在或已删除返回 false
    */
   public deleteEntry(id: Id): boolean {
@@ -477,6 +490,24 @@ class JournalService {
     if (this.journalEntryDao.softDelete(id, now) === 0) return false;
 
     this.journalEntryDao.replaceAssociations(id, [], [], now);
+
+    // 条目维度清块：以当日 file_index 行为配对范围（entry 块携带 file_id），
+    // 空切分结果 = 全删；removedIds 交给向量层，模式同 resetEntries（提交后异步清）。
+    // 当日无 file_index 行时跳过——条目块必挂 file_id，没有行就没有可配对的块。
+    const filePath = this.getJournalFilePath(row.date);
+    const fileIndex = this.fileIndexDao.findByFilePath(filePath);
+    if (fileIndex) {
+      const { removedIds } = chunkService.replaceEntryChunks(id, fileIndex.id, filePath, []);
+      void chunkService.dropVectorsByIds(removedIds).catch((error: unknown) => {
+        Logger.warn("清理已删日志条目向量失败", { error: String(error), entryId: id });
+      });
+    } else {
+      Logger.warn("删除日志条目：当日无 file_index 行，跳过条目级块清理", {
+        entryId: id,
+        filePath,
+      });
+    }
+
     this.ensureDayFile(row.date);
     chunkIndexService.scheduleJournalDay(row.date);
     return true;
@@ -535,48 +566,53 @@ class JournalService {
     }
 
     const byId = new Map(existingRows.map((row) => [row.id, row]));
-    for (const item of parsed) {
-      // 解析器已 trim 正文（且不会产出空正文），此处只做类型层面的兜底
-      const content = (item.content || "").trim();
-      const occurredAt = this.normalizeOccurredAt(item.occurred_at);
-      const current = byId.get(item.id);
-      if (!current) {
-        const now = new Date().toISOString();
-        this.journalEntryDao.create({
-          id: item.id,
-          date,
-          occurred_at: occurredAt,
-          source: item.source,
-          type: item.type,
-          content,
-          attachments: item.attachments ? JSON.stringify(item.attachments) : null,
-          metadata: item.metadata ? JSON.stringify(item.metadata) : null,
-          created_at: now,
-          // updated_at 列 NOT NULL：解析不出 u 的条目（旧格式）以当前时刻兜底
-          updated_at: item.updated_at || now,
-        });
-        this.syncEntryAssociations(item.id, content);
-        result.imported += 1;
-      } else if (current.deleted_at) {
-        // tombstone 优先：导入既不删除也不复活
-        result.skipped += 1;
-      } else if (item.updated_at && item.updated_at > current.updated_at) {
-        this.journalEntryDao.update(item.id, {
-          content,
-          occurred_at: occurredAt,
-          updated_at: item.updated_at,
-        });
-        this.syncEntryAssociations(item.id, content);
-        result.updated += 1;
-      } else if (!item.has_meta && content !== current.content) {
-        // 推断条目内容变了（旧文件被手工编辑）：按确定性 id 收敛为一次更新
-        this.journalEntryDao.update(item.id, { content });
-        this.syncEntryAssociations(item.id, content);
-        result.updated += 1;
-      } else {
-        result.skipped += 1;
+    // 整天 upsert 包在一个事务里：normalizeOccurredAt 中途抛错、或伪造值仍被 CHECK 拒绝时，
+    // 整天回滚而不是留下半日条目（后续渲染/调度也随之不执行，调用方重试即幂等）。
+    this.journalEntryDao.transaction(() => {
+      for (const item of parsed) {
+        // 解析器已 trim 正文（且不会产出空正文），此处只做类型层面的兜底
+        const content = (item.content || "").trim();
+        const occurredAt = this.normalizeOccurredAt(item.occurred_at);
+        const current = byId.get(item.id);
+        if (!current) {
+          const now = new Date().toISOString();
+          this.journalEntryDao.create({
+            id: item.id,
+            date,
+            occurred_at: occurredAt,
+            // 手工伪造的 src/type 降级为 import/text，避免撞 journal_entries CHECK 炸掉整日导入
+            source: this.clampEntrySource(item.source),
+            type: this.clampEntryType(item.type),
+            content,
+            attachments: item.attachments ? JSON.stringify(item.attachments) : null,
+            metadata: item.metadata ? JSON.stringify(item.metadata) : null,
+            created_at: now,
+            // updated_at 列 NOT NULL：解析不出 u 的条目（旧格式）以当前时刻兜底
+            updated_at: item.updated_at || now,
+          });
+          this.syncEntryAssociations(item.id, content);
+          result.imported += 1;
+        } else if (current.deleted_at) {
+          // tombstone 优先：导入既不删除也不复活
+          result.skipped += 1;
+        } else if (item.updated_at && item.updated_at > current.updated_at) {
+          this.journalEntryDao.update(item.id, {
+            content,
+            occurred_at: occurredAt,
+            updated_at: item.updated_at,
+          });
+          this.syncEntryAssociations(item.id, content);
+          result.updated += 1;
+        } else if (!item.has_meta && content !== current.content) {
+          // 推断条目内容变了（旧文件被手工编辑）：按确定性 id 收敛为一次更新
+          this.journalEntryDao.update(item.id, { content });
+          this.syncEntryAssociations(item.id, content);
+          result.updated += 1;
+        } else {
+          result.skipped += 1;
+        }
       }
-    }
+    });
 
     if (result.imported > 0 || result.updated > 0) {
       this.ensureDayFile(date);
@@ -703,10 +739,13 @@ class JournalService {
 
   /**
    * 渲染并覆写当日 md（spec §5.1 渲染保护）：
-   * 当日零条目、且文件已存在且非空（旧版整篇日志）时**绝不覆盖**——
-   * 历史内容只能通过 journal:importDayFile 显式导入。
-   * 写文件后维护 file_index 行（hash/size/日期/文件名）并置 pending，
-   * 让既有的文件同步链路看见这次内容变化。
+   * 当日零条目、且文件已存在且非空、且**不是**条目接管文件（无 wrisp:journal 标记，
+   * 即旧版整篇日志）时**绝不覆盖**——历史内容只能通过 journal:importDayFile 显式导入。
+   * 带标记的文件是本管线自己的渲染产物：当日最后一条条目被删除后必须重写为空日渲染，
+   * 否则已删内容会永久滞留文件（真源是库，文件是产物）。
+   * 写文件后维护 file_index 行（hash/size/日期/文件名）并置 synced：
+   * 条目化日文件不做文件级切块（processFile 对它让位），pending 无人收敛，
+   * synced 才是诚实的终态——按日切块由 recordChunked 水位线负责。
    */
   private ensureDayFile(date: string): void {
     const filePath = this.getJournalFilePath(date);
@@ -714,7 +753,9 @@ class JournalService {
 
     if (entries.length === 0 && fileService.exists(filePath)) {
       const existing = fileService.readFile(filePath);
-      if (existing && existing.trim() !== "") return; // 旧版整篇日志：绝不覆盖
+      if (existing && existing.trim() !== "" && !isEntryOwnedJournalMarkdown(existing)) {
+        return; // 旧版整篇日志：绝不覆盖
+      }
     }
 
     const md = renderJournalDay(
@@ -740,7 +781,7 @@ class JournalService {
         file_hash: info?.hash || "",
         file_size: info?.size || 0,
         updated_at: info?.modifiedAt || now,
-        sync_status: "pending",
+        sync_status: "synced",
       };
       this.fileIndexDao.update(index.id, update);
     } else {
@@ -752,7 +793,7 @@ class JournalService {
         date,
         name: `${date}.md`,
         updated_at: info?.modifiedAt || now,
-        sync_status: "pending",
+        sync_status: "synced",
       };
       this.fileIndexDao.create(create);
     }
@@ -765,6 +806,31 @@ class JournalService {
       throw new Error("日志条目内容不能为空");
     }
     return trimmed;
+  }
+
+  /** 条目的来源/类型取值域钳制（spec §4.1 CHECK）：非法值降级，不整批失败 */
+  private clampEnumValue<T extends string>(
+    value: string,
+    allowed: readonly T[],
+    fallback: T,
+  ): T {
+    return (allowed as readonly string[]).includes(value) ? (value as T) : fallback;
+  }
+
+  private clampEntrySource(value: string): JournalEntrySource {
+    return this.clampEnumValue(
+      value,
+      Object.values(JOURNAL_ENTRY_SOURCE),
+      JOURNAL_ENTRY_SOURCE.IMPORT,
+    );
+  }
+
+  private clampEntryType(value: string): JournalEntryType {
+    return this.clampEnumValue(
+      value,
+      Object.values(JOURNAL_ENTRY_TYPE),
+      JOURNAL_ENTRY_TYPE.TEXT,
+    );
   }
 
   /**
