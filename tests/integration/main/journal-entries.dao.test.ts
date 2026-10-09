@@ -99,4 +99,46 @@ describe("JournalEntryDao", () => {
     dao.softDelete(id, TS);
     expect(dao.listLegacyDates(30)).toContain("2026-10-07");
   });
+
+  it("selectLegacyDatesWithin：按请求日期集合精确筛（无 1000 日窗口截断）", () => {
+    seed(mem(), "INSERT INTO file_index (id, file_path, file_hash, date, created_at, updated_at) VALUES ('l1', 'journal/2019-01-01.md', 'h', '2019-01-01', ?, ?)", TS, TS);
+    seed(mem(), "INSERT INTO file_index (id, file_path, file_hash, date, created_at, updated_at) VALUES ('l2', 'journal/2019-01-02.md', 'h', '2019-01-02', ?, ?)", TS, TS);
+    seed(mem(), "INSERT INTO file_index (id, file_path, file_hash, date, created_at, updated_at) VALUES ('l3', 'pages/2019-01-03.md', 'h', '2019-01-03', ?, ?)", TS, TS);
+    expect([...dao.selectLegacyDatesWithin(["2019-01-01", "2019-01-03", "2019-01-04"])]).toEqual(["2019-01-01"]);
+    // 集合外的待导入日（l2）不得被带出；当日有活跃条目的日期也不得入选
+    const id = dao.create({ date: "2019-01-05", occurred_at: "2019-01-05T01:00:00.000Z", content: "w" });
+    seed(mem(), "INSERT INTO file_index (id, file_path, file_hash, date, created_at, updated_at) VALUES ('l4', 'journal/2019-01-05.md', 'h', '2019-01-05', ?, ?)", TS, TS);
+    expect(dao.selectLegacyDatesWithin(["2019-01-05"])).toEqual(new Set());
+    dao.softDelete(id, TS);
+    expect(dao.selectLegacyDatesWithin(["2019-01-05"])).toEqual(new Set(["2019-01-05"]));
+  });
+
+  it("selectLegacyDatesWithin 空集合早退：返回空集且不发起查询", () => {
+    const spy = vi.spyOn(
+      dao as unknown as { query: (sql: string, params?: unknown[]) => unknown[] },
+      "query",
+    );
+    expect(dao.selectLegacyDatesWithin([])).toEqual(new Set());
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("assembleViews 的 has_legacy_file 不受「最新 1000 个待导入日」窗口截断", () => {
+    const db = mem();
+    // 1001 个比目标日更新的待导入日：旧实现 listLegacyDates(1000) 只取最新 1000 个，
+    // 目标日 2020-01-01 落在窗口外 ⇒ has_legacy_file=false ⇒「导入此文件」入口永久消失
+    for (let i = 0; i < 1001; i++) {
+      const date = new Date(Date.UTC(2021, 0, 1) + i * 86400000).toISOString().slice(0, 10);
+      seed(
+        db,
+        "INSERT INTO file_index (id, file_path, file_hash, date, created_at, updated_at) VALUES (?, ?, 'h', ?, ?, ?)",
+        `bulk-${i}`, `journal/${date}.md`, date, TS, TS,
+      );
+    }
+    seed(db, "INSERT INTO file_index (id, file_path, file_hash, date, created_at, updated_at) VALUES ('old', 'journal/2020-01-01.md', 'h', '2020-01-01', ?, ?)", TS, TS);
+
+    const days = dao.assembleViews(["2020-01-01"]);
+    expect(days).toHaveLength(1);
+    expect(days[0].has_legacy_file).toBe(true);
+  });
 });

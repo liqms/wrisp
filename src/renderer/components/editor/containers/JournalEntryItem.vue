@@ -39,12 +39,15 @@ import type { JournalEntryView } from "@/shared/types";
 import { TimeUtil } from "@/shared/utils";
 import { sanitizeHtml } from "@/renderer/utils/sanitize";
 import { useJournal } from "@/renderer/composables/useJournal";
+import { useFrontendNotification } from "@/renderer/composables/useNotification";
 
 const props = defineProps<{ entry: JournalEntryView }>();
 
 const { t } = useI18n();
 const dialog = useDialog();
-const { updateEntry, requestDeleteEntry } = useJournal();
+// options 为 useFrontendNotification 的必填形参（内部不使用），文案在每次调用时显式传入
+const notify = useFrontendNotification({ title: "", content: "" });
+const { updateEntry, requestDeleteEntry, hasError, errorMessage, clearError } = useJournal();
 
 const editing = ref(false);
 const draft = ref("");
@@ -64,9 +67,26 @@ function startEdit() {
 function cancelEdit() {
   editing.value = false;
 }
+/**
+ * 动作失败提示。判据只能是 hasError（store.errorCode !== null），不能用动作返回值：
+ * updateEntry / requestDeleteEntry 返回 false 有两种含义 ——
+ * 1) success:true + data:false ⇒ 条目已被并发删除，store 走 deleteEntryLocal 本地自愈且
+ *    故意不写 errorCode（journal.store.ts 契约），此时弹「失败」是在对用户撒谎；
+ * 2) success:false 或 IPC reject ⇒ 真失败，errorCode 已写。
+ * errorMessage 已由 handleApiError 按 ErrorCode 本地化，直接作正文，不再造 _CONTENT 文案。
+ */
+function reportFailure(titleKey: string) {
+  const content = errorMessage.value; // 取局部量只为满足 string | null 收窄，两者在 store 里成对写入
+  if (hasError.value && content) {
+    notify.error(t(titleKey), content);
+    clearError();
+  }
+}
+
 async function saveEdit() {
   const ok = await updateEntry({ id: props.entry.id, content: draft.value });
   if (ok) editing.value = false;
+  reportFailure("TIPS.JOURNAL.ENTRY_UPDATE_FAILED");
 }
 function confirmDelete() {
   dialog.warning({
@@ -74,7 +94,11 @@ function confirmDelete() {
     content: t("TIPS.JOURNAL.ENTRY_DELETE_CONFIRM"),
     positiveText: t("ACTION.COMMON.CONFIRM"),
     negativeText: t("ACTION.COMMON.CANCEL"),
-    onPositiveClick: () => void requestDeleteEntry(props.entry.id),
+    // 提示与 dialog 关闭互不干涉：不返回 false（沿用「点击即关」体验），失败提示由 reportFailure 兜底
+    onPositiveClick: async () => {
+      await requestDeleteEntry(props.entry.id);
+      reportFailure("TIPS.JOURNAL.ENTRY_DELETE_FAILED");
+    },
   });
 }
 </script>

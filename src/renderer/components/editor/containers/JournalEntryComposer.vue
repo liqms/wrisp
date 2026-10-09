@@ -58,7 +58,7 @@ const notify = useFrontendNotification({
   title: t("TIPS.JOURNAL.APPEND_ACTION"),
   content: "",
 });
-const { appendEntry } = useJournal();
+const { appendEntry, hasError, errorMessage, clearError } = useJournal();
 
 const draft = ref("");
 const submitting = ref(false);
@@ -168,6 +168,12 @@ async function submit() {
     draft.value = "";
     projectCandidates.value = [];
     resolved.value = new Map();
+    // 同族缺口：条目已写入，但 appendEntry 内部的整窗刷新失败（loadRecentDays 写 errorCode，
+    // appendEntry 仍返回 id）此前无人提示。挂在成功分支内 ⇒ 与下面的失败分支互斥，不会双弹
+    if (hasError.value && errorMessage.value) {
+      notify.error(t("TIPS.JOURNAL.APPEND_FAILED"), errorMessage.value);
+      clearError();
+    }
   } else {
     notify.error(t("TIPS.JOURNAL.APPEND_FAILED"), t("TIPS.JOURNAL.APPEND_FAILED_CONTENT"));
   }

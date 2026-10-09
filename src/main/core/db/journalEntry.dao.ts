@@ -100,6 +100,23 @@ export class JournalEntryDao extends BaseDao<
     return (this.query(sql, [limit]) as Array<{ date: string }>).map((r) => r.date);
   }
 
+  /** 在给定日期集合内筛出「有 journal/% 文件、但当日无活跃条目」的日期（导入入口标记用）。
+   *  与 listLegacyDates 的「全局最新 N 个」不同：本方法按请求窗口精确取，集合有界、无上界截断。 */
+  selectLegacyDatesWithin(dates: string[]): Set<string> {
+    if (dates.length === 0) return new Set();
+    const placeholders = dates.map(() => "?").join(",");
+    const rows = this.query(
+      `SELECT DISTINCT fi.date AS date FROM file_index fi
+       WHERE fi.file_path LIKE 'journal/%' AND fi.date IS NOT NULL
+         AND fi.date IN (${placeholders})
+         AND fi.date NOT IN (
+           SELECT DISTINCT date FROM journal_entries WHERE deleted_at IS NULL
+         )`,
+      dates,
+    ) as Array<{ date: string }>;
+    return new Set(rows.map((r) => r.date));
+  }
+
   replaceAssociations(
     entryId: Id,
     tagIds: string[],
@@ -132,7 +149,10 @@ export class JournalEntryDao extends BaseDao<
   /** 按日期集合组装时间线视图（标签/作品 JOIN 一次带出，渲染层不逐条查询） */
   assembleViews(dates: string[]): JournalDayView[] {
     if (dates.length === 0) return [];
-    const legacy = new Set(this.listLegacyDates(1000));
+    // 按本次请求的日期集合精确筛，不能用 listLegacyDates(1000) 的全局窗口：
+    // 待导入日一旦超过 1000 个，窗口外的老日期会被误判 has_legacy_file=false，
+    // 该日的「导入此文件」入口就此永久消失
+    const legacy = this.selectLegacyDatesWithin(dates);
     const placeholders = dates.map(() => "?").join(",");
     const rows = this.query(
       `SELECT * FROM journal_entries

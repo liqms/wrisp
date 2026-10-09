@@ -113,7 +113,8 @@ async function searchProjectsByName(name: string): Promise<ApiResponse<Array<{ i
     return response.success(projects.map((p) => ({ id: p.id, name: p.name })));
   } catch (error) {
     Logger.error("按名称检索作品失败", { error: String(error), name });
-    return response.error(ErrorCode.PROJECT_GET_FAILED, error as Error);
+    // 列表型 handler：返回的是候选数组，错误码与 :37 / :99 同族用 LIST_FAILED（而非单项 GET_FAILED）
+    return response.error(ErrorCode.PROJECT_LIST_FAILED, error as Error);
   }
 }
 

@@ -17,6 +17,7 @@ import JournalView from "@/renderer/views/JournalView.vue";
 import { useJournalStore } from "@/renderer/store/journal.store";
 import { useConfigStore } from "@/renderer/store/config.store";
 import { useNotificationStore } from "@/renderer/store/notification.store";
+import { getErrorMessage } from "@/renderer/utils/error.utils";
 
 // 捕获 naive-ui useDialog().warning 的入参，便于断言「经弹窗后再删除」的行为链路
 const capturedDialog: { options: Record<string, unknown> | null } = { options: null };
@@ -35,6 +36,11 @@ vi.mock("naive-ui", async (importOriginal) => {
 
 function ok<T>(data: T) {
   return { success: true, data, code: ErrorCode.SUCCESS, timestamp: Date.now() };
+}
+
+/** 真失败响应：store 会写 errorCode + 按 ErrorCode 本地化的 errorMessage */
+function fail(code: ErrorCode) {
+  return { success: false, data: undefined, code, timestamp: Date.now() };
 }
 
 const i18n = createI18n({
@@ -323,6 +329,156 @@ describe("JournalEntryComposer 追加与记号提示", () => {
     expect(enPlaceholder).not.toContain("\\");
     en.unmount();
   });
+  it("追加成功但动作后的整窗刷新失败 ⇒ 恰好一次「追加失败」（同族静默缺口）", async () => {
+    // appendEntry 仍返回 id（条目已落库），只有 loadRecentDays 写了 errorCode
+    listRecentDays.mockResolvedValue(fail(ErrorCode.JOURNAL_GET_FAILED));
+    const spy = vi.spyOn(useNotificationStore(), "addNotification");
+
+    const wrapper = mountWith(JournalEntryComposer, {});
+    const input = wrapper.find("textarea");
+    await input.setValue("#测试 记一条");
+    await input.trigger("keydown", { ctrlKey: true, key: "Enter" });
+    await vi.runAllTimersAsync();
+    await flushPromises();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].level).toBe("error");
+    expect(spy.mock.calls[0][0].title).toBe("追加失败");
+    expect(spy.mock.calls[0][0].content).toBe(getErrorMessage(ErrorCode.JOURNAL_GET_FAILED));
+    // clearError 已执行，错误态不残留给下一次动作
+    expect(useJournalStore().errorCode).toBeNull();
+    // 成功路径的清理动作照常（草稿已清空）
+    expect(wrapper.find("textarea").element.value).toBe("");
+    spy.mockRestore();
+  });
+
+  it("追加失败 ⇒ 恰好一次提示，不得与刷新失败分支叠成两次", async () => {
+    appendEntry.mockResolvedValue(fail(ErrorCode.JOURNAL_CREATE_FAILED));
+    const spy = vi.spyOn(useNotificationStore(), "addNotification");
+
+    const wrapper = mountWith(JournalEntryComposer, {});
+    const input = wrapper.find("textarea");
+    await input.setValue("#测试 记一条");
+    await input.trigger("keydown", { ctrlKey: true, key: "Enter" });
+    await vi.runAllTimersAsync();
+    await flushPromises();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].title).toBe("追加失败");
+    expect(spy.mock.calls[0][0].content).toBe("日志条目未能保存，请重试。");
+    spy.mockRestore();
+  });
+});
+
+describe("JournalEntryItem 动作失败提示（判据 = store.errorCode）", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** 进入编辑态并点击保存 */
+  async function saveEditOf(wrapper: VueWrapper) {
+    await wrapper.find(".entry-content").trigger("dblclick");
+    await flushPromises();
+    await wrapper.find("textarea").setValue("改后的内容");
+    const saveBtn = wrapper.findAll("button").find((b) => b.text().includes("保存"));
+    expect(saveBtn).toBeTruthy();
+    await saveBtn!.trigger("click");
+    await flushPromises();
+  }
+
+  it("更新真失败（success:false ⇒ errorCode 已置）⇒ 恰好一次「更新条目失败」", async () => {
+    updateEntry.mockResolvedValue(fail(ErrorCode.JOURNAL_UPDATE_FAILED));
+    const spy = vi.spyOn(useNotificationStore(), "addNotification");
+
+    const wrapper = mountWith(JournalEntryItem, { entry: makeEntry() });
+    await saveEditOf(wrapper);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].level).toBe("error");
+    // 断言渲染后的字符串，不是 locale 源串
+    expect(spy.mock.calls[0][0].title).toBe("更新条目失败");
+    expect(spy.mock.calls[0][0].content).toBe(getErrorMessage(ErrorCode.JOURNAL_UPDATE_FAILED));
+    expect(useJournalStore().errorCode).toBeNull(); // clearError 已执行
+    // 失败时停留在编辑态（原行为，不得回退）
+    expect(wrapper.find("textarea").exists()).toBe(true);
+    spy.mockRestore();
+  });
+
+  it("更新真失败的标题在 enUS 下渲染为 Failed to update entry", async () => {
+    updateEntry.mockResolvedValue(fail(ErrorCode.JOURNAL_UPDATE_FAILED));
+    const spy = vi.spyOn(useNotificationStore(), "addNotification");
+
+    const wrapper = mountWith(JournalEntryItem, { entry: makeEntry() }, { i18nInstance: i18nEn });
+    await wrapper.find(".entry-content").trigger("dblclick");
+    await flushPromises();
+    await wrapper.find("textarea").setValue("edited");
+    const saveBtn = wrapper.findAll("button").find((b) => b.text().includes("Save"));
+    expect(saveBtn).toBeTruthy();
+    await saveBtn!.trigger("click");
+    await flushPromises();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].title).toBe("Failed to update entry");
+    spy.mockRestore();
+  });
+
+  it("并发删除自愈（success:true + data:false、errorCode 为 null）⇒ 一次提示都不弹", async () => {
+    // 承重断言：若实现按「返回 false」弹提示，本用例即红（会被 notify 调用 1 次击穿）
+    updateEntry.mockResolvedValue(ok(false));
+    const store = useJournalStore();
+    store.days = [{ date: "2026-10-10", has_legacy_file: false, entries: [makeEntry()] }];
+    const spy = vi.spyOn(useNotificationStore(), "addNotification");
+
+    const wrapper = mountWith(JournalEntryItem, { entry: makeEntry() });
+    await saveEditOf(wrapper);
+
+    expect(store.errorCode).toBeNull();
+    // 本地按 DB 真值自愈移除该条目，且不撒谎说「更新失败」
+    expect(store.days[0].entries).toHaveLength(0);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("删除真失败 ⇒ 恰好一次「删除条目失败」且 clearError 生效（下次成功不再重复弹）", async () => {
+    deleteEntry.mockResolvedValueOnce(fail(ErrorCode.JOURNAL_DELETE_FAILED));
+    const spy = vi.spyOn(useNotificationStore(), "addNotification");
+
+    const wrapper = mountWith(JournalEntryItem, { entry: makeEntry() });
+    const deleteBtn = wrapper.findAll("button").find((b) => b.text().includes("删除"));
+    await deleteBtn!.trigger("click");
+    await flushPromises();
+
+    const onPositive = capturedDialog.options!.onPositiveClick as () => unknown;
+    await onPositive();
+    await flushPromises();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].level).toBe("error");
+    expect(spy.mock.calls[0][0].title).toBe("删除条目失败");
+    expect(spy.mock.calls[0][0].content).toBe(getErrorMessage(ErrorCode.JOURNAL_DELETE_FAILED));
+    expect(useJournalStore().errorCode).toBeNull(); // clearError 已执行
+
+    // 同一条目重试成功：不得再弹（错误态已被清理）
+    await onPositive();
+    await flushPromises();
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+
+  it("删除返回 data:false（已被并发软删、errorCode 未置）⇒ 不弹提示", async () => {
+    deleteEntry.mockResolvedValue(ok(false));
+    const spy = vi.spyOn(useNotificationStore(), "addNotification");
+
+    const wrapper = mountWith(JournalEntryItem, { entry: makeEntry() });
+    const deleteBtn = wrapper.findAll("button").find((b) => b.text().includes("删除"));
+    await deleteBtn!.trigger("click");
+    await flushPromises();
+    await (capturedDialog.options!.onPositiveClick as () => unknown)();
+    await flushPromises();
+
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
 });
 
 describe("JournalEntryItem 编辑与删除", () => {
@@ -419,8 +575,31 @@ describe("JournalBlock 日容器与旧文件导入", () => {
     spy.mockRestore();
   });
 
-  it("legacy 提示以解析成功的 NAlert 组件渲染（本地 import 生效，裁定 T9-1）", () => {
-    const day: JournalDayView = { date: "2020-01-03", has_legacy_file: true, entries: [] };
+  it("导入失败（res 为 null 且 errorCode 置位）⇒ 恰好一次「导入失败」", async () => {
+    importDayFile.mockResolvedValue(fail(ErrorCode.JOURNAL_CREATE_FAILED));
+    const spy = vi.spyOn(useNotificationStore(), "addNotification");
+    const day: JournalDayView = { date: "2020-01-05", has_legacy_file: true, entries: [] };
+
+    const wrapper = mountWith(JournalBlock, { day });
+    const importBtn = wrapper.findAll("button").find((b) => b.text().includes("导入此文件"));
+    await importBtn!.trigger("click");
+    await flushPromises();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].level).toBe("error");
+    expect(spy.mock.calls[0][0].title).toBe("导入失败");
+    expect(spy.mock.calls[0][0].content).toBe(getErrorMessage(ErrorCode.JOURNAL_CREATE_FAILED));
+    expect(useJournalStore().errorCode).toBeNull(); // clearError 已执行
+    // 重试成功不再弹错误提示（只保留成功 toast）
+    importDayFile.mockResolvedValue(ok({ imported: 1, updated: 0, skipped: 0 }));
+    await importBtn!.trigger("click");
+    await flushPromises();
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(spy.mock.calls[1][0].level).toBe("success");
+    spy.mockRestore();
+  });
+
+  it("legacy 提示以解析成功的 NAlert 组件渲染（本地 import 生效，裁定 T9-1）", () => {    const day: JournalDayView = { date: "2020-01-03", has_legacy_file: true, entries: [] };
     const wrapper = mountWith(JournalBlock, { day });
 
     // 未解析的 <n-alert> 会退化成自定义元素并照样渲染插槽文本，故必须按组件定义断言而非文本

@@ -94,6 +94,33 @@ describe('ProjectDao', () => {
     expect(projectDao.findByNameLike('Alpha')).toHaveLength(1)
   })
 
+  // ───── Item B：findByNameLike 必须转义 LIKE 通配符（% / _ / 转义符自身） ─────
+
+  it('findByNameLike：名字里的 % 不再被当通配符，且 ESCAPE 子句本身可用', () => {
+    projectDao.create({ name: '100%覆盖率', type: 'novel', file_path: 'projects/pct.md' })
+    projectDao.create({ name: '100x覆盖率', type: 'novel', file_path: 'projects/x.md' })
+    // 未转义时模式 %100%覆% 会把 '100x覆盖率' 一并捞进来（候选集过宽）
+    const hits = projectDao.findByNameLike('100%覆')
+    expect(hits.map((p) => p.name)).toEqual(['100%覆盖率'])
+  })
+
+  it('findByNameLike：名字里的 _ 不再被当单字符通配符', () => {
+    projectDao.create({ name: 'a_b', type: 'novel', file_path: 'projects/under.md' })
+    projectDao.create({ name: 'axb', type: 'novel', file_path: 'projects/axb.md' })
+    expect(projectDao.findByNameLike('a_b').map((p) => p.name)).toEqual(['a_b'])
+  })
+
+  it('findByNameLike：转义符自身（反斜杠）参与匹配仍可检索', () => {
+    projectDao.create({ name: '路径\\文件', type: 'novel', file_path: 'projects/bs.md' })
+    expect(projectDao.findByNameLike('路径\\文件').map((p) => p.name)).toEqual(['路径\\文件'])
+  })
+
+  it('findByNameLike：普通关键词行为不变（防转义过头）', () => {
+    projectDao.create({ name: '读书笔记', type: 'novel', file_path: 'projects/note.md' })
+    projectDao.create({ name: '随笔', type: 'novel', file_path: 'projects/essay.md' })
+    expect(projectDao.findByNameLike('笔记').map((p) => p.name)).toEqual(['读书笔记'])
+  })
+
   it('should manage tags via saveTags', () => {
     const pid = projectDao.create({ name: 'Tagged', type: 'research', file_path: 'projects/tagged.md' })
     const tid = tagDao.create({ name: 'important' })

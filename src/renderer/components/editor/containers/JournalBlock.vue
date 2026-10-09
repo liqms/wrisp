@@ -44,7 +44,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { requestImportDayFile } = useJournal();
+const { requestImportDayFile, hasError, errorMessage, clearError } = useJournal();
 const notify = useFrontendNotification({
   title: t("TIPS.JOURNAL.IMPORT_TITLE"),
   content: "",
@@ -79,6 +79,15 @@ async function doImport() {
       t("TIPS.JOURNAL.IMPORT_TITLE"),
       t("TIPS.JOURNAL.IMPORT_RESULT", { imported: res.imported, updated: res.updated, skipped: res.skipped }),
     );
+  } else {
+    // 导入失败此前完全静默。判据与条目编辑/删除同源（hasError 而非返回值）：
+    // importDayFile 的 success:true 必带 data 对象，res===null 即真失败，
+    // 但仍统一用 errorCode 口径，四条动作路径一致
+    const content = errorMessage.value;
+    if (hasError.value && content) {
+      notify.error(t("TIPS.JOURNAL.IMPORT_FAILED"), content);
+      clearError();
+    }
   }
 }
 </script>

@@ -133,8 +133,12 @@ export class ProjectDao extends BaseDao<Project, ProjectCreate, ProjectUpdate> {
   }
 
   findByNameLike(name: string): Project[] {
-    const sql = `SELECT * FROM ${this.tableName} WHERE name LIKE ? AND status = 'active' ORDER BY name ASC`;
-    return this.query(sql, [`%${name}%`]);
+    // 用户输入里的 % / _ 是 LIKE 通配符、\ 是转义符，必须转义后再包窗口，
+    // 否则 composer 打 `&100%` 会拿到过宽候选集。SQL 层写 ESCAPE '\'（单字符），
+    // TS 模板串里的 '\\' 正是为了落成 SQL 文本的 '\'。
+    const escaped = name.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+    const sql = `SELECT * FROM ${this.tableName} WHERE name LIKE ? ESCAPE '\\' AND status = 'active' ORDER BY name ASC`;
+    return this.query(sql, [`%${escaped}%`]);
   }
 
   findAllDetail(): ProjectDetail[] {
