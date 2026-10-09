@@ -1,10 +1,10 @@
 <template>
   <n-flex class="journal-view" vertical>
-    <n-spin v-if="loading" class="loading" />
+    <n-spin v-if="daysLoading" class="loading" />
     <n-scrollbar v-else ref="scrollbarRef" @scroll="onScroll">
-      <template v-for="(journal, index) in recentJournals" :key="journal.id">
-        <JournalBlock :journal="journal" />
-        <n-divider v-if="index < recentJournals.length - 1" />
+      <template v-for="(day, index) in days" :key="day.date">
+        <JournalBlock :day="day" />
+        <n-divider v-if="index < days.length - 1" />
       </template>
     </n-scrollbar>
   </n-flex>
@@ -12,96 +12,43 @@
 
 <script setup lang="ts">
 import { onMounted, ref, nextTick, watch } from "vue";
-import { useDialog, type ScrollbarInst } from "naive-ui";
+import type { ScrollbarInst } from "naive-ui";
 import JournalBlock from "@/renderer/components/editor/containers/JournalBlock.vue";
 import { useJournal } from "@/renderer/composables/useJournal";
 import { useConfig } from "@/renderer/composables/useConfig";
-import { TimeUtil } from "@/shared/utils";
-import { useI18n } from "vue-i18n";
 
-const { t } = useI18n();
-const dialog = useDialog();
-const { recentJournals, loading, loadingMore, hasMore, getRecentDays, loadMore, createJournal, clearJournals, checkTodayJournalExists, syncLocalFiles } =
-  useJournal({ recentDays: 5 });
+const { days, daysLoading, loadingMoreDays, hasMoreDays, loadRecentDays, loadMoreDays, clearDays } =
+  useJournal();
 const { workspace } = useConfig();
 
 const scrollbarRef = ref<ScrollbarInst | null>(null);
 const scrollTop = ref(0);
-/** 已累计加载的天数，滚动到底部时每次再增加 5 天 */
-const loadedDays = ref(5);
-let prevTotalCount = 0;
 
 function onScroll(e: Event) {
   const target = e.target as HTMLElement;
   if (!target) return;
   scrollTop.value = target.scrollTop;
-  // 滚动到接近底部时自动加载更早的 5 天日志
+  // 滚动到接近底部时自动加载更早的日志时间线
   if (target.scrollHeight - target.scrollTop - target.clientHeight < 40) {
-    loadMoreJournals();
+    void loadMoreJournals();
   }
 }
 
 async function loadMoreJournals() {
-  if (loading.value || loadingMore.value || !hasMore.value) return;
-  loadedDays.value += 5;
-  await loadMore(loadedDays.value);
-}
-
-async function ensureTodayJournal() {
-  const today = TimeUtil.getLocalDateString();
-  const hasToday = recentJournals.value.some((j) => j.date === today);
-  if (hasToday) return;
-
-  const fileExists = await checkTodayJournalExists(today);
-  if (fileExists) {
-    return new Promise<void>((resolve) => {
-      dialog.warning({
-        title: t("TIPS.JOURNAL.LOAD_EXISTING_TITLE"),
-        content: t("TIPS.JOURNAL.LOAD_EXISTING_CONTENT"),
-        positiveText: t("ACTION.COMMON.LOAD"),
-        negativeText: t("ACTION.COMMON.OVERWRITE"),
-        async onPositiveClick() {
-          await syncLocalFiles();
-          await getRecentDays(5);
-          resolve();
-          return true;
-        },
-        async onNegativeClick() {
-          await createJournal({ date: today, content: "" });
-          await getRecentDays(5);
-          resolve();
-          return true;
-        },
-        onClose: () => {
-          resolve();
-        },
-      });
-    });
-  }
-
-  const id = await createJournal({ date: today, content: "" });
-  if (id) {
-    await getRecentDays(5);
-  }
+  if (daysLoading.value || loadingMoreDays.value || !hasMoreDays.value) return;
+  await loadMoreDays();
 }
 
 async function loadData() {
-  loadedDays.value = 5;
-  await getRecentDays(5);
-  await ensureTodayJournal();
-  prevTotalCount = recentJournals.value.length;
+  await loadRecentDays(5);
 }
 
 watch(
-  recentJournals,
+  days,
   () => {
-    const currentTotal = recentJournals.value.length;
     const savedScrollTop = scrollTop.value;
-
-    prevTotalCount = currentTotal;
-
     nextTick(() => {
-      if (prevTotalCount > 0 && savedScrollTop > 0) {
+      if (savedScrollTop > 0) {
         scrollbarRef.value?.scrollTo({ top: savedScrollTop });
       }
     });
@@ -112,7 +59,7 @@ watch(
 watch(
   () => workspace.value,
   async () => {
-    clearJournals();
+    clearDays();
     await loadData();
   },
 );
