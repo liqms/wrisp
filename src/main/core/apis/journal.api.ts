@@ -1,4 +1,5 @@
 import { journalService } from "@/main/core/services/content/journal.service";
+import { isJournalDate } from "@/main/core/services/content/journal/journal-render";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type {
@@ -50,17 +51,13 @@ async function appendEntry(
 /**
  * 更新一条日志条目（内容 / 时刻）
  * @param record 条目 ID + 待更新字段
- * @returns 更新成功与否
+ * @returns 是否真的改了行（false=并发删除致 0 行，success 仍为 true，store 侧按 no-op 自愈）
  */
 async function updateEntry(
   record: JournalEntryUpdatePayload,
 ): Promise<ApiResponse<boolean>> {
   try {
-    const result = journalService.updateEntry(record);
-    if (!result) {
-      return response.error(ErrorCode.JOURNAL_UPDATE_FAILED);
-    }
-    return response.success(result);
+    return response.success(journalService.updateEntry(record));
   } catch (error) {
     Logger.error("更新日志条目失败", { error: String(error), record });
     return response.error(ErrorCode.JOURNAL_UPDATE_FAILED, error as Error);
@@ -70,20 +67,19 @@ async function updateEntry(
 /**
  * 软删除一条日志条目
  * @param id 条目 ID
- * @returns 删除成功与否
+ * @returns 是否真的删了行（false=已软删/不存在，success 仍为 true，store 侧按 no-op 自愈）
  */
 async function deleteEntry(id: Id): Promise<ApiResponse<boolean>> {
   try {
-    const result = journalService.deleteEntry(id);
-    if (!result) {
-      return response.error(ErrorCode.JOURNAL_DELETE_FAILED);
-    }
-    return response.success(result);
+    return response.success(journalService.deleteEntry(id));
   } catch (error) {
     Logger.error("删除日志条目失败", { error: String(error), id });
     return response.error(ErrorCode.JOURNAL_DELETE_FAILED, error as Error);
   }
 }
+
+// date 必须过 isJournalDate：它会拼进 journal/{date}.md（resolvePath 只防越出工作区）
+const MAX_JOURNAL_TIMELINE_DAYS = 366;
 
 /**
  * 当日未删除条目（含标签 / 作品关联）
@@ -91,6 +87,9 @@ async function deleteEntry(id: Id): Promise<ApiResponse<boolean>> {
  * @returns 条目视图数组
  */
 async function listEntries(date: string): Promise<ApiResponse<JournalEntryView[]>> {
+  if (!isJournalDate(date)) {
+    return response.error(ErrorCode.COMMON_INVALID_PARAMETER);
+  }
   try {
     const entries = journalService.listEntries(date);
     return response.success(entries);
@@ -110,6 +109,11 @@ async function listRecentDays(
   days?: number,
   beforeDate?: string,
 ): Promise<ApiResponse<JournalDayView[]>> {
+  const daysValid =
+    days === undefined || (Number.isInteger(days) && days >= 1 && days <= MAX_JOURNAL_TIMELINE_DAYS);
+  if (!daysValid || (beforeDate !== undefined && !isJournalDate(beforeDate))) {
+    return response.error(ErrorCode.COMMON_INVALID_PARAMETER);
+  }
   try {
     const records = journalService.listRecentDays(days, beforeDate);
     return response.success(records);
@@ -129,6 +133,9 @@ async function importDayFile(
   date: string,
   overwrite?: boolean,
 ): Promise<ApiResponse<JournalImportResult>> {
+  if (!isJournalDate(date)) {
+    return response.error(ErrorCode.COMMON_INVALID_PARAMETER);
+  }
   try {
     const result = journalService.importDayFile(date, overwrite);
     return response.success(result);

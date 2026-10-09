@@ -523,7 +523,6 @@ export default {
       REBUILD_INDEX: "Reload & Clear Data",
       REBUILD_INDEX_DESC:
         "Projects and pages are reloaded from local files; journal entries and their semantic chunks are only cleared, never rebuilt - journal files can be imported again later",
-      REBUILD_INDEX_LOADING: "Working...",
       REBUILD_INDEX_SUCCESS:
         "Projects reloaded: {projects} projects, {pages} pages; journal entries cleared: {journals}",
     },

@@ -520,7 +520,6 @@ export default {
       REBUILD_INDEX: "数据重载与清空",
       REBUILD_INDEX_DESC:
         "作品与页面按本地文件重新加载；日志条目与其语义索引只清空、不重建，日志文件之后可从导入入口重新载入",
-      REBUILD_INDEX_LOADING: "处理中...",
       REBUILD_INDEX_SUCCESS:
         "作品重载：作品 {projects} 个、页面 {pages} 个；日志条目已清空 {journals} 条",
     },

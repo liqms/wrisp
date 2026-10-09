@@ -160,6 +160,13 @@ describe("processJournalDay 的失败收敛", () => {
     });
   });
 
+  it("非法日期载荷（持久队列里的恶意/脏 date）直接跳过，不触达 DAO", async () => {
+    await chunkIndexService.processJournalDay("../pages/mypage");
+
+    expect(listDirtyByDateMock).not.toHaveBeenCalled();
+    expect(findByFilePathMock).not.toHaveBeenCalled();
+  });
+
   it("单条切块抛错 → 标记当日 file_index failed 并抛出（不再静默吞掉）", async () => {
     listDirtyByDateMock.mockReturnValue([
       { id: "e1", content: "一段足以独立成块的日志正文，用来验证切块落库失败时的状态收敛。" },

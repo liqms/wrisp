@@ -167,6 +167,7 @@ vi.mock("@/main/core/services/content/character.service", () => ({
 }));
 
 import { journalService } from "@/main/core/services/content/journal.service";
+import { Logger } from "@/main/utils/logger";
 
 /** 与实现独立的本地日期推导（用于断言 date 由本地时区派生） */
 function localDateOf(instant: Date): string {
@@ -926,5 +927,28 @@ describe("journal.service 条目编排", () => {
     const created = entryCreateMock.mock.calls[0][0] as Record<string, unknown>;
     expect(created.source).toBe("mobile");
     expect(created.type).toBe("voice");
+  });
+
+  // FI-3：条目已提交是 DB 真值——渲染产物写失败不得把成功改写成抛错（用户重试追加会写出重复条目）
+  it("appendEntry：ensureDayFile 写文件抛错仍返回条目 id，记 warn 且不吞掉按日切块调度", () => {
+    fileWriteMock.mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+
+    const id = journalService.appendEntry({ content: "晨记" });
+
+    expect(id).toBe("entry-id");
+    expect(Logger.warn).toHaveBeenCalled();
+    expect(scheduleJournalDayMock).toHaveBeenCalledWith(localDateOf(new Date()));
+  });
+
+  it("updateEntry：日文件渲染抛错仍返回 true（改行已提交），调度不因此丢失", () => {
+    entryFindByIdMock.mockReturnValue(fakeRow());
+    fileWriteMock.mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+
+    expect(journalService.updateEntry({ id: "e1", content: "改后正文" })).toBe(true);
+    expect(scheduleJournalDayMock).toHaveBeenCalledWith("2026-10-08");
   });
 });

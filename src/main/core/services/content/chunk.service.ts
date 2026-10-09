@@ -158,13 +158,13 @@ class ChunkService {
    * @param fileId 文件索引 ID（file_index.id）
    * @param filePath 文件相对路径（写入 semantic_chunks.file_path）
    * @param chunks 切分结果
-   * @param chunkType 语义块来源类型，默认 journal
+   * @param chunkType 语义块来源类型，调用方必须显式指定（日志条目化后不再有 journal 默认口径）
    */
   public replaceFileChunks(
     fileId: Id,
     filePath: string,
     chunks: SplitChunk[],
-    chunkType: ChunkType = "journal",
+    chunkType: ChunkType,
   ): ChunkSyncResult {
     try {
       const records: ChunkCreate[] = chunks.map((chunk) => ({

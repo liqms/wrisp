@@ -391,7 +391,8 @@ class JournalService {
   }
 
   /**
-   * 清空日志条目：删除全部 `journal_entries` 行、journal 语义块（含其向量）与
+   * 清空日志条目：删除全部 `journal_entries` 行、journal 语义块（其向量在事务提交后异步清，
+   * 清理失败会留下无人回收的孤儿向量）与
    * tagged_items / journal_entry_projects 关联，**不重建任何东西**
    * （设置页沿用 `journal:resetJournalTable` channel 名，但这里只有清）。
    *
@@ -461,7 +462,13 @@ class JournalService {
   private afterEntryWrite(entryId: Id, content: string, ...dates: string[]): void {
     this.syncEntryAssociations(entryId, content);
     for (const date of new Set(dates.filter((d) => d))) {
-      this.ensureDayFile(date);
+      // FI-3：条目已提交，渲染失败只降级告警，不得把成功改写成异常（重试追加会写出重复条目）
+      try {
+        this.ensureDayFile(date);
+      } catch (error) {
+        Logger.warn("条目写入后渲染日文件失败", { date, error: String(error) });
+      }
+      // 调度照常：条目脏水位线是日文件/切块后续收敛的依据，不能被渲染失败连坐
       chunkIndexService.scheduleJournalDay(date);
     }
   }

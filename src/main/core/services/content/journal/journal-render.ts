@@ -45,6 +45,16 @@ import { markCodeFenceLines } from "../splitting/structure";
 /** 当前文件格式版本；写入文件标记，解析时不参与判定（版本升级需保持可读旧文件） */
 export const JOURNAL_FILE_FORMAT = 1;
 
+/** 日志日期（YYYY-MM-DD）正则源：边界校验与日文件名解析共用这一处定义 */
+export const JOURNAL_DATE_RE_SOURCE = "\\d{4}-\\d{2}-\\d{2}";
+
+const JOURNAL_DATE_RE = new RegExp(`^${JOURNAL_DATE_RE_SOURCE}$`);
+
+/** 值是否为符合日志日期约定的字符串（IPC / 队列载荷边界的 date 校验） */
+export function isJournalDate(value: unknown): value is string {
+  return typeof value === "string" && JOURNAL_DATE_RE.test(value);
+}
+
 const DAY_MARKER_RE = /^\s*<!--\s*wrisp:journal\s+(\{.*\})\s*-->\s*$/;
 const ENTRY_META_RE = /^\s*<!--\s*wrisp:entry\s+(\{.*\})\s*-->\s*$/;
 /** 代码围栏起始行（``` 或 ~~~）——解析侧自管围栏态，规则 3 例外需逐行推进 */

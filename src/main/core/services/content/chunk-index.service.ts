@@ -14,7 +14,11 @@ import {
   thresholdForChunkType,
 } from "./chunk-splitter";
 import { notifyWikiUpdated } from "./wiki-events";
-import { isEntryOwnedJournalMarkdown } from "./journal/journal-render";
+import {
+  isEntryOwnedJournalMarkdown,
+  isJournalDate,
+  JOURNAL_DATE_RE_SOURCE,
+} from "./journal/journal-render";
 import type { SentenceEmbedder, SplitChunk } from "./splitting/types";
 import type { ChunkType } from "@/main/types/db";
 
@@ -66,7 +70,7 @@ export function journalChunkDayGroupId(date: string): string {
 }
 
 /** 日志日文件名（`journal/{YYYY-MM-DD}.md`）→ 日期；不符合约定时返回 null */
-const JOURNAL_FILE_DATE_RE = /(\d{4}-\d{2}-\d{2})\.md$/;
+const JOURNAL_FILE_DATE_RE = new RegExp(`(${JOURNAL_DATE_RE_SOURCE})\\.md$`);
 
 function journalDateFromFilePath(filePath: string): string | null {
   return JOURNAL_FILE_DATE_RE.exec(filePath || "")?.[1] ?? null;
@@ -296,6 +300,25 @@ class ChunkIndexService {
 
     try {
       const markdown = fileService.readFile(index.file_path);
+
+      // 与 processFile 同一条守卫：条目化日文件的块带 entry_id，syncByFile 会连坐销毁——让位给条目路径
+      if (chunkType === "journal" && isEntryOwnedJournalMarkdown(markdown)) {
+        const date = journalDateFromFilePath(index.file_path);
+        if (date) {
+          Logger.info("[ChunkIndex] 日志文件已由条目接管，精修改按日切块", {
+            fileId,
+            date,
+          });
+          this.scheduleJournalDay(date);
+        } else {
+          Logger.warn("[ChunkIndex] 条目化日志文件无法解析日期，跳过语义精修", {
+            fileId,
+            filePath: index.file_path,
+          });
+        }
+        return;
+      }
+
       const result = splitDocument(markdown);
       if (!hasRefineTargets(result)) return;
 
@@ -393,6 +416,11 @@ class ChunkIndexService {
    * synced）或队列重试都会覆盖它。
    */
   public async processJournalDay(date: string): Promise<void> {
+    // 队列载荷的 date 不可信：它会被拼进 journal/{date}.md 路径，先过同一条日期约定
+    if (!isJournalDate(date)) {
+      Logger.warn("[ChunkIndex] 非法日志日期载荷，跳过按日切块", { date });
+      return;
+    }
     const entries = this.journalEntryDao.listDirtyByDate(date);
     if (entries.length === 0) return;
 

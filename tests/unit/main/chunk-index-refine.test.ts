@@ -65,6 +65,11 @@ import {
   TASK_TYPE_FILE_CHUNK_REFINE,
 } from "@/main/core/services/content/chunk-index.service";
 
+/** 守卫命中时不应真的起计时器，只需断言转交了按日切块 */
+const scheduleJournalDayMock = vi
+  .spyOn(chunkIndexService, "scheduleJournalDay")
+  .mockImplementation(() => {});
+
 /** 4 句（向量）+ 3 句（前端）：整块越过 L2 的 500 字符预算，语义边界在第 4/5 行 */
 const MD = [
   ...[1, 2, 3, 4].map((i) => `向量第${i}句：${"检索要点".repeat(23)}。`),
@@ -74,6 +79,16 @@ const MD = [
 const SHORT_MD = "一句话段落。\n另一句段落。";
 
 const INDEX = { id: "f1", file_path: "journal/2026-10-06.md", file_hash: "h1" };
+
+/** 条目化日文件（首行 wrisp:journal 标记）：条目正文含超长块，若守卫缺失会走到整篇替换 */
+const ENTRY_OWNED_MD = [
+  '<!-- wrisp:journal {"format":1,"date":"2026-10-06"} -->',
+  "# 2026-10-06",
+  "",
+  "**09:32**",
+  '<!-- wrisp:entry {"id":"a1","at":"2026-10-06T01:32:00.000Z","src":"desktop","type":"text","u":"2026-10-06T01:32:00.000Z"} -->',
+  MD,
+].join("\n");
 
 function twoTopicVectors(texts: string[]): Array<{ vector: number[] }> {
   return texts.map((text) => ({
@@ -188,5 +203,34 @@ describe("切分任务与 L3 精修任务的衔接", () => {
       chunkIndexService.processFile("f1", "h1", "journal", null),
     ).rejects.toThrow("文件读取失败");
     expect(updateSyncStatusMock).toHaveBeenCalledWith("f1", "failed");
+  });
+
+  it("条目化日文件不做整篇精修替换，转交按日切块（FI-4 守卫）", async () => {
+    readFileMock.mockReturnValue(ENTRY_OWNED_MD);
+
+    await chunkIndexService.processRefine("f1", "h1", "journal", null);
+
+    expect(replaceFileChunksMock).not.toHaveBeenCalled();
+    expect(dropVectorsByIdsMock).not.toHaveBeenCalled();
+    expect(scheduleJournalDayMock).toHaveBeenCalledWith("2026-10-06");
+  });
+
+  it("条目化日文件解析不出日期时只跳过精修，既不整篇替换也不转交", async () => {
+    readFileMock.mockReturnValue(ENTRY_OWNED_MD);
+    findByIdMock.mockReturnValue({ ...INDEX, file_path: "journal/当日手记.md" });
+
+    await chunkIndexService.processRefine("f1", "h1", "journal", null);
+
+    expect(replaceFileChunksMock).not.toHaveBeenCalled();
+    expect(scheduleJournalDayMock).not.toHaveBeenCalled();
+  });
+
+  it("页面文件带同名标记不受守卫影响（守卫只认 journal 类型）", async () => {
+    readFileMock.mockReturnValue(ENTRY_OWNED_MD);
+
+    await chunkIndexService.processRefine("f1", "h1", "page", "p1");
+
+    expect(replaceFileChunksMock).toHaveBeenCalled();
+    expect(scheduleJournalDayMock).not.toHaveBeenCalled();
   });
 });
