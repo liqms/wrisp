@@ -227,10 +227,6 @@ export default {
       SUMMARY_LABEL: "摘要",
     },
     JOURNAL: {
-      SEND: "快速记录",
-      INPUT_JOURNAL_TIP:
-        "快速记录思考、想法或笔记。Wrisp 将自动帮您关联、整理并沉淀为知识体系。",
-      SEND_TIP: "按 Enter 换行，Shift + Enter 记录",
       APPEND_PLACEHOLDER: "记一条…（Ctrl+Enter 追加）  #标签  &作品  \\@人物",
       APPEND_ACTION: "追加",
       APPEND_FAILED: "追加失败",
@@ -521,10 +517,12 @@ export default {
     },
     DATA_MANAGER_SETTINGS: {
       WORKSPACE: "工作空间",
-      REBUILD_INDEX: "重建索引",
-      REBUILD_INDEX_DESC: "读取本地日志与作品文件，重新构建数据索引",
-      REBUILD_INDEX_LOADING: "重建中...",
-      REBUILD_INDEX_SUCCESS: "索引重建完成：日志 {journals} 条，作品 {projects} 个，页面 {pages} 个",
+      REBUILD_INDEX: "数据重载与清空",
+      REBUILD_INDEX_DESC:
+        "作品与页面按本地文件重新加载；日志条目与其语义索引只清空、不重建，日志文件之后可从导入入口重新载入",
+      REBUILD_INDEX_LOADING: "处理中...",
+      REBUILD_INDEX_SUCCESS:
+        "作品重载：作品 {projects} 个、页面 {pages} 个；日志条目已清空 {journals} 条",
     },
     SMART_TASK: {
       TITLE: "智能整理",

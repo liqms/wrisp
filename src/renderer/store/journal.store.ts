@@ -76,7 +76,7 @@ export const useJournalStore = defineStore("journal", () => {
       }
       return 0;
     } catch (error) {
-      console.warn("重置 file_index 表失败", error);
+      console.warn("清空日志条目失败", error);
       return 0;
     }
   };
@@ -86,7 +86,7 @@ export const useJournalStore = defineStore("journal", () => {
     errorMessage.value = null;
   };
 
-  // ───── 条目化动作（additive；旧整篇动作保留至 Task 10） ─────
+  // ───── 条目动作 ─────
 
   /**
    * 整窗刷新最近若干天的时间线：重置 days 与翻页状态
@@ -332,7 +332,7 @@ export const useJournalStore = defineStore("journal", () => {
     }
   };
 
-  /** 清空条目时间线（切换视图 / 重置数据时用，不影响旧整篇状态） */
+  /** 清空条目时间线（切换视图 / 重置数据时用） */
   const clearDays = () => {
     days.value = [];
     hasMoreDays.value = true;
@@ -344,7 +344,7 @@ export const useJournalStore = defineStore("journal", () => {
     hasError,
     resetJournalTable,
     clearError,
-    // ───── 条目化时间线（additive） ─────
+    // ───── 条目时间线 ─────
     days,
     daysLoading,
     loadingMoreDays,

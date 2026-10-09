@@ -44,6 +44,15 @@ function makeRecord(content: string, hash: string, entryId = "e1") {
   };
 }
 
+/** 直插一行语义块，精确控制 chunk_type 与 entry_id（接管清理的 WHERE 只认这两列 + file_id） */
+function insertChunk(db: Database.Database, id: string, chunkType: string, entryId: string | null) {
+  db.prepare(
+    `INSERT INTO semantic_chunks
+       (id, file_id, file_path, start_line, end_line, content, content_hash, chunk_type, entry_id, status, created_at, updated_at)
+     VALUES (?, 'f1', 'journal/2026-10-09.md', 1, 2, ?, ?, ?, ?, 'active', ?, ?)`,
+  ).run(id, `块正文 ${id}`, `hash-${id}`, chunkType, entryId, TS, TS);
+}
+
 describe("ChunkDao.syncByEntry", () => {
   it("同 hash 复用 id（保留摘要/标记水位线），异 hash 删旧插新", () => {
     seedFileAndEntry(mem());
@@ -113,5 +122,23 @@ describe("ChunkDao.syncByEntry", () => {
     ) as Array<{ id: string; entry_id: string | null }>;
     expect(rows.length).toBe(chunks.length);
     expect(rows.every((r) => r.entry_id === "e1")).toBe(true);
+  });
+});
+
+// 接管清理的范围条件（Ruling T10-3）：条目块同样携带 file_id，
+// 一旦 WHERE 退化成像 syncByFile 那样的「按 file_id 全删」，接管的条目块会被一起销毁。
+describe("ChunkDao.removeFileLevelJournalChunks", () => {
+  it("只清文件级日志块：同 file_id 下的条目块与页面块必须存活", () => {
+    seedFileAndEntry(mem());
+    const dao = new ChunkDao();
+    insertChunk(mem(), "c-journal-file", "journal", null); // 整篇切分产物 → 应被清掉
+    insertChunk(mem(), "c-journal-entry", "journal", "e1"); // 条目块（带 file_id）→ 必须存活
+    insertChunk(mem(), "c-page-file", "page", null); // 作品页面块 → 不得越界
+
+    const removed = dao.removeFileLevelJournalChunks("f1");
+
+    expect(removed).toEqual(["c-journal-file"]);
+    const survivors = dao.query("SELECT id FROM semantic_chunks ORDER BY id") as Array<{ id: string }>;
+    expect(survivors.map((row) => row.id)).toEqual(["c-journal-entry", "c-page-file"]);
   });
 });

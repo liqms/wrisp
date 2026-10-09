@@ -118,11 +118,13 @@ class ChunkIndexService {
   /**
    * 调度文件切分。静默窗口内重复调用会重置计时器，
    * 且只保留最新 hash（窗口到期后按最新内容切分）。
+   * 日志条目化后没有文件级日志调度入口（按日走 {@link scheduleJournalDay}），
+   * 故 `chunkType` 必须由调用方显式指定。
    */
   public schedule(
     fileId: string,
     fileHash: string,
-    chunkType: ChunkType = "journal",
+    chunkType: ChunkType,
     projectId: string | null = null,
   ): void {
     if (!fileId) return;

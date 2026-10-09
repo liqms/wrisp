@@ -229,10 +229,6 @@ export default {
       SUMMARY_LABEL: "Summary",
     },
     JOURNAL: {
-      SEND: "Quick Capture",
-      INPUT_JOURNAL_TIP:
-        "Quickly capture your thoughts, ideas or notes. Wrisp will automatically help you associate, organize and precipitate them into a knowledge system.",
-      SEND_TIP: "Press Enter for a new line, Shift + Enter to capture",
       APPEND_PLACEHOLDER: "Log an entry… (Ctrl+Enter to append)  #tag  &project  \\@person",
       APPEND_ACTION: "Append",
       APPEND_FAILED: "Failed to append entry",
@@ -524,10 +520,12 @@ export default {
     },
     DATA_MANAGER_SETTINGS: {
       WORKSPACE: "Workspace",
-      REBUILD_INDEX: "Rebuild Index",
-      REBUILD_INDEX_DESC: "Read local Journal and project files, then rebuild the data index",
-      REBUILD_INDEX_LOADING: "Rebuilding...",
-      REBUILD_INDEX_SUCCESS: "Index rebuilt: {journals} journals, {projects} projects, {pages} pages",
+      REBUILD_INDEX: "Reload & Clear Data",
+      REBUILD_INDEX_DESC:
+        "Projects and pages are reloaded from local files; journal entries and their semantic chunks are only cleared, never rebuilt - journal files can be imported again later",
+      REBUILD_INDEX_LOADING: "Working...",
+      REBUILD_INDEX_SUCCESS:
+        "Projects reloaded: {projects} projects, {pages} pages; journal entries cleared: {journals}",
     },
     SMART_TASK: {
       TITLE: "Smart Organize",

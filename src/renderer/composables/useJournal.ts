@@ -8,15 +8,7 @@ import type {
 } from "@/shared/types";
 import { logger } from "@/renderer/utils/logger.utils";
 
-interface UseJournalOptions {
-  /** 挂载即加载最近若干天的条目时间线 */
-  autoLoadRecent?: boolean;
-  /** 自动加载的窗口天数，缺省沿用 store 默认窗口 */
-  firstWindow?: number;
-}
-
-export function useJournal(options: UseJournalOptions = {}) {
-  const { autoLoadRecent = false, firstWindow } = options;
+export function useJournal() {
   const store = useJournalStore();
 
   const errorCode = computed(() => store.errorCode);
@@ -30,8 +22,8 @@ export function useJournal(options: UseJournalOptions = {}) {
   const hasMoreDays = computed(() => store.hasMoreDays);
 
   /**
-   * 重置日志条目（channel 名沿用旧的 `resetJournalTable`）：
-   * 设置页「重建索引」与项目表重置并行调用，返回清除的条目数
+   * 清空日志条目（channel 名沿用旧的 `resetJournalTable`）：
+   * 设置页数据管理入口与项目表重置并行调用，返回清除的条目数
    */
   const resetJournalTable = async (): Promise<number> => {
     try {
@@ -130,10 +122,6 @@ export function useJournal(options: UseJournalOptions = {}) {
   };
 
   const clearDays = () => store.clearDays();
-
-  if (autoLoadRecent) {
-    void loadRecentDays(firstWindow);
-  }
 
   return {
     errorCode,

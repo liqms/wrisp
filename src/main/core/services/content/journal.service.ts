@@ -43,7 +43,7 @@ import { characterService } from "@/main/core/services/content/character.service
  * 条目化改造（spec §6）后**只有这一条写入路径**：整篇文档的旧写入路径
  * （create/update/delete/getRecentDays/checkTodayJournalExists/syncLocalFiles/scanJournalFiles）
  * 已随 Task 10 移除，文件级方法不再存在，任何"绕过条目直接改日文件"的写法都不再受支持。
- * `resetJournalTable` 只保留了 channel 名（设置页「重建索引」在用），实现已换成条目维度的 `resetEntries`。
+ * `resetJournalTable` 只保留了 channel 名（设置页数据管理入口在用），实现是条目维度的 `resetEntries`——只清空、不重建。
  */
 class JournalService {
   private static instance: JournalService;
@@ -197,7 +197,8 @@ class JournalService {
    *
    * 向量层（LanceDB）没有事务、也没有外键级联，只能留在事务外异步清理：
    * 代价是「块已删、向量删除失败」的窗口仍存在，但向量行按 chunk_id 命中不到正文的块，
-   * 只是白占 ANN 名额，且删除入口幂等（重跑 reset / 下一次重切都会再清一次），
+   * 只是白占 ANN 名额；重试 deleteEntry 会在入口短路（已有 deleted_at），按日切块只取活跃条目，
+   * 所以这批孤儿向量**只有整库 {@link resetEntries} 才会回收**。
    * 相比把条目写坏在同一事务里回滚，这个代价是可接受的降级。
    *
    * @returns 删除成功返回 true，条目不存在或已删除返回 false
@@ -390,8 +391,13 @@ class JournalService {
   }
 
   /**
-   * 重置日志条目：清空 journal_entries 及其 tagged_items / journal_entry_projects 关联，
-   * 并一并清掉 journal 语义块（含其向量）。沿用 `journal:resetJournalTable` channel 名。
+   * 清空日志条目：删除全部 `journal_entries` 行、journal 语义块（含其向量）与
+   * tagged_items / journal_entry_projects 关联，**不重建任何东西**
+   * （设置页沿用 `journal:resetJournalTable` channel 名，但这里只有清）。
+   *
+   * 刻意**不删** `journal/%` 的 file_index 行：{@link JournalEntryDao.listLegacyDates}
+   * 正靠这些行把「有日文件、无活跃条目」的日期浮出来，重置后磁盘上的 `.md` 渲染产物
+   * 仍能被重新导入。若像被删掉的旧方法那样连 file_index 一起清，重置后日志内容就再也找不到了。
    * @returns 清除的条目数
    */
   public resetEntries(): number {
@@ -510,10 +516,11 @@ class JournalService {
    * 当日零条目、且文件已存在且非空、且**不是**条目接管文件（无 wrisp:journal 标记，
    * 即旧版整篇日志）时**绝不覆盖**。
    *
-   * 与「接管即导入」（{@link takeoverLegacyDay}）的分工：追加路径已经把这种文件先导入成
-   * 条目，走到这里时当日必有条目，本分支正常不再命中；保留它是**最后一道兜底**——
-   * 覆盖「导入未产出任何条目」（文件里除了标题与空行什么都没有）却仍要渲染空日、
-   * 以及任何新增的绕过追加路径的调用。删掉它等于把用户数据的安全网换成一条时序约定。
+   * 与「接管即导入」（{@link takeoverLegacyDay}）的分工：追加 / 更新 / 删除路径走到这里时
+   * 当日必有刚写过的活跃条目，本分支不命中——它兜的是「库里零条目 + 磁盘上是一份本管线之外
+   * 的文件」（日文件被手工去掉了标记、外部写入的旧文件、任何新增调用点），宁可不写也不覆写。
+   * 「导入未产出任何条目」不需要它兜底：按 {@link parseJournalDayFile}，解析出零条目的文件
+   * 只可能由日标记、它自己的 `# <date>` 标题与空正文时间戳头组成，本就没有正文可丢。
    *
    * 带标记的文件是本管线自己的渲染产物：当日最后一条条目被删除后必须重写为空日渲染，
    * 否则已删内容会永久滞留文件（真源是库，文件是产物）。
