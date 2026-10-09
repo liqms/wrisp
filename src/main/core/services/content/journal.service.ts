@@ -244,8 +244,7 @@ class JournalService {
       });
     }
 
-    this.ensureDayFile(row.date);
-    chunkIndexService.scheduleJournalDay(row.date);
+    this.renderAndScheduleDay(row.date);
     return true;
   }
 
@@ -359,8 +358,7 @@ class JournalService {
 
     if (result.imported > 0 || result.updated > 0) {
       if (tookOverLegacyFile) this.removeReplacedLegacyChunks(date);
-      this.ensureDayFile(date);
-      chunkIndexService.scheduleJournalDay(date);
+      this.renderAndScheduleDay(date);
     }
     return result;
   }
@@ -462,15 +460,26 @@ class JournalService {
   private afterEntryWrite(entryId: Id, content: string, ...dates: string[]): void {
     this.syncEntryAssociations(entryId, content);
     for (const date of new Set(dates.filter((d) => d))) {
-      // FI-3：条目已提交，渲染失败只降级告警，不得把成功改写成异常（重试追加会写出重复条目）
-      try {
-        this.ensureDayFile(date);
-      } catch (error) {
-        Logger.warn("条目写入后渲染日文件失败", { date, error: String(error) });
-      }
-      // 调度照常：条目脏水位线是日文件/切块后续收敛的依据，不能被渲染失败连坐
-      chunkIndexService.scheduleJournalDay(date);
+      this.renderAndScheduleDay(date);
     }
+  }
+
+  /**
+   * 写入事务提交后的「重渲染 + 调度」统一口径（appendEntry / updateEntry / deleteEntry /
+   * importDayFile 共用）：
+   * FI-3——库里的行是已提交的 DB 真值，`.md` 渲染产物写失败只降级告警，
+   * 不得把成功改写成失败（否则用户重试写入会写出重复条目 / 导入重试走幂等跳过分支，
+   * 渲染与调度永远不会补做）。
+   * 调度照常且不被渲染失败连坐：条目脏水位线是日文件/切块后续收敛的依据
+   * （spec §7，队列侧 processJournalDay 只认 journal_entries，不依赖日文件已就位）。
+   */
+  private renderAndScheduleDay(date: string): void {
+    try {
+      this.ensureDayFile(date);
+    } catch (error) {
+      Logger.warn("条目写入后渲染日文件失败", { date, error: String(error) });
+    }
+    chunkIndexService.scheduleJournalDay(date);
   }
 
   /**

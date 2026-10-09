@@ -79,7 +79,11 @@ async function deleteEntry(id: Id): Promise<ApiResponse<boolean>> {
 }
 
 // date 必须过 isJournalDate：它会拼进 journal/{date}.md（resolvePath 只防越出工作区）
-const MAX_JOURNAL_TIMELINE_DAYS = 366;
+// days 上界是**防御性阈值**而非业务限额：合法窗口至多等于「存在日志条目的日历日总数」
+// （每日历日至多一日，10000 ≈ 连续写 27 年），store 的写后全量刷新用整个已加载窗口
+// （journal.store.ts 的 days.value.length || DAY_WINDOW_SIZE，随翻页增长），
+// 任何真实使用都到不了该值——触线即视为荒谬/敌意输入，拒绝并 warn 留痕。
+const MAX_JOURNAL_TIMELINE_DAYS = 10_000;
 
 /**
  * 当日未删除条目（含标签 / 作品关联）
@@ -88,6 +92,7 @@ const MAX_JOURNAL_TIMELINE_DAYS = 366;
  */
 async function listEntries(date: string): Promise<ApiResponse<JournalEntryView[]>> {
   if (!isJournalDate(date)) {
+    Logger.warn("[JournalAPI] 非法 date 参数，拒绝当日条目查询", { date });
     return response.error(ErrorCode.COMMON_INVALID_PARAMETER);
   }
   try {
@@ -112,6 +117,7 @@ async function listRecentDays(
   const daysValid =
     days === undefined || (Number.isInteger(days) && days >= 1 && days <= MAX_JOURNAL_TIMELINE_DAYS);
   if (!daysValid || (beforeDate !== undefined && !isJournalDate(beforeDate))) {
+    Logger.warn("[JournalAPI] 非法时间线参数，拒绝最近条目查询", { days, beforeDate });
     return response.error(ErrorCode.COMMON_INVALID_PARAMETER);
   }
   try {
@@ -134,6 +140,7 @@ async function importDayFile(
   overwrite?: boolean,
 ): Promise<ApiResponse<JournalImportResult>> {
   if (!isJournalDate(date)) {
+    Logger.warn("[JournalAPI] 非法 date 参数，拒绝当日文件导入", { date, overwrite });
     return response.error(ErrorCode.COMMON_INVALID_PARAMETER);
   }
   try {

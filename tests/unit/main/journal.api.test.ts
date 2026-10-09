@@ -32,6 +32,7 @@ import {
   listRecentDays,
   importDayFile,
 } from "@/main/core/apis/journal.api";
+import { Logger } from "@/main/utils/logger";
 import { ErrorCode } from "@/shared/enums";
 
 describe("journal.api 的 boolean 契约（FI-1，spec §6.1：ApiResponse<boolean> = 是否真的改了行）", () => {
@@ -109,6 +110,8 @@ describe("journal.api 的 date 边界校验（FI-2：date 会拼进 journal/{dat
     expect(res.success).toBe(false);
     expect(res.code).toBe(ErrorCode.COMMON_INVALID_PARAMETER);
     expect(mockJournalService.listEntries).not.toHaveBeenCalled();
+    // R-3：非法参数拒绝必须留 warn 痕迹（否则 renderer 侧无人读 errorCode 时完全静默）
+    expect(Logger.warn).toHaveBeenCalled();
   });
 
   it("listEntries：合法 yyyy-MM-dd 正常透传", async () => {
@@ -124,6 +127,7 @@ describe("journal.api 的 date 边界校验（FI-2：date 会拼进 journal/{dat
     expect(res.success).toBe(false);
     expect(res.code).toBe(ErrorCode.COMMON_INVALID_PARAMETER);
     expect(mockJournalService.importDayFile).not.toHaveBeenCalled();
+    expect(Logger.warn).toHaveBeenCalled();
   });
 
   it("importDayFile：合法 date 正常透传（含 overwrite 参数）", async () => {
@@ -139,6 +143,7 @@ describe("journal.api 的 date 边界校验（FI-2：date 会拼进 journal/{dat
     expect(res.success).toBe(false);
     expect(res.code).toBe(ErrorCode.COMMON_INVALID_PARAMETER);
     expect(mockJournalService.listRecentDays).not.toHaveBeenCalled();
+    expect(Logger.warn).toHaveBeenCalled();
   });
 
   it("listRecentDays：合法 beforeDate 正常透传", async () => {
@@ -148,12 +153,22 @@ describe("journal.api 的 date 边界校验（FI-2：date 会拼进 journal/{dat
     expect(mockJournalService.listRecentDays).toHaveBeenCalledWith(5, "2026-10-08");
   });
 
-  it("listRecentDays：days 超出上界被拒绝（无界取数）", async () => {
+  it("listRecentDays：days 超出防御性阈值被拒绝（无界取数）且留 warn 痕迹", async () => {
     const res = await listRecentDays(999_999);
 
     expect(res.success).toBe(false);
     expect(res.code).toBe(ErrorCode.COMMON_INVALID_PARAMETER);
     expect(mockJournalService.listRecentDays).not.toHaveBeenCalled();
+    expect(Logger.warn).toHaveBeenCalled();
+  });
+
+  // R-3：store 用整个已加载窗口做写后全量刷新（journal.store.ts 的 days.value.length || DAY_WINDOW_SIZE），
+  // 翻页越多窗口越大——旧 366 上界会把这些合法刷新悄悄打回 stale。阈值只挡荒谬输入。
+  it("listRecentDays：翻页增长后的合法大窗口（数千天级）正常透传，不被上界误拒", async () => {
+    const res = await listRecentDays(2000);
+
+    expect(res.success).toBe(true);
+    expect(mockJournalService.listRecentDays).toHaveBeenCalledWith(2000, undefined);
   });
 
   it("listRecentDays：days 非正整数被拒绝", async () => {

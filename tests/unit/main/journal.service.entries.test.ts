@@ -951,4 +951,57 @@ describe("journal.service 条目编排", () => {
     expect(journalService.updateEntry({ id: "e1", content: "改后正文" })).toBe(true);
     expect(scheduleJournalDayMock).toHaveBeenCalledWith("2026-10-08");
   });
+
+  // ───── R-1 / R-2：importDayFile 与 deleteEntry 的渲染暴露（与 FI-3 同一口径收口） ─────
+
+  it("importDayFile：渲染日文件抛错不改写已提交导入的返回，且照常调度该日重切；重试导入（幂等跳过）不回退这一调度（R-1）", () => {
+    fileExistsMock.mockReturnValue(true);
+    fileReadMock.mockReturnValue("09:30\n旧版整篇的一段正文。"); // 无标记 ⇒ 本次是接管
+    parseJournalDayFileMock.mockReturnValue([fakeParsed({ id: "legacy-1" })]);
+    fileWriteMock.mockImplementationOnce(() => {
+      throw new Error("EACCES: permission denied");
+    });
+    // 模拟真源已提交：首笔导入落库后，重试导入读回同一行，走幂等跳过路径
+    const rows: Array<Record<string, unknown>> = [];
+    entryCreateMock.mockImplementation((row: unknown) => {
+      rows.push(row as Record<string, unknown>);
+      return String((row as { id: string }).id);
+    });
+    entryListAllMock.mockImplementation(() => rows as never);
+    // 活跃条目查询同样读回已提交行：否则 ensureDayFile 命中渲染保护直接返回，抛不到 writeFile
+    entryListActiveMock.mockImplementation(() => rows as never);
+
+    // 第一次：条目已提交（事务先于渲染），渲染抛错只降级告警——导入结果原样返回
+    const first = journalService.importDayFile("2026-10-08");
+    expect(first).toEqual({ imported: 1, updated: 0, skipped: 0 });
+    expect(Logger.warn).toHaveBeenCalled();
+    // 修复前此处必红：抛错穿透 importDayFile（api 层报 JOURNAL_CREATE_FAILED），调度从未发生
+    expect(scheduleJournalDayMock).toHaveBeenCalledWith("2026-10-08");
+
+    // 重试：确定性 id 命中跳过分支，imported/updated 全 0 ⇒ :360 门位不再为真。
+    // 修复前这正是最坏的形态——第一次抛错什么都没留下，第二次"成功"返回也不补做任何事，
+    // 日文件与其切块永久缺失；修复后第一次已调度，切块由队列收敛
+    const retry = journalService.importDayFile("2026-10-08");
+    expect(retry).toEqual({ imported: 0, updated: 0, skipped: 1 });
+    expect(scheduleJournalDayMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("deleteEntry：渲染日文件抛错仍返回 true（软删/清关联/清块已提交），调度不因此丢失（R-2）", () => {
+    entryFindByIdMock.mockReturnValue(fakeRow());
+    fileIndexFindByPathMock.mockReturnValue({ id: "fi-1", file_path: "journal/2026-10-08.md" });
+    replaceEntryChunksMock.mockReturnValue({
+      reused: 0,
+      inserted: 0,
+      removedIds: ["c1"],
+      total: 0,
+    });
+    fileWriteMock.mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+
+    // 修复前此处必红：抛错穿透 deleteEntry（用户看到"删除失败"而条目仍留在时间线里）
+    expect(journalService.deleteEntry("e1")).toBe(true);
+    expect(Logger.warn).toHaveBeenCalled();
+    expect(scheduleJournalDayMock).toHaveBeenCalledWith("2026-10-08");
+  });
 });
