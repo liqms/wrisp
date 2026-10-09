@@ -19,6 +19,7 @@ export * from "./migrationDb.types";
 export * from "./vector.types";
 export * from "./task-execution.types";
 export * from "./task.types";
+export * from "./journalEntry.types";
 
 export type {
   ChunkId,
