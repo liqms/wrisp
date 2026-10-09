@@ -1,8 +1,12 @@
 -- =============================================
 -- Wrisp 数据库初始化脚本
--- 版本: 0.1.0
+-- 版本: 0.6.0
 -- 创建时间: 2026-06-28
 -- 基于 docs/storage/sqlite.md v2 设计
+--
+-- 注意：本文件始终承载「当前完整 schema」，文末的基线迁移记录必须与
+-- migrations/ 下的最高版本保持一致。否则全新库仅登记旧版本号，下次启动会
+-- 重放 ADD COLUMN 迁移（SQLite 无 IF NOT EXISTS）并因列已存在而崩溃。
 -- =============================================
 
 -- 禁用外键检查（避免循环依赖问题）
@@ -39,8 +43,16 @@ CREATE TABLE IF NOT EXISTS semantic_chunks (
     ai_summary TEXT,
     word_count INTEGER DEFAULT 0,
     temporal_score REAL DEFAULT 0.0,
+    -- 标记列的分工：last_smart_processed_at 只作「最后被任一智能任务触碰」的观测值，
+    -- 增量选取一律看各阶段自己的列（last_summary_generated_at / last_vectorized_at /
+    -- last_concept_extracted_at / last_linked_at）。
+    -- 写入须走 ChunkDao.recordStage()，它不刷新 updated_at，否则下一轮会被自己重新选中。
     last_smart_processed_at TEXT,
     last_vectorized_at TEXT,
+    last_concept_extracted_at TEXT,
+    last_linked_at TEXT,
+    -- chunk-summary 的专用标记：非正文块（代码/围栏/纯图片）也写它，用来「处理过且无需摘要」
+    last_summary_generated_at TEXT,
     status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
@@ -132,6 +144,11 @@ CREATE TABLE IF NOT EXISTS concepts (
     evolving_summary TEXT,
     timeline TEXT DEFAULT '[]',
     relevance REAL DEFAULT 0.0,
+    -- 归一化标题键：概念幂等合并依据（历史数据回填前为 NULL，NULL 之间不触发唯一冲突）
+    title_key TEXT,
+    aliases TEXT NOT NULL DEFAULT '[]',
+    mention_count INTEGER NOT NULL DEFAULT 0,
+    last_evolved_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -274,6 +291,13 @@ CREATE TABLE IF NOT EXISTS pages (
     ai_summary TEXT,
     page_type TEXT NOT NULL DEFAULT 'project_chapter',
     metadata TEXT DEFAULT '{}',
+    -- 页面级分阶段处理标记（与 semantic_chunks 同构）：
+    -- last_smart_processed_at 只作观测值；增量选取一律看各阶段自己的列
+    -- （last_summary_generated_at / last_vectorized_at）。
+    -- 写入须走 PageDao.recordStage()，它不刷新 updated_at，否则下一轮会被自己重新选中。
+    last_smart_processed_at TEXT,
+    last_summary_generated_at TEXT,
+    last_vectorized_at TEXT,
     status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
@@ -381,6 +405,8 @@ CREATE INDEX IF NOT EXISTS idx_semantic_links_target ON semantic_links(target_ch
 CREATE INDEX IF NOT EXISTS idx_semantic_links_type ON semantic_links(link_type);
 
 -- 概念索引
+-- UNIQUE 是 upsertByTitleKey 的 ON CONFLICT(title_key) 前提；未回填键值的历史行为 NULL，NULL 之间不冲突
+CREATE UNIQUE INDEX IF NOT EXISTS idx_concepts_title_key ON concepts(title_key);
 CREATE INDEX IF NOT EXISTS idx_concepts_relevance ON concepts(relevance);
 CREATE INDEX IF NOT EXISTS idx_concepts_title ON concepts(title);
 
@@ -446,13 +472,15 @@ CREATE INDEX IF NOT EXISTS idx_task_execution_log_started_at ON task_execution_l
 
 -- ==================== 插入初始迁移记录 ====================
 
+-- 基线版本必须等于 migrations/ 下的最高版本：init.sql 已包含这些迁移的全部
+-- 表 / 列 / 索引，登记为最高版本后全新库的下次启动才不会再重放迁移文件。
 INSERT OR IGNORE INTO migrations_db (id, version, name, description, sql_statement, status, executed_at, created_at, updated_at)
 VALUES (
     '00000000-0000-0000-0000-000000000001',
-    '0.1.0',
-    'Init Tables and Indexes',
-    '初始化 v0.1 架构：file_index + semantic_chunks + FTS + AI 索引表',
-    'CREATE TABLE file_index, semantic_chunks, semantic_chunks_fts, concepts_fts, topics_fts, projects_fts, pages_fts, tags, tagged_items, semantic_links, concepts, concept_chunks, topics, topic_chunks, topic_concepts, temporal_events, reflections, reflection_chunks, projects,  project_chunks, pages, migrations_db, tasks, skill_executions',
+    '0.6.0',
+    'Init Full Schema',
+    '初始化完整架构（含 0.2.0~0.6.0 的全部表、列与索引）：file_index + semantic_chunks + FTS + AI 索引表',
+    'CREATE TABLE file_index, semantic_chunks, semantic_chunks_fts, concepts_fts, topics_fts, projects_fts, pages_fts, tags, tagged_items, semantic_links, concepts, concept_chunks, topics, topic_chunks, topic_concepts, temporal_events, reflections, reflection_chunks, projects,  project_chunks, pages, characters, creation_sessions, task_execution_log, migrations_db, tasks, skill_executions',
     'executed',
     '2026-06-28T00:00:00.000Z',
     '2026-06-28T00:00:00.000Z',

@@ -1,4 +1,4 @@
-import { findFenceClose } from "./fence";
+import { FENCE_OPEN_RE, findFenceClose } from "./fence";
 import type { CoarseBlock } from "./types";
 
 /**
@@ -16,8 +16,6 @@ const CODE_FENCE_RE = /^\s*(`{3,}|~{3,})/;
 /** 独立时间戳行：可选日期 + HH:mm(:ss)，允许 ** 包裹 */
 const TIMESTAMP_RE =
   /^\s*(?:\*\*)?(?:\d{4}-\d{2}-\d{2}[ T])?\d{1,2}:\d{2}(?::\d{2})?(?:\*\*)?\s*$/;
-/** Wrisp 自定义块围栏开启行 */
-const FENCE_OPEN_RE = /^\s*:::\s*([a-zA-Z][\w-]*)[ \t]*$/;
 
 interface Run {
   kind: "text";

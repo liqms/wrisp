@@ -1,6 +1,7 @@
 import { Logger } from "@/main/utils/logger";
 import {
   ChunkDao,
+  PageDao,
   ProjectChunkDao,
   ConceptChunkDao,
   TopicChunkDao,
@@ -12,7 +13,7 @@ import {
   type ChunkItem,
   type ChunkDateItem,
 } from "@/shared/types/chunk.types";
-import { Chunk, ChunkCreate, ChunkSyncResult, ChunkType } from "@/main/types/db";
+import { Chunk, ChunkCreate, ChunkSyncResult, ChunkType, Page } from "@/main/types/db";
 import { type SplitChunk } from "./chunk-splitter";
 import { Id } from "@/shared/types";
 import { vectorService } from "../ai/vector.service";
@@ -38,12 +39,14 @@ const ANN_CANDIDATE_MAX = 200;
 class ChunkService {
   private static instance: ChunkService;
   private chunkDao: ChunkDao;
+  private pageDao: PageDao;
   private projectChunkDao: ProjectChunkDao;
   private conceptChunkDao: ConceptChunkDao;
   private topicChunkDao: TopicChunkDao;
 
   private constructor() {
     this.chunkDao = new ChunkDao();
+    this.pageDao = new PageDao();
     this.projectChunkDao = new ProjectChunkDao();
     this.conceptChunkDao = new ConceptChunkDao();
     this.topicChunkDao = new TopicChunkDao();
@@ -196,14 +199,14 @@ class ChunkService {
   /**
    * 删除指定语义块在向量库中的行（只清正文已消失的块）。
    *
-   * LanceDB 的向量行按 block_id 存储、没有外键级联，不清理会随每次重切分累积
+   * LanceDB 的向量行按 chunk_id 存储、没有外键级联，不清理会随每次重切分累积
    * 孤儿向量（命中后取不到正文，白占 ANN 召回名额）。删除失败只记日志：向量层是
    * 可重建的派生数据，不该让一次重切分因为 LanceDB 抖动而整体失败。
    */
   public async dropVectorsByIds(chunkIds: Id[]): Promise<void> {
     if (chunkIds.length === 0) return;
     try {
-      await vectorService.deleteBlockEmbeddings(chunkIds);
+      await vectorService.deleteChunkEmbeddings(chunkIds);
     } catch (error) {
       Logger.warn("清理语义块向量失败（不影响切分）", {
         count: chunkIds.length,
@@ -413,7 +416,7 @@ class ChunkService {
 
       const { vector } = await embed(keyword);
 
-      const searchResults = await vectorService.searchBlockEmbeddings({
+      const searchResults = await vectorService.searchChunkEmbeddings({
         vector,
         topK: annTopK,
         projectId,
@@ -429,14 +432,14 @@ class ChunkService {
       if (projectId) {
         const projectPath = this.getProjectChunkIds(projectId);
         const allowed = new Set(projectPath);
-        const liveFiltered = scoped.filter((r) => allowed.has(r.item.block_id));
+        const liveFiltered = scoped.filter((r) => allowed.has(r.item.chunk_id));
 
         if (liveFiltered.length === 0) {
-          const overFetched = await vectorService.searchBlockEmbeddings({
+          const overFetched = await vectorService.searchChunkEmbeddings({
             vector,
             topK: Math.min(annTopK * ANN_CANDIDATE_RATIO, ANN_CANDIDATE_MAX),
           });
-          scoped = overFetched.filter((r) => allowed.has(r.item.block_id));
+          scoped = overFetched.filter((r) => allowed.has(r.item.chunk_id));
         } else {
           scoped = liveFiltered;
         }
@@ -446,7 +449,7 @@ class ChunkService {
         return [];
       }
 
-      const candidateBlockIds = scoped.map((r) => r.item.block_id);
+      const candidateBlockIds = scoped.map((r) => r.item.chunk_id);
       const candidateBlocks = this.chunkDao.findByIds(candidateBlockIds);
 
       if (candidateBlocks.length === 0) {
@@ -482,7 +485,16 @@ class ChunkService {
 
       // 直接按 rerank 顺序返回，**不能**走 blocksToRecordList：那条路径末尾按
       // created_at DESC 重排，会把重排好的相关性顺序抹掉（语义检索最要的排序）。
-      return topKBlocks.map((block) => this.blockToChunkInfo(block));
+      const chunkResults = topKBlocks.map((block) => this.blockToChunkInfo(block));
+
+      // 页级粗召回只叠加在**作品范围检索**上：「定位到哪一页」是作品内导航，
+      // searchAll 是调用方显式声明的全库检索，不在此改变其语义。
+      if (!projectId) {
+        return chunkResults;
+      }
+
+      const pageResults = await this.searchPagesByVector(vector, topK, projectId);
+      return [...pageResults, ...chunkResults];
     } catch (error) {
       Logger.error("向量语义搜索失败，回退到 SQL FTS", {
         error: String(error),
@@ -497,6 +509,60 @@ class ChunkService {
       // 而它正是"本地模型损坏/LanceDB 异常"时唯一会走到的路径。
       return projectId ? this.filterByProject(fallback, projectId) : fallback;
     }
+  }
+
+  /**
+   * 作品范围内的**页级粗召回**：用页面向量先定位到「哪一页」，与 chunk 级精排互补。
+   *
+   * 页级是补充层，异常一律降级为「没有页级结果」——绝不把异常放大成跨作品召回
+   * （向量行里的 project_id 是写入时快照，改归属后不更新，故以 pages 的实时归属为准再过滤一次）。
+   */
+  private async searchPagesByVector(
+    vector: number[],
+    topK: number,
+    projectId: Id,
+  ): Promise<ChunkInfo[]> {
+    try {
+      const results = await vectorService.searchPageEmbeddings({
+        vector,
+        topK,
+        projectId,
+      });
+      const pageIds = (results ?? []).map((r) => r.item.page_id);
+      if (pageIds.length === 0) return [];
+
+      const pageMap = new Map(this.pageDao.findByIds(pageIds).map((p) => [p.id, p]));
+      const ordered: ChunkInfo[] = [];
+      for (const pageId of pageIds) {
+        const page = pageMap.get(pageId);
+        if (!page || page.project_id !== projectId) continue;
+        ordered.push(this.pageToChunkInfo(page));
+      }
+      return ordered;
+    } catch (error) {
+      Logger.warn("页级粗召回失败，跳过页级结果", {
+        error: String(error),
+        projectId,
+      });
+      return [];
+    }
+  }
+
+  private pageToChunkInfo(page: Page): ChunkInfo {
+    return {
+      id: page.id,
+      content: page.ai_summary ?? page.title,
+      project_id: page.project_id,
+      ai_summary: page.ai_summary,
+      temporal_score: 0,
+      word_count: page.word_count,
+      status: page.status,
+      concept_count: 0,
+      topic_count: 0,
+      created_at: page.created_at,
+      updated_at: page.updated_at,
+      kind: "Page",
+    };
   }
 
   /**

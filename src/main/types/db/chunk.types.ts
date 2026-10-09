@@ -39,9 +39,23 @@ export interface Chunk {
   temporal_score: number;
   word_count: number;
   status: ChunkStatus;
+  /**
+   * 最近一次跑完摘要阶段的时间（chunk-summary 的专用标记）。
+   * 与 `ai_summary` 是否有值无关：判为「无正文可摘要」的块不写摘要，
+   * 但会写这个标记，于是下一轮不再被选中（否则每轮重扫整库非文字块）。
+   */
+  last_summary_generated_at: Timestamp | null;
+  /**
+   * 最后被任一智能任务触碰的时间，仅作观测。
+   * 增量选取请用各阶段自己的标记列 —— 三任务共写一列时它代表「最后写的那个」。
+   */
   last_smart_processed_at: Timestamp | null;
   /** 最近一次完成向量化的时间；null 表示尚未写入向量库（chunk-vectorize 的专用标记） */
   last_vectorized_at: Timestamp | null;
+  /** 最近一次完成概念抽取的时间（concept-extract 的专用标记） */
+  last_concept_extracted_at: Timestamp | null;
+  /** 最近一次建立语义链接的时间（semantic-link 的专用标记） */
+  last_linked_at: Timestamp | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 }
@@ -65,12 +79,20 @@ export interface ChunkCreate {
   temporal_score?: number;
   word_count?: number;
   status?: ChunkStatus;
-  last_smart_processed_at?: Timestamp | null;
-  last_vectorized_at?: Timestamp | null;
   created_at?: Timestamp;
   updated_at?: Timestamp;
 }
 
+/**
+ * 语义块的可更新字段。
+ *
+ * 阶段标记列（`last_summary_generated_at` / `last_smart_processed_at` /
+ * `last_vectorized_at` / `last_concept_extracted_at` / `last_linked_at`）
+ * 有意不在此列：它们只能由
+ * `ChunkDao.recordStage()` 写，因为 `update()` 会连带刷新 `updated_at`，
+ * 而智能任务正是用 `updated_at > 标记列` 判定增量 —— 写标记顶高水位线会让
+ * 同一块每轮被自己重新选中。
+ */
 export interface ChunkUpdate {
   /** 所属文件索引 ID */
   file_id?: Id;
@@ -92,8 +114,6 @@ export interface ChunkUpdate {
   temporal_score?: number;
   word_count?: number;
   status?: ChunkStatus;
-  last_smart_processed_at?: Timestamp | null;
-  last_vectorized_at?: Timestamp | null;
   updated_at?: Timestamp;
 }
 

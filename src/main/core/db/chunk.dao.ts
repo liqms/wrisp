@@ -16,6 +16,18 @@ const FTS_INDEXED_FIELDS = ["content", "ai_summary"] as const;
 /** 批量硬删除时单条 SQL 绑定的 id 数上限（远低于 SQLite 参数上限，留足 IN 两侧余量） */
 const CHUNK_DELETE_BATCH_SIZE = 500;
 
+/**
+ * 智能任务的阶段标记列。
+ * SET 子句里的列名只能取自这个联合类型（字面量联合，编译期即白名单），
+ * 不接受调用方传来的任意字符串，避免 SQL 注入面。
+ */
+export type ChunkStageColumn =
+  | "last_summary_generated_at"
+  | "last_smart_processed_at"
+  | "last_vectorized_at"
+  | "last_concept_extracted_at"
+  | "last_linked_at";
+
 export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
   constructor() {
     super("semantic_chunks");
@@ -145,6 +157,74 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
   }
 
   /**
+   * 记录智能任务的阶段完成标记（时间取当前，与 `updated_at` 同为 ISO 格式）。
+   *
+   * 只写标记列与可选的时间热度分，**不刷新 `updated_at`**：各任务的增量选取条件
+   * 正是 `updated_at > last_xxx_at`，若写标记本身把水位线顶到标记之后，该块会在
+   * 下一轮被自己重新选中，永远收敛不了（同 {@link recomputeTemporalScores} 的理由）。
+   *
+   * @param chunkId 语义块 id
+   * @param columns 本轮完成的阶段列（重复列只取一次）
+   * @param temporalScore 可选，顺带写入的时间热度分
+   * @returns 受影响行数
+   */
+  recordStage(
+    chunkId: string,
+    columns: readonly ChunkStageColumn[],
+    temporalScore?: number,
+  ): number {
+    if (!chunkId) return 0;
+    const { sets, values } = this.buildStageSets(columns, temporalScore);
+    if (sets.length === 0) return 0;
+
+    return this.execute(
+      `UPDATE ${this.tableName} SET ${sets.join(", ")} WHERE id = ?`,
+      [...values, chunkId],
+    ).changes;
+  }
+
+  /**
+   * {@link recordStage} 的批量版本：一批块只发一条 UPDATE。
+   *
+   * 向量化按批写标记，逐块写即每块一条 SQL。不支持 temporal_score（热度分按块算）。
+   */
+  recordStageBatch(
+    chunkIds: readonly string[],
+    columns: readonly ChunkStageColumn[],
+  ): number {
+    if (chunkIds.length === 0) return 0;
+    const { sets, values } = this.buildStageSets(columns);
+    if (sets.length === 0) return 0;
+
+    const placeholders = chunkIds.map(() => "?").join(", ");
+    return this.execute(
+      `UPDATE ${this.tableName} SET ${sets.join(", ")} WHERE id IN (${placeholders})`,
+      [...values, ...chunkIds],
+    ).changes;
+  }
+
+  /** 拼接阶段标记的 SET 子句；列名只来自 ChunkStageColumn 联合类型 */
+  private buildStageSets(
+    columns: readonly ChunkStageColumn[],
+    temporalScore?: number,
+  ): { sets: string[]; values: unknown[] } {
+    const timestamp = this.getCurrentTimestamp();
+    const sets: string[] = [];
+    const values: unknown[] = [];
+
+    for (const column of new Set(columns)) {
+      sets.push(`${column} = ?`);
+      values.push(timestamp);
+    }
+    if (temporalScore !== undefined) {
+      sets.push("temporal_score = ?");
+      values.push(temporalScore);
+    }
+
+    return { sets, values };
+  }
+
+  /**
    * 批量重算全表语义块的时间热度分（事务内原子执行）。
    *
    * 只写 `temporal_score`，**不更新 `updated_at`** —— 智能任务以 `updated_at`
@@ -255,14 +335,23 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
 
           reusedIds.add(reuseId);
           // 只跟新边界，不动 content：hash 相同即正文相同，重写一遍是纯浪费；
-          // 也不动 ai_summary / last_vectorized_at —— 它们的派生依据仍然成立
-          this.update(reuseId, {
-            file_path: chunk.file_path,
-            start_line: chunk.start_line,
-            end_line: chunk.end_line,
-            section_title: chunk.section_title ?? null,
-            word_count: chunk.word_count,
-          });
+          // 也不动 ai_summary / 各阶段标记 —— 它们的派生依据仍然成立。
+          // 这里必须绕过 BaseDao.update（它会刷新 updated_at）：智能任务按
+          // `updated_at > 阶段标记` 增量选取，刷新水位线会让改一个字的那个文件
+          // 里所有未变的块被重新抽取概念、重新向量化。
+          this.execute(
+            `UPDATE ${this.tableName}
+             SET file_path = ?, start_line = ?, end_line = ?, section_title = ?, word_count = ?
+             WHERE id = ?`,
+            [
+              chunk.file_path,
+              chunk.start_line,
+              chunk.end_line,
+              chunk.section_title ?? null,
+              chunk.word_count ?? null,
+              reuseId,
+            ],
+          );
         }
 
         const removedIds = existing

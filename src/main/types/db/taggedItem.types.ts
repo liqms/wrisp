@@ -39,7 +39,7 @@ export interface TaggedItemQuery extends QueryParams {
 }
 
 export interface TaggedBlock extends TaggedItem {
-  block_id: Id
+  chunk_id: Id
 }
 
 export interface TaggedProject extends TaggedItem {

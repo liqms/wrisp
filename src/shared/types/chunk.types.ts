@@ -19,6 +19,11 @@ export interface ChunkInfo {
   topic_count: number;
   created_at: Timestamp;
   updated_at: Timestamp;
+  /**
+   * 结果层级：留空 = chunk 级（精确到块）；`"Page"` = 页级粗召回（定位到页）。
+   * 页级结果由页面向量召回，content 取页面摘要。
+   */
+  kind?: "Page";
 }
 
 export interface ChunkCreate {
