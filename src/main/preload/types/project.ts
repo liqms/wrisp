@@ -22,5 +22,6 @@ export interface ProjectAPI {
   delete(id: string): Promise<ApiResponse<number>>;
   setPinned(id: string, isPinned: boolean): Promise<ApiResponse<number>>;
   checkNameExists(name: string, excludeId?: string): Promise<ApiResponse<boolean>>;
+  searchByName(name: string): Promise<ApiResponse<Array<{ id: string; name: string }>>>;
   resetProjectTable(): Promise<ApiResponse<ProjectReloadResult>>;
 }

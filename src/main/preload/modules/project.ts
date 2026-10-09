@@ -11,5 +11,7 @@ export const projectModule: ProjectAPI = {
     ipcRenderer.invoke("project:setPinned", id, isPinned),
   checkNameExists: (name: string, excludeId?: string) =>
     ipcRenderer.invoke("project:checkNameExists", name, excludeId),
+  searchByName: (name: string) =>
+    ipcRenderer.invoke("project:searchByName", name),
   resetProjectTable: () => ipcRenderer.invoke("project:resetProjectTable"),
 };

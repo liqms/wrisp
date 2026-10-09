@@ -7,6 +7,7 @@ import {
   deleteProject,
   setProjectPinned,
   checkProjectNameExists,
+  searchProjectsByName,
   resetProjectTable,
 } from "@/main/core/apis/project.api";
 import type { ApiResponse } from "@/shared/types";
@@ -87,6 +88,16 @@ export function registerProjectHandlers() {
       excludeId?: string,
     ): Promise<ApiResponse<boolean>> => {
       return checkProjectNameExists(name, excludeId);
+    },
+  );
+
+  ipcMain.handle(
+    "project:searchByName",
+    async (
+      _,
+      name: string,
+    ): Promise<ApiResponse<Array<{ id: string; name: string }>>> => {
+      return searchProjectsByName(name);
     },
   );
 

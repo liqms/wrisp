@@ -1,5 +1,6 @@
 import { PageDao, ProjectDao } from "@/main/core/db";
 import type {
+  Project,
   ProjectCreate,
   ProjectUpdate,
   ProjectQuery,
@@ -301,6 +302,20 @@ class ProjectService {
         name,
         excludeId,
       });
+      throw error;
+    }
+  }
+
+  /**
+   * 按名称模糊检索作品（仅 active，按名称升序）
+   * @param name 检索关键词
+   * @returns 匹配的作品列表
+   */
+  public searchByName(name: string): Project[] {
+    try {
+      return this.projectDao.findByNameLike(name);
+    } catch (error) {
+      Logger.error("按名称检索作品失败", { error: String(error), name });
       throw error;
     }
   }

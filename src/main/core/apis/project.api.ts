@@ -101,6 +101,23 @@ async function checkProjectNameExists(name: string, excludeId?: string): Promise
 }
 
 /**
+ * 按名称模糊检索作品（供日志条目 composer 的 & 下拉使用）
+ * 空/纯空白名称返回空数组，不抛错
+ */
+async function searchProjectsByName(name: string): Promise<ApiResponse<Array<{ id: string; name: string }>>> {
+  try {
+    if (!name || !name.trim()) {
+      return response.success<Array<{ id: string; name: string }>>([]);
+    }
+    const projects = projectService.searchByName(name.trim());
+    return response.success(projects.map((p) => ({ id: p.id, name: p.name })));
+  } catch (error) {
+    Logger.error("按名称检索作品失败", { error: String(error), name });
+    return response.error(ErrorCode.PROJECT_GET_FAILED, error as Error);
+  }
+}
+
+/**
  * 根据作品文件夹中的 project.json / pages.json 重置 projects 与 pages 表
  * @returns 重载的作品与页面数量
  */
@@ -122,5 +139,6 @@ export {
   deleteProject,
   setProjectPinned,
   checkProjectNameExists,
+  searchProjectsByName,
   resetProjectTable,
 }
