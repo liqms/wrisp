@@ -14,6 +14,7 @@ import {
   thresholdForChunkType,
 } from "./chunk-splitter";
 import { notifyWikiUpdated } from "./wiki-events";
+import { isEntryOwnedJournalMarkdown } from "./journal/journal-render";
 import type { SentenceEmbedder, SplitChunk } from "./splitting/types";
 import type { ChunkType } from "@/main/types/db";
 
@@ -62,6 +63,13 @@ export const TASK_TYPE_JOURNAL_CHUNK_DAY = "journal:chunk-day";
 /** 同一日期的日志条目切块任务共用一个 groupId，便于入队前取消旧的待执行任务 */
 export function journalChunkDayGroupId(date: string): string {
   return `journal-chunk-day:${date}`;
+}
+
+/** 日志日文件名（`journal/{YYYY-MM-DD}.md`）→ 日期；不符合约定时返回 null */
+const JOURNAL_FILE_DATE_RE = /(\d{4}-\d{2}-\d{2})\.md$/;
+
+function journalDateFromFilePath(filePath: string): string | null {
+  return JOURNAL_FILE_DATE_RE.exec(filePath || "")?.[1] ?? null;
 }
 
 interface PendingSchedule {
@@ -185,6 +193,31 @@ class ChunkIndexService {
 
     try {
       const markdown = fileService.readFile(index.file_path);
+
+      // 条目化日志（spec §7）：日文件是 journal_entries 的渲染产物，其语义块按 entry_id
+      // 切（processJournalDay）。条目块同时带 file_id，若在此走文件级差异同步
+      // （syncByFile 以 file_id 为配对范围）会选中这批条目块并删除重烧，因此这里让位：
+      // 标记 synced（文件级切块对这种文件无事可做，同步本身已完成）并把这一日转交给
+      // 按日切块管线；日期解析不出时只让位不转交，交给日志排查而非默默重烧条目块。
+      if (chunkType === "journal" && isEntryOwnedJournalMarkdown(markdown)) {
+        const date = journalDateFromFilePath(index.file_path);
+        this.fileIndexDao.updateSyncStatus(fileId, "synced");
+        if (date) {
+          Logger.info("[ChunkIndex] 日志文件已由条目接管，转按日切块", {
+            fileId,
+            filePath: index.file_path,
+            date,
+          });
+          this.scheduleJournalDay(date);
+        } else {
+          Logger.warn("[ChunkIndex] 条目化日志文件无法解析日期，跳过文件级切块", {
+            fileId,
+            filePath: index.file_path,
+          });
+        }
+        return;
+      }
+
       const result = splitDocument(markdown);
 
       const synced = chunkService.replaceFileChunks(

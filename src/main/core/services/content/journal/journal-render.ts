@@ -96,6 +96,17 @@ export interface ParsedJournalEntry {
 /** 条目头形态 */
 type HeaderForm = "bold" | "wiki" | "bare";
 
+/**
+ * 该 markdown 是否为「条目接管的日文件」（首行带 `<!-- wrisp:journal {...} -->` 标记）。
+ *
+ * 用途：文件级切块（`ChunkIndexService.processFile`）据此让位给条目管线 —— 条目块同时携带
+ * `file_id` 与 `entry_id`，若再按 `file_id` 差异同步会选中这批块并删除重烧。
+ */
+export function isEntryOwnedJournalMarkdown(markdown: string): boolean {
+  const firstLine = (markdown || "").replace(/\r\n/g, "\n").split("\n")[0] ?? "";
+  return DAY_MARKER_RE.test(firstLine);
+}
+
 /** 条目头的时间信息（小时/分已补齐为两位） */
 interface EntryHeader {
   time: string;

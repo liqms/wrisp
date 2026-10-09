@@ -46,6 +46,11 @@ vi.mock("@/main/core/db", () => ({
     create = fileIndexCreateMock;
     transaction = (fn: () => unknown) => fn();
   },
+  // journal.service 条目化后在模块加载期引入 tag/character 服务，
+  // 这两个服务在构造函数里就会实例化下列 DAO —— 本用例不触碰条目路径，空桩即可
+  TagDao: class {},
+  TaggedItemDao: class {},
+  CharacterDao: class {},
 }));
 vi.mock("@/main/core/services/content/chunk.service", () => ({
   chunkService: { dropVectorsByIds: dropVectorsMock },
