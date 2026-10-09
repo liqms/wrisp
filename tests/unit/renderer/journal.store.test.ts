@@ -195,6 +195,23 @@ describe("journal.store 条目动作", () => {
     expect(api.listRecentDays).not.toHaveBeenCalled();
   });
 
+  // 裁定（fix round 2）：updateEntry 的 data=false = 0 行更新 ⇒ 条目已被并发删除，
+  // 库里同样不活跃。不写草稿内容，改为复用 deleteEntryLocal 自愈移除。
+  it("updateEntry 零行更新（success:true, data:false）自愈：返回 false、不写 errorCode、草稿内容不落入本地、条目从 days 移除", async () => {
+    const store = useJournalStore();
+    store.days = [{ date: "d1", has_legacy_file: false, entries: [ENTRY("e1")] }];
+    api.updateEntry.mockResolvedValue(ok(false));
+    expect(await store.updateEntry({ id: "e1", content: "草稿内容" })).toBe(false);
+    expect(store.errorCode).toBeNull();
+    expect(store.hasError).toBe(false);
+    // 草稿内容不写入本地时间线……
+    const contents = store.days.flatMap((d) => d.entries.map((e) => e.content));
+    expect(contents).not.toContain("草稿内容");
+    // ……条目按 DB 真值（已不活跃）被移除，且不做整窗重拉
+    expect(store.days[0].entries).toHaveLength(0);
+    expect(api.listRecentDays).not.toHaveBeenCalled();
+  });
+
   it("deleteEntryLocal 仅本地移除，不触碰 channel", () => {
     const store = useJournalStore();
     store.days = [{ date: "d1", has_legacy_file: false, entries: [ENTRY("e1"), ENTRY("e2")] }];
@@ -212,14 +229,18 @@ describe("journal.store 条目动作", () => {
     expect(store.errorCode).toBe(ErrorCode.JOURNAL_DELETE_FAILED);
   });
 
-  it("requestDeleteEntry 合法空操作（success:true, data:false）返回 false：不写 errorCode 且不本地移除", async () => {
+  // 裁定（fix round 2）：本地状态镜像 DB 真值。Task 6 中 deleteEntry 的 data=false
+  // 仅在受影响行数=0 时出现（条目早已软删或不存在）——条目在库中确已不活跃，
+  // success:true 即应本地移除；返回值仍透传 data 供调用方判断是否真的改动了行。
+  it("requestDeleteEntry 合法空操作（success:true, data:false）返回 false：不写 errorCode，本地同样移除（本地镜像 DB 真值）且不重拉", async () => {
     const store = useJournalStore();
     store.days = [{ date: "d1", has_legacy_file: false, entries: [ENTRY("e1")] }];
     api.deleteEntry.mockResolvedValue(ok(false));
     expect(await store.requestDeleteEntry("e1")).toBe(false);
     expect(store.errorCode).toBeNull();
     expect(store.hasError).toBe(false);
-    expect(store.days[0].entries).toHaveLength(1);
+    expect(store.days[0].entries).toHaveLength(0);
+    expect(api.listRecentDays).not.toHaveBeenCalled();
   });
 
   it("requestImportDayFile 成功返回统计并刷新时间线", async () => {

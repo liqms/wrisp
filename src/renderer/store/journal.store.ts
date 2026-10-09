@@ -407,7 +407,8 @@ export const useJournalStore = defineStore("journal", () => {
 
   /**
    * 更新一条日志条目（正文 / 发生时刻）：channel 成功且确实更新了行（data=true）才整窗刷新；
-   * data=false（条目不存在 / 并发下 0 行更新）是合法空操作 —— 返回 false、不记 errorCode、不重拉。
+   * data=false = 0 行更新 ⇒ 条目已被并发删除，库里同样不活跃（Task 6 仅在受影响行数=0 时返回 false）。
+   * 此时不写草稿内容，复用 deleteEntryLocal 自愈（本地镜像 DB 真值），返回 false、不记 errorCode。
    * 仅 !success 才记录错误码。
    */
   const updateEntry = async (
@@ -425,6 +426,10 @@ export const useJournalStore = defineStore("journal", () => {
         const updated = Boolean(response.data);
         if (updated) {
           await loadRecentDays(days.value.length || DAY_WINDOW_SIZE);
+        } else {
+          // 裁定（fix round 2）：0 行更新 = 条目在库中已不活跃，草稿不再落本地，
+          // 按 DB 真值把该条目从时间线移除
+          deleteEntryLocal(payload.id);
         }
         return updated;
       }
@@ -453,10 +458,11 @@ export const useJournalStore = defineStore("journal", () => {
   };
 
   /**
-   * 请求软删除条目：channel 成功且确实删了行（data=true）才做本地移除，不重拉时间线
+   * 请求软删除条目：channel 成功（success=true）即做本地移除、不重拉时间线
    * （整窗重拉会重置翻页深度，交给调用方按需刷新）。
-   * data=false（条目不存在 / 并发下已被删，Task 6 刻意返回的合法空操作）——
-   * 返回 false、不记 errorCode、不本地移除；仅 !success 才记录错误码。
+   * 裁定（fix round 2，本地镜像 DB 真值）：Task 6 的 data=false 只在受影响行数=0 时出现
+   * （早已软删或不存在）—— 条目在库中确已不活跃，success 时无论 data 如何都移除本地条目；
+   * 返回值透传 data，调用方仍可知本次是否真的删了行。仅 !success 才记录错误码。
    */
   const requestDeleteEntry = async (id: Id): Promise<boolean> => {
     errorCode.value = null;
@@ -468,11 +474,8 @@ export const useJournalStore = defineStore("journal", () => {
       )) as ApiResponse<boolean>;
 
       if (response.success) {
-        const deleted = Boolean(response.data);
-        if (deleted) {
-          deleteEntryLocal(id);
-        }
-        return deleted;
+        deleteEntryLocal(id);
+        return Boolean(response.data);
       }
       errorCode.value = response.code;
       errorMessage.value = handleApiError(response);
