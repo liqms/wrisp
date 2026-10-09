@@ -106,7 +106,7 @@ describe("0.6.0 页面级分阶段标记列迁移", () => {
     const baseline = fresh
       .prepare("SELECT version FROM migrations_db ORDER BY version DESC LIMIT 1")
       .get() as { version: string };
-    expect(baseline.version).toBe("0.6.0");
+    expect(baseline.version).toBe("0.7.0");
 
     fresh.close();
   });

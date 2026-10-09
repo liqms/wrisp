@@ -1,6 +1,6 @@
 -- =============================================
 -- Wrisp 数据库初始化脚本
--- 版本: 0.6.0
+-- 版本: 0.7.0
 -- 创建时间: 2026-06-28
 -- 基于 docs/storage/sqlite.md v2 设计
 --
@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS semantic_chunks (
     status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
+    -- journal 条目化（0.7.0）：条目锚点，仅 chunk_type='journal' 的块填写
+    entry_id TEXT,
     CHECK (status IN ('active', 'deleted'))
 );
 
@@ -386,6 +388,7 @@ CREATE INDEX IF NOT EXISTS idx_semantic_chunks_file ON semantic_chunks(file_id);
 CREATE INDEX IF NOT EXISTS idx_semantic_chunks_path ON semantic_chunks(file_path);
 CREATE INDEX IF NOT EXISTS idx_semantic_chunks_hash ON semantic_chunks(content_hash);
 CREATE INDEX IF NOT EXISTS idx_semantic_chunks_type ON semantic_chunks(chunk_type);
+CREATE INDEX IF NOT EXISTS idx_semantic_chunks_entry ON semantic_chunks(entry_id);
 
 -- 标签索引
 CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
@@ -470,6 +473,39 @@ CREATE INDEX IF NOT EXISTS idx_skill_executions_created_at ON skill_executions(c
 CREATE INDEX IF NOT EXISTS idx_task_execution_log_status ON task_execution_log(status);
 CREATE INDEX IF NOT EXISTS idx_task_execution_log_started_at ON task_execution_log(started_at);
 
+-- ==================== Journal 条目表（0.7.0） ====================
+
+-- 创建日志条目表：日志真源。移动端多源记录与云端合并以「条目」为最小同步单元
+-- （id 全局唯一 + occurred_at 排序 + updated_at 冲突判定 + deleted_at tombstone），
+-- journal/YYYY-MM-DD.md 降级为确定性渲染产物。
+CREATE TABLE IF NOT EXISTS journal_entries (
+    id           TEXT PRIMARY KEY,
+    date         TEXT NOT NULL,
+    occurred_at  TEXT NOT NULL,
+    source       TEXT NOT NULL DEFAULT 'desktop',
+    type         TEXT NOT NULL DEFAULT 'text',
+    content      TEXT NOT NULL,
+    attachments  TEXT,
+    metadata     TEXT,
+    chunked_at   TEXT,
+    created_at   TEXT NOT NULL,
+    updated_at   TEXT NOT NULL,
+    deleted_at   TEXT,
+    CHECK (source IN ('desktop', 'mobile', 'import')),
+    CHECK (type IN ('text', 'voice', 'image', 'expense', 'task'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_journal_entries_date  ON journal_entries(date, occurred_at);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_dirty ON journal_entries(chunked_at) WHERE chunked_at IS NULL;
+
+-- 创建条目-作品关联表：条目粒度关联（条目 id 稳定，不随重切块漂移）
+CREATE TABLE IF NOT EXISTS journal_entry_projects (
+    entry_id   TEXT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    project_id TEXT NOT NULL REFERENCES projects(id)        ON DELETE CASCADE,
+    added_at   TEXT NOT NULL,
+    PRIMARY KEY (entry_id, project_id)
+);
+
 -- ==================== 插入初始迁移记录 ====================
 
 -- 基线版本必须等于 migrations/ 下的最高版本：init.sql 已包含这些迁移的全部
@@ -477,10 +513,10 @@ CREATE INDEX IF NOT EXISTS idx_task_execution_log_started_at ON task_execution_l
 INSERT OR IGNORE INTO migrations_db (id, version, name, description, sql_statement, status, executed_at, created_at, updated_at)
 VALUES (
     '00000000-0000-0000-0000-000000000001',
-    '0.6.0',
+    '0.7.0',
     'Init Full Schema',
-    '初始化完整架构（含 0.2.0~0.6.0 的全部表、列与索引）：file_index + semantic_chunks + FTS + AI 索引表',
-    'CREATE TABLE file_index, semantic_chunks, semantic_chunks_fts, concepts_fts, topics_fts, projects_fts, pages_fts, tags, tagged_items, semantic_links, concepts, concept_chunks, topics, topic_chunks, topic_concepts, temporal_events, reflections, reflection_chunks, projects,  project_chunks, pages, characters, creation_sessions, task_execution_log, migrations_db, tasks, skill_executions',
+    '初始化完整架构（含 0.2.0~0.7.0 的全部表、列与索引）：file_index + semantic_chunks + FTS + AI 索引表',
+    'CREATE TABLE file_index, semantic_chunks, semantic_chunks_fts, concepts_fts, topics_fts, projects_fts, pages_fts, tags, tagged_items, semantic_links, concepts, concept_chunks, topics, topic_chunks, topic_concepts, temporal_events, reflections, reflection_chunks, projects,  project_chunks, pages, characters, creation_sessions, task_execution_log, journal_entries, journal_entry_projects, migrations_db, tasks, skill_executions',
     'executed',
     '2026-06-28T00:00:00.000Z',
     '2026-06-28T00:00:00.000Z',
