@@ -1,6 +1,8 @@
 <template>
   <n-flex class="journal-view" vertical>
-    <n-spin v-if="daysLoading" class="loading" />
+    <!-- 仅首次加载（时间线仍为空）才整块替换为 spinner：条目化动作会在 IPC 往返期间置 daysLoading，
+         若那时卸载列表会导致时间线闪烁、编辑草稿丢失、滚动位置恢复竞态 -->
+    <n-spin v-if="daysLoading && days.length === 0" class="loading" />
     <n-scrollbar v-else ref="scrollbarRef" @scroll="onScroll">
       <template v-for="(day, index) in days" :key="day.date">
         <JournalBlock :day="day" />
@@ -59,7 +61,11 @@ watch(
 watch(
   () => workspace.value,
   async () => {
+    // 切换工作区：先丢弃上一个工作区的时间线偏移，否则 days 监听会把旧偏移恢复到新时间线上
+    scrollTop.value = 0;
     clearDays();
+    await nextTick();
+    scrollbarRef.value?.scrollTo({ top: 0 });
     await loadData();
   },
 );

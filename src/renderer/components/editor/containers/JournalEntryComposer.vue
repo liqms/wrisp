@@ -47,13 +47,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useFrontendNotification } from "@/renderer/composables/useNotification";
 import { extractTagNames, extractProjectNames } from "@/shared/utils/text-tokens";
 import { useJournal } from "@/renderer/composables/useJournal";
-
-const emit = defineEmits<{ (e: "appended"): void }>();
 
 const { t } = useI18n();
 const notify = useFrontendNotification({
@@ -88,26 +86,62 @@ function chipType(status: "matched" | "unmatched" | "unknown"): "info" | "warnin
 }
 
 let projectSearchTimer: ReturnType<typeof setTimeout> | null = null;
+let disposed = false;
 
-function onInput() {
-  // 光标处正在输入的 &token → 防抖 300ms 模糊检索作品
+/** 草稿尾部「正在输入的 &token」；无进行中 token 时返回 null */
+function trailingProjectToken(): string | null {
   const m = /&([^\s&[\]]*)$/.exec(draft.value);
-  if (projectSearchTimer) clearTimeout(projectSearchTimer);
-  if (!m) {
+  return m ? m[1] : null;
+}
+
+function clearProjectSearchTimer() {
+  if (projectSearchTimer) {
+    clearTimeout(projectSearchTimer);
+    projectSearchTimer = null;
+  }
+}
+
+async function runProjectSearch(token: string) {
+  let list: Array<{ id: string; name: string }> | null = null;
+  try {
+    const res = await window.electronAPI.project.searchByName(token);
+    if (res.success && res.data) list = res.data as Array<{ id: string; name: string }>;
+  } catch {
+    // 检索失败（IPC reject / 业务失败）：丢弃候选，不得把上一个 token 的旧结果留在下拉里
+    list = null;
+  }
+  // 竞态防护：响应回来时捕获的 token 必须仍是尾部 token，否则本次响应作废
+  // （乱序的旧响应不得覆盖新候选列表，也不得误置 resolved 匹配判定）
+  if (disposed || trailingProjectToken() !== token) return;
+  if (!list) {
     projectCandidates.value = [];
     return;
   }
-  const token = m[1];
-  projectSearchTimer = setTimeout(async () => {
-    const res = await window.electronAPI.project.searchByName(token);
-    if (res.success && res.data) {
-      const list = res.data as Array<{ id: string; name: string }>;
-      projectCandidates.value = list;
-      // 结果集是否包含与检索 token 完全同名的作品 → 精确命中判定
-      resolved.value.set(token, list.some((p) => p.name === token));
-    }
-  }, 300);
+  projectCandidates.value = list;
+  // 结果集是否包含与检索 token 完全同名的作品 → 精确命中判定
+  resolved.value.set(token, list.some((p) => p.name === token));
 }
+
+function onInput() {
+  // 光标处正在输入的 &token → 防抖 300ms 模糊检索作品
+  clearProjectSearchTimer();
+  const token = trailingProjectToken();
+  if (token === null) {
+    projectCandidates.value = [];
+    return;
+  }
+  // 裸 `&` 不是 token：不发无意义的空串检索（主进程同样直接短路返回空）
+  if (token === "") {
+    projectCandidates.value = [];
+    return;
+  }
+  projectSearchTimer = setTimeout(() => void runProjectSearch(token), 300);
+}
+
+onBeforeUnmount(() => {
+  disposed = true;
+  clearProjectSearchTimer();
+});
 
 function pickProject(name: string) {
   // 替换尾部进行中的 &token 为选中的作品名（含空格则方括号包裹）
@@ -130,11 +164,10 @@ async function submit() {
   const id = await appendEntry({ content: draft.value });
   submitting.value = false;
   if (id) {
-    // 追加成功后 store 已整体刷新 days（裁定 T9-7），此处不再重拉，仅清草稿并通知聚焦/滚动
+    // 追加成功后 store 已整体刷新 days（裁定 T9-7），此处不再重拉，仅清草稿与判定缓存
     draft.value = "";
     projectCandidates.value = [];
     resolved.value = new Map();
-    emit("appended");
   } else {
     notify.error(t("TIPS.JOURNAL.APPEND_FAILED"), t("TIPS.JOURNAL.APPEND_FAILED_CONTENT"));
   }

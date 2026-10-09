@@ -52,8 +52,9 @@ const displayTime = computed(() => TimeUtil.format(props.entry.occurred_at, "HH:
 
 // 只读正文复用既有 markdown 渲染链路：marked 同步解析 → sanitizeHtml 白名单清洗
 // （v-html 必须过 sanitize，见 AGENTS.md pitfall #15；同步形式先例 slash/commands/helpers.ts）
+// breaks: true —— 条目正文是纯文本录入，单换行即用户意图的换行（marked 默认会吞掉）
 const renderedContent = computed(() =>
-  sanitizeHtml(marked.parse(props.entry.content) as string),
+  sanitizeHtml(marked.parse(props.entry.content, { breaks: true }) as string),
 );
 
 function startEdit() {
