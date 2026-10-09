@@ -89,6 +89,8 @@ describe("journal.store 条目动作", () => {
     const done = await store.requestDeleteEntry("e1");
     expect(done).toBe(true);
     expect(store.days[0].entries).toHaveLength(0);
+    // 裁定 3 / Minor #7：成功路径只做本地移除，绝不重拉时间线（翻页深度不被重置）
+    expect(api.listRecentDays).not.toHaveBeenCalled();
   });
 
   it("loadMoreDays 翻页只置 loadingMoreDays，不动 daysLoading", async () => {
@@ -115,6 +117,42 @@ describe("journal.store 条目动作", () => {
     expect(await store.loadMoreDays()).toBe(false);
     expect(store.hasMoreDays).toBe(false);
     expect(store.days).toHaveLength(1);
+  });
+
+  it("loadMoreDays 失败页保留 hasMoreDays=true 并记录 errorCode（瞬时错误不得杀死无限滚动）", async () => {
+    const store = useJournalStore();
+    store.days = [DAY];
+    api.listRecentDays.mockResolvedValue(fail(ErrorCode.JOURNAL_GET_FAILED));
+    expect(await store.loadMoreDays()).toBe(false);
+    expect(store.hasMoreDays).toBe(true);
+    expect(store.loadingMoreDays).toBe(false);
+    expect(store.errorCode).toBe(ErrorCode.JOURNAL_GET_FAILED);
+  });
+
+  it("loadMoreDays 异常页保留 hasMoreDays=true 并回退到 COMMON_ACTION_ERROR", async () => {
+    const store = useJournalStore();
+    store.days = [DAY];
+    api.listRecentDays.mockRejectedValue(new Error("boom"));
+    expect(await store.loadMoreDays()).toBe(false);
+    expect(store.hasMoreDays).toBe(true);
+    expect(store.loadingMoreDays).toBe(false);
+    expect(store.errorCode).toBe(ErrorCode.COMMON_ACTION_ERROR);
+  });
+
+  it("loadMoreDays 时间线为空时委托整窗加载（走 daysLoading，不误当翻页静默取最新窗）", async () => {
+    const store = useJournalStore();
+    let observed: { daysLoading: boolean; loadingMoreDays: boolean } | null = null;
+    api.listRecentDays.mockImplementation(() => {
+      observed = {
+        daysLoading: store.daysLoading,
+        loadingMoreDays: store.loadingMoreDays,
+      };
+      return Promise.resolve(ok([DAY]));
+    });
+    expect(await store.loadMoreDays()).toBe(true);
+    expect(observed).toEqual({ daysLoading: true, loadingMoreDays: false });
+    expect(api.listRecentDays).toHaveBeenCalledWith(expect.any(Number), undefined);
+    expect(store.days).toEqual([DAY]);
   });
 
   it("loadRecentDays 重置时间线与翻页状态", async () => {
@@ -148,6 +186,15 @@ describe("journal.store 条目动作", () => {
     expect(store.errorCode).toBe(ErrorCode.JOURNAL_UPDATE_FAILED);
   });
 
+  it("updateEntry 零行更新（success:true, data:false）返回 false：不写 errorCode 且不整窗重拉", async () => {
+    const store = useJournalStore();
+    api.updateEntry.mockResolvedValue(ok(false));
+    expect(await store.updateEntry({ id: "ghost", content: "x" })).toBe(false);
+    expect(store.errorCode).toBeNull();
+    expect(store.hasError).toBe(false);
+    expect(api.listRecentDays).not.toHaveBeenCalled();
+  });
+
   it("deleteEntryLocal 仅本地移除，不触碰 channel", () => {
     const store = useJournalStore();
     store.days = [{ date: "d1", has_legacy_file: false, entries: [ENTRY("e1"), ENTRY("e2")] }];
@@ -163,6 +210,16 @@ describe("journal.store 条目动作", () => {
     expect(await store.requestDeleteEntry("e1")).toBe(false);
     expect(store.days[0].entries).toHaveLength(1);
     expect(store.errorCode).toBe(ErrorCode.JOURNAL_DELETE_FAILED);
+  });
+
+  it("requestDeleteEntry 合法空操作（success:true, data:false）返回 false：不写 errorCode 且不本地移除", async () => {
+    const store = useJournalStore();
+    store.days = [{ date: "d1", has_legacy_file: false, entries: [ENTRY("e1")] }];
+    api.deleteEntry.mockResolvedValue(ok(false));
+    expect(await store.requestDeleteEntry("e1")).toBe(false);
+    expect(store.errorCode).toBeNull();
+    expect(store.hasError).toBe(false);
+    expect(store.days[0].entries).toHaveLength(1);
   });
 
   it("requestImportDayFile 成功返回统计并刷新时间线", async () => {

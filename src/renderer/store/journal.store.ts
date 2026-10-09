@@ -321,10 +321,19 @@ export const useJournalStore = defineStore("journal", () => {
 
   /**
    * 加载更早的时间线：以当前最早日期为游标（main 侧严格 `date < cursor`，游标当日及其后已被排除）
-   * @returns 是否新增了日期；页面没有新日期时置 hasMoreDays=false 并返回 false
+   * @returns 是否新增了日期；仅当页面确实没有新日期时才置 hasMoreDays=false，
+   *          失败 / 异常保留可翻页标记（瞬时错误不得永久杀死无限滚动），下次滚动可重试
    */
   const loadMoreDays = async (): Promise<boolean> => {
     if (loadingMoreDays.value || !hasMoreDays.value) return false;
+
+    // 空时间线没有翻页游标可取（earliestDate 为 undefined，会把「取最新窗」误当翻页），
+    // 直接委托整窗加载
+    if (days.value.length === 0) {
+      await loadRecentDays();
+      return days.value.length > 0;
+    }
+
     loadingMoreDays.value = true;
 
     try {
@@ -338,16 +347,25 @@ export const useJournalStore = defineStore("journal", () => {
         const knownDates = new Set(days.value.map((record) => record.date));
         const newDates = incoming.filter((d) => !knownDates.has(d.date));
         if (newDates.length === 0) {
+          // 唯一允许关闭翻页的分支：这一页确实没有新日期（时间线到头）
           hasMoreDays.value = false;
           return false;
         }
         days.value = mergeDays(days.value, incoming);
         return true;
       }
-      hasMoreDays.value = false;
+      // 坏页：保持 hasMoreDays=true 允许重试，仅记录错误
+      if (!response.success) {
+        errorCode.value = response.code;
+        errorMessage.value = handleApiError(response);
+      }
       return false;
     } catch {
-      hasMoreDays.value = false;
+      errorCode.value = ErrorCode.COMMON_ACTION_ERROR;
+      errorMessage.value = handleApiError({
+        success: false,
+        code: errorCode.value,
+      });
       return false;
     } finally {
       loadingMoreDays.value = false;
@@ -388,8 +406,9 @@ export const useJournalStore = defineStore("journal", () => {
   };
 
   /**
-   * 更新一条日志条目（正文 / 发生时刻），成功后整窗刷新
-   * @returns 更新成功与否
+   * 更新一条日志条目（正文 / 发生时刻）：channel 成功且确实更新了行（data=true）才整窗刷新；
+   * data=false（条目不存在 / 并发下 0 行更新）是合法空操作 —— 返回 false、不记 errorCode、不重拉。
+   * 仅 !success 才记录错误码。
    */
   const updateEntry = async (
     payload: JournalEntryUpdatePayload,
@@ -402,9 +421,12 @@ export const useJournalStore = defineStore("journal", () => {
         payload,
       )) as ApiResponse<boolean>;
 
-      if (response.success && response.data) {
-        await loadRecentDays(days.value.length || DAY_WINDOW_SIZE);
-        return true;
+      if (response.success) {
+        const updated = Boolean(response.data);
+        if (updated) {
+          await loadRecentDays(days.value.length || DAY_WINDOW_SIZE);
+        }
+        return updated;
       }
       errorCode.value = response.code;
       errorMessage.value = handleApiError(response);
@@ -431,8 +453,10 @@ export const useJournalStore = defineStore("journal", () => {
   };
 
   /**
-   * 请求软删除条目：成功后只做本地移除，不重拉时间线（翻页会重置整窗，交给调用方按需刷新）
-   * @returns 删除成功与否
+   * 请求软删除条目：channel 成功且确实删了行（data=true）才做本地移除，不重拉时间线
+   * （整窗重拉会重置翻页深度，交给调用方按需刷新）。
+   * data=false（条目不存在 / 并发下已被删，Task 6 刻意返回的合法空操作）——
+   * 返回 false、不记 errorCode、不本地移除；仅 !success 才记录错误码。
    */
   const requestDeleteEntry = async (id: Id): Promise<boolean> => {
     errorCode.value = null;
@@ -443,9 +467,12 @@ export const useJournalStore = defineStore("journal", () => {
         id,
       )) as ApiResponse<boolean>;
 
-      if (response.success && response.data) {
-        deleteEntryLocal(id);
-        return true;
+      if (response.success) {
+        const deleted = Boolean(response.data);
+        if (deleted) {
+          deleteEntryLocal(id);
+        }
+        return deleted;
       }
       errorCode.value = response.code;
       errorMessage.value = handleApiError(response);
