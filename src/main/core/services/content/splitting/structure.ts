@@ -25,7 +25,7 @@ interface Run {
 }
 
 /** 标记处于代码围栏内（含围栏行本身）的行下标 */
-function markCodeFenceLines(lines: string[]): Set<number> {
+export function markCodeFenceLines(lines: string[]): Set<number> {
   const inside = new Set<number>();
   let marker: string | null = null;
 
