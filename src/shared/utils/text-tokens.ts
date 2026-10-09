@@ -84,3 +84,16 @@ export function extractCharacterNames(markdown: string): string[] {
     .map((t) => t.value);
   return [...new Set(names)];
 }
+
+/** &作品：裸形式 &[^\s&\[\]]+ 或方括号形式 &[...]（支持带空格的作品名）；要求行首或空白后开始，避开 URL 的 & */
+const PROJECT_RE = /(?<!\S)&\[([^\]\n]+)\]|(?<!\S)&([^\s&[\]]+)/g;
+
+/** 提取 markdown 中全部 &作品 名（去重，保持出现顺序） */
+export function extractProjectNames(markdown: string): string[] {
+  const names: string[] = [];
+  for (const match of markdown.matchAll(PROJECT_RE)) {
+    const name = (match[1] ?? match[2]).trim();
+    if (name) names.push(name);
+  }
+  return [...new Set(names)];
+}
