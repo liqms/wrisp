@@ -18,6 +18,7 @@ const {
   entryQueryOneMock,
   entryExecuteMock,
   entryTransactionMock,
+  entryHasActiveEntriesMock,
   // FileIndexDao 桩
   fileIndexFindByPathMock,
   fileIndexCreateMock,
@@ -25,6 +26,7 @@ const {
   // ChunkDao 桩
   chunkQueryMock,
   chunkRebuildFtsMock,
+  chunkRemoveFileLevelMock,
   // 其它服务桩
   fileExistsMock,
   fileReadMock,
@@ -55,11 +57,13 @@ const {
   entryQueryOneMock: vi.fn(() => null),
   entryExecuteMock: vi.fn(() => ({ changes: 0 })),
   entryTransactionMock: vi.fn((fn: () => unknown) => fn()),
+  entryHasActiveEntriesMock: vi.fn(() => false),
   fileIndexFindByPathMock: vi.fn(() => null),
   fileIndexCreateMock: vi.fn(() => "file-index-id"),
   fileIndexUpdateMock: vi.fn(() => 1),
   chunkQueryMock: vi.fn(() => []),
   chunkRebuildFtsMock: vi.fn(),
+  chunkRemoveFileLevelMock: vi.fn(() => [] as string[]),
   fileExistsMock: vi.fn(() => false),
   fileReadMock: vi.fn(() => ""),
   fileWriteMock: vi.fn(),
@@ -113,6 +117,7 @@ vi.mock("@/main/core/db", () => ({
     queryOne = entryQueryOneMock;
     execute = entryExecuteMock;
     transaction = entryTransactionMock;
+    hasActiveEntries = entryHasActiveEntriesMock;
   },
   FileIndexDao: class {
     findByFilePath = fileIndexFindByPathMock;
@@ -122,6 +127,7 @@ vi.mock("@/main/core/db", () => ({
   ChunkDao: class {
     query = chunkQueryMock;
     rebuildFts = chunkRebuildFtsMock;
+    removeFileLevelJournalChunks = chunkRemoveFileLevelMock;
   },
   ProjectDao: class {
     findByNameLike = projectFindByNameLikeMock;
@@ -220,6 +226,7 @@ describe("journal.service 条目编排", () => {
     entryQueryOneMock.mockReturnValue(null);
     entryExecuteMock.mockReturnValue({ changes: 0 });
     entryTransactionMock.mockImplementation((fn: () => unknown) => fn());
+    entryHasActiveEntriesMock.mockReturnValue(false);
     fileIndexFindByPathMock.mockReturnValue(null);
     fileExistsMock.mockReturnValue(false);
     fileReadMock.mockReturnValue("");
@@ -234,6 +241,7 @@ describe("journal.service 条目编排", () => {
     upsertByNameMock.mockReturnValue([]);
     projectFindByNameLikeMock.mockReturnValue([]);
     dropVectorsMock.mockResolvedValue(undefined);
+    chunkRemoveFileLevelMock.mockReturnValue([]);
     replaceEntryChunksMock.mockReturnValue({
       reused: 0,
       inserted: 0,
@@ -733,5 +741,190 @@ describe("journal.service 条目编排", () => {
 
     expect(journalService.resetEntries()).toBe(0);
     expect(dropVectorsMock).toHaveBeenCalledWith([]);
+  });
+
+  // ───── 接管即导入（T10-3：首次追加不得静默覆盖未导入的旧版整篇 .md） ─────
+
+  /** 旧版整篇日志：无 wrisp:journal 文件标记（isEntryOwnedJournalMarkdown 走真实实现） */
+  const LEGACY_MD = "09:30\n旧版整篇的一段正文，没有任何条目注释。";
+  /** 本管线自己的渲染产物：首行带 wrisp:journal 标记 */
+  const ENTRY_OWNED_MD =
+    '<!-- wrisp:journal {"format":1,"date":"2026-10-08"} -->\n# 2026-10-08\n\n**09:32**\n正文\n';
+
+  it("appendEntry：当日零条目且磁盘留着旧版整篇 .md → 先按 §5.3 导入再接管（旧正文不丢）", () => {
+    fileExistsMock.mockReturnValue(true);
+    fileReadMock.mockReturnValue(LEGACY_MD);
+    parseJournalDayFileMock.mockReturnValue([
+      fakeParsed({ id: "legacy-1", content: "旧版整篇的一段正文，没有任何条目注释。" }),
+    ]);
+    // 模拟有状态的真源：接管导入落库后，当日条目查询要能读回它
+    // （否则 ensureDayFile 看到的是零条目 + 旧整篇文件，命中渲染保护，观察不到接管）
+    const rows: Array<Record<string, unknown>> = [];
+    entryCreateMock.mockImplementation((row: unknown) => {
+      rows.push(row as Record<string, unknown>);
+      return String((row as { id?: string }).id ?? "(append)");
+    });
+    entryListActiveMock.mockImplementation(() => rows as never);
+
+    journalService.appendEntry({
+      content: "新条目",
+      occurredAt: "2026-10-08T12:00:00.000Z",
+    });
+
+    expect(parseJournalDayFileMock).toHaveBeenCalledTimes(1);
+    // 导入出的旧条目先落库、本次追加的条目后落库：顺序反了就意味着先覆盖文件再补数据
+    const createdIds = entryCreateMock.mock.calls.map(
+      (call) => (call[0] as { id?: string }).id ?? "(append)",
+    );
+    expect(createdIds).toEqual(["legacy-1", "(append)"]);
+    // 接管后走正常后置管线：重渲染（条目接管产物覆写文件）+ 按日切块
+    expect(renderJournalDayMock).toHaveBeenCalled();
+    // 最终产物里旧正文与新条目都在——接管没有吞掉任何一份内容
+    const renderedRows = renderJournalDayMock.mock.calls.at(-1)![1] as Array<{
+      content: string;
+    }>;
+    expect(renderedRows.map((row) => row.content)).toEqual([
+      "旧版整篇的一段正文，没有任何条目注释。",
+      "新条目",
+    ]);
+    expect(scheduleJournalDayMock).toHaveBeenCalledWith("2026-10-08");
+  });
+
+  it("appendEntry：当日已有活跃条目 → 不重复导入（接管只发生一次）", () => {
+    fileExistsMock.mockReturnValue(true);
+    fileReadMock.mockReturnValue(LEGACY_MD);
+    entryHasActiveEntriesMock.mockReturnValue(true);
+
+    journalService.appendEntry({ content: "新条目", occurredAt: "2026-10-08T12:00:00.000Z" });
+
+    expect(parseJournalDayFileMock).not.toHaveBeenCalled();
+  });
+
+  it("appendEntry：文件已是条目接管产物 → 不导入（渲染保护与接管判定同一口径）", () => {
+    fileExistsMock.mockReturnValue(true);
+    fileReadMock.mockReturnValue(ENTRY_OWNED_MD);
+
+    journalService.appendEntry({ content: "新条目", occurredAt: "2026-10-08T12:00:00.000Z" });
+
+    expect(parseJournalDayFileMock).not.toHaveBeenCalled();
+  });
+
+  it("appendEntry 触发的接管只清该日文件下 entry_id IS NULL 的旧版块，并把 id 交给向量层", () => {
+    fileExistsMock.mockReturnValue(true);
+    fileReadMock.mockReturnValue(LEGACY_MD);
+    parseJournalDayFileMock.mockReturnValue([fakeParsed({ id: "legacy-1" })]);
+    fileIndexFindByPathMock.mockReturnValue({ id: "fi-1", file_path: "journal/2026-10-08.md" });
+    chunkRemoveFileLevelMock.mockReturnValue(["legacy-c1", "legacy-c2"]);
+
+    journalService.appendEntry({ content: "新条目", occurredAt: "2026-10-08T12:00:00.000Z" });
+
+    // 绝不能用 syncByFile(fileId, [])：条目块同样带 file_id，会被一起销毁
+    expect(chunkRemoveFileLevelMock).toHaveBeenCalledWith("fi-1");
+    expect(dropVectorsMock).toHaveBeenCalledWith(["legacy-c1", "legacy-c2"]);
+  });
+
+  it("importDayFile（显式导入）也在接管时清旧版文件级块", () => {
+    fileExistsMock.mockReturnValue(true);
+    fileReadMock.mockReturnValue(LEGACY_MD);
+    parseJournalDayFileMock.mockReturnValue([fakeParsed({ id: "legacy-1" })]);
+    fileIndexFindByPathMock.mockReturnValue({ id: "fi-1", file_path: "journal/2026-10-08.md" });
+    chunkRemoveFileLevelMock.mockReturnValue(["legacy-c1"]);
+
+    const result = journalService.importDayFile("2026-10-08");
+
+    expect(result.imported).toBe(1);
+    expect(chunkRemoveFileLevelMock).toHaveBeenCalledWith("fi-1");
+    expect(dropVectorsMock).toHaveBeenCalledWith(["legacy-c1"]);
+  });
+
+  it("导入已接管的日文件不做旧块清理（本次没有发生接管）", () => {
+    fileExistsMock.mockReturnValue(true);
+    fileReadMock.mockReturnValue(ENTRY_OWNED_MD);
+    parseJournalDayFileMock.mockReturnValue([fakeParsed({ id: "legacy-1" })]);
+    fileIndexFindByPathMock.mockReturnValue({ id: "fi-1" });
+
+    journalService.importDayFile("2026-10-08");
+
+    expect(chunkRemoveFileLevelMock).not.toHaveBeenCalled();
+  });
+
+  // ───── deleteEntry 原子性（T10-5） ─────
+
+  it("deleteEntry：软删除 + 清关联 + 回收条目块全部落在同一个事务内", () => {
+    entryFindByIdMock.mockReturnValue(fakeRow());
+    fileIndexFindByPathMock.mockReturnValue({ id: "fi-1", file_path: "journal/2026-10-08.md" });
+    replaceEntryChunksMock.mockReturnValue({
+      reused: 0,
+      inserted: 0,
+      removedIds: ["c1"],
+      total: 0,
+    });
+    // 事务桩记录事务态：三步写库必须都发生在事务内，否则块回收失败时 tombstone 已单独提交
+    let inTransaction = false;
+    const insideTx: boolean[] = [];
+    entryTransactionMock.mockImplementation((fn: () => unknown) => {
+      inTransaction = true;
+      try {
+        return fn();
+      } finally {
+        inTransaction = false;
+      }
+    });
+    entrySoftDeleteMock.mockImplementation(() => {
+      insideTx.push(inTransaction);
+      return 1;
+    });
+    entryReplaceAssocMock.mockImplementation(() => {
+      insideTx.push(inTransaction);
+    });
+    replaceEntryChunksMock.mockImplementation(() => {
+      insideTx.push(inTransaction);
+      return { reused: 0, inserted: 0, removedIds: ["c1"], total: 0 };
+    });
+
+    expect(journalService.deleteEntry("e1")).toBe(true);
+    expect(insideTx).toEqual([true, true, true]);
+  });
+
+  it("deleteEntry：块回收抛错 → 整体失败且不渲染不调度（tombstone 随事务回滚，重试可用）", () => {
+    entryFindByIdMock.mockReturnValue(fakeRow());
+    fileIndexFindByPathMock.mockReturnValue({ id: "fi-1", file_path: "journal/2026-10-08.md" });
+    replaceEntryChunksMock.mockImplementation(() => {
+      throw new Error("块回收失败");
+    });
+
+    expect(() => journalService.deleteEntry("e1")).toThrow("块回收失败");
+    // 删除未成立：不得把「条目还在库里」的当日重渲染成缺了这条的产物
+    expect(renderJournalDayMock).not.toHaveBeenCalled();
+    expect(scheduleJournalDayMock).not.toHaveBeenCalled();
+    expect(dropVectorsMock).not.toHaveBeenCalled();
+  });
+
+  // ───── appendEntry 载荷钳制（T10-6） ─────
+
+  it("appendEntry：payload 的非法 source/type（IPC 运行时不可信）钳制到 desktop/text", () => {
+    journalService.appendEntry({
+      content: "钳制",
+      occurredAt: "2026-10-08T12:00:00.000Z",
+      source: "evil; DROP",
+      type: "note",
+    } as unknown as Parameters<typeof journalService.appendEntry>[0]);
+
+    const created = entryCreateMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(created.source).toBe("desktop");
+    expect(created.type).toBe("text");
+  });
+
+  it("appendEntry：合法 source/type 原样落库", () => {
+    journalService.appendEntry({
+      content: "语音",
+      occurredAt: "2026-10-08T12:00:00.000Z",
+      source: "mobile",
+      type: "voice",
+    });
+
+    const created = entryCreateMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(created.source).toBe("mobile");
+    expect(created.type).toBe("voice");
   });
 });

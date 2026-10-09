@@ -19,6 +19,7 @@ vi.mock("@/main/utils/logger", () => ({
 }));
 
 import { ChunkDao } from "@/main/core/db/chunk.dao";
+import { collectChunks, splitDocument } from "@/main/core/services/content/chunk-splitter";
 
 const TS = "2026-10-09T01:00:00.000Z";
 
@@ -73,5 +74,44 @@ describe("ChunkDao.syncByEntry", () => {
     dao.syncByEntry("e1", []);
     const rest = dao.query("SELECT entry_id FROM semantic_chunks") as Array<{ entry_id: string }>;
     expect(rest).toEqual([{ entry_id: "e2" }]);
+  });
+
+  // Step-4（条目1）headless 复核：真实切分器（L1+L2，零模型）把一条长多段条目切成多块，
+  // 经 syncByEntry 落库后每块都带非空 entry_id——条目才是切块锚点，而非整篇文件。
+  it("长多段条目 → 真实切分出多块，落库后每块 entry_id 非空", () => {
+    seedFileAndEntry(mem());
+    const dao = new ChunkDao();
+
+    // 16 段各不相同的正文，总量远超 CHUNK_MAX_COARSE_CHARS(500)，触发 L2 长度切分
+    const content = Array.from(
+      { length: 16 },
+      (_, i) =>
+        `第${i}段：今天复盘了向量检索的召回率问题，发现分块粒度过粗会让短查询命中不到最相关的句子，需要评估更细的切分策略与重叠窗口。`,
+    ).join("\n\n");
+    expect(content.length).toBeGreaterThan(500);
+
+    const chunks = collectChunks(splitDocument(content).segments);
+    expect(chunks.length).toBeGreaterThanOrEqual(2);
+
+    const records = chunks.map((chunk) => ({
+      file_id: "f1",
+      file_path: "journal/2026-10-09.md",
+      start_line: chunk.startLine,
+      end_line: chunk.endLine,
+      section_title: chunk.sectionTitle,
+      content: chunk.content,
+      content_hash: chunk.contentHash,
+      chunk_type: "journal" as const,
+      entry_id: "e1",
+      word_count: chunk.wordCount,
+      status: "active" as const,
+    }));
+    dao.syncByEntry("e1", records);
+
+    const rows = dao.query(
+      "SELECT id, entry_id FROM semantic_chunks WHERE chunk_type = 'journal'",
+    ) as Array<{ id: string; entry_id: string | null }>;
+    expect(rows.length).toBe(chunks.length);
+    expect(rows.every((r) => r.entry_id === "e1")).toBe(true);
   });
 });

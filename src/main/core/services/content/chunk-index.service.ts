@@ -382,6 +382,13 @@ class ChunkIndexService {
    *
    * L3 是纯降级层：本地模型不可用（localReady=false）时整段跳过精修，
    * 单条精修抛错也只记日志并沿用该条的 L2 结果，绝不让整日切块失败。
+   *
+   * 与 {@link processFile} 同一失败口径：**切块本身**落库失败（replaceEntryChunks /
+   * 水位线回写抛错）时把当日 file_index 标为 `failed` 后抛出，交由任务队列按 max_retries
+   * 重试——静默吞掉会让 `synced` 挂在一份根本没切成功的日文件上，检索缺一块无人知晓。
+   * 与「条目接管日的 `sync_status` 由渲染路径写 synced」不冲突：那句说的是**文件级切块**
+   * 对接管文件无事可做；这里描述的是这一次按日切块尝试，下一次条目写入（重渲染写回
+   * synced）或队列重试都会覆盖它。
    */
   public async processJournalDay(date: string): Promise<void> {
     const entries = this.journalEntryDao.listDirtyByDate(date);
@@ -394,46 +401,57 @@ class ChunkIndexService {
       return;
     }
 
-    const localReady = await modelRouter.isLocalAvailable();
-    const embedder: SentenceEmbedder = async (texts) =>
-      (await embedBatch(texts)).map((r) => r.vector);
+    try {
+      const localReady = await modelRouter.isLocalAvailable();
+      const embedder: SentenceEmbedder = async (texts) =>
+        (await embedBatch(texts)).map((r) => r.vector);
 
-    for (const entry of entries) {
-      const coarse = splitDocument(entry.content);
-      let chunks = collectChunks(coarse.segments);
+      for (const entry of entries) {
+        const coarse = splitDocument(entry.content);
+        let chunks = collectChunks(coarse.segments);
 
-      if (localReady && hasRefineTargets(coarse)) {
-        try {
-          const refined = await refineDocument(
-            coarse,
-            embedder,
-            thresholdForChunkType("journal"),
-          );
-          if (!isSameBoundary(chunks, refined)) {
-            chunks = refined;
+        if (localReady && hasRefineTargets(coarse)) {
+          try {
+            const refined = await refineDocument(
+              coarse,
+              embedder,
+              thresholdForChunkType("journal"),
+            );
+            if (!isSameBoundary(chunks, refined)) {
+              chunks = refined;
+            }
+          } catch (error) {
+            Logger.debug("[ChunkIndex] 条目 L3 精修降级", {
+              entryId: entry.id,
+              error: String(error),
+            });
           }
-        } catch (error) {
-          Logger.debug("[ChunkIndex] 条目 L3 精修降级", {
-            entryId: entry.id,
-            error: String(error),
-          });
         }
+
+        const synced = chunkService.replaceEntryChunks(
+          entry.id,
+          fileIndex.id,
+          fileIndex.file_path,
+          chunks,
+        );
+        await chunkService.dropVectorsByIds(synced.removedIds);
+        this.journalEntryDao.recordChunked(entry.id, new Date().toISOString());
       }
 
-      const synced = chunkService.replaceEntryChunks(
-        entry.id,
-        fileIndex.id,
-        fileIndex.file_path,
-        chunks,
-      );
-      await chunkService.dropVectorsByIds(synced.removedIds);
-      this.journalEntryDao.recordChunked(entry.id, new Date().toISOString());
+      this.fileIndexDao.updateSyncStatus(fileIndex.id, "synced");
+      // 语义块已变化，通知渲染层刷新 Wiki 数据（去抖合并）
+      notifyWikiUpdated();
+      Logger.info("[ChunkIndex] 日志条目切块完成", { date, entries: entries.length });
+    } catch (error) {
+      // 标记失败后抛出，交由任务队列按 max_retries 重试（与 processFile 一致）
+      this.fileIndexDao.updateSyncStatus(fileIndex.id, "failed");
+      Logger.error("[ChunkIndex] 日志条目切块失败", {
+        date,
+        fileId: fileIndex.id,
+        error: String(error),
+      });
+      throw error;
     }
-
-    this.fileIndexDao.updateSyncStatus(fileIndex.id, "synced");
-    // 语义块已变化，通知渲染层刷新 Wiki 数据（去抖合并）
-    notifyWikiUpdated();
-    Logger.info("[ChunkIndex] 日志条目切块完成", { date, entries: entries.length });
   }
 }
 

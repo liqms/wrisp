@@ -231,10 +231,6 @@ export default {
       INPUT_JOURNAL_TIP:
         "快速记录思考、想法或笔记。Wrisp 将自动帮您关联、整理并沉淀为知识体系。",
       SEND_TIP: "按 Enter 换行，Shift + Enter 记录",
-      LOAD_EXISTING_TITLE: "日志已存在",
-      LOAD_EXISTING_CONTENT: "今日已有日志记录，是否加载现有内容或覆盖写入？",
-      OVERWRITE_CONFIRM_TITLE: "覆盖日志",
-      OVERWRITE_CONFIRM_CONTENT: "确定要覆盖今日日志吗？此操作不可撤销。",
       APPEND_PLACEHOLDER: "记一条…（Ctrl+Enter 追加）  #标签  &作品  \\@人物",
       APPEND_ACTION: "追加",
       APPEND_FAILED: "追加失败",

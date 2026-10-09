@@ -1,11 +1,5 @@
 import { ipcMain } from "electron";
 import {
-  createJournal,
-  updateJournal,
-  deleteJournal,
-  getRecentDays,
-  checkTodayJournalExists,
-  syncLocalFiles,
   resetJournalTable,
   appendEntry,
   updateEntry,
@@ -15,9 +9,6 @@ import {
   importDayFile
 } from "@/main/core/apis/journal.api";
 import type {
-  JournalFileCreate,
-  JournalFileUpdate,
-  JournalFileInfo,
   JournalEntryCreatePayload,
   JournalEntryUpdatePayload,
   JournalEntryView,
@@ -28,54 +19,6 @@ import type {
 } from "@/shared/types";
 
 export function registerJournalHandlers(): void {
-  ipcMain.handle(
-    "journal:create",
-    async (
-      _,
-      record: JournalFileCreate,
-    ): Promise<ApiResponse<string | null>> => {
-      return createJournal(record);
-    },
-  );
-
-  ipcMain.handle(
-    "journal:update",
-    async (
-      _,
-      record: JournalFileUpdate,
-    ): Promise<ApiResponse<boolean>> => {
-      return updateJournal(record);
-    },
-  );
-
-  ipcMain.handle(
-    "journal:delete",
-    async (_, id: Id): Promise<ApiResponse<boolean>> => {
-      return deleteJournal(id);
-    },
-  );
-
-  ipcMain.handle(
-    "journal:getRecentDays",
-    async (_, days?: number): Promise<ApiResponse<JournalFileInfo[]>> => {
-      return getRecentDays(days);
-    },
-  );
-
-  ipcMain.handle(
-    "journal:checkTodayJournalExists",
-    async (_, date?: string): Promise<ApiResponse<boolean>> => {
-      return checkTodayJournalExists(date);
-    },
-  );
-
-  ipcMain.handle(
-    "journal:syncLocalFiles",
-    async (): Promise<ApiResponse<number>> => {
-      return syncLocalFiles();
-    },
-  );
-
   // channel 名沿用旧「重置 file_index 表」，语义已切到清空日志条目（返回清除条目数）
   ipcMain.handle(
     "journal:resetJournalTable",

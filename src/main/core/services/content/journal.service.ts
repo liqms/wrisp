@@ -1,9 +1,6 @@
 import { Logger } from "@/main/utils/logger";
 import { fileService } from "@/main/core/services/base/file.service";
 import {
-  JournalFileInfo,
-  JournalFileCreate,
-  JournalFileUpdate,
   JournalEntryCreatePayload,
   JournalEntryUpdatePayload,
   JournalEntryView,
@@ -26,7 +23,6 @@ import {
 import { NodeCryptoUtil } from "@/main/utils";
 import { TimeUtil } from "@/shared/utils";
 import { JOURNAL_DIR } from "@/main/constants/folder.constants";
-import { inlineTokenSyncService } from "@/main/core/services/content/inline-token-sync.service";
 import { chunkIndexService } from "@/main/core/services/content/chunk-index.service";
 import { chunkService } from "@/main/core/services/content/chunk.service";
 import { parseEntryTokens } from "./journal/journal-entry.tokens";
@@ -41,19 +37,20 @@ import { characterService } from "@/main/core/services/content/character.service
 /**
  * Journal 服务
  * 编排两层存储：
- *   1. md 文件（fileService）
- *   2. 文件索引表（FileIndexDao, file_index 表）
+ *   1. `journal_entries` 表（唯一真源）
+ *   2. 当日 md 文件（`journal/{date}.md`，真源的确定性渲染产物）+ 文件索引表（file_index）
  *
- * 条目化改造（spec §6）后，`journal_entries` 表是唯一真源，md 文件是它的确定性渲染产物；
- * 文件级方法（create/update/delete/getRecentDays/syncLocalFiles/resetJournalTable）
- * 仍在为旧路径服务，Task 10 移除。
+ * 条目化改造（spec §6）后**只有这一条写入路径**：整篇文档的旧写入路径
+ * （create/update/delete/getRecentDays/checkTodayJournalExists/syncLocalFiles/scanJournalFiles）
+ * 已随 Task 10 移除，文件级方法不再存在，任何"绕过条目直接改日文件"的写法都不再受支持。
+ * `resetJournalTable` 只保留了 channel 名（设置页「重建索引」在用），实现已换成条目维度的 `resetEntries`。
  */
 class JournalService {
   private static instance: JournalService;
   private fileIndexDao: FileIndexDao;
   private chunkDao: ChunkDao;
   /**
-   * 条目 DAO / 作品 DAO：条目路径与旧文件路径共存，延迟到首次使用才实例化
+   * 条目 DAO / 作品 DAO：延迟到首次使用才实例化
    * （与 ChunkIndexService 同一惯例，避免模块加载时强制所有 mock 了 `@/main/core/db`
    * 的既有用例补新桩）。
    */
@@ -96,318 +93,6 @@ class JournalService {
     return TimeUtil.getLocalDateString();
   }
 
-  /**
-   * 校验当日是否存在日志文件
-   * @param date - 日期字符串（yyyy-MM-dd），默认当天
-   * @returns 存在返回 true，否则返回 false
-   */
-  public checkTodayJournalExists(date?: string): boolean {
-    const targetDate = date || this.getTodayDateString();
-    const filePath = this.getJournalFilePath(targetDate);
-    return fileService.exists(filePath);
-  }
-
-  /**
-   * 扫描 journal/ 目录下所有以日期格式命名的 .md 文件，构建文件索引数据
-   * @returns 文件索引创建数据数组（目录不存在时返回空数组）
-   */
-  private scanJournalFiles(): FileIndexCreate[] {
-    const journalDir = `${JOURNAL_DIR}/`;
-    const datePattern = /^(\d{4}-\d{2}-\d{2})\.md$/;
-
-    if (!fileService.exists(journalDir)) {
-      Logger.debug("journal 文件夹不存在", { journalDir });
-      return [];
-    }
-
-    const mdFiles = fileService.listFiles(journalDir, ".md");
-    const result: FileIndexCreate[] = [];
-
-    for (const rawPath of mdFiles) {
-      const filePath = rawPath.replace(/\\/g, "/");
-      const fileName = filePath.split("/").pop() || "";
-      const match = fileName.match(datePattern);
-      if (!match) continue;
-
-      const fileInfo = fileService.getFileInfo(filePath);
-      const now = new Date().toISOString();
-
-      result.push({
-        id: NodeCryptoUtil.generateUUID(),
-        file_path: filePath,
-        file_hash: fileInfo?.hash || "",
-        file_size: fileInfo?.size || 0,
-        date: match[1],
-        name: fileName,
-        updated_at: fileInfo?.modifiedAt || now,
-        sync_status: "pending",
-      });
-    }
-
-    return result;
-  }
-
-  /**
-   * 同步本地日志文件夹中的文件到文件索引表
-   * 扫描 journal/ 目录下所有以日期格式命名的 .md 文件，
-   * 检查文件索引表中是否已有记录，缺失的自动创建。
-   * @returns 新增的文件索引数量
-   */
-  public syncLocalFiles(): number {
-    try {
-      const allFiles = this.scanJournalFiles();
-      if (allFiles.length === 0) return 0;
-
-      // 过滤掉已存在的记录
-      const newFileIndexes = allFiles.filter(
-        (f) => !this.fileIndexDao.findByFilePath(f.file_path),
-      );
-
-      if (newFileIndexes.length > 0) {
-        const ids = this.fileIndexDao.createBatch(newFileIndexes);
-        // 新增索引（含首次补齐的历史文件）逐个调度切分
-        ids.forEach((id, i) => {
-          chunkIndexService.schedule(id, newFileIndexes[i].file_hash || "");
-        });
-        Logger.info("本地日志文件同步完成", { count: newFileIndexes.length });
-      } else {
-        Logger.debug("本地日志文件已全部同步，无需更新");
-      }
-
-      return newFileIndexes.length;
-    } catch (error) {
-      Logger.error("同步本地日志文件失败", { error: String(error) });
-      throw error;
-    }
-  }
-
-  /**
-   * 创建日志
-   * 1. 写入 md 文件
-   * 2. 保存到文件索引表（file_index）
-   * 3. 调度语义块切分（静默窗口合并，由任务队列异步执行）
-   * @returns 文件索引 ID
-   */
-  public create(journal: JournalFileCreate): string {
-    const today = journal.date || this.getTodayDateString();
-    const filePath = this.getJournalFilePath(today);
-
-    try {
-      // 1. 写入 md 文件
-      fileService.writeFile(filePath, journal.content);
-
-      // 2. 获取文件基本信息（大小、修改时间、哈希）
-      const fileInfo = fileService.getFileInfo(filePath);
-      const now = new Date().toISOString();
-
-      // 3. 保存到文件索引表（file_index 表）
-      const fileIndexCreate: FileIndexCreate = {
-        id: NodeCryptoUtil.generateUUID(),
-        file_path: filePath,
-        file_hash: fileInfo?.hash || "",
-        file_size: fileInfo?.size || 0,
-        date: today,
-        name: `${today}.md`,
-        updated_at: fileInfo?.modifiedAt || now,
-        sync_status: "pending",
-      };
-      // 调度语义块切分（静默窗口合并，由任务队列异步执行）
-      const fileIndexId = this.fileIndexDao.create(fileIndexCreate);
-      // 以库中实际记录为准取 hash：路径已存在时 create 返回既有记录且不更新字段
-      const stored = this.fileIndexDao.findById(fileIndexId);
-      chunkIndexService.schedule(fileIndexId, stored?.file_hash || "");
-
-      return fileIndexId;
-
-    } catch (error) {
-      Logger.error("创建日志失败", { error: String(error), journal });
-      throw error;
-    }
-  }
-
-  /**
-   * 更新日志
-   * 1. 同步更新 md 文件和文件索引表
-   * 2. 同步行内 token（#标签 / @人物）
-   * 3. 调度语义块切分（静默窗口合并，由任务队列异步执行）
-   */
-  public update(journal: JournalFileUpdate): boolean {
-    try {
-      const fileIndex = this.fileIndexDao.findById(journal.id);
-      if (!fileIndex) {
-        throw new Error(`日志不存在，ID: ${journal.id}`);
-      }
-      const date = fileIndex.date || this.getTodayDateString();
-      const filePath = this.getJournalFilePath(date);
-      // 更新 md 文件
-      fileService.writeFile(filePath, journal.content || "");
-      // 更新文件基本信息（大小、修改时间、哈希）
-      const fileInfo = fileService.getFileInfo(filePath);
-
-      // 更新文件索引表
-      const fileIndexUpdate: FileIndexUpdate = {
-        file_size: fileInfo?.size || 0,
-        file_hash: fileInfo?.hash || "",
-        updated_at: fileInfo?.modifiedAt || "",
-        sync_status: "pending",
-      };
-      this.fileIndexDao.update(fileIndex.id, fileIndexUpdate);
-
-      // 调度语义块切分（静默窗口合并，由任务队列异步执行）
-      chunkIndexService.schedule(fileIndex.id, fileIndexUpdate.file_hash || "");
-
-      // 同步行内 token：#标签入标签表、@人物入人物表（失败不影响保存）
-      inlineTokenSyncService.syncFromMarkdown(journal.content || "", {
-        type: "contact",
-      });
-
-      return true;
-    } catch (error) {
-      Logger.error("更新日志失败", { error: String(error), journal });
-      return false;
-    }
-  }
-
-  /**
-   * 删除日志
-   * 1. 检查日志是否存在
-   * 2. 先删除本地 md 文件
-   * 3. 再删除文件索引表记录
-   */
-  public delete(id: Id): boolean {
-    try {
-      const fileIndex = this.fileIndexDao.findById(id);
-      if (!fileIndex) {
-        throw new Error(`日志不存在，ID: ${id}`);
-      }
-      const date = fileIndex.date || this.getTodayDateString();
-      const filePath = this.getJournalFilePath(date);
-      // 先删除 md 文件
-      if (fileService.exists(filePath)) {
-        fileService.remove(filePath);
-      }
-      // 再删除文件索引表记录
-      this.fileIndexDao.delete(fileIndex.id);
-      return true;
-    } catch (error) {
-      Logger.error("删除日志失败", { error: String(error), id });
-      return false;
-    }
-  }
-
-
-  /**
-   * 根据 journal 文件的实际文件重置 file_index 表
-   * 扫描 journal/ 目录下的 .md 文件，清空 file_index 表后重新填充。
-   * 注意：此操作仅作用于日志子集——清空 chunk_type = 'journal' 的语义块及其
-   * 无级联外键关联（semantic_links / temporal_events），并删除 journal/ 下的
-   * file_index 记录；作品页面等其它来源不受影响。事务提交后重新调度全部日志
-   * 文件的切分，以重建日志语义块。
-   *
-   * 被删块的 LanceDB 向量行同样要清：向量层没有外键级联，不清就留下永远命中不到
-   * 正文的孤儿向量，白占 ANN 召回名额。清理放在事务提交之后（回滚时块还在，向量
-   * 不能跟着删），且异步不阻塞——向量层是可重建的派生数据，删除失败只记日志。
-   *
-   * @returns 重置后的记录数
-   */
-  public async resetJournalTable(): Promise<number> {
-    try {
-      const newFileIndexes = this.scanJournalFiles();
-
-      // 仅作用于日志子集：file_index / semantic_chunks 同时承载日志与作品页面
-      // （方案 A），重置时不得误删页面语义块及其文件索引
-      const journalChunkIds = "SELECT id FROM semantic_chunks WHERE chunk_type = 'journal'";
-      const createdIds: string[] = [];
-      let staleChunkIds: string[] = [];
-      this.fileIndexDao.transaction(() => {
-        // 先清理引用日志语义块且未声明 ON DELETE CASCADE 的关联表，
-        // 否则随后的删除会触发 FOREIGN KEY constraint failed
-        this.fileIndexDao.execute(
-          `DELETE FROM semantic_links WHERE source_chunk_id IN (${journalChunkIds}) OR target_chunk_id IN (${journalChunkIds})`,
-        );
-        this.fileIndexDao.execute(
-          `DELETE FROM temporal_events WHERE chunk_id IN (${journalChunkIds})`,
-        );
-        // 记下要被删掉的块 id，供事务提交后清理向量
-        staleChunkIds = (
-          this.chunkDao.query(
-            "SELECT id FROM semantic_chunks WHERE chunk_type = 'journal'",
-          ) as Array<{ id: string }>
-        ).map((row) => row.id);
-        // 再删除日志语义块（外键引用 file_index）
-        this.fileIndexDao.execute("DELETE FROM semantic_chunks WHERE chunk_type = 'journal'");
-        // external-content FTS 不随主表自动同步，删除后需重建索引（含保留的页面块）
-        this.chunkDao.rebuildFts();
-        // 仅删除日志目录下的文件索引，保留作品页面等其他来源
-        this.fileIndexDao.execute("DELETE FROM file_index WHERE file_path LIKE ?", [
-          `${JOURNAL_DIR}/%`,
-        ]);
-        // 重新填充（记录实际生成的 id，供事务提交后调度切分）
-        for (const item of newFileIndexes) {
-          createdIds.push(this.fileIndexDao.create(item));
-        }
-      });
-
-      await chunkService.dropVectorsByIds(staleChunkIds);
-
-      // 事务提交后再调度切分：语义块已被清空，需重新切分才能回填；
-      // 且 processFile 依赖已落库的 file_index 记录
-      newFileIndexes.forEach((item, index) => {
-        chunkIndexService.schedule(createdIds[index], item.file_hash || "");
-      });
-
-      Logger.info("file_index 表重置完成", {
-        count: newFileIndexes.length,
-        vectorsDropped: staleChunkIds.length,
-      });
-      return newFileIndexes.length;
-    } catch (error) {
-      Logger.error("重置 file_index 表失败", { error: String(error) });
-      throw error;
-    }
-  }
-
-  /**
-   * 查询最近有记录 N 天的日志
-   * 从 file_index 表按日期倒序取 N 个有记录的日期，从文件系统读取实际内容
-   * @param days 天数，默认为 3
-   */
-  public getRecentDays(days: number = 3): JournalFileInfo[] {
-    try {
-      // 按日期倒序取 N 个有记录的日期
-      const fileIndexes = this.fileIndexDao.query(
-        "SELECT * FROM file_index ORDER BY date DESC LIMIT ?",
-        [days],
-      );
-
-      const results: JournalFileInfo[] = [];
-
-      for (const fileIndex of fileIndexes) {
-        const dateStr = fileIndex.date || "";
-
-        // 读取 md 文件内容
-        const filePath = this.getJournalFilePath(dateStr);
-        let content = "";
-        if (fileService.exists(filePath)) {
-          content = fileService.readFile(filePath);
-        }
-
-        results.push({
-          id: fileIndex.id,
-          date: dateStr,
-          content,
-          createdAt: fileIndex.created_at,
-          updatedAt: fileIndex.updated_at,
-        });
-      }
-
-      return results;
-    } catch (error) {
-      Logger.error("查询近 N 天日志失败", { error: String(error), days });
-      throw error;
-    }
-  }
-
   // ──────────────────────────────────────────────────────────────
   // 条目化路径（spec §4~§7）：journal_entries 为真源，md 为渲染产物
   // ──────────────────────────────────────────────────────────────
@@ -416,7 +101,9 @@ class JournalService {
    * 追加一条日志条目
    * 1. 正文写入即 trim（渲染产物与库内容逐字节一致）
    * 2. occurred_at 一律归一为带时区的 UTC ISO，date 由本地时区派生
-   * 3. 后置管线：关联重建 → 当日重渲染 → 按日切块调度
+   * 3. 载荷的 source/type 走取值域钳制——IPC 运行时不可信（T10-6）
+   * 4. 当日第一条条目写入前先「接管即导入」（T10-3）
+   * 5. 后置管线：关联重建 → 当日重渲染 → 按日切块调度
    * @returns 条目 ID
    */
   public appendEntry(record: JournalEntryCreatePayload): string {
@@ -425,11 +112,13 @@ class JournalService {
     const date = TimeUtil.format(occurredAt, "YYYY-MM-DD");
     const now = new Date().toISOString();
 
+    this.takeoverLegacyDay(date);
+
     const id = this.journalEntryDao.create({
       date,
       occurred_at: occurredAt,
-      source: record.source || JOURNAL_ENTRY_SOURCE.DESKTOP,
-      type: record.type || JOURNAL_ENTRY_TYPE.TEXT,
+      source: this.clampEntrySource(record.source, JOURNAL_ENTRY_SOURCE.DESKTOP),
+      type: this.clampEntryType(record.type, JOURNAL_ENTRY_TYPE.TEXT),
       content,
       attachments: record.attachments ? JSON.stringify(record.attachments) : null,
       metadata: record.metadata ? JSON.stringify(record.metadata) : null,
@@ -439,6 +128,30 @@ class JournalService {
 
     this.afterEntryWrite(id, content, date);
     return id;
+  }
+
+  /**
+   * 接管即导入（T10-3，关的是**用户数据丢失**）：
+   * 当日零活跃条目、磁盘上却留着旧版整篇 `.md` 时，直接追加会把渲染产物覆盖上去、
+   * 旧正文从此无处可寻。所以在这里先对该日跑一次 §5.3 导入（复用 `importDayFile`
+   * 同一算法与同一事务，绝不另起一套解析），把旧正文收为推断条目，再让本次追加落库。
+   *
+   * 判定口径与渲染保护（{@link ensureDayFile}）严格一致：首行带 `wrisp:journal` 标记的
+   * 文件是本管线自己的产物，其中的内容已经躺在库里，不需要也不允许再导入。
+   *
+   * 仍然不做开机批量扫描：接管只在「该日真正要写第一条」时发生，保持 spec §5.1
+   * 「导入是显式触发」的原意（用户主动点导入入口走 {@link importDayFile}）。
+   */
+  private takeoverLegacyDay(date: string): void {
+    if (this.journalEntryDao.hasActiveEntries(date)) return;
+
+    const filePath = this.getJournalFilePath(date);
+    if (!fileService.exists(filePath)) return;
+    const existing = fileService.readFile(filePath);
+    if (!existing || existing.trim() === "") return;
+    if (isEntryOwnedJournalMarkdown(existing)) return;
+
+    this.importDayFile(date);
   }
 
   /**
@@ -477,9 +190,16 @@ class JournalService {
 
   /**
    * 软删除一条日志条目（写 deleted_at 留 tombstone，导入不复活）
-   * 关联即刻清空；该条目的语义块与向量也在此刻按条目维度直清——
-   * `listDirtyByDate` 只取活跃条目（deleted_at IS NULL），`processFile` 又对条目
-   * 接管文件让位，软删条目进不了任何一条后续路径，不清就永远可被检索命中。
+   * 关联清空与语义块回收都**与软删除同处一个事务**（T10-5）：三步分开提交时，
+   * 「墓碑已落库、清块抛错」会让该条目永久停在「库里已删、块仍可被检索命中」的 state，
+   * 而后续任何路径都不会再重驱它（listDirtyByDate 只取活跃条目，processFile 对接管文件让位）。
+   * 现在清块失败会整体回滚：条目仍然活跃，用户重试即重新走完整流程。
+   *
+   * 向量层（LanceDB）没有事务、也没有外键级联，只能留在事务外异步清理：
+   * 代价是「块已删、向量删除失败」的窗口仍存在，但向量行按 chunk_id 命中不到正文的块，
+   * 只是白占 ANN 名额，且删除入口幂等（重跑 reset / 下一次重切都会再清一次），
+   * 相比把条目写坏在同一事务里回滚，这个代价是可接受的降级。
+   *
    * @returns 删除成功返回 true，条目不存在或已删除返回 false
    */
   public deleteEntry(id: Id): boolean {
@@ -487,24 +207,39 @@ class JournalService {
     if (!row || row.deleted_at) return false;
 
     const now = new Date().toISOString();
-    if (this.journalEntryDao.softDelete(id, now) === 0) return false;
-
-    this.journalEntryDao.replaceAssociations(id, [], [], now);
-
-    // 条目维度清块：以当日 file_index 行为配对范围（entry 块携带 file_id），
-    // 空切分结果 = 全删；removedIds 交给向量层，模式同 resetEntries（提交后异步清）。
-    // 当日无 file_index 行时跳过——条目块必挂 file_id，没有行就没有可配对的块。
     const filePath = this.getJournalFilePath(row.date);
-    const fileIndex = this.fileIndexDao.findByFilePath(filePath);
-    if (fileIndex) {
-      const { removedIds } = chunkService.replaceEntryChunks(id, fileIndex.id, filePath, []);
+
+    const removedIds = this.journalEntryDao.transaction(() => {
+      // 与 updateEntry 同理看影响行数：软删 0 行 = 已被并发删除，不报错但报告未删除
+      if (this.journalEntryDao.softDelete(id, now) === 0) return null;
+      this.journalEntryDao.replaceAssociations(id, [], [], now);
+
+      // 条目维度清块：以当日 file_index 行为配对范围（entry 块携带 file_id），
+      // 空切分结果 = 全删。当日无 file_index 行时跳过——条目块必挂 file_id，
+      // 没有行就没有可配对的块。
+      const fileIndex = this.fileIndexDao.findByFilePath(filePath);
+      if (!fileIndex) {
+        Logger.warn("删除日志条目：当日无 file_index 行，跳过条目级块清理", {
+          entryId: id,
+          filePath,
+        });
+        return [];
+      }
+      const { removedIds: ids } = chunkService.replaceEntryChunks(
+        id,
+        fileIndex.id,
+        filePath,
+        [],
+      );
+      return ids;
+    });
+
+    if (removedIds === null) return false;
+
+    // 只有真正消失的块才删向量（空批不去敲向量层的门）
+    if (removedIds.length > 0) {
       void chunkService.dropVectorsByIds(removedIds).catch((error: unknown) => {
         Logger.warn("清理已删日志条目向量失败", { error: String(error), entryId: id });
-      });
-    } else {
-      Logger.warn("删除日志条目：当日无 file_index 行，跳过条目级块清理", {
-        entryId: id,
-        filePath,
       });
     }
 
@@ -548,7 +283,8 @@ class JournalService {
    * 显式导入当日 `.md`（spec §5.3）：把旧版整篇日志拆成条目并接管该日。
    * 带注释条目按 id upsert（tombstone 优先、last-write-wins），
    * 裸时间戳条目走确定性 id，重复导入自然幂等。
-   * 有任何插入/更新时走与 appendEntry 相同的后置管线（关联重建 + 渲染接管 + 调度）。
+   * 有任何插入/更新时走与 appendEntry 相同的后置管线（关联重建 + 渲染接管 + 调度），
+   * 并在接管时清掉该日遗留的**文件级**旧版块（{@link removeReplacedLegacyChunks}）。
    * @param date 目标日期（YYYY-MM-DD）
    * @param overwrite 当日已有条目时是否仍按 id 合并（默认 false：整日跳过）
    */
@@ -557,7 +293,13 @@ class JournalService {
     const filePath = this.getJournalFilePath(date);
     if (!fileService.exists(filePath)) return result;
 
-    const parsed = parseJournalDayFile(date, fileService.readFile(filePath));
+    const raw = fileService.readFile(filePath);
+    const parsed = parseJournalDayFile(date, raw);
+    // 本次是否真的在「接管一份旧版整篇」：无 wrisp:journal 标记且非空。
+    // 已接管产物（本管线自己渲染的文件）里的内容早就在库里，重复导入它不属于接管。
+    const tookOverLegacyFile =
+      !!raw && raw.trim() !== "" && !isEntryOwnedJournalMarkdown(raw);
+
     const existingRows = this.journalEntryDao.listAllByDate(date);
     const existingActive = existingRows.filter((row) => !row.deleted_at);
     if (existingActive.length > 0 && !overwrite) {
@@ -581,8 +323,8 @@ class JournalService {
             date,
             occurred_at: occurredAt,
             // 手工伪造的 src/type 降级为 import/text，避免撞 journal_entries CHECK 炸掉整日导入
-            source: this.clampEntrySource(item.source),
-            type: this.clampEntryType(item.type),
+            source: this.clampEntrySource(item.source, JOURNAL_ENTRY_SOURCE.IMPORT),
+            type: this.clampEntryType(item.type, JOURNAL_ENTRY_TYPE.TEXT),
             content,
             attachments: item.attachments ? JSON.stringify(item.attachments) : null,
             metadata: item.metadata ? JSON.stringify(item.metadata) : null,
@@ -615,10 +357,36 @@ class JournalService {
     });
 
     if (result.imported > 0 || result.updated > 0) {
+      if (tookOverLegacyFile) this.removeReplacedLegacyChunks(date);
       this.ensureDayFile(date);
       chunkIndexService.scheduleJournalDay(date);
     }
     return result;
+  }
+
+  /**
+   * 接管旧版整篇 .md 后，清掉该日文件下**文件级**的日志语义块（T10-3 的另一半）。
+   *
+   * 旧路径按整篇切出来的块以 `file_id` 为归属；条目接管后真源换成 `journal_entries`，
+   * `processFile` 对接管文件让位、按日切块只碰 `entry_id` 维度的块，这批旧块因此
+   * 永远无人重切，却仍然全文可检索、向量可命中——用户看到的是一条已被条目化的
+   * 陈旧副本。DAO 侧的范围条件（`entry_id IS NULL`）是底线：条目块同样带 `file_id`，
+   * 用 `syncByFile(fileId, [])` 会把它们一起销毁。
+   *
+   * 向量与块一体处理，模式同 resetEntries：块 id 在事务提交后交给向量层异步清。
+   */
+  private removeReplacedLegacyChunks(date: string): void {
+    const filePath = this.getJournalFilePath(date);
+    const fileIndex = this.fileIndexDao.findByFilePath(filePath);
+    if (!fileIndex) return;
+
+    const removedIds = this.chunkDao.removeFileLevelJournalChunks(fileIndex.id);
+    if (removedIds.length === 0) return;
+
+    Logger.info("日志接管：清理被取代的整篇语义块", { date, count: removedIds.length });
+    void chunkService.dropVectorsByIds(removedIds).catch((error: unknown) => {
+      Logger.warn("清理被取代的日志块向量失败", { error: String(error), date });
+    });
   }
 
   /**
@@ -740,12 +508,19 @@ class JournalService {
   /**
    * 渲染并覆写当日 md（spec §5.1 渲染保护）：
    * 当日零条目、且文件已存在且非空、且**不是**条目接管文件（无 wrisp:journal 标记，
-   * 即旧版整篇日志）时**绝不覆盖**——历史内容只能通过 journal:importDayFile 显式导入。
+   * 即旧版整篇日志）时**绝不覆盖**。
+   *
+   * 与「接管即导入」（{@link takeoverLegacyDay}）的分工：追加路径已经把这种文件先导入成
+   * 条目，走到这里时当日必有条目，本分支正常不再命中；保留它是**最后一道兜底**——
+   * 覆盖「导入未产出任何条目」（文件里除了标题与空行什么都没有）却仍要渲染空日、
+   * 以及任何新增的绕过追加路径的调用。删掉它等于把用户数据的安全网换成一条时序约定。
+   *
    * 带标记的文件是本管线自己的渲染产物：当日最后一条条目被删除后必须重写为空日渲染，
    * 否则已删内容会永久滞留文件（真源是库，文件是产物）。
    * 写文件后维护 file_index 行（hash/size/日期/文件名）并置 synced：
    * 条目化日文件不做文件级切块（processFile 对它让位），pending 无人收敛，
-   * synced 才是诚实的终态——按日切块由 recordChunked 水位线负责。
+   * synced 才是诚实的终态——按日切块由 recordChunked 水位线负责（失败时由
+   * `processJournalDay` 改写为 failed，见 chunk-index.service）。
    */
   private ensureDayFile(date: string): void {
     const filePath = this.getJournalFilePath(date);
@@ -808,29 +583,35 @@ class JournalService {
     return trimmed;
   }
 
-  /** 条目的来源/类型取值域钳制（spec §4.1 CHECK）：非法值降级，不整批失败 */
+  /**
+   * 条目的来源/类型取值域钳制（spec §4.1 CHECK）：非法值降级到**调用方的默认口径**，
+   * 不整批失败。两个调用点的兜底值不同，都在这里显式传入，避免把钳制和某个
+   * 入口的缺省值绑死：
+   * · {@link appendEntry}：载荷来自 renderer（IPC 运行时不可信），非法值按「桌面新记录」算；
+   * · {@link importDayFile}：值来自文件里的注释，非法值按「导入」算。
+   */
   private clampEnumValue<T extends string>(
-    value: string,
+    value: string | undefined,
     allowed: readonly T[],
     fallback: T,
   ): T {
-    return (allowed as readonly string[]).includes(value) ? (value as T) : fallback;
+    return value !== undefined && (allowed as readonly string[]).includes(value)
+      ? (value as T)
+      : fallback;
   }
 
-  private clampEntrySource(value: string): JournalEntrySource {
-    return this.clampEnumValue(
-      value,
-      Object.values(JOURNAL_ENTRY_SOURCE),
-      JOURNAL_ENTRY_SOURCE.IMPORT,
-    );
+  private clampEntrySource(
+    value: string | undefined,
+    fallback: JournalEntrySource,
+  ): JournalEntrySource {
+    return this.clampEnumValue(value, Object.values(JOURNAL_ENTRY_SOURCE), fallback);
   }
 
-  private clampEntryType(value: string): JournalEntryType {
-    return this.clampEnumValue(
-      value,
-      Object.values(JOURNAL_ENTRY_TYPE),
-      JOURNAL_ENTRY_TYPE.TEXT,
-    );
+  private clampEntryType(
+    value: string | undefined,
+    fallback: JournalEntryType,
+  ): JournalEntryType {
+    return this.clampEnumValue(value, Object.values(JOURNAL_ENTRY_TYPE), fallback);
   }
 
   /**

@@ -233,10 +233,6 @@ export default {
       INPUT_JOURNAL_TIP:
         "Quickly capture your thoughts, ideas or notes. Wrisp will automatically help you associate, organize and precipitate them into a knowledge system.",
       SEND_TIP: "Press Enter for a new line, Shift + Enter to capture",
-      LOAD_EXISTING_TITLE: "Journal Exists",
-      LOAD_EXISTING_CONTENT: "A journal entry for today already exists. Do you want to load the existing content or overwrite it?",
-      OVERWRITE_CONFIRM_TITLE: "Overwrite Journal",
-      OVERWRITE_CONFIRM_CONTENT: "Are you sure you want to overwrite today's journal? This action cannot be undone.",
       APPEND_PLACEHOLDER: "Log an entry… (Ctrl+Enter to append)  #tag  &project  \\@person",
       APPEND_ACTION: "Append",
       APPEND_FAILED: "Failed to append entry",
