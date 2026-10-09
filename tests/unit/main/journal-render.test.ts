@@ -4,6 +4,7 @@ import {
   renderJournalDay,
   parseJournalDayFile,
   inferEntryId,
+  localTimeHeader,
 } from "@/main/core/services/content/journal/journal-render";
 
 const e = (over: Record<string, unknown> = {}) => ({
@@ -43,20 +44,47 @@ describe("renderJournalDay / parseJournalDayFile", () => {
     expect(parsed[1].updated_at).toBe(entries[1].updated_at);
   });
 
-  it("转义规则1：正文中整行时间戳被 \\ 前缀保护，解析还原且不产生新条目", () => {
-    const md = renderJournalDay("2026-10-09", [e({ content: "计划表：\n**09:30**\n09:45\n完毕" })]);
-    expect(md).toContain("\\**09:30**");
-    expect(md).toContain("\\09:45");
+  it("转义规则1：三种头形态按同一字符集逐字转义、解析逐字还原且不切分", () => {
+    const md = renderJournalDay("2026-10-09", [
+      e({ content: "计划表：\n**09:30**\n09:45\n[[10:15]]\n完毕" }),
+    ]);
+    // 粗体：每个 * 转义；裸：转义冒号；方括号：只转首个左括号
+    expect(md).toContain("\\*\\*09:30\\*\\*");
+    expect(md).toContain("09\\:45");
+    expect(md).toContain("\\[[10:15]]");
     const parsed = parseJournalDayFile("2026-10-09", md);
     expect(parsed).toHaveLength(1);
-    expect(parsed[0].content).toBe("计划表：\n**09:30**\n09:45\n完毕");
+    expect(parsed[0].content).toBe("计划表：\n**09:30**\n09:45\n[[10:15]]\n完毕");
   });
 
-  it("转义规则2：正文含 wrisp:entry 字面量被 \\ 前缀保护", () => {
-    const tricky = "注释样例 <!-- wrisp:entry {} --> 结束";
-    const parsed = parseJournalDayFile("2026-10-09", renderJournalDay("2026-10-09", [e({ content: tricky })]));
+  it("转义规则1：还原不吞掉用户自写的非目标反斜杠序列", () => {
+    // 用户正文里的 \\ 与 \d 不在转义字符集内，还原时必须原样保留
+    const tricky = "正则：\\d+\nWindows 路径 C:\\data";
+    const parsed = parseJournalDayFile(
+      "2026-10-09",
+      renderJournalDay("2026-10-09", [e({ content: tricky })]),
+    );
     expect(parsed).toHaveLength(1);
     expect(parsed[0].content).toBe(tricky);
+  });
+
+  it("转义规则2：整行 wrisp:entry 注释被 \\< 前缀保护（首个字符转义）", () => {
+    const wholeLineComment = "前一行\n<!-- wrisp:entry {\"id\":\"x\"} -->\n后一行";
+    const md = renderJournalDay("2026-10-09", [e({ content: wholeLineComment })]);
+    expect(md).toContain("\\<!-- wrisp:entry {\"id\":\"x\"} -->");
+    const parsed = parseJournalDayFile("2026-10-09", md);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].content).toBe(wholeLineComment);
+  });
+
+  it("转义规则2：行中包含但不整行匹配该注释时不转义（整行锚定，无歧义）", () => {
+    const midLine = "注释样例 <!-- wrisp:entry {} --> 结束";
+    const md = renderJournalDay("2026-10-09", [e({ content: midLine })]);
+    expect(md).toContain(midLine); // 原样，未被加 \ 前缀
+    expect(md).not.toContain("\\<!--");
+    const parsed = parseJournalDayFile("2026-10-09", md);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].content).toBe(midLine);
   });
 
   it("转义规则3：代码围栏内的时间戳行不转义、解析不切分", () => {
@@ -76,7 +104,7 @@ describe("renderJournalDay / parseJournalDayFile", () => {
     expect(parsed.map((p) => p.source)).toEqual(["import", "import", "import"]);
     expect(parsed[0].occurred_at).toBe("2026-10-08T09:30:00");
     const again = parseJournalDayFile("2026-10-08", legacy);
-    expect(again.map((p) => p.id)).toEqual(parsed.map((p) => p.id)); // UUIDv5 风格确定性 id → 重复导入幂等
+    expect(again.map((p) => p.id)).toEqual(parsed.map((p) => p.id)); // sha256 派生的 UUID 形状确定性 id → 重复导入幂等
   });
 
   it("整篇无时间戳行 → 全文一条", () => {
@@ -91,6 +119,105 @@ describe("renderJournalDay / parseJournalDayFile", () => {
     const b = inferEntryId("2026-10-08", "2026-10-08T09:30:00", "y");
     expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-a[0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(a).not.toBe(b);
+  });
+});
+
+describe("Critical #1：围栏与权威条目边界（spec §5.2 规则 3 例外）", () => {
+  it("(a) 未闭合围栏不再吞掉后续条目，两个 id 都被解析出来", () => {
+    const entries = [
+      e({ id: "e1", occurred_at: "2026-10-09T01:00:00.000Z", content: "看这个：\n```python\nprint(1)" }),
+      e({ id: "e2", occurred_at: "2026-10-09T02:00:00.000Z", content: "正常正文" }),
+    ];
+    const md = renderJournalDay("2026-10-09", entries);
+    const parsed = parseJournalDayFile("2026-10-09", md);
+    expect(parsed.map((p) => p.id)).toEqual(["e1", "e2"]);
+    expect(parsed[0].content).toBe("看这个：\n```python\nprint(1)");
+    expect(parsed[1].content).toBe("正常正文");
+  });
+
+  it("(b) 嵌套围栏（``` 内套 ````markdown````）逐字节往返", () => {
+    const body = [
+      "外层说明",
+      "```text",
+      "内嵌 ````markdown 写法演示",
+      "**09:30** 是被展示的样例头",
+      "````",
+      "```",
+      "尾行",
+    ].join("\n");
+    const md = renderJournalDay("2026-10-09", [e({ content: body })]);
+    const parsed = parseJournalDayFile("2026-10-09", md);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].content).toBe(body);
+    // render → parse → render 字节稳定
+    const second = renderJournalDay(
+      "2026-10-09",
+      parsed.map((p) => ({ ...p, updated_at: p.updated_at ?? p.occurred_at })),
+    );
+    expect(second).toBe(md);
+  });
+
+  it("(c) 平衡围栏内的裸时间戳头（非两行组合）仍不作为边界（规则 3 原有保护保留）", () => {
+    const body = "笔记：\n```\n09:30\n这段仍在代码块里\n```\n结束";
+    const md = renderJournalDay("2026-10-09", [e({ content: body })]);
+    const parsed = parseJournalDayFile("2026-10-09", md);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].content).toBe(body);
+  });
+});
+
+describe("Important #3：旧文件前言里的非日期标题不再丢失", () => {
+  it("以手写标题起头的 legacy 文件，该标题保留进正文", () => {
+    const legacy = "# 今日安排\n上午开会\n09:30\n晨会纪要\n";
+    const parsed = parseJournalDayFile("2026-10-08", legacy);
+    expect(parsed.length).toBeGreaterThanOrEqual(1);
+    // 标题 + 散落正文归入首条（00:00:00），标题没被前言循环吞掉
+    expect(parsed[0].occurred_at).toBe("2026-10-08T00:00:00");
+    expect(parsed[0].content).toContain("# 今日安排");
+    expect(parsed[0].content).toContain("上午开会");
+  });
+
+  it("渲染器自身的 # <date> 标题仍被前言跳过", () => {
+    const md = renderJournalDay("2026-10-09", [e()]);
+    const parsed = parseJournalDayFile("2026-10-09", md);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].content).toBe("今天研究了 LanceDB");
+  });
+});
+
+describe("Minor：坏数据与稳定性", () => {
+  it("#11 损坏的 wrisp:entry JSON 注释行被消费、不残留在正文", () => {
+    const body = [
+      "**09:30**",
+      "<!-- wrisp:entry {这是坏 JSON} -->",
+      "正文",
+    ].join("\n");
+    const parsed = parseJournalDayFile("2026-10-08", body);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].has_meta).toBe(false); // 无合法 id → 降级推断
+    expect(parsed[0].content).toBe("正文"); // 坏注释行不进正文
+    // 往返稳定：重渲染不含那条坏注释
+    const md = renderJournalDay(
+      "2026-10-08",
+      parsed.map((p) => ({ ...p, updated_at: p.updated_at ?? p.occurred_at })),
+    );
+    expect(md).not.toContain("这是坏 JSON");
+  });
+
+  it("#12 不可解析的 occurred_at 抛错而非生成 NaN:NaN 坏头", () => {
+    expect(() => localTimeHeader("not-a-date")).toThrow();
+    expect(() => renderJournalDay("2026-10-09", [e({ occurred_at: "无效时间" })])).toThrow();
+  });
+
+  it("#5 排序按码点而非 locale：同 occurred_at 时 id 升序稳定", () => {
+    const entries = [
+      e({ id: "b", occurred_at: "2026-10-09T01:00:00.000Z" }),
+      e({ id: "A", occurred_at: "2026-10-09T01:00:00.000Z" }),
+      e({ id: "a", occurred_at: "2026-10-09T01:00:00.000Z" }),
+    ];
+    const parsed = parseJournalDayFile("2026-10-09", renderJournalDay("2026-10-09", entries));
+    // 码点序：A(0x41) < a(0x61) < b(0x62)——localeCompare 可能给出 a,A,b 之类不同结果
+    expect(parsed.map((p) => p.id)).toEqual(["A", "a", "b"]);
   });
 });
 

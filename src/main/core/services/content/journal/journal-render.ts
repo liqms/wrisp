@@ -13,20 +13,30 @@
  *   ```
  *
  * 真源是 `journal_entries` 表，本文件只是它的确定性视图：
- * · 确定性 —— 相同条目集必得相同字节（排序键 `occurred_at` + `id`，不掺入当前时间）；
+ * · 确定性 —— 相同条目集必得相同字节（排序键 `occurred_at` + `id`，按码点比较，不掺当前时间、不依赖 locale）；
  * · 可往返 —— `renderJournalDay` 的产物经 `parseJournalDayFile` 还原后，再渲染字节不变；
  * · 向前兼容 —— 注释 JSON 里的未知键在解析时被忽略。
  *
- * 正文转义（三条，作用于围栏外的整行）：
- *   1. 形似条目头的时间戳行（`**HH:mm**` / `[[HH:mm]]` / 裸 `HH:mm`）加 `\` 前缀；
- *   2. 形似 `<!-- wrisp:entry {...} -->` 的整行加 `\` 前缀；
- *   3. 代码围栏内的行一律不转义、也不参与头识别（围栏语义交给切分器）。
+ * 正文转义（spec §5.2，逐字符转义「参与头匹配的锚定标点」，作用于围栏外的整行）：
+ *   1. 整行匹配条目头模式 → 只转义该形态参与匹配的那个标点，逐字符加反斜杠：
+ *      · 粗体形式把每个 `*` 转义为 `\*`（`**09:30**` → `\*\*09:30\*\*`）；
+ *      · 裸形式转义冒号（`09:30` → `09\:30`）；
+ *      · 方括号形式转义首个左括号（`[[09:30]]` → `\[[09:30]]`）。
+ *      解析时按同一套字符集 `\* \[ \: \<` 逐个剥离反斜杠还原，绝不「剥掉全部反斜杠」，
+ *      以免吞掉用户本就写下的 `\d`、`\\` 等。还原是纯字符串操作，不解析 Markdown。
+ *   2. 整行即 `<!-- wrisp:entry {...} -->` 形状 → 转义首个字符为 `\<!-- …`（CommonMark 按字面渲染
+ *      `\<`）；仅「行中包含但不整行匹配」该注释的（如「样例 <!-- wrisp:entry {} --> 结束」）不转义
+ *      —— 解析器整行锚定，中间出现不产生歧义。不使用 HTML 实体 `&#60;`。
+ *   3. 代码围栏（```/~~~）内的行一律不转义、也不参与头识别（沿用 `splitting/structure.ts` 的围栏语义）。
+ *      例外（§5.2 规则 3 补充）：`**HH:mm**` 行紧随一行 `<!-- wrisp:entry ... -->` 的两行组合是**权威条目
+ *      边界**，即使处于「围栏内」也生效，并在此处重置围栏状态。这样某条目正文含未闭合围栏时，其后条目
+ *      不会因「整文件恒为围栏内」而被静默合并、丢 id；代价是「代码块里粘贴一个完整两行头部样例」会把
+ *      一条拆成两条（用户可见、可手工合并），是远更轻的失效模式。
  *
  * 已知限制（格式约定，不是 bug）：
- * · 逐条目正文的 ```/~~~ 围栏必须成对——渲染按「条目自身」判定围栏，解析按「整篇」判定，
- *   未闭合的围栏会把它之后所有条目的头吞进围栏内，导致条目被合并；
  * · 正文首尾空行/空白在往返中被 `trim()` 去除（条目内容本就不以空白表达语义）；
- * · 以 `\` 起头且去掉 `\` 后形似头/注释的正文行会丢掉那个 `\`（未对 `\` 自身二次转义）。
+ * · 逐字符转义规则下，正文里用户本就写下的字面 `\*` `\[` `\:` `\<` 序列会在还原时丢掉那个 `\`
+ *   —— 这是逐字符规则的固有代价，已接受。
  */
 import { NodeCryptoUtil } from "@/main/utils/crypto";
 import { TimeUtil } from "@/shared/utils";
@@ -37,12 +47,14 @@ export const JOURNAL_FILE_FORMAT = 1;
 
 const DAY_MARKER_RE = /^\s*<!--\s*wrisp:journal\s+(\{.*\})\s*-->\s*$/;
 const ENTRY_META_RE = /^\s*<!--\s*wrisp:entry\s+(\{.*\})\s*-->\s*$/;
-/** Markdown 标题行（`# ` 起头）——文件级 H1 日期不属于任何条目 */
-const HEADING_RE = /^\s*#\s/;
+/** 代码围栏起始行（``` 或 ~~~）——解析侧自管围栏态，规则 3 例外需逐行推进 */
+const CODE_FENCE_RE = /^\s*(`{3,}|~{3,})/;
 /** 条目头三种形态：加粗（可带日期）、[[HH:mm]]（可带日期）、裸时间戳。整行锚定。 */
 const HEADER_BOLD_RE = /^\s*\*\*(?:(\d{4}-\d{2}-\d{2})[ T])?(\d{1,2}:\d{2})(?::(\d{2}))?\*\*\s*$/;
 const HEADER_WIKI_RE = /^\s*\[\[(?:(\d{4}-\d{2}-\d{2})[ T])?(\d{1,2}:\d{2})(?::(\d{2}))?\]\]\s*$/;
 const HEADER_BARE_RE = /^\s*(?:(\d{4}-\d{2}-\d{2})[ T])?(\d{1,2}:\d{2})(?::(\d{2}))?\s*$/;
+/** 逐字符还原时剥离反斜杠的字符集（与转义目标标点一致）：\* \[ \: \< */
+const UNESCAPE_RE = /\\([*[:<])/g;
 
 /** `<!-- wrisp:entry {...} -->` 的载荷（键名刻意压短，减少正文噪音） */
 export interface JournalEntryMetaPayload {
@@ -81,6 +93,9 @@ export interface ParsedJournalEntry {
   has_meta: boolean;
 }
 
+/** 条目头形态 */
+type HeaderForm = "bold" | "wiki" | "bare";
+
 /** 条目头的时间信息（小时/分已补齐为两位） */
 interface EntryHeader {
   time: string;
@@ -91,37 +106,73 @@ function pad2(value: string): string {
   return value.length === 1 ? `0${value}` : value;
 }
 
+/** 码点比较（不用 localeCompare——其依赖 locale/ICU，会破坏跨机器字节一致） */
+function cmpCodePoint(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** 把 `2026-10-09` 之类日期安全嵌入正则 */
+function escapeForRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /**
- * 头识别（渲染转义与解析切分共用同一判定，避免两处漂移）。
- * 行首 `\` 是转义标记，永不算头。
+ * 头形态识别（渲染转义与解析切分共用同一判定，避免两处漂移）。
+ * 行首 `\` 是转义标记，永不算头；三种正则各自整行锚定。
  */
-function matchHeader(line: string): EntryHeader | null {
+function headerForm(line: string): HeaderForm | null {
   if (line.startsWith("\\")) return null;
-  for (const re of [HEADER_BOLD_RE, HEADER_WIKI_RE, HEADER_BARE_RE]) {
-    const m = re.exec(line);
-    if (m) {
-      const [hh, mm] = m[2].split(":");
-      return { time: `${pad2(hh)}:${pad2(mm)}`, sec: m[3] ?? null };
-    }
-  }
+  if (HEADER_BOLD_RE.test(line)) return "bold";
+  if (HEADER_WIKI_RE.test(line)) return "wiki";
+  if (HEADER_BARE_RE.test(line)) return "bare";
   return null;
 }
 
-/** 该行渲染时是否需要 `\` 前缀保护（转义规则 1、2） */
-function needsEscape(line: string): boolean {
-  return matchHeader(line) !== null || ENTRY_META_RE.test(line);
+function matchHeader(line: string): EntryHeader | null {
+  const form = headerForm(line);
+  if (!form) return null;
+  const re = form === "bold" ? HEADER_BOLD_RE : form === "wiki" ? HEADER_WIKI_RE : HEADER_BARE_RE;
+  const m = re.exec(line);
+  if (!m) return null;
+  const [hh, mm] = m[2].split(":");
+  return { time: `${pad2(hh)}:${pad2(mm)}`, sec: m[3] ?? null };
 }
 
+/** 粗体形态：转义每个 `*`（`\*\*09:30\*\*`）——只转首个 `*` 会让 CommonMark 把余下配对成游离强调 */
+function escapeBoldHeader(line: string): string {
+  return line.replace(/\*/g, "\\*");
+}
+
+/** 方括号形态：只转义首个左括号（`\[[09:30]]`） */
+function escapeWikiHeader(line: string): string {
+  return `\\${line}`;
+}
+
+/** 裸形态：转义第一个冒号（`09\:30`） */
+function escapeBareHeader(line: string): string {
+  const idx = line.indexOf(":");
+  return idx < 0 ? line : `${line.slice(0, idx)}\\${line.slice(idx)}`;
+}
+
+/** 整行注释形态（规则 2）：转义首个字符 `<` */
+function escapeCommentLine(line: string): string {
+  return `\\${line}`;
+}
+
+/** 正文行渲染：围栏内原样（规则 3）；围栏外按形态逐字符转义（规则 1、2） */
 function escapeBodyLine(line: string, insideFence: boolean): string {
   if (insideFence) return line;
-  return needsEscape(line) ? `\\${line}` : line;
+  const form = headerForm(line);
+  if (form === "bold") return escapeBoldHeader(line);
+  if (form === "wiki") return escapeWikiHeader(line);
+  if (form === "bare") return escapeBareHeader(line);
+  if (ENTRY_META_RE.test(line)) return escapeCommentLine(line);
+  return line;
 }
 
-/** 仅剥离为保护而加的 `\` 前缀；其余内容原样（不做 Markdown 反转义） */
+/** 仅按同一套字符集（`\*` `\[` `\:` `\<`）逐个剥离反斜杠；其余反斜杠保留 */
 function unescapeBodyLine(line: string): string {
-  if (!line.startsWith("\\")) return line;
-  const rest = line.slice(1);
-  return matchHeader(rest) !== null || ENTRY_META_RE.test(rest) ? rest : line;
+  return line.replace(UNESCAPE_RE, "$1");
 }
 
 function unescapeAll(text: string): string {
@@ -130,12 +181,20 @@ function unescapeAll(text: string): string {
 
 /** 渲染头时间戳：条目时间 → 本地时区 HH:mm */
 export function localTimeHeader(occurredAtIso: string): string {
+  const d = new Date(occurredAtIso);
+  if (Number.isNaN(d.getTime())) {
+    throw new Error(`localTimeHeader: 无法解析条目时间，拒绝生成损坏的头部: ${occurredAtIso}`);
+  }
   return TimeUtil.format(occurredAtIso, "HH:mm");
 }
 
 /**
  * 旧格式条目（无注释元数据）的确定性 id：同 (date, occurred_at, content) 必得同一
  * 8-4-4-4-12 形状串，重复导入因此幂等。
+ *
+ * 这是 sha256 摘要十六进制前 32 位按 8-4-4-4-12 排布、version 半字节固定为 `5`、variant
+ * 固定为 `a` 派生出的 **UUID 形状**确定性 id，**不是** RFC 4122 的 name-based（UUIDv5）算法。
+ * 任何外部实现（含未来移动端）必须复刻本定义，否则同一手工条目会算出不同 id。
  */
 export function inferEntryId(date: string, occurredAt: string, content: string): string {
   const hex = NodeCryptoUtil.sha256(`${date}|${occurredAt}|${content}`);
@@ -185,12 +244,57 @@ function fromMetaPayload(
   };
 }
 
-/** 从 start 起下一个条目头的下标（围栏内的行不参与识别）；没有则返回 lines.length */
-function nextHeaderIndex(lines: string[], fences: Set<number>, start: number): number {
-  for (let i = start; i < lines.length; i++) {
-    if (!fences.has(i) && matchHeader(lines[i])) return i;
+/**
+ * 逐行推进，同时产出「围栏内」标记与「条目边界」标记。
+ * · 权威边界（规则 3 例外）：粗体头 + 紧随整行 wrisp:entry 注释 —— 与围栏态无关，命中即视为边界
+ *   并把围栏态重置为「外」；
+ * · 普通边界：围栏外的头形态行。
+ */
+function scanLines(lines: string[]): { inside: boolean[]; boundary: boolean[] } {
+  const n = lines.length;
+  const inside = new Array<boolean>(n).fill(false);
+  const boundary = new Array<boolean>(n).fill(false);
+  const authoritative = new Array<boolean>(n).fill(false);
+
+  for (let i = 0; i < n; i++) {
+    if (
+      headerForm(lines[i]) === "bold" &&
+      i + 1 < n &&
+      ENTRY_META_RE.test(lines[i + 1])
+    ) {
+      authoritative[i] = true;
+    }
   }
-  return lines.length;
+
+  let marker: string | null = null;
+  for (let i = 0; i < n; i++) {
+    if (authoritative[i]) {
+      marker = null; // 规则 3 例外：在此重置围栏态
+      boundary[i] = true;
+      // 权威头行本身不是围栏行，继续走正常围栏判定（保持 inside[i]=false）
+    }
+    const match = CODE_FENCE_RE.exec(lines[i]);
+    if (marker) {
+      inside[i] = true;
+      if (match && match[1][0] === marker) marker = null;
+      continue;
+    }
+    if (match) {
+      marker = match[1][0];
+      inside[i] = true;
+      continue;
+    }
+    if (!authoritative[i] && matchHeader(lines[i])) boundary[i] = true;
+  }
+
+  return { inside, boundary };
+}
+
+function nextBoundaryIndex(boundary: boolean[], start: number): number {
+  for (let i = start; i < boundary.length; i++) {
+    if (boundary[i]) return i;
+  }
+  return boundary.length;
 }
 
 /**
@@ -199,7 +303,7 @@ function nextHeaderIndex(lines: string[], fences: Set<number>, start: number): n
  */
 export function renderJournalDay(date: string, entries: JournalEntryRowLike[]): string {
   const sorted = [...entries].sort(
-    (a, b) => a.occurred_at.localeCompare(b.occurred_at) || a.id.localeCompare(b.id),
+    (a, b) => cmpCodePoint(a.occurred_at, b.occurred_at) || cmpCodePoint(a.id, b.id),
   );
   const parts: string[] = [
     `<!-- wrisp:journal {"format":${JOURNAL_FILE_FORMAT},"date":"${date}"} -->`,
@@ -238,48 +342,48 @@ export function renderJournalDay(date: string, entries: JournalEntryRowLike[]): 
  */
 export function parseJournalDayFile(date: string, markdown: string): ParsedJournalEntry[] {
   const lines = markdown.replace(/\r\n/g, "\n").split("\n");
-  const fences = markCodeFenceLines(lines);
+  const { inside, boundary } = scanLines(lines);
   const out: ParsedJournalEntry[] = [];
 
-  // 跳过文件标记、H1 日期标题与它们周围的空行（不属于任何条目）
+  // 前言：只跳过文件标记、渲染器自身的 `# <date>` 标题、以及它们周围的空行。
+  // 其它标题（如手写的 `# 今日安排`）不属于此处，落到正文/散落正文分支保留（不再丢失）。
+  const dateHeadingRe = new RegExp(`^#\\s*${escapeForRegExp(date)}\\s*$`);
   let i = 0;
   while (
     i < lines.length &&
-    !fences.has(i) &&
-    (DAY_MARKER_RE.test(lines[i]) || HEADING_RE.test(lines[i]) || lines[i].trim() === "")
+    !inside[i] &&
+    !boundary[i] &&
+    (DAY_MARKER_RE.test(lines[i]) || dateHeadingRe.test(lines[i].trim()) || lines[i].trim() === "")
   ) {
     i++;
   }
 
   while (i < lines.length) {
-    const header = fences.has(i) ? null : matchHeader(lines[i]);
-
-    if (!header) {
+    if (!boundary[i]) {
       // 首个条目头之前的散落正文 → 归为一条推断条目
-      const next = nextHeaderIndex(lines, fences, i);
+      const next = nextBoundaryIndex(boundary, i);
       const body = unescapeAll(lines.slice(i, next).join("\n")).trim();
       if (body) out.push(importInferred(date, `${date}T00:00:00`, body));
       i = next;
       continue;
     }
 
+    const header = matchHeader(lines[i])!;
     const headerOccurredAt = `${date}T${header.time}${header.sec ? `:${header.sec}` : ":00"}`;
     let j = i + 1;
     let meta: Record<string, unknown> | null = null;
-    if (j < lines.length && !fences.has(j)) {
-      const raw = ENTRY_META_RE.exec(lines[j])?.[1];
-      if (raw) {
-        try {
-          meta = JSON.parse(raw) as Record<string, unknown>;
-        } catch {
-          meta = null; // 注释 JSON 损坏 → 整条按推断条目处理
-        }
+    if (j < lines.length && !inside[j] && ENTRY_META_RE.test(lines[j])) {
+      const raw = ENTRY_META_RE.exec(lines[j])![1];
+      j++; // 无论 JSON 是否可解析，都消费这行注释，避免它残留进正文破坏往返
+      try {
+        meta = JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        meta = null; // 注释 JSON 损坏 → 该条按推断条目处理（但注释行已被消费）
       }
-      if (meta) j++;
     }
 
     const bodyStart = j;
-    j = nextHeaderIndex(lines, fences, j);
+    j = nextBoundaryIndex(boundary, j);
     const content = unescapeAll(lines.slice(bodyStart, j).join("\n")).trim();
 
     const metaEntry = meta ? fromMetaPayload(meta, headerOccurredAt, content) : null;
