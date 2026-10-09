@@ -37,7 +37,10 @@ docs/
 │   ├── template-marketplace.md   # 模板市场设计
 │   └── TEMPLATE.md               # features/ 文档写作模板
 ├── product/                      # 产品策略
-│   ├── mrd.md                    # 产品战略文档（市场、用户、竞争）
+│   ├── mrd.md                    # 市场需求文档（MRD）·产品分析重组版
+│   ├── mrd-visual.html           # MRD 可视化总览（单文件 HTML，研报式信息图）
+│   ├── product-positioning-map.html  # 产品定位图（本地优先×AI自动整理）
+│   ├── capability-roadmap.html       # 能力路线图（三阶段+证据门）
 │   ├── roadmap.md                # 版本路线图（4 Phase 框架）
 │   ├── phase1-free-mvp.md        # Phase 1：免费 MVP 详细设计
 │   ├── phase2-pro-core.md        # Phase 2：Pro 核心功能详细设计
@@ -77,7 +80,7 @@ docs/
 | `model/model.md` | AI 模型方案：硬件配置、模型列表、路由设计、加载策略 |
 | `storage/storage.md` | 存储方案总览：文件优先架构、三层数据模型 |
 | `storage/sqlite.md` | SQLite 表结构设计（22 张表） |
-| `storage/lancedb.md` | LanceDB 向量数据库设计 |
+| `storage/lancedb.md` | LanceDB 向量数据库设计（chunk 级 + 页级向量表） |
 | `storage/userData.md` | 用户数据目录结构：应用数据 + 工作空间 |
 
 ### features/ — 功能设计
@@ -99,7 +102,10 @@ docs/
 
 | 文件 | 说明 |
 |------|------|
-| `mrd.md` | 产品战略文档：市场分析、用户画像、竞争格局、需求优先级、商业模式 |
+| `mrd.md` | 市场需求文档（MRD）·产品分析重组版：执行摘要、问题与机会、竞争机制对比、三阶段路线图、商业模式、成功指标与验证计划、风险假设、结论取舍、证据底稿（F-ID） |
+| `mrd-visual.html` | MRD 可视化总览（单文件 HTML）：执行摘要、市场机会、定位图、竞争格局、三阶段路线图、商业模式、验证与风险、关键证据（配合 MRD 全篇） |
+| `product-positioning-map.html` | 产品定位图（单文件 HTML）：整理自动化 × 数据控制两轴，定位 Wrisp 与竞品（配合 MRD §5.5） |
+| `capability-roadmap.html` | 能力路线图（单文件 HTML）：用户问题 → 核心能力 → 三阶段结果与证据门（配合 MRD §7.5） |
 | `roadmap.md` | 版本路线图：4 Phase 框架概述 |
 | `phase1-free-mvp.md` | Phase 1：免费 MVP — 模板市场 + 核心功能闭环 |
 | `phase2-pro-core.md` | Phase 2：Pro 核心功能 — 反思流 + 创作增强 |
@@ -141,6 +147,16 @@ docs/
 |------|------|
 | `plans/2026-10-06-chunk-splitting-followups.md` | 语义块四层切分（L1~L4）**未实现部分清单**：L4 延迟分块、L3 算法与阈值校准、切分层落库、存量重切入口、优先级建议（§3.1 摘要复用与 §3.3 检索去重已标注完成） |
 | `plans/2026-10-06-chunk-splitting-optimization-plan.md` | 上条清单的**可执行优化方案**：迭代 0~8 的问题定位、改动文件与代码骨架、验收标准、风险回滚与落地节奏。迭代 0（集成测试 ABI）、迭代 1（写路径 upsert 化 + FTS 批量重建）、迭代 7.3/7.5/7.6/7.7（检索重叠块去重、按 rerank 相关性排序、Journal 重置的孤儿向量清理、接上入参 `limit`）**已于 2026-10-06 落地**，各节标注实测验收与与方案的出入，附录给出改动落点 |
+
+**设计与规格（specs/）**
+
+| 文件 | 说明 |
+|------|------|
+| `specs/2026-10-05-local-ai-parallel-and-routing-design.md` | 本地三类模型并行化（每 family 独立 worker、执行器有界并发、真批量推理）+ LLM 云端优先路由与按任务类型覆盖 + 跨 family 求和内存门控 |
+| `plans/2026-10-05-local-ai-parallel-and-routing.md` | 上条设计的落地计划 |
+| `specs/2026-10-06-smart-organize-quality-and-cpu-design.md` | **智能整理质量与资源治理**：概念抽取重设计（原文窗口输入 + 结构化输出 + 归一化/UNIQUE/upsert + 概念向量两级对齐）、新增 `concept-evolution` 任务实现按时间线递进的演化摘要与时间线、主题真实聚类与幂等、语义连接 CPU 两步治理（软调参 → 硬限 ONNX 线程）、增量标记与失败自愈、进度加权与增量可见。含 9 个迭代的落地顺序、AC1~AC9 验收、测试计划与风险回滚 |
+| `specs/2026-10-09-journal-entry-based-design.md` | **Journal 条目化改造**：日志最小单元从"整日文档"改为 `journal_entries` 条目（SQLite 真源，`.md` 降级为带 `**HH:mm**` 条目头 + `wrisp:entry` 注释元数据的确定性渲染产物，封闭转义规则 + `journal:importDayFile` 按 id upsert 显式导入往返），块经 `entry_id` 锚回条目、每条目跑三层切分器，`#标签`（复用 `tagged_items`）/`&作品`（新表 `journal_entry_projects`）/`@人物` 在 composer 底部提示区解析并落关联表；schema 0.7.0 纯 DDL 迁移、不迁存量数据，同步字段（id/source/occurred_at/updated_at/软删）预留但不接网络。含 IPC 清单、UI 组件拆分、测试策略、影响文件清单与风险对策 |
+| `plans/2026-10-09-journal-entry-based.md` | 上条设计的落地计划：10 个 TDD 任务（T1 schema 0.7.0 → T2 共享契约 → T3 DAO → T4 渲染/解析纯模块 → T5 条目化切分管线 → T6 服务+IPC → T7 作品名查询 → T8 renderer store → T9 UI 组件与 i18n → T10 旧通道清理+两步启动验证），含每任务测试代码骨架、接口签名、提交信息自检 |
 
 ---
 
