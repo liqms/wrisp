@@ -413,6 +413,37 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
   }
 
   /**
+   * 清掉某日志日文件下「文件级」的旧版语义块（整篇切分产物），返回被删块 id 供向量层清理。
+   *
+   * 触发时机：旧版整篇 `.md` 被条目接管（导入 / 首次追加）之后——真源已换成 `journal_entries`，
+   * 这些按整篇切出来的块再也无人重切（`processFile` 对接管文件让位），留着就是永远可被检索命中的陈旧副本。
+   *
+   * 范围严格限定 `chunk_type = 'journal' AND entry_id IS NULL AND file_id = ?`：
+   * 条目块**同样携带 file_id**（spec §7 的配对依据），若按文件维度全删（`syncByFile(fileId, [])`）
+   * 会把刚接管的条目块一起销毁。`chunk_type` 条件保证不越界碰到作品页面块。
+   *
+   * @param fileId 当日文件的 file_index.id
+   * @returns 被硬删除的块 id（事务内已清好未级联的外键引用与 FTS）
+   */
+  removeFileLevelJournalChunks(fileId: ChunkId): ChunkId[] {
+    if (!fileId) return [];
+
+    return this.transaction(() => {
+      const rows = this.query(
+        `SELECT id FROM ${this.tableName}
+         WHERE chunk_type = 'journal' AND entry_id IS NULL AND file_id = ?`,
+        [fileId],
+      ) as Array<{ id: string }>;
+      const removedIds = rows.map((row) => row.id);
+      // 无事可做了就别惊动全表 FTS 重建（接管常常发生在从没切过块的老文件上）
+      if (removedIds.length === 0) return removedIds;
+
+      this.withFtsDeferred(() => this.removeChunksWithRelations(removedIds));
+      return removedIds;
+    });
+  }
+
+  /**
    * 硬删除一批块，并先清掉未声明级联的外键引用。
    *
    * `IN (...)` 的占位符数量受 SQLite 参数上限约束，按固定批次绑定。
