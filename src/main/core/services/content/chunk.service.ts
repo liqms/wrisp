@@ -197,6 +197,61 @@ class ChunkService {
   }
 
   /**
+   * 让某条日志条目的语义块与切分结果一致（entry 维度差异同步，spec §7）。
+   *
+   * 与 {@link replaceFileChunks} 对称，唯一差异是配对范围从 `file_id` 换成 `entry_id`：
+   * 编辑单条日志只重切这一条，未变条目复用原块 id，摘要 / 向量 / 概念归属随 id 保留。
+   * `file_id` / `file_path` 由调用方传入（当日渲染 .md 的索引行），行号为条目内部行号。
+   *
+   * @param entryId 日志条目 ID（journal_entries.id）
+   * @param fileId 当日文件索引 ID（file_index.id）
+   * @param filePath 当日文件相对路径（写入 semantic_chunks.file_path）
+   * @param chunks 该条目的切分结果
+   */
+  public replaceEntryChunks(
+    entryId: Id,
+    fileId: Id,
+    filePath: string,
+    chunks: SplitChunk[],
+  ): ChunkSyncResult {
+    try {
+      const records: ChunkCreate[] = chunks.map((chunk) => ({
+        file_id: fileId,
+        file_path: filePath,
+        start_line: chunk.startLine,
+        end_line: chunk.endLine,
+        section_title: chunk.sectionTitle,
+        content: chunk.content,
+        content_hash: chunk.contentHash,
+        chunk_type: "journal" as const,
+        entry_id: entryId,
+        word_count: chunk.wordCount,
+        status: "active" as const,
+      }));
+
+      const result = this.chunkDao.syncByEntry(entryId, records);
+      Logger.info("日志条目语义块同步完成", {
+        entryId,
+        fileId,
+        filePath,
+        total: result.total,
+        reused: result.reused,
+        inserted: result.inserted,
+        removed: result.removedIds.length,
+      });
+      return result;
+    } catch (error) {
+      Logger.error("同步日志条目语义块失败", {
+        error: String(error),
+        entryId,
+        fileId,
+        filePath,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * 删除指定语义块在向量库中的行（只清正文已消失的块）。
    *
    * LanceDB 的向量行按 chunk_id 存储、没有外键级联，不清理会随每次重切分累积

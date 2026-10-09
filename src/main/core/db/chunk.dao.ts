@@ -28,6 +28,13 @@ export type ChunkStageColumn =
   | "last_concept_extracted_at"
   | "last_linked_at";
 
+/**
+ * 差异同步可作用的归属维度列。
+ * 与 {@link ChunkStageColumn} 同理：列名只取自这个字面量联合（编译期即白名单），
+ * 由 syncByFile / syncByEntry 两个公开入口传入，不接受调用方字符串，无 SQL 注入面。
+ */
+export type ChunkScopeColumn = "file_id" | "entry_id";
+
 export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
   constructor() {
     super("semantic_chunks");
@@ -284,35 +291,46 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
   }
 
   /**
-   * 按 `content_hash` 对齐，差异同步某个文件的语义块（事务内原子执行）。
+   * 按 `content_hash` 对齐，差异同步某个归属维度下的语义块（事务内原子执行）。
    *
    * 与「全删全建」的差别就是这条链路的成本中心：正文未变的块**复用原 id**，
    * 于是它的 `ai_summary`、LanceDB 向量行、`project_chunks` / `concept_chunks`
-   * 归属和 `semantic_links` 全部继续有效——改一个字不再重烧整个文件的 LLM 摘要。
+   * 归属和 `semantic_links` 全部继续有效——改一个字不再重烧整个归属的 LLM 摘要。
    *
-   * 关联清理范围从「整文件」缩到「真正消失的块」：`semantic_links` /
+   * 关联清理范围从「整个归属」缩到「真正消失的块」：`semantic_links` /
    * `temporal_events` 对 `semantic_chunks(id)` 的外键**未声明 ON DELETE CASCADE**，
    * 硬删除前必须显式清理，否则外键约束报错；其余关联表已声明级联。
    * 已被软删除（`status = 'deleted'`）的行不参与配对：它不该被复活，
    * 留给清理任务按既有策略物理删除。
    *
-   * @param fileId 文件索引 ID（semantic_chunks.file_id）
-   * @param chunks 新切分结果（每条含 file_id / file_path / 行号 / 正文 / content_hash）
+   * 归属维度由 `scopeColumn` 决定（`file_id` 或 `entry_id`），两个公开入口
+   * {@link syncByFile} / {@link syncByEntry} 复用同一算法，语义逐字节一致：
+   * 同样按 content_hash 多重集配对、复用只动行区间不动 content/摘要/阶段标记、
+   * 同样以 removeChunksWithRelations 收尾、返回同一 ChunkSyncResult 形态。
+   *
+   * @param scopeColumn 归属维度列（取自 ChunkScopeColumn 字面量联合，即白名单，无注入面）
+   * @param scopeId 该维度下的记录 ID（semantic_chunks.&lt;scopeColumn&gt;）
+   * @param chunks 新切分结果（每条含 file_id / file_path / 行号 / 正文 / content_hash；
+   *   entry 维度时由调用方额外写入 entry_id）
    * @returns 复用 / 新写数量、消失块 id 与总数
    */
-  syncByFile(fileId: ChunkId, chunks: ChunkCreate[]): ChunkSyncResult {
-    if (!fileId) {
+  private syncWithinScope(
+    scopeColumn: ChunkScopeColumn,
+    scopeId: ChunkId,
+    chunks: ChunkCreate[],
+  ): ChunkSyncResult {
+    if (!scopeId) {
       return { reused: 0, inserted: 0, removedIds: [], total: chunks.length };
     }
 
     return this.transaction(() =>
       this.withFtsDeferred(() => {
         const existing = this.query(
-          `SELECT id, content_hash FROM ${this.tableName} WHERE file_id = ? AND status = 'active'`,
-          [fileId],
+          `SELECT id, content_hash FROM ${this.tableName} WHERE ${scopeColumn} = ? AND status = 'active'`,
+          [scopeId],
         ) as Array<{ id: string; content_hash: string | null }>;
 
-        // 同一文件里 content_hash 可重复（重叠块、重复引用句），
+        // 同一归属里 content_hash 可重复（重叠块、重复引用句），
         // 用多重集按出现顺序配对；一次命中的 Map 会让 id 与行区间错配
         const pool = new Map<string, string[]>();
         for (const row of existing) {
@@ -337,7 +355,7 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
           // 只跟新边界，不动 content：hash 相同即正文相同，重写一遍是纯浪费；
           // 也不动 ai_summary / 各阶段标记 —— 它们的派生依据仍然成立。
           // 这里必须绕过 BaseDao.update（它会刷新 updated_at）：智能任务按
-          // `updated_at > 阶段标记` 增量选取，刷新水位线会让改一个字的那个文件
+          // `updated_at > 阶段标记` 增量选取，刷新水位线会让改一个字的那个归属
           // 里所有未变的块被重新抽取概念、重新向量化。
           this.execute(
             `UPDATE ${this.tableName}
@@ -367,6 +385,31 @@ export class ChunkDao extends BaseDao<Chunk, ChunkCreate, ChunkUpdate> {
         };
       }),
     );
+  }
+
+  /**
+   * 文件维度差异同步（{@link syncWithinScope} 的公开入口，配对与删除范围 = `file_id`）。
+   *
+   * @param fileId 文件索引 ID（file_index.id，对应 semantic_chunks.file_id）
+   * @param chunks 新切分结果（每条含 file_id / file_path / 行号 / 正文 / content_hash）
+   */
+  syncByFile(fileId: ChunkId, chunks: ChunkCreate[]): ChunkSyncResult {
+    return this.syncWithinScope("file_id", fileId, chunks);
+  }
+
+  /**
+   * 日志条目维度差异同步（{@link syncWithinScope} 的公开入口，配对与删除范围 = `entry_id`）。
+   *
+   * 与 {@link syncByFile} 完全对称，唯一差异是把配对与删除归属的列从 `file_id`
+   * 换成 `entry_id`（spec §7 条目化切块）：编辑某条日志只重切这一条，未变条目
+   * 复用原块 id，其摘要 / 向量 / 概念归属随 id 保留。
+   * 传入的 chunk 记录需自带 `entry_id`（由调用方写入）。
+   *
+   * @param entryId 日志条目 ID（journal_entries.id，对应 semantic_chunks.entry_id）
+   * @param chunks 新切分结果（每条含 entry_id / file_id / file_path / 行号 / 正文 / content_hash）
+   */
+  syncByEntry(entryId: ChunkId, chunks: ChunkCreate[]): ChunkSyncResult {
+    return this.syncWithinScope("entry_id", entryId, chunks);
   }
 
   /**

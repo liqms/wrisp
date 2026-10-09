@@ -234,6 +234,13 @@ app.whenReady().then(async () => {
     await chunkIndexService.processRefine(fileId, fileHash, chunkType, projectId);
   });
 
+  // 注册日志条目切块处理器（条目化：按日聚合脏条目，逐条 entry_id 差异同步）
+  taskExecutor.registerHandler("journal:chunk-day", async (task) => {
+    const payload = typeof task.payload === "string" ? JSON.parse(task.payload) : task.payload;
+    const { date } = payload ?? {};
+    await chunkIndexService.processJournalDay(date);
+  });
+
   createWindow();
   Menu.setApplicationMenu(null);
   trayService.initialize();

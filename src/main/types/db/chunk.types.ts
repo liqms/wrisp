@@ -34,6 +34,8 @@ export interface Chunk {
   content_hash: HashValue | null;
   /** 来源类型 */
   chunk_type: ChunkType;
+  /** 条目锚点（0.7.0，仅 chunk_type='journal' 的块填写） */
+  entry_id: Id | null;
   is_deleted: BooleanFlag;
   ai_summary: Content | null;
   temporal_score: number;
@@ -74,6 +76,8 @@ export interface ChunkCreate {
   content: Content;
   content_hash?: HashValue | null;
   chunk_type?: ChunkType;
+  /** 条目锚点（0.7.0，仅 chunk_type='journal' 的块填写；其余保持 null） */
+  entry_id?: Id | null;
   ai_summary?: Content | null;
   is_deleted?: BooleanFlag;
   temporal_score?: number;
@@ -106,6 +110,8 @@ export interface ChunkUpdate {
   section_title?: string | null;
   /** 来源类型 */
   chunk_type?: ChunkType;
+  /** 条目锚点（0.7.0，仅 chunk_type='journal' 的块填写） */
+  entry_id?: Id | null;
   content?: Content;
   /** 内容哈希 */
   content_hash?: HashValue | null;
