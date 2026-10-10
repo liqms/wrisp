@@ -4,9 +4,9 @@ import { describe, it, expect, vi } from "vitest";
 const pipelineMock = vi.fn();
 const classifyMock = vi.fn();
 
-vi.mock("@xenova/transformers", () => ({
+vi.mock("@huggingface/transformers", () => ({
   pipeline: (...args: unknown[]) => pipelineMock(...args),
-  env: { allowRemoteModels: true, localModelPath: "" },
+  env: { allowRemoteModels: true, allowLocalModels: true, localModelPath: "" },
 }));
 
 import {

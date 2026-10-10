@@ -223,7 +223,7 @@ Project：用户定义结构，AI 辅助填充
 
 | 文档 | 说明 |
 |------|------|
-| [mrd.md](../product/mrd.md) | 产品战略文档（市场、用户、竞争、需求优先级） |
+| [mrd.md](../product/mrd.md) | 市场需求文档（MRD）·产品分析重组版（决策、证据、竞争、路线图） |
 | [roadmap.md](../product/roadmap.md) | 版本路线图（4 Phase 框架） |
 | [tech.md](../architecture/tech.md) | 技术方案总览（架构、前端、主进程、AI 层、存储层） |
 | [model.md](../architecture/model/model.md) | AI 模型方案（硬件配置、模型列表、路由设计） |

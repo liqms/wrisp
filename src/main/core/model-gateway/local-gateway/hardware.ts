@@ -22,6 +22,14 @@ export interface HardwareInfo {
 }
 
 /**
+ * 逻辑核心数（含超线程），线程预算分摊的口径。
+ * 至少返回 1：核数读不到时也不能算出 0 线程。
+ */
+export function getLogicalCores(): number {
+  return Math.max(1, os.cpus().length);
+}
+
+/**
  * 检测系统硬件信息
  * 初期仅检测内存，GPU 检测预留到 LLM 阶段
  */

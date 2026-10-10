@@ -81,6 +81,7 @@ export class BackupTask {
     this.workspacePath = configService.getValue('workspace') || ''
     this.appBackupsPath = path.join(app.getPath('userData'), BACKUPS_DIR)
     this.dbBackupsPath = path.join(this.workspacePath, WORKSPACE_BACKUPS_DIR)
+    configService.onWorkspaceChange(() => this.refreshWorkspace())
     void this.initBackupsPath()
   }
 

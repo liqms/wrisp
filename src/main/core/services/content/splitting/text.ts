@@ -1,8 +1,29 @@
 import { CHUNK_MAX_COARSE_CHARS } from "@/main/constants";
+import { FENCE_OPEN_RE, findFenceClose } from "./fence";
 import type { CoarseBlock, Sentence } from "./types";
 
 /** CJK（含日文假名、韩文）字符 */
 const CJK_RE = /[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/g;
+/** 代码围栏开启/闭合行（``` 或 ~~~），与 L1 粗块的围栏态同一判定 */
+const CODE_FENCE_RE = /^\s*(`{3,}|~{3,})/;
+/** 行内代码：成对的单串反引号（跨行不算） */
+const INLINE_CODE_RE = /`[^`\n]*`/g;
+/** 图片：整体丢弃——alt 是文件名式标签，不是正文 */
+const IMAGE_RE = /!\[[^\]]*\]\([^)]*\)/g;
+/** 链接：保留锚点文字，丢弃 URL */
+const LINK_RE = /\[([^\]]*)\]\([^)]*\)/g;
+/** 裸 HTML 标签 */
+const HTML_TAG_RE = /<\/?[a-zA-Z][^>]*>/g;
+/** 行首结构标记：标题井号、引用尖角、列表项 / 有序序号 */
+const LINE_MARKER_RE = /^\s*(?:#{1,6}|>|[-*+]\s|\d+[.)]\s)/;
+/** 分隔线（--- / *** / _ _ _） */
+const HORIZONTAL_RULE_RE = /^\s*(?:[-*_]\s*){3,}$/;
+/** 表格分隔行（| --- | :--: |） */
+const TABLE_SEPARATOR_RE = /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/;
+/** 表格竖线：替换成空格，让单元格文字各自成词 */
+const TABLE_PIPE_RE = /\|/g;
+/** 强调标记 */
+const EMPHASIS_RE = /[*_`]+/g;
 /** 句子终止符（中英标点） */
 const TERMINATORS = "。！？…!?";
 /** 终止符后可并入句尾的收尾符号（引号、括号） */
@@ -52,6 +73,64 @@ export function countWords(text: string): number {
 /** L2 触发条件：字符数超阈值（长度口径唯一，不再叠加 Token 估算） */
 export function exceedsLengthLimit(text: string): boolean {
   return text.length > CHUNK_MAX_COARSE_CHARS;
+}
+
+/**
+ * 剥掉 Markdown 结构后的**正文**字数。
+ *
+ * 与 {@link countWords} 的分工：后者数的是块内所有字符（含围栏、图链），
+ * 用来做切分权重；本函数回答的是「这块有没有可供概括的文字」——
+ * 代码块、`:::` 围栏（mermaid / 提示块等）、纯图片、通篇行内代码的清单
+ * 字数看着吓人，但让模型摘要只会产出一段复述格式的废话。
+ *
+ * 表格**不**在这里排除：单元格文字仍是有信息量的正文。
+ * 未闭合的 `:::` 按普通正文处理，与渲染层和 L1 粗块的降级行为一致。
+ */
+export function countProseWords(text: string): number {
+  return countWords(toProse(text));
+}
+
+/** 把 Markdown 还原成纯正文行（丢弃结构性内容） */
+function toProse(text: string): string {
+  if (!text) return "";
+  const lines = text.split(/\r?\n/);
+  const prose: string[] = [];
+  let codeFence: string | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const code = CODE_FENCE_RE.exec(lines[i]);
+    if (codeFence !== null) {
+      if (code && code[1][0] === codeFence) codeFence = null;
+      continue;
+    }
+    if (code) {
+      codeFence = code[1][0];
+      continue;
+    }
+    if (FENCE_OPEN_RE.test(lines[i])) {
+      const closeIndex = findFenceClose(lines, i);
+      if (closeIndex > -1) {
+        i = closeIndex;
+        continue;
+      }
+    }
+    prose.push(stripLineMarkup(lines[i]));
+  }
+
+  return prose.join("\n");
+}
+
+/** 剥掉单行的行内标记：结构行整行丢弃，其余只去符号、留文字 */
+function stripLineMarkup(line: string): string {
+  if (HORIZONTAL_RULE_RE.test(line) || TABLE_SEPARATOR_RE.test(line)) return "";
+  return line
+    .replace(IMAGE_RE, " ")
+    .replace(LINK_RE, "$1")
+    .replace(INLINE_CODE_RE, " ")
+    .replace(HTML_TAG_RE, " ")
+    .replace(LINE_MARKER_RE, " ")
+    .replace(TABLE_PIPE_RE, " ")
+    .replace(EMPHASIS_RE, "");
 }
 
 /** 按空行把行数组拆成段落，并保留每段的绝对行号区间 */

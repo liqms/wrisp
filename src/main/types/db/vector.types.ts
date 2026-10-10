@@ -4,14 +4,14 @@ export type EmbeddingId = Id;
 
 export type EmbeddingVector = number[];
 
-export type VectorTableName = "block_embeddings" | "pages_embeddings";
+export type VectorTableName = "chunk_embeddings" | "pages_embeddings";
 
 /**
- * Block 向量数据
+ * Chunk 向量数据
  */
-export interface BlockEmbedding {
+export interface ChunkEmbedding {
   [key: string]: unknown;
-  block_id: Id;
+  chunk_id: Id;
   project_id?: Id | null;
   embedding: EmbeddingVector;
   _distance?: number;
@@ -23,7 +23,8 @@ export interface BlockEmbedding {
 export interface PageEmbedding {
   [key: string]: unknown;
   page_id: Id;
-  project_id: Id;
+  /** 与 pages.project_id 一致，可为空（页面可无归属作品） */
+  project_id: Id | null;
   embedding: EmbeddingVector;
   _distance?: number;
 }
@@ -48,18 +49,18 @@ export interface VectorSearchParams {
 }
 
 /**
- * Block 向量创建参数
+ * Chunk 向量创建参数
  */
-export interface BlockEmbeddingCreate {
-  block_id: Id;
+export interface ChunkEmbeddingCreate {
+  chunk_id: Id;
   project_id?: Id | null;
   embedding: EmbeddingVector;
 }
 
 /**
- * Block 向量更新参数
+ * Chunk 向量更新参数
  */
-export interface BlockEmbeddingUpdate {
+export interface ChunkEmbeddingUpdate {
   project_id?: Id | null;
   embedding: EmbeddingVector;
 }
@@ -69,7 +70,7 @@ export interface BlockEmbeddingUpdate {
  */
 export interface PageEmbeddingCreate {
   page_id: Id;
-  project_id: Id;
+  project_id: Id | null;
   embedding: EmbeddingVector;
 }
 

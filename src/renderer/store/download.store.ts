@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { DownloadProgress } from "@/main/types/download.types";
+import type { ApiResponse } from "@/shared/types";
 
 export interface DownloadGroupState {
   groupId: string;
@@ -110,7 +111,30 @@ export const useDownloadStore = defineStore("download", () => {
   // IPC 监听器清理
   let cleanupFns: (() => void)[] = [];
 
-  const setupListeners = () => {
+  /** 某任务是否已由实时事件写入过快照之外的状态 */
+  const hasTask = (taskId: string): boolean =>
+    Array.from(groups.value.values()).some((group) =>
+      group.files.some((f) => f.taskId === taskId),
+    );
+
+  /**
+   * 拉取主进程现存下载任务作为初始快照。
+   * 事件流不会重放，缺了这一步则刷新/重开设置页后进行中的下载会显示成未下载。
+   * 只补录未知任务：快照可能晚于实时事件到达，覆盖会让进度回退。
+   */
+  const restoreSnapshot = async (): Promise<void> => {
+    try {
+      const response = (await window.electronAPI.model.getDownloadTasks()) as ApiResponse<DownloadProgress[]>;
+      if (!response?.success || !Array.isArray(response.data)) return;
+      for (const task of response.data as DownloadProgress[]) {
+        if (!hasTask(task.taskId)) updateFileProgress(task);
+      }
+    } catch {
+      // 快照失败不阻塞后续事件流
+    }
+  };
+
+  const setupListeners = async (): Promise<void> => {
     const onProgress = (data: unknown) => {
       updateFileProgress(data as DownloadProgress);
     };
@@ -118,6 +142,8 @@ export const useDownloadStore = defineStore("download", () => {
     window.electronAPI.on("download:progress", onProgress);
 
     cleanupFns = [() => window.electronAPI.off("download:progress")];
+
+    await restoreSnapshot();
   };
 
   const destroyListeners = () => {

@@ -7,6 +7,8 @@
     <n-progress class="overall-progress" type="line" :percentage="percent" :show-indicator="false" :height="4"
       color="var(--primary-color)" />
 
+    <n-text v-if="currentStageText" depth="3" class="current-stage">{{ currentStageText }}</n-text>
+
     <n-list class="step-list">
       <n-list-item v-for="step in steps" :key="step.id" class="step-item">
         <n-flex vertical class="step-body">
@@ -41,13 +43,37 @@ const store = useSmartTaskStore();
 
 const steps = computed(() => store.steps);
 const percent = computed(() => store.percent);
-const isRunning = computed(() => store.isRunning);
 
-const statusText = computed(() =>
-  isRunning.value
-    ? (t("SMART_TASK.IN_PROGRESS", { percent: percent.value }) as string)
-    : (t("SMART_TASK.FINISHED") as string),
-);
+/**
+ * 结束态必须区分完成 / 失败 / 取消：只有 completed 才配得上「整理完成」，
+ * 否则一轮抛错的整理也显示完成，用户不会再点第二次（失败条目其实靠下一轮重试）。
+ */
+const STATUS_KEYS: Record<string, string> = {
+  running: "SMART_TASK.IN_PROGRESS",
+  paused: "SMART_TASK.PAUSED",
+  completed: "SMART_TASK.FINISHED",
+  failed: "SMART_TASK.FAILED",
+  cancelled: "SMART_TASK.CANCELLED",
+  idle: "SMART_TASK.STATUS_PENDING",
+};
+
+const statusText = computed(() => {
+  const key = STATUS_KEYS[store.status] ?? "SMART_TASK.FINISHED";
+  return t(key, { percent: percent.value, count: store.failedCount }) as string;
+});
+
+/** 当前阶段一行：进行中显示正在跑的任务，结束后显示失败条目数 */
+const currentStageText = computed(() => {
+  if (store.currentTask) {
+    return t("SMART_TASK.CURRENT_STAGE", {
+      stage: t(taskLabelByKey(store.currentTask)) as string,
+    }) as string;
+  }
+  if (store.status === "completed" && store.failedCount > 0) {
+    return t("SMART_TASK.FAILED_RETRY_HINT", { count: store.failedCount }) as string;
+  }
+  return "";
+});
 
 /** 任务名 → 文案 key */
 const TASK_LABEL_KEYS: Record<string, string> = {
@@ -58,6 +84,10 @@ const TASK_LABEL_KEYS: Record<string, string> = {
   "topic-detection": "SMART_TASK.TASK_TOPIC_DETECTION",
   "topic-summary": "SMART_TASK.TASK_TOPIC_SUMMARY",
 };
+
+function taskLabelByKey(taskName: string): string {
+  return TASK_LABEL_KEYS[taskName] ?? "SMART_TASK.TITLE";
+}
 
 /** family → 文案 key */
 const FAMILY_LABEL_KEYS: Record<string, string> = {
@@ -99,8 +129,7 @@ function stepLabel(step: SmartTaskStep): string {
     case "model-release":
       return t("SMART_TASK.STEP_MODEL_RELEASE", { family: familyLabel(step.family) }) as string;
     case "task": {
-      const key = TASK_LABEL_KEYS[step.ref];
-      return key ? (t(key) as string) : step.ref;
+      return t(taskLabelByKey(step.ref)) as string;
     }
     default:
       return step.ref;
@@ -137,11 +166,16 @@ function summary(step: SmartTaskStep): string {
 
   if (step.kind === "task") {
     const parts: string[] = [];
-    if (typeof step.dataAmount === "number") {
+    // 未开始的步骤上挂着的是上一轮的条数（只用来加权进度），不是本轮实测值，不展示
+    if (typeof step.dataAmount === "number" && step.state !== "pending") {
       parts.push(t("SMART_TASK.DATA_AMOUNT", { count: step.dataAmount }) as string);
     }
-    if (typeof step.processedCount === "number") {
+    if (typeof step.processedCount === "number" && step.state !== "pending") {
       parts.push(t("SMART_TASK.PROCESSED", { count: step.processedCount }) as string);
+    }
+    // 失败条目没写阶段标记，下一轮会自动重试 —— 必须说清楚，否则用户以为数据丢了
+    if (step.failedCount) {
+      parts.push(t("SMART_TASK.FAILED_COUNT", { count: step.failedCount }) as string);
     }
     return parts.join(" · ");
   }
@@ -160,7 +194,8 @@ function reasonText(step: SmartTaskStep): string {
 @use "@/renderer/styles/_variables" as *;
 
 .smart-task-panel {
-  width: 100%;
+  /* 悬浮面板靠内容定宽（Modal 时代是 100%） */
+  width: 400px;
 }
 
 .panel-header {
@@ -180,8 +215,15 @@ function reasonText(step: SmartTaskStep): string {
   margin-bottom: $spacing-sm;
 }
 
+.current-stage {
+  display: block;
+  margin-top: -$spacing-xs;
+  margin-bottom: $spacing-sm;
+  font-size: $font-xs;
+}
+
 .step-list {
-  max-height: 420px;
+  max-height: 300px;
   overflow-y: auto;
 }
 

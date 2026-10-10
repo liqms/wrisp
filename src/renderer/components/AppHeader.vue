@@ -13,15 +13,17 @@
     <n-text class="title">{{ title }}</n-text>
 
     <!-- 智能整理进度按钮 -->
-    <n-button v-if="smartTaskStore.visible" class="control-btn smart-task-btn" text :title="$t('SMART_TASK.TITLE')"
-      @click="showSmartTaskModal = true">
-      <n-text class="smart-task-label">
-        {{ smartTaskStore.isRunning
-          ? $t('SMART_TASK.IN_PROGRESS', { percent: smartTaskStore.percent })
-          : $t('SMART_TASK.FINISHED')
-        }}
-      </n-text>
-    </n-button>
+    <!-- 智能整理进度：明细常驻在悬浮面板里，不再用需要「先打开再关掉」的 Modal -->
+    <n-popover v-if="smartTaskStore.visible" trigger="click" placement="bottom-end">
+      <template #trigger>
+        <n-button class="control-btn smart-task-btn" text :title="$t('SMART_TASK.TITLE')">
+          <n-text class="smart-task-label" :class="`status-${smartTaskStore.status}`">
+            {{ smartTaskStatusText }}
+          </n-text>
+        </n-button>
+      </template>
+      <SmartTaskProgressPanel />
+    </n-popover>
 
     <!-- 下载进度按钮 -->
     <n-popover v-if="showDownloadButton" trigger="click" placement="bottom-end" class="download-progress-popover">
@@ -70,11 +72,6 @@
     </n-flex>
   </n-flex>
   <SettingsView v-model:show="showSettings" @close="handleCloseSettings" />
-
-  <!-- 智能整理任务节点明细 -->
-  <n-modal v-model:show="showSmartTaskModal" preset="card" :title="$t('SMART_TASK.TITLE')" style="width: 440px">
-    <SmartTaskProgressPanel />
-  </n-modal>
 </template>
 
 <script setup lang="ts">
@@ -133,7 +130,18 @@ const isDownloadActive = computed(() => downloadStore.hasActiveDownloads);
 
 // 智能整理进度
 const smartTaskStore = useSmartTaskStore();
-const showSmartTaskModal = ref(false);
+
+/** 结束文案按终态区分：失败/取消不能显示成「整理完成」 */
+const smartTaskStatusText = computed(() => {
+  const status = smartTaskStore.status;
+  if (status === "running") {
+    return t("SMART_TASK.IN_PROGRESS", { percent: smartTaskStore.percent }) as string;
+  }
+  if (status === "paused") return t("SMART_TASK.PAUSED") as string;
+  if (status === "failed") return t("SMART_TASK.FAILED") as string;
+  if (status === "cancelled") return t("SMART_TASK.CANCELLED") as string;
+  return t("SMART_TASK.FINISHED") as string;
+});
 
 // 整体下载百分比（所有文件进度加权平均）
 const downloadPercent = computed(() => {

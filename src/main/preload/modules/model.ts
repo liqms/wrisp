@@ -10,4 +10,8 @@ export const modelModule: ModelAPI = {
   checkModelExist: () => ipcRenderer.invoke('model:checkModelExist'),
   reDownloadModel: (type) => ipcRenderer.invoke('model:reDownloadModel', type),
   cancelDownload: (groupId) => ipcRenderer.invoke('model:cancelDownload', groupId),
+  getGpuCapability: () => ipcRenderer.invoke('model:getGpuCapability'),
+  getThreadBudget: () => ipcRenderer.invoke('model:getThreadBudget'),
+  getModelManifest: () => ipcRenderer.invoke('model:getModelManifest'),
+  getDownloadTasks: () => ipcRenderer.invoke('model:getDownloadTasks'),
 }

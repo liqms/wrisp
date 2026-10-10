@@ -149,7 +149,7 @@ SkillExecutor.execute(skillId, inputs)
 
 ### 2.1 职责
 
-Smart Tasks 是面向文档内容的"后台智能处理"流水线。用户对文档执行智能分析时，`SmartTaskScheduler` 按 DAG 依赖顺序执行 6 个任务，对文档块进行摘要、向量化、概念提取、主题检测等。
+Smart Tasks 是面向文档内容的"后台智能处理"流水线。用户对文档执行智能分析时，`SmartTaskScheduler` 按 DAG 依赖顺序执行 8 个任务：chunk 级 6 个（摘要、向量化、概念提取、语义链接、主题检测、主题摘要）对文档块进行处理；页级 2 个（页级摘要、页级向量化）在整页粒度做粗召回准备。
 
 ### 2.2 DAG 定义
 
@@ -161,10 +161,12 @@ Smart Tasks 是面向文档内容的"后台智能处理"流水线。用户对文
 
 第 1 层：
   chunk-vectorize   → Chunk 向量化（依赖 chunk-summary，需先有 ai_summary）
+  page-summary      → 页面级摘要生成（依赖 chunk-summary，聚合各块摘要）
 
 第 2 层（可并行）：
   semantic-link     → 语义链接生成（依赖 chunk-vectorize）
   concept-extract   → 概念提取（依赖 chunk-summary + chunk-vectorize）
+  page-vectorize    → 页面级向量化（依赖 page-summary）
 
 第 3 层：
   topic-detection   → 主题检测与聚类（依赖 concept-extract）
@@ -180,7 +182,7 @@ Smart Tasks 是面向文档内容的"后台智能处理"流水线。用户对文
 | [scheduler.ts](file:///d:/Code/Github/Wrisp/src/main/core/smart-tasks/scheduler.ts) | `SmartTaskScheduler` 单例，DAG 调度、状态管理、暂停/取消 |
 | [task-dag.ts](file:///d:/Code/Github/Wrisp/src/main/core/smart-tasks/task-dag.ts) | DAG 节点定义与拓扑排序 |
 | [progress.manager.ts](file:///d:/Code/Github/Wrisp/src/main/core/smart-tasks/progress.manager.ts) | 执行进度跟踪 |
-| [executors/](file:///d:/Code/Github/Wrisp/src/main/core/smart-tasks/executors) | 6 个执行器实现 |
+| [executors/](file:///d:/Code/Github/Wrisp/src/main/core/smart-tasks/executors) | 8 个执行器实现 |
 
 ### 2.4 执行流程
 

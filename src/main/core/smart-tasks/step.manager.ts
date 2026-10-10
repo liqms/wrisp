@@ -41,7 +41,11 @@ class StepManager {
   private readonly PUSH_THROTTLE_MS = 200;
 
   /** 开始一次执行：重置并 seed 准备节点、各任务节点与结束节点 */
-  public beginExecution(executionId: string, taskNames: string[]): void {
+  public beginExecution(
+    executionId: string,
+    taskNames: string[],
+    estimatedAmounts?: Record<string, number>,
+  ): void {
     this.reset();
     this.executionId = executionId;
     this.status = "running";
@@ -61,6 +65,8 @@ class StepManager {
         kind: "task",
         ref: name,
         state: "pending",
+        // 尚未开始的步骤先带上一轮的实际条数作权重，见 computeOverallPercent
+        dataAmount: estimatedAmounts?.[name],
       });
     }
     this.steps.push({
@@ -126,6 +132,8 @@ class StepManager {
     if (!step) return;
     step.state = result.success ? "success" : "failed";
     step.processedCount = result.processedCount;
+    // 失败条目没写阶段标记，下一轮自动重试；这里如实带上，供 UI 明细区分「没活干」与「干砸了」
+    if (result.failedCount !== undefined) step.failedCount = result.failedCount;
     if (result.error) step.reason = result.error;
     step.finishedAt = Date.now();
     this.push(true);
@@ -171,8 +179,42 @@ class StepManager {
     this.lastPushTime = 0;
   }
 
-  /** 已完成的"任务"步骤占比（与 progressManager 口径一致） */
+  /**
+   * 按数据量加权的进度（已处理数 / 总数），整体百分比与 progressManager 共用这一个口径。
+   *
+   * 原先按「已完成步骤数 / 步骤总数」算，于是「1000 块的向量化」和「3 块的主题摘要」
+   * 等值，进度条要么长时间不动要么一步跳到 80%。改为每步权重取其数据量：
+   * - 已开始/已结束的步骤用本轮真实条数；
+   * - 尚未开始的步骤用上一轮的实际条数预估（由 scheduler 传入）。
+   *
+   * 步骤结束时权重换成「本轮实际尝试数」而不是保留预估值：本轮无活可干的步骤
+   * （预估 1200、实际 0）若继续占权重，进度条会永远停在 100% 之前。
+   * 全程单调不减：预估只会随步骤结束而被实际值替换，实际值 ≤ 预估时总量收缩、百分比上跳。
+   */
+  public getWeightedProgress(): { done: number; total: number } {
+    const taskSteps = this.steps.filter((s) => s.kind === "task");
+
+    let total = 0;
+    let done = 0;
+    for (const step of taskSteps) {
+      const attempted = (step.processedCount ?? 0) + (step.failedCount ?? 0);
+      if (step.state === "success" || step.state === "failed") {
+        total += attempted;
+        done += attempted;
+        continue;
+      }
+      const weight = step.dataAmount ?? 0;
+      total += weight;
+      done += Math.min(step.processedCount ?? 0, weight);
+    }
+    return { done, total };
+  }
+
+  /** 加权整体百分比；无历史预估且本轮尚无条数产出时回退按步骤数 */
   private computeOverallPercent(): number {
+    const { done, total } = this.getWeightedProgress();
+    if (total > 0) return Math.round((done / total) * 100);
+
     const taskSteps = this.steps.filter((s) => s.kind === "task");
     if (taskSteps.length === 0) return 0;
     const completed = taskSteps.filter(

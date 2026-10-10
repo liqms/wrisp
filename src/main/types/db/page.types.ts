@@ -18,6 +18,12 @@ export interface Page {
   metadata: JsonMetadata
   status: PageStatus
   page_type: PageType
+  /** 页面级分阶段处理标记：只作观测值，增量选取看各自的阶段列 */
+  last_smart_processed_at: Timestamp | null
+  /** page-summary 专用：页面摘要已生成 */
+  last_summary_generated_at: Timestamp | null
+  /** page-vectorize 专用：页面向量已写入 */
+  last_vectorized_at: Timestamp | null
   created_at: Timestamp
   updated_at: Timestamp
 }

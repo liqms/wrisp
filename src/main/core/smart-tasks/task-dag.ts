@@ -1,6 +1,6 @@
 /**
  * 智能任务 DAG 定义
- * 定义 MVP 6 个任务的依赖关系
+ * 定义 MVP 8 个任务的依赖关系
  */
 import type { ModelFamily } from "@/main/core/model-gateway/local-gateway/model-registry";
 import { TASK_TYPE, type TaskType } from "@/shared/enums";
@@ -17,12 +17,15 @@ export const MVP_TASK_DAG: TaskDagNode[] = [
   // 第 0 层：摘要生成（向量化的前置，须先跑）
   { name: "chunk-summary", dependencies: [], description: "Block 摘要生成" },
 
-  // 第 1 层：向量化要求 ai_summary 已生成，故必须排在 summary 之后（否则首轮选取 0 条）
+  // 第 1 层：向量化要求摘要阶段已跑完（last_summary_generated_at 有值），故必须排在 summary 之后（否则首轮选取 0 条）；
+  //         页级摘要同样消费块级摘要，可在本层并行
   { name: "chunk-vectorize", dependencies: ["chunk-summary"], description: "Chunk 向量化" },
+  { name: "page-summary", dependencies: ["chunk-summary"], description: "页面级摘要生成" },
 
-  // 第 2 层：依赖向量化完成（可并行）
+  // 第 2 层：依赖向量化完成（可并行）；页面向量依赖页级摘要
   { name: "semantic-link", dependencies: ["chunk-vectorize"], description: "语义链接生成" },
   { name: "concept-extract", dependencies: ["chunk-summary", "chunk-vectorize"], description: "概念提取" },
+  { name: "page-vectorize", dependencies: ["page-summary"], description: "页面级向量化" },
 
   // 第 3 层：依赖概念提取完成
   { name: "topic-detection", dependencies: ["concept-extract"], description: "主题检测与聚类" },
@@ -35,8 +38,10 @@ export const MVP_TASK_DAG: TaskDagNode[] = [
 export const TASK_EXECUTION_ORDER: string[] = [
   "chunk-summary",
   "chunk-vectorize",
+  "page-summary",
   "semantic-link",
   "concept-extract",
+  "page-vectorize",
   "topic-detection",
   "topic-summary",
 ];
@@ -48,8 +53,10 @@ export const TASK_EXECUTION_ORDER: string[] = [
 export const TASK_MODEL_FAMILY: Record<string, ModelFamily | null> = {
   "chunk-summary": "llm",
   "chunk-vectorize": "embedding",
+  "page-summary": "llm",
   "semantic-link": "reranker",
   "concept-extract": "llm",
+  "page-vectorize": "embedding",
   "topic-detection": null,
   "topic-summary": "llm",
 };
@@ -60,6 +67,7 @@ export const TASK_MODEL_FAMILY: Record<string, ModelFamily | null> = {
  */
 export const TASK_LLM_TASK_TYPE: Record<string, TaskType | null> = {
   "chunk-summary": TASK_TYPE.SUMMARY,
+  "page-summary": TASK_TYPE.SUMMARY,
   "concept-extract": TASK_TYPE.CONCEPT_NAMING,
   "topic-summary": TASK_TYPE.TOPIC_SUMMARY,
 };
@@ -137,6 +145,30 @@ export function selectReleasableFamilies(
   return layerFamilies.filter(
     (family) => !isModelFamilyNeeded(family, remainingTaskNames),
   );
+}
+
+/**
+ * 推理期间持续占满 CPU 的 family。
+ * 它们同层并行时不会提高吞吐，只会互相抢核心（发热、拖慢交互请求），
+ * 因此默认让同层的这类组串行；限线程（`session_options` / `maxThreads`）落地后可由
+ * 配置 `smartTask.allowCpuBoundParallel` 放开。
+ */
+export const CPU_BOUND_MODEL_FAMILIES: ModelFamily[] = ["reranker", "llm"];
+
+/**
+ * 统计一层内实际 CPU-bound 的 family 数量。
+ *
+ * `llm` 是否算 CPU-bound 取决于本轮**实际下发**的 gpuLayers，而不是配置值：
+ * GPU 开关非热切换，仅在模型加载时生效，故由调用方把加载期的判定结果传进来。
+ */
+export function countCpuBoundFamilies(
+  layerFamilies: ModelFamily[],
+  llmRunsOnCpu: boolean,
+): number {
+  return layerFamilies.filter((family) => {
+    if (family !== "llm") return CPU_BOUND_MODEL_FAMILIES.includes(family);
+    return llmRunsOnCpu;
+  }).length;
 }
 
 /** 获取指定任务的依赖列表 */

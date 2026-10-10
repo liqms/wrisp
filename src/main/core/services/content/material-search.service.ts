@@ -5,7 +5,7 @@ import { conceptDao } from "@/main/core/db/concept.dao";
 import { topicDao } from "@/main/core/db/topic.dao";
 import { SEARCH_TYPE } from "@/shared/enums";
 
-export type MaterialKind = "chunk" | "concept" | "topic";
+export type MaterialKind = "chunk" | "Page" | "concept" | "topic";
 
 export interface MaterialSearchParams {
   /** 作品 id（必填）：检索严格按作品隔离 */
@@ -61,7 +61,8 @@ class MaterialSearchService {
       );
       result.push(
         ...chunks.map((c) => ({
-          kind: "chunk" as const,
+          // 页级粗召回的结果由 chunk 检索一并带回，此处保留其层级标记
+          kind: c.kind === "Page" ? ("Page" as const) : ("chunk" as const),
           id: c.id,
           content: c.content,
         })),

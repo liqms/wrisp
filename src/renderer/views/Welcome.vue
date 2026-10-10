@@ -73,8 +73,8 @@
               <n-switch :value="enableAiMode" :loading="switching" @update:value="handleToggleAiMode" />
             </n-flex>
             <n-flex v-if="enableAiMode" class="welcome-enable-ai-mode-desc-item">
-              <DownloadButton v-for="model in modelList" :key="model.id" :title="model.label" :desc="model.desc"
-                :progress="model.progress" :localpath="model.localpath" @click="handleDownload(model)" />
+              <DownloadButton v-for="model in modelRows" :key="model.modelId" :title="model.label" :desc="model.desc"
+                :status="model.status" :progress="model.progress" @click="downloadModelFiles(model.family)" />
             </n-flex>
           </n-flex>
         </n-flex>
@@ -96,7 +96,7 @@ import {
 } from "@vicons/ionicons5";
 import { useConfig } from "@/renderer/composables/useConfig";
 import { useModel } from "@/renderer/composables/useModel";
-import { useDownloadStore } from "@/renderer/store/download.store";
+import { useModelDownloads } from "@/renderer/composables/useModelDownloads";
 import { ErrorCode } from "@/shared/enums";
 import { logger } from "@/renderer/utils/logger.utils";
 import { useI18n } from "vue-i18n";
@@ -114,9 +114,14 @@ const { workspace, updateWorkspace } = useConfig();
 const {
   enableAiMode,
   updateEnableAiMode,
-  checkModelExist,
-  downloadModel,
 } = useModel();
+
+// 本地模型清单与下载状态（与设置页共用同一份合并逻辑）
+const {
+  rows: modelRows,
+  refresh: refreshModelStatus,
+  download: downloadModelFiles,
+} = useModelDownloads();
 
 const currentWorkspace = computed(() => {
   return workspace.value || t("SETTINGS.NOT_SETTING");
@@ -162,20 +167,6 @@ const features = computed(() => [
   },
 ]);
 
-// 模型定义（与后端 model-registry.ts 保持一致）
-const MODEL_DEFS = [
-  { id: "bge-m3", family: "embedding", labelKey: "MODELS.EMBEDDINGS", descKey: "MODELS.EMBEDDINGS_DESC" },
-  { id: "bge-reranker-v2-m3", family: "reranker", labelKey: "MODELS.RERANKER", descKey: "MODELS.RERANKER_DESC" },
-  { id: "qwen3.5-4b", family: "llm", labelKey: "MODELS.LANGUAGE", descKey: "MODELS.LANGUAGE_DESC" },
-] as const;
-
-type ModelDef = (typeof MODEL_DEFS)[number];
-
-const downloadStore = useDownloadStore();
-// 模型下载状态（从后端查询）
-const modelExistStatus = ref<Record<string, boolean>>({});
-const loadingModelStatus = ref(false);
-
 // 切换 AI 模式
 const switching = ref(false);
 
@@ -190,59 +181,6 @@ async function handleToggleAiMode(value: boolean) {
     switching.value = false;
   }
 }
-
-// 刷新模型下载状态
-async function refreshModelStatus() {
-  loadingModelStatus.value = true;
-  try {
-    const result = await checkModelExist();
-    if (result) {
-      modelExistStatus.value = result;
-    }
-  } finally {
-    loadingModelStatus.value = false;
-  }
-}
-
-// 触发模型下载：llm 走 core，其余走 base
-async function handleDownload(model: { family: ModelDef["family"] }) {
-  await downloadModel(model.family === "llm" ? "core" : "base");
-  await refreshModelStatus();
-}
-
-// 模型列表（合并后端状态和下载进度）
-const modelList = computed(() => {
-  return MODEL_DEFS.map((def) => {
-    const exists = modelExistStatus.value[def.id];
-    // 从 downloadStore 查找该模型的下载进度
-    let progress = 0;
-    let localpath = exists ? "downloaded" : "";
-
-    // 遍历所有下载组，查找匹配的文件
-    for (const group of downloadStore.allGroupsProgress) {
-      if (!group) continue;
-      for (const file of group.files) {
-        if (file.url.toLowerCase().includes(def.id.toLowerCase())) {
-          progress = file.progress;
-          if (file.status === "completed") {
-            localpath = file.localPath || "downloaded";
-          }
-          break;
-        }
-      }
-    }
-
-    return {
-      id: def.id,
-      family: def.family,
-      label: t(def.labelKey),
-      desc: t(def.descKey),
-      progress,
-      localpath,
-    };
-  });
-});
-
 
 // 初始化：加载模型状态
 onMounted(async () => {

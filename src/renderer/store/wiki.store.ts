@@ -1,6 +1,6 @@
 
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import type { ApiResponse } from "@/shared/types";
 import type {
   WikiOverview,
@@ -18,8 +18,10 @@ import type {
 import type { PaginationResult } from "@/shared/utils/pagination";
 import { ErrorCode } from "@/shared/enums";
 import { handleApiError } from "@/renderer/utils/error.utils";
+import { useSmartTaskStore } from "./smart-task.store";
 
 export const useWikiStore = defineStore("wiki", () => {
+  const smartTaskStore = useSmartTaskStore();
   // 原有状态
   const concepts = ref<Concept[]>([]);
   const topics = ref<Topic[]>([]);
@@ -37,7 +39,9 @@ export const useWikiStore = defineStore("wiki", () => {
   const conceptCardsTotal = ref(0);
   const topicCards = ref<TopicCard[]>([]);
   const topicCardsTotal = ref(0);
-  const organizing = ref(false);
+  // 整理中与否取自主进程快照，本地不再存一份（两份状态会各自跑偏）
+  const organizing = computed(() => smartTaskStore.isRunning);
+  const organizePaused = computed(() => smartTaskStore.isPaused);
 
   // === 原有方法 ===
 
@@ -237,19 +241,26 @@ export const useWikiStore = defineStore("wiki", () => {
 
   // === 智能整理 ===
 
-  const startOrganize = async (): Promise<void> => {
+  /**
+   * 启动智能整理。
+   *
+   * 主进程把失败包在 `ApiResponse.error` 里返回（`smart-task.api.ts:12-24`），不抛异常，
+   * 所以不能只靠 try/catch 复位。是否「整理中」一律以主进程快照为准（`organizing` 是
+   * 它的派生值），这里只负责把拒绝原因回传给调用方提示用户。
+   * @returns 是否启动成功
+   */
+  const startOrganize = async (): Promise<boolean> => {
     try {
-      organizing.value = true;
-      await window.electronAPI.smartTask.start();
+      const response = (await window.electronAPI.smartTask.start()) as ApiResponse<unknown>;
+      return response.success;
     } catch {
-      organizing.value = false;
+      return false;
     }
   };
 
   const cancelOrganize = async (): Promise<void> => {
     try {
       await window.electronAPI.smartTask.cancel();
-      organizing.value = false;
     } catch {
       // 静默失败
     }
@@ -283,7 +294,6 @@ export const useWikiStore = defineStore("wiki", () => {
     conceptCardsTotal.value = 0;
     topicCards.value = [];
     topicCardsTotal.value = 0;
-    organizing.value = false;
     errorCode.value = null;
     errorMessage.value = null;
   };
@@ -306,6 +316,7 @@ export const useWikiStore = defineStore("wiki", () => {
     topicCards,
     topicCardsTotal,
     organizing,
+    organizePaused,
     // 原有方法
     loadConcepts,
     loadTopics,

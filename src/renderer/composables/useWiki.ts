@@ -28,6 +28,7 @@ export function useWiki() {
   const topicCards = computed(() => store.topicCards);
   const topicCardsTotal = computed(() => store.topicCardsTotal);
   const organizing = computed(() => store.organizing);
+  const organizePaused = computed(() => store.organizePaused);
 
   // 原有方法
   const loadConcepts = async (): Promise<void> => {
@@ -155,10 +156,16 @@ export function useWiki() {
         notify.warn(t("TIPS.WIKI.SMART_ORGANIZE"), t("TIPS.WIKI.LOCAL_AI_REQUIRED"));
         return;
       }
-      await store.startOrganize();
+      // 主进程以 ApiResponse.error 表达「启动被拒」（例如已有一轮在跑），不抛异常
+      const started = await store.startOrganize();
+      if (!started) {
+        notify.error(t("TIPS.WIKI.SMART_ORGANIZE"), t("TIPS.WIKI.ORGANIZE_START_FAILED"));
+        return;
+      }
       logger.info("启动智能整理");
     } catch (error) {
       logger.error("启动智能整理失败", { error });
+      notify.error(t("TIPS.WIKI.SMART_ORGANIZE"), t("TIPS.WIKI.ORGANIZE_START_FAILED"));
     }
   };
 
@@ -212,6 +219,7 @@ export function useWiki() {
     topicCards,
     topicCardsTotal,
     organizing,
+    organizePaused,
     // 原有方法
     loadConcepts,
     loadTopics,

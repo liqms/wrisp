@@ -52,7 +52,7 @@ Single-package Electron + Vue 3 app. Three source roots in `src/`:
   - `core/skills/` — skill manager/executor/schema-validator/updater + tool registry.
   - `core/smart-tasks/` — DAG task scheduler + executors (chunk-summary, chunk-vectorize, concept-extract, semantic-link, topic-detection, topic-summary).
   - `core/task-queue/` — persistent task queue + executor (3 workers, resume-on-start flow, `model:download-file` handler).
-  - `schemas/` — `init.sql` copied to `dist-electron/schemas` at build time (`vite.config.ts:copySchemas`). `migrations/` is empty.
+  - `schemas/` — `init.sql` (full current schema + baseline migration record) copied to `dist-electron/schemas` at build time (`vite.config.ts:copySchemas`). `migrations/` holds versioned upgrade SQL files (`{x.y.z}_{name}.sql`) for existing DBs — see 「数据库版本号与迁移变更规范」.
   - Also: `menu.ts`, `protocol.ts`, `types/db/`, `constants/` (config/model/auto/folder), `utils/` (crypto, http, i18n, logger, response, version).
 
 - **`src/renderer/`** — Vue 3 app
@@ -89,6 +89,76 @@ Path alias: `@/` → `./src/` (tsconfig.app.json, vite.config.ts, vitest.config.
 - **Frontend notifications**: renderer-process toasts (`notify.info/success/warn/error`) must go through `useFrontendNotification()` from `src/renderer/composables/useNotification.ts` — do NOT use Naive UI's `useMessage()` directly; keep `useDialog()` only for modal confirmations.
 - **Tests**: Vitest + happy-dom; unit/integration specs in `tests/`, coverage via `@vitest/coverage-v8`, shared setup `tests/setup/renderer.ts`.
 
+## 数据库版本号与迁移变更规范
+
+背景：`src/main/schemas/init.sql` 承载**当前完整 schema**，全新库启动时只执行 `init.sql`；`src/main/schemas/migrations/` 只用于升级存量库。两者必须同步，否则下次启动会重放 `ADD COLUMN`（SQLite 无 `IF NOT EXISTS`）并因 `duplicate column name` 直接崩溃。
+
+术语与铁律：
+
+- **目标版本** = `migrations/` 下迁移文件的最高版本号。
+- **基线版本** = `init.sql` 文末写入 `migrations_db` 那条记录的 `version`。
+- **铁律：基线版本 === 目标版本。** 三处（`init.sql` 头部注释、`init.sql` 基线记录、`migrations/` 最高文件）必须完全相同。
+
+### 1. 触发条件（何时必须改版本号）
+
+满足任一即**必须**新增迁移版本，并把 `init.sql` 基线同步到新版本：
+
+- 新增 / 修改 / 删除 表、列、索引（任何 DDL 变更）。
+- 新增一张需要存量库补齐的表（参考 `0.2.0` characters、`0.3.0` creation_sessions）。
+- 新增列只在全新库存在、存量库需要补列。
+- 需要一次性数据重建（去重、回填、清标记等，参考 `0.5.0` dedupe）。
+
+**不需要**改版本号：仅改业务代码 / DAO 查询 / 索引使用方式、不触碰 schema 的重构。
+
+### 2. 命名规则与格式
+
+- 迁移文件名：`{x.y.z}_{snake_case_name}.sql`，例如 `0.5.1_chunk_stage_marks.sql`。
+  - 必须是**三段数字** `x.y.z`；禁止 `v` 前缀、两位、四位或缺段（解析正则为 `^(\d+\.\d+\.\d+)_(.+)\.sql$`，见 `parseMigrationFileName`）。
+  - 选号：兼容性小修用 patch（如 `0.5.0` → `0.5.1`），结构性 / 行为性变更加 minor；排序由 `compareVersions` 决定。
+- 迁移文件**末尾必须自登记**迁移记录（直接照抄任一现有迁移文件的模板）：
+  - `INSERT OR IGNORE INTO migrations_db (...) VALUES (...)`；
+  - `id` 用 `00000000-0000-0000-0000-0000000000NN` 递增；
+  - `executed_at` / `created_at` / `updated_at` 用 `strftime('%Y-%m-%dT%H:%M:%fZ','now')`（与 `init.sql` 基线的 ISO 格式一致，保证 `getCurrentVersion` 排序正确）。
+- DDL 尽量写成幂等：`CREATE TABLE/INDEX IF NOT EXISTS`。
+
+### 3. 操作步骤
+
+1. 确定新版本号（严格大于当前 `migrations/` 最高版本）。
+2. 新增 `migrations/<version>_<name>.sql`：写 schema 变更 + 末尾自登记记录。
+3. 同步 `init.sql`（**最容易漏，也是历史事故根因**）：
+   - 把同一批表 / 列 / 索引补进 `init.sql`；
+   - 更新头部注释 `-- 版本: x.y.z`；
+   - **把文末基线记录的 `version` 改成新版本号**。
+4. 涉及数据重建（非纯 DDL）时：在 `core/migration/database.migration.ts` 增加**幂等**方法，并在 `main/index.ts` 的 `initializeDatabase()` 中按顺序调用（参考 `applyConceptDedupMigration()` / `ensureChunkSummaryStageColumn()`，只在跨越该版本时执行一次）。
+5. 需要为存量库补列时，优先用 `ensureXxxColumn()` 模式（`PRAGMA table_info` 判存在后再 `ALTER`），不要依赖迁移文件被重放。
+6. 执行第 5 节的验证。
+
+### 4. 责任人与审批
+
+- **责任人**：本次 schema 变更的**作者**，负责「迁移文件 + `init.sql` 基线 + 测试」三处一致。
+- **审批人**：PR 至少 **1 名 reviewer** 审批；涉及 schema / 基线变更的 PR 需在描述中标注 `DB migration`。
+- **Reviewer 检查清单**：
+  - [ ] `init.sql` 基线版本 == `migrations/` 最高版本（第 2 节铁律）。
+  - [ ] `init.sql` 与迁移文件给出的表 / 列 / 索引一致。
+  - [ ] 迁移文件已自登记且可重复执行不报错。
+  - [ ] 数据重建步骤幂等、且只在跨越该版本时执行一次。
+  - [ ] 第 5 节自动化测试通过。
+- 本项目无 CI（`.github` 无 workflows），审批与验证均为本地手动执行。
+
+### 5. 验证方法
+
+- 自动化：`pnpm test`（重点 `tests/integration/main/migrations.*.test.ts`、`concept-dedup-migration.test.ts`、`chunk-stage-marks.test.ts`）；`pnpm typecheck`；`pnpm lint`。
+  （注：`better-sqlite3` 原生模块同一时刻只能匹配一种 ABI——跑测试用 Node ABI，跑应用用 Electron ABI，切换时执行 `pnpm rebuild`。)
+- 手动「两步启动」验证（复现 / 防回归关键，务必执行第 2 步）：
+  1. 删除 `<workspace>/sqlite/*.db` → 启动应用 → 正常退出。
+  2. **再次启动**（首次仅执行 `init.sql`，迁移文件要到第二次启动才可能被重放）→ 若报 `duplicate column name`，即基线未同步，回到第 3 节。
+- 存量库验证：用旧版本 DB 启动，确认迁移成功、`migrations_db` 版本前进。
+- 版本核对 SQL（最高 `executed_at` 的 `version` 应等于目标版本）：
+
+  ```sql
+  SELECT version, status, executed_at FROM migrations_db ORDER BY executed_at DESC;
+  ```
+
 ## Key pitfalls
 
 1. **pnpm clean is Windows-only**: Uses `rd /Q /S dist-renderer dist-electron release 2>nul`; on Unix use `rm -rf dist-renderer dist-electron release`.
@@ -109,12 +179,14 @@ Path alias: `@/` → `./src/` (tsconfig.app.json, vite.config.ts, vitest.config.
 16. **CJS worker path resolution**: In CJS modules use `createRequire(__filename)` instead of `import.meta.url` (compiles to `undefined` under Vite). Worker files must be bundled separately (CJS format), referenced via `__dirname`, and use `parentPort.on('message')`/`parentPort.postMessage()` (Node worker_threads), not `self.onmessage`/`self.postMessage`. Vite main/preload/worker entries use `target: 'node22'`.
 17. **ProseMirror text scanning**: `doc.textBetween` returns empty string (`""`) at node boundaries, not `\n` — scanning loops must check for `""` as a termination condition. Backward slash-command searches must use `doc.resolve(pos).start()` as the lower bound, never `Math.max(0, pos - N)` (a fixed window crosses into the previous block).
 18. **Migration target version lower bound**: `getTargetVersion()` in `core/migration/database.migration.ts` must use `this.getDatabaseVersion() || "0.0.0"` — without the current-version lower bound, an empty `migrations/` dir plus an already-executed baseline defaults to `0.0.0` and triggers a false "current version higher than target" warning.
+19. **Migration baseline must equal the highest migration version**: When adding `schemas/migrations/<x.y.z>_<name>.sql`, you MUST also add the same DDL to `init.sql` AND bump the `version` of the baseline record at the end of `init.sql` to `<x.y.z>`. Otherwise a fresh DB records the old baseline, replays the migration files on the next launch, and crashes with `duplicate column name` (SQLite `ALTER TABLE ADD COLUMN` has no `IF NOT EXISTS`). Full procedure: see 「数据库版本号与迁移变更规范」 above.
 
 ## Documentation management
 
 `docs/` maintains a living index at [`docs/INDEX.md`](docs/INDEX.md). **Every time a file is added, renamed, moved, or deleted under `docs/`, you must同步更新 `docs/INDEX.md`** — including the directory tree, file table, and any cross-references in other docs that point to the changed file.
 
 Rules:
+
 - **Sync on change**: Any `docs/` file add/rename/move/delete → update `docs/INDEX.md` in the same commit.
 - **Cross-reference repair**: After moving a file, grep all `docs/**/*.md` for stale relative links and fix them.
 - **Directory taxonomy**: `architecture/` = technical design, `features/` = feature descriptions, `product/` = strategy & roadmap, `user-research/` = user-type analysis, `guides/` = how-to, `ui/` = UI design, `decisions/` = ADR, `discussions/` = discussion notes, `superpowers/` = dev plans & specs.

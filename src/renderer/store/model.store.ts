@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { ApiResponse } from "@/shared/types";
-import type { ModelConfig, ModelType, DefaultModel, AIProvider } from "@/shared/types/model.types";
+import type { GpuCapability, ModelConfig, ModelManifestEntry, ModelType, DefaultModel, AIProvider, ThreadBudgetInfo } from "@/shared/types/model.types";
 import { ErrorCode } from "@/shared/enums";
 import { getErrorMessage } from "@/renderer/utils/error.utils";
 import { logger } from "@/renderer/utils/logger.utils";
@@ -267,6 +267,53 @@ export const useModelStore = defineStore("model", () => {
     };
 
     /**
+     * 获取本地 LLM 的 GPU 能力快照
+     * 后端只在用户开关打开时探测一次显存，因此本方法可能耗时；调用方按需展示 loading
+     */
+    const fetchGpuCapability = async (): Promise<GpuCapability | null> => {
+        try {
+            const response = (await window.electronAPI.model.getGpuCapability()) as ApiResponse<GpuCapability>;
+
+            if (response.success && response.data) {
+                return response.data as GpuCapability;
+            } else {
+                errorCode.value = response.code;
+                errorMessage.value = getErrorMessage(response.code);
+                return null;
+            }
+        } catch {
+            errorCode.value = ErrorCode.MODEL_GPU_PROBE_FAILED;
+            errorMessage.value = getErrorMessage(errorCode.value);
+            return null;
+        }
+    };
+
+    /**
+     * 获取当前生效的推理线程预算（纯读取，不触发探测）
+     */
+    const fetchThreadBudget = async (): Promise<ThreadBudgetInfo | null> => {
+        try {
+            const response = (await window.electronAPI.model.getThreadBudget()) as ApiResponse<ThreadBudgetInfo>;
+            return response.success && response.data ? (response.data as ThreadBudgetInfo) : null;
+        } catch {
+            return null;
+        }
+    };
+
+    /**
+     * 获取内置模型清单（默认变体的文件集与体积）
+     * 渲染端据此按模型聚合下载进度，避免在组件里手抄模型清单
+     */
+    const fetchModelManifest = async (): Promise<ModelManifestEntry[]> => {
+        try {
+            const response = (await window.electronAPI.model.getModelManifest()) as ApiResponse<ModelManifestEntry[]>;
+            return response.success && response.data ? (response.data as ModelManifestEntry[]) : [];
+        } catch {
+            return [];
+        }
+    };
+
+    /**
      * 更新默认模型列表（全量替换）
      */
     const addOrUpdateDefaultModel = async (models: DefaultModel[]): Promise<boolean> => {
@@ -395,6 +442,9 @@ export const useModelStore = defineStore("model", () => {
         checkModelExist,
         reDownloadModel,
         cancelDownload,
+        fetchGpuCapability,
+        fetchThreadBudget,
+        fetchModelManifest,
         addOrUpdateDefaultModel,
         addOrUpdateAIProvider,
         deleteAIProvider,

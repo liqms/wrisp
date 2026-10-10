@@ -30,10 +30,15 @@ export interface SmartTaskStep {
   ref: string;
   /** 当前状态 */
   state: SmartTaskStepState;
-  /** 任务节点：需处理的数据量（总条数） */
+  /**
+   * 任务节点：本步需处理的条数。步骤尚未开始时是**上一轮的实际条数**（预估权重，
+   * 只用于整体百分比加权，界面不展示）；开始后由 progressManager 覆写为本轮真实值。
+   */
   dataAmount?: number;
   /** 任务节点：已处理条数 */
   processedCount?: number;
+  /** 任务节点：本轮失败条数（未统计的阶段为 undefined） */
+  failedCount?: number;
   /** 模型节点：family */
   family?: SmartTaskModelFamily;
   /** 模型节点：模型 id */

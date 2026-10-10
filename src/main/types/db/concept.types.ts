@@ -8,6 +8,14 @@ export interface Concept {
   evolving_summary: Content | null
   timeline: JsonMetadata
   relevance: number
+  /** 归一化标题键（幂等合并依据），历史数据迁移前为 null */
+  title_key: Name | null
+  /** 别名 JSON 数组原文（如 ["RAG","检索增强"]） */
+  aliases: string
+  /** 累计被抽取命中的次数，驱动时间线证据权重 */
+  mention_count: number
+  /** 最近一次重算演化摘要的时间，用于增量触发（未演化时为 null） */
+  last_evolved_at: Timestamp | null
   created_at: Timestamp
   updated_at: Timestamp
 }
@@ -18,6 +26,10 @@ export interface ConceptCreate {
   evolving_summary?: Content | null
   timeline?: JsonMetadata
   relevance?: number
+  title_key?: Name | null
+  aliases?: string
+  mention_count?: number
+  last_evolved_at?: Timestamp | null
   created_at?: Timestamp
   updated_at?: Timestamp
 }
@@ -27,6 +39,10 @@ export interface ConceptUpdate {
   evolving_summary?: Content | null
   timeline?: JsonMetadata
   relevance?: number
+  title_key?: Name | null
+  aliases?: string
+  mention_count?: number
+  last_evolved_at?: Timestamp | null
   updated_at?: Timestamp
 }
 

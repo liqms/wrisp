@@ -131,8 +131,11 @@ class WikiService {
   /** 待整理资源数 */
   public getPendingCount(): WikiPendingCount {
     try {
+      // 以「摘要阶段还没跑过这块」为待整理判据，与 chunk-summary 的选取条件同形。
+      // 不能用 ai_summary 是否为空：无正文可摘要的块（代码 / 围栏 / 纯图片）永远没有
+      // 摘要，会被一直算成待整理；last_smart_processed_at 则是多任务共写的观测列，用它计数会漏。
       const pendingChunks = chunkDao.count(
-        "SELECT * FROM semantic_chunks WHERE last_smart_processed_at IS NULL AND status = 'active'",
+        "SELECT * FROM semantic_chunks WHERE status = 'active' AND (last_summary_generated_at IS NULL OR updated_at > last_summary_generated_at)",
       );
       return { pendingChunks };
     } catch (e) {

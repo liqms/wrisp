@@ -31,11 +31,12 @@ import GeneralSettings from "@/renderer/components/settings/general/GeneralSetti
 import ModelSettings from "@/renderer/components/settings/model/ModelSettings.vue";
 import ModelProvidersPage from "@/renderer/components/settings/model/ModelProvidersPage.vue";
 import ModelDefaultsPage from "@/renderer/components/settings/model/ModelDefaultsPage.vue";
+import SmartTaskSettings from "@/renderer/components/settings/smart-task/SmartTaskSettings.vue";
 import SlashTemplatesPage from "@/renderer/components/settings/template/SlashTemplatesPage.vue";
 import PageTemplatesPage from "@/renderer/components/settings/template/PageTemplatesPage.vue";
 import KeymapSettings from "@/renderer/components/settings/keymap/KeymapSettings.vue";
 import TemplateSettings from "@/renderer/components/settings/template/TemplateSettings.vue";
-import { DiceOutline, DocumentTextOutline, OptionsOutline } from "@vicons/ionicons5";
+import { DiceOutline, DocumentTextOutline, OptionsOutline, SparklesOutline } from "@vicons/ionicons5";
 
 import { KeyboardAltOutlined } from "@vicons/material";
 import { useRouter } from "vue-router";
@@ -106,6 +107,11 @@ const menuOptions = computed(() => [
     icon: renderIcon(DiceOutline),
   },
   {
+    key: "smartTask",
+    label: t("SETTINGS.SMART_TASK.TITLE"),
+    icon: renderIcon(SparklesOutline),
+  },
+  {
     key: "keymap",
     label: t("SETTINGS.KEYMAP"),
     icon: renderIcon(KeyboardAltOutlined),
@@ -125,6 +131,7 @@ interface BreadcrumbItem {
 const componentMap: Record<string, Component> = {
   general: markRaw(GeneralSettings),
   model: markRaw(ModelSettings),
+  smartTask: markRaw(SmartTaskSettings),
   keymap: markRaw(KeymapSettings),
   template: markRaw(TemplateSettings),
 };
@@ -148,6 +155,7 @@ const currentComponent = computed<Component | null>(() => {
 const breadcrumbMap: Record<string, { key: string; labelKey: string }[]> = {
   general: [{ key: "general", labelKey: "SETTINGS.GENERAL" }],
   model: [{ key: "model", labelKey: "SETTINGS.AI_SETTINGS.INTELLIGENT" }],
+  smartTask: [{ key: "smartTask", labelKey: "SETTINGS.SMART_TASK.TITLE" }],
   keymap: [{ key: "keymap", labelKey: "SETTINGS.KEYMAP" }],
   template: [{ key: "template", labelKey: "APP.BASE.TEMPLATE" }],
 };

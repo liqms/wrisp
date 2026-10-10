@@ -1,6 +1,8 @@
 import { Logger } from "@/main/utils/logger";
 import { getDatabase, getDbPath } from "@/main/core/db/connection";
 import { MigrationDbDao } from "@/main/core/db/migrationDb.dao";
+import { conceptDao } from "@/main/core/db/concept.dao";
+import { normalizeConceptTitle } from "@/shared/utils";
 import { MigrationDb } from "@/main/types/db";
 import fs from "fs";
 import { join } from "path";
@@ -238,6 +240,53 @@ export class DatabaseMigration {
   }
 
   /**
+   * 确保 semantic_chunks 表存在 last_summary_generated_at 字段，并把历史水位回填齐（幂等）。
+   *
+   * 该列是 chunk-summary 的专用增量标记。摘要任务此前拿「ai_summary 为空」当判据，
+   * 加了「无正文可摘要的块直接跳过」之后就失效了：跳过的块永远不会有摘要，
+   * 每一轮整理都会把它们重新选出来空跑一遍。
+   *
+   * 回填把**已有摘要**的块的标记设为自身的 `updated_at`（语义即「正文的这个版本已摘要」），
+   * 否则老库升级后整库会被重新推理一次。摘要为空的块保持 NULL：它们本来就要重跑，
+   * 正好借首轮把非正文块标出去。
+   */
+  public ensureChunkSummaryStageColumn(): void {
+    try {
+      const db = getDatabase();
+      const columns = db
+        .prepare("PRAGMA table_info(semantic_chunks)")
+        .all() as { name: string }[];
+
+      if (columns.some((col) => col.name === "last_summary_generated_at")) {
+        return;
+      }
+
+      db.exec(
+        "ALTER TABLE semantic_chunks ADD COLUMN last_summary_generated_at TEXT",
+      );
+      const backfilled = db
+        .prepare(
+          `UPDATE semantic_chunks
+             SET last_summary_generated_at = updated_at
+           WHERE ai_summary IS NOT NULL AND ai_summary != ''`,
+        )
+        .run();
+      Logger.info("已为 semantic_chunks 表新增 last_summary_generated_at 字段", {
+        backfilled: backfilled.changes,
+      });
+    } catch (error) {
+      Logger.error(
+        "为 semantic_chunks 表新增 last_summary_generated_at 字段失败:",
+        {
+          dbPath: getDbPath(),
+          error: String(error),
+        },
+      );
+      throw error;
+    }
+  }
+
+  /**
    * 移除 pages 表的 is_container 字段（幂等）。
    * 该字段为 v1「容器页」设计遗留，现已无任何代码引用。
    * 由于字段被 CHECK 约束与 idx_pages_container 索引引用，无法直接 DROP COLUMN，
@@ -272,6 +321,9 @@ export class DatabaseMigration {
                 ai_summary TEXT,
                 page_type TEXT NOT NULL DEFAULT 'project_chapter',
                 metadata TEXT DEFAULT '{}',
+                last_smart_processed_at TEXT,
+                last_summary_generated_at TEXT,
+                last_vectorized_at TEXT,
                 status TEXT DEFAULT 'active',
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
@@ -281,10 +333,14 @@ export class DatabaseMigration {
           db.exec(`
             INSERT INTO pages_migrate_new
               (id, project_id, title, file_path, order_index, parent_page_id,
-               word_count, ai_summary, page_type, metadata, status, created_at, updated_at)
+               word_count, ai_summary, page_type, metadata,
+               last_smart_processed_at, last_summary_generated_at, last_vectorized_at,
+               status, created_at, updated_at)
             SELECT
               id, project_id, title, file_path, order_index, parent_page_id,
-              word_count, ai_summary, page_type, metadata, status, created_at, updated_at
+              word_count, ai_summary, page_type, metadata,
+              last_smart_processed_at, last_summary_generated_at, last_vectorized_at,
+              status, created_at, updated_at
             FROM pages
           `);
           db.exec("DROP TABLE pages");
@@ -326,6 +382,212 @@ export class DatabaseMigration {
     } catch (error) {
       Logger.error("修复 pages 表 NULL 状态失败", { error: String(error) });
       throw error;
+    }
+  }
+
+  /**
+   * 确保 pages 表存在页面级分阶段处理标记（幂等）。
+   *
+   * 这三个列是 page-summary / page-vectorize 两个页面级智能任务的增量选取依据
+   * （镜像 semantic_chunks 的同名列）。旧库没有它们，且 init.sql 的
+   * CREATE TABLE IF NOT EXISTS 不会为已存在的表补齐新列，故在迁移后统一补齐。
+   *
+   * 列保持全 NULL：首轮整理会对所有页面做一次全量摘要与向量化，之后靠标记收敛。
+   */
+  public ensurePageStageColumns(): void {
+    try {
+      const db = getDatabase();
+      const columns = db
+        .prepare("PRAGMA table_info(pages)")
+        .all() as { name: string }[];
+
+      const missing = [
+        "last_smart_processed_at",
+        "last_summary_generated_at",
+        "last_vectorized_at",
+      ].filter((name) => !columns.some((col) => col.name === name));
+
+      if (missing.length === 0) {
+        return;
+      }
+
+      for (const name of missing) {
+        db.exec(`ALTER TABLE pages ADD COLUMN ${name} TEXT`);
+      }
+      Logger.info("已为 pages 表补齐页面级分阶段标记列", { added: missing });
+    } catch (error) {
+      Logger.error("为 pages 表补齐页面级分阶段标记列失败:", {
+        dbPath: getDbPath(),
+        error: String(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 概念历史脏数据重建（设计 D4，随 0.5.0 迁移一次性执行）。
+   *
+   * 旧抽取逻辑把模型输出按逗号切分后逐块 `create`，同义词、全半角、大小写、
+   * 首尾标点差异都会各建一个概念。这里按 `normalizeConceptTitle(title)` 分组，
+   * 每组保留 `created_at` 最早者为 canonical，其余的块关联迁过去后删除。
+   *
+   * 必须在 0.5.0 的 SQL（加列 + UNIQUE 索引）之后执行：索引在全 NULL 列上创建是安全的，
+   * 而回填 title_key 时同键只会命中一条（分组键即唯一键），不会撞 UNIQUE。
+   *
+   * 连带影响：删除从属概念会经 `topic_concepts` 的 ON DELETE CASCADE 清掉主题关联，
+   * 主题要等迭代 5 的重聚类恢复，因此迁移后首轮整理前主题视图可能偏薄。
+   */
+  public dedupeConcepts(): void {
+    try {
+      const db = getDatabase();
+
+      type ConceptRow = {
+        id: string;
+        title: string;
+        title_key: string | null;
+        aliases: string;
+        mention_count: number;
+        created_at: string;
+      };
+
+      const rows = db
+        .prepare(
+          "SELECT id, title, title_key, aliases, mention_count, created_at FROM concepts",
+        )
+        .all() as ConceptRow[];
+
+      const groups = new Map<string, ConceptRow[]>();
+      for (const row of rows) {
+        const key = normalizeConceptTitle(row.title);
+        // 归一后为空（纯标点标题）无合并依据，留待用户改名，不参与去重
+        if (!key) continue;
+        const bucket = groups.get(key);
+        if (bucket) bucket.push(row);
+        else groups.set(key, [row]);
+      }
+
+      let mergedRows = 0;
+      let touched = 0;
+      const timestamp = new Date().toISOString();
+
+      db.transaction(() => {
+        for (const [key, bucket] of groups) {
+          const canonical = [...bucket].sort(
+            (a, b) =>
+              a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),
+          )[0];
+          const dependents = bucket.filter((row) => row.id !== canonical.id);
+
+          const aliasByKey = new Map<string, string>();
+          let mentionTotal = 0;
+          for (const row of bucket) {
+            mentionTotal += row.mention_count || 0;
+            for (const alias of this.parseAliasList(row.aliases)) {
+              const aliasKey = normalizeConceptTitle(alias);
+              // 分组键即 canonical 标题的归一形态，命中说明别名就是标题本身
+              if (!aliasKey || aliasKey === key) continue;
+              if (!aliasByKey.has(aliasKey)) aliasByKey.set(aliasKey, alias);
+            }
+          }
+          const aliasesJson = JSON.stringify([...aliasByKey.values()]);
+
+          // 已合并过的分组不再回写，避免每次启动把 updated_at 全刷一遍
+          if (
+            dependents.length === 0 &&
+            canonical.title_key === key &&
+            canonical.mention_count === mentionTotal &&
+            canonical.aliases === aliasesJson
+          ) {
+            continue;
+          }
+
+          if (dependents.length > 0) {
+            const dependentIds = dependents.map((row) => row.id);
+            const placeholders = dependentIds.map(() => "?").join(",");
+
+            // 先迁关联再删从属行：块级证据必须挂在 canonical 上，否则时间线会丢证据
+            db.prepare(
+              `INSERT OR IGNORE INTO concept_chunks
+                 (concept_id, chunk_id, relevance_score, created_at, updated_at)
+               SELECT ?, chunk_id, relevance_score, ?, ? FROM concept_chunks
+               WHERE concept_id IN (${placeholders})`,
+            ).run([canonical.id, timestamp, timestamp, ...dependentIds]);
+            db.prepare(`DELETE FROM concept_chunks WHERE concept_id IN (${placeholders})`).run(dependentIds);
+            db.prepare(`DELETE FROM concepts WHERE id IN (${placeholders})`).run(dependentIds);
+            mergedRows += dependents.length;
+          }
+
+          db.prepare(
+            `UPDATE concepts
+             SET title_key = ?, aliases = ?, mention_count = ?, updated_at = ?
+             WHERE id = ?`,
+          ).run([key, aliasesJson, mentionTotal, timestamp, canonical.id]);
+          touched++;
+        }
+      })();
+
+      // external-content FTS 靠 rowid 回查主表，删除/改写主表后必须显式重建
+      if (touched > 0) {
+        conceptDao.rebuildFtsIndex();
+        Logger.info("概念去重完成", { merged: mergedRows, groups: touched });
+      }
+    } catch (error) {
+      Logger.error("概念去重失败", { error: String(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * 清空概念的抽取标记，使下一轮整理对全部块重跑抽取（设计 D4）。
+   *
+   * 清的是概念专属列：0.5.0 之前概念任务写在三任务共用的 `last_smart_processed_at`
+   * 上，语义互相覆盖，已不再作为选取依据。
+   */
+  public clearConceptStageMarks(): void {
+    try {
+      const db = getDatabase();
+      const result = db
+        .prepare("UPDATE semantic_chunks SET last_concept_extracted_at = NULL")
+        .run();
+      if (result.changes > 0) {
+        Logger.info("已清空概念抽取标记，下一轮全量重抽", { count: result.changes });
+      }
+    } catch (error) {
+      Logger.error("清空概念抽取标记失败", { error: String(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * 0.5.0 的数据重建步骤：仅在「本次启动跨越了 0.5.0」时执行。
+   * dedupe 本身幂等，但清空标记每次启动都跑会让全量重抽反复发生。
+   * @param versionBeforeMigration - 迁移前的库版本（未初始化时为 null）
+   */
+  public applyConceptDedupMigration(versionBeforeMigration: string | null): void {
+    const target = "0.5.0";
+    const before = versionBeforeMigration || "0.0.0";
+    if (compareVersions(before, target) !== VersionComparison.OLDER) {
+      return;
+    }
+    if (compareVersions(this.getDatabaseVersion() || "0.0.0", target) === VersionComparison.OLDER) {
+      Logger.warn("概念去重迁移跳过：0.5.0 迁移未执行成功", { before, after: this.getDatabaseVersion() });
+      return;
+    }
+
+    this.dedupeConcepts();
+    this.clearConceptStageMarks();
+  }
+
+  /** 解析 concepts.aliases 列；脏数据（非数组 / 非法 JSON）按空处理 */
+  private parseAliasList(raw: string | null): string[] {
+    if (!raw) return [];
+    try {
+      const value: unknown = JSON.parse(raw);
+      return Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === "string")
+        : [];
+    } catch {
+      return [];
     }
   }
 
@@ -377,9 +639,9 @@ export class DatabaseMigration {
   /**
    * 获取数据库迁移的目标版本号。
    * 取「当前已执行版本 + 迁移文件 + 待执行迁移记录」中的最高版本号。
-   * 以当前数据库版本为下限：init.sql 写入的基线迁移（0.1.0）已记录为 executed，
+   * 以当前数据库版本为下限：init.sql 写入的基线迁移（0.5.1）已记录为 executed，
    * 若只取「迁移文件 + 待执行迁移记录」，无迁移文件时目标版本会退化为 "0.0.0"，
-   * 导致 currentVersion(0.1.0) > targetVersion(0.0.0) 误报"当前数据库版本高于目标版本"。
+   * 导致 currentVersion(0.5.1) > targetVersion(0.0.0) 误报"当前数据库版本高于目标版本"。
    * 数据库尚未初始化时（migrations_db 不存在）返回 "0.0.0"（无需迁移）。
    * 作为 executeDatabaseMigration 的目标版本，替代原先对 .env SQLITE_DB_VERSION 的依赖。
    * @returns 目标版本号
@@ -490,7 +752,22 @@ export class DatabaseMigration {
         const db = getDatabase();
         const startTime = Date.now();
 
-        db.exec(migration.sql_statement);
+        try {
+          db.exec(migration.sql_statement);
+        } catch (error) {
+          // SQLite 的 ALTER TABLE ADD COLUMN 无 IF NOT EXISTS。旧版 init.sql 把
+          // 0.2.0~0.5.1 的列直接建在 schema 里却只登记 0.1.0 基线，导致下次启动
+          // 重放这些迁移、撞上已存在的列而抛 "duplicate column name" 并中断启动。
+          // 目标列已存在即说明该迁移已生效，补登记版本后继续（见 registerExecutedMigration）。
+          if (this.isDuplicateColumnError(error)) {
+            this.registerExecutedMigration(migration.version);
+            Logger.warn("迁移目标列已存在，按已执行处理", {
+              version: migration.version,
+            });
+            continue;
+          }
+          throw error;
+        }
 
         const executionTime = Date.now() - startTime;
 
@@ -519,6 +796,38 @@ export class DatabaseMigration {
       });
       throw error;
     }
+  }
+
+  /** 判断 SQLite 报错是否为「列已存在」（ALTER TABLE ADD COLUMN 无 IF NOT EXISTS） */
+  private isDuplicateColumnError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return /duplicate column name/i.test(message);
+  }
+
+  /**
+   * 为「目标列已存在、SQL 中途报错」的迁移补登记 executed 记录。
+   *
+   * 迁移文件把自登记 INSERT 放在文件末尾，而 ALTER 在开头就抛错，导致该 INSERT
+   * 从未执行，版本无法前进、每次启动都会重复走到这里。补一条记录让版本正常收敛。
+   * @param version - 需要补登记的迁移版本号
+   */
+  private registerExecutedMigration(version: string): void {
+    const now = new Date().toISOString();
+    getDatabase()
+      .prepare(
+        `INSERT OR IGNORE INTO migrations_db
+           (id, version, name, description, sql_statement, status, executed_at, execution_time, created_at, updated_at)
+         VALUES (?, ?, ?, ?, '--', 'executed', ?, 0, ?, ?)`,
+      )
+      .run(
+        `recovered-${version}`,
+        version,
+        `Recovered ${version}`,
+        "迁移目标列已存在，补登记为已执行",
+        now,
+        now,
+        now,
+      );
   }
 
   /**

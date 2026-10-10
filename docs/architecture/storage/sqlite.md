@@ -61,26 +61,33 @@ CREATE INDEX idx_file_index_status ON file_index(sync_status);
 
 语义块是通过 AI 语义分析从 Markdown 文件中拆分出的内容片段的索引记录。`content` 字段缓存块内容，避免频繁读文件；`content_hash` 用于检测文件内容变更，实现增量同步。
 
-| 字段名                    | 类型    | 约束                               | 说明                                                       |
-| :------------------------ | :------ | :--------------------------------- | :--------------------------------------------------------- |
-| `id`                      | TEXT    | PRIMARY KEY                        | 语义块唯一标识（UUID）                                     |
-| `file_id`                 | TEXT    | NOT NULL REFERENCES file_index(id) | 所属文件索引 ID                                            |
-| `file_path`               | TEXT    | NOT NULL                           | 文件相对路径（冗余字段，便于查询）                         |
-| `start_line`              | INTEGER | NOT NULL                           | 起始行号（从 1 开始）                                      |
-| `end_line`                | INTEGER | NOT NULL                           | 结束行号（包含）                                           |
-| `section_title`           | TEXT    |                                    | 章节标题（如时间标记 `## HH:MM` 或章节名）                 |
-| `content`                 | TEXT    | NOT NULL                           | 块内容（缓存，来源为 .md 文件，避免频繁读文件）            |
-| `content_hash`            | TEXT    |                                    | 内容 SHA256 哈希（用于检测文件内容变更）                   |
-| `chunk_type`              | TEXT    | DEFAULT 'journal'                  | 语义块来源类型：'journal'（日志） / 'project'（项目）      |
-| `is_deleted`              | INTEGER | DEFAULT 0                          | 软删除标记（0=正常，1=已删除）                             |
-| `ai_summary`              | TEXT    |                                    | AI 自动生成的摘要                                          |
-| `word_count`              | INTEGER | DEFAULT 0                          | 字数统计                                                   |
-| `temporal_score`          | REAL    | DEFAULT 0.0                        | 时间热度分数                                               |
-| `last_smart_processed_at` | TEXT    |                                    | 智能任务（摘要/向量化/语义链接等）最后处理时间（ISO 8601） |
-| `last_vectorized_at`      | TEXT    |                                    | 向量化任务的专用标记：null 表示尚未写入向量库              |
-| `status`                  | TEXT    | DEFAULT 'active'                   | 状态：active / deleted（软删除）                           |
-| `created_at`              | TEXT    | NOT NULL                           | 创建时间（ISO 8601）                                       |
-| `updated_at`              | TEXT    | NOT NULL                           | 最后更新时间（ISO 8601）                                   |
+| 字段名                      | 类型    | 约束                               | 说明                                                             |
+| :-------------------------- | :------ | :--------------------------------- | :--------------------------------------------------------------- |
+| `id`                        | TEXT    | PRIMARY KEY                        | 语义块唯一标识（UUID）                                           |
+| `file_id`                   | TEXT    | NOT NULL REFERENCES file_index(id) | 所属文件索引 ID                                                  |
+| `file_path`                 | TEXT    | NOT NULL                           | 文件相对路径（冗余字段，便于查询）                               |
+| `start_line`                | INTEGER | NOT NULL                           | 起始行号（从 1 开始）                                            |
+| `end_line`                  | INTEGER | NOT NULL                           | 结束行号（包含）                                                 |
+| `section_title`             | TEXT    |                                    | 章节标题（如时间标记 `## HH:MM` 或章节名）                       |
+| `content`                   | TEXT    | NOT NULL                           | 块内容（缓存，来源为 .md 文件，避免频繁读文件）                  |
+| `content_hash`              | TEXT    |                                    | 内容 SHA256 哈希（用于检测文件内容变更）                         |
+| `chunk_type`                | TEXT    | DEFAULT 'journal'                  | 语义块来源类型：'journal'（日志） / 'page'（页面）               |
+| `is_deleted`                | INTEGER | DEFAULT 0                          | 软删除标记（0=正常，1=已删除）                                   |
+| `ai_summary`                | TEXT    |                                    | AI 自动生成的摘要                                                |
+| `word_count`                | INTEGER | DEFAULT 0                          | 字数统计                                                         |
+| `temporal_score`            | REAL    | DEFAULT 0.0                        | 时间热度分数                                                     |
+| `last_smart_processed_at`   | TEXT    |                                    | 「最后被任一智能任务触碰」的观测值（ISO 8601），不再用于增量选取 |
+| `last_vectorized_at`        | TEXT    |                                    | 向量化阶段标记：null 或早于 `updated_at` 即待重跑                |
+| `last_concept_extracted_at` | TEXT    |                                    | 概念抽取阶段标记，语义同上                                       |
+| `last_linked_at`            | TEXT    |                                    | 语义链接阶段标记，语义同上                                       |
+
+> 各智能任务的增量选取只看自己那一列（`last_xxx_at IS NULL OR updated_at > last_xxx_at`），
+> 写入须走 `ChunkDao.recordStage()` / `recordStageBatch()`：`BaseDao.update()` 会连带刷新
+> `updated_at`，而比较的正是它 —— 用 `update()` 写标记等于让该块下一轮被自己重新选中。
+
+| `status` | TEXT | DEFAULT 'active' | 状态：active / deleted（软删除） |
+| `created_at` | TEXT | NOT NULL | 创建时间（ISO 8601） |
+| `updated_at` | TEXT | NOT NULL | 最后更新时间（ISO 8601） |
 
 **索引设计：**
 
@@ -523,20 +530,27 @@ CREATE INDEX idx_characters_name ON characters(name);
 
 用于存储作品的页面/章节结构，页面内容存储在 `projects/{name}/*.md` 文件中。
 
-| 字段名           | 类型    | 约束                    | 说明                                         |
-| :--------------- | :------ | :---------------------- | :------------------------------------------- |
-| `id`             | TEXT    | PRIMARY KEY             | 页面唯一标识（UUID）                         |
-| `project_id`     | TEXT    | REFERENCES projects(id) | 关联作品ID                                   |
-| `title`          | TEXT    | NOT NULL                | 页面标题                                     |
-| `file_path`      | TEXT    | NOT NULL                | 对应的 .md 文件相对路径                      |
-| `order_index`    | INTEGER | DEFAULT 0               | 页面顺序（章节目录排序）                     |
-| `parent_page_id` | TEXT    | REFERENCES pages(id)    | 父页面 ID（用于嵌套章节）                    |
-| `word_count`     | INTEGER | DEFAULT 0               | 字数统计                                     |
-| `ai_summary`     | TEXT    |                         | AI 自动生成的摘要                            |
-| `metadata`       | TEXT    | DEFAULT '{}'            | 扩展元数据（JSON）                           |
-| `status`         | TEXT    | DEFAULT 'active'        | 状态枚举：`active`(活跃) / `deleted`(已删除) |
-| `created_at`     | TEXT    | NOT NULL                | 创建时间（ISO 8601）                         |
-| `updated_at`     | TEXT    | NOT NULL                | 最后修改时间（ISO 8601）                     |
+| 字段名                      | 类型    | 约束                    | 说明                                                             |
+| :-------------------------- | :------ | :---------------------- | :--------------------------------------------------------------- |
+| `id`                        | TEXT    | PRIMARY KEY             | 页面唯一标识（UUID）                                             |
+| `project_id`                | TEXT    | REFERENCES projects(id) | 关联作品ID                                                       |
+| `title`                     | TEXT    | NOT NULL                | 页面标题                                                         |
+| `file_path`                 | TEXT    | NOT NULL                | 对应的 .md 文件相对路径                                          |
+| `order_index`               | INTEGER | DEFAULT 0               | 页面顺序（章节目录排序）                                         |
+| `parent_page_id`            | TEXT    | REFERENCES pages(id)    | 父页面 ID（用于嵌套章节）                                        |
+| `word_count`                | INTEGER | DEFAULT 0               | 字数统计                                                         |
+| `ai_summary`                | TEXT    |                         | AI 自动生成的整页摘要                                            |
+| `metadata`                  | TEXT    | DEFAULT '{}'            | 扩展元数据（JSON）                                               |
+| `last_smart_processed_at`   | TEXT    |                         | 「最后被任一智能任务触碰」的观测值（ISO 8601），不再用于增量选取 |
+| `last_summary_generated_at` | TEXT    |                         | 页级摘要阶段标记：null 或早于 `updated_at` 即待重跑              |
+| `last_vectorized_at`        | TEXT    |                         | 页级向量化阶段标记，语义同上                                     |
+| `status`                    | TEXT    | DEFAULT 'active'        | 状态枚举：`active`(活跃) / `deleted`(已删除)                     |
+| `created_at`                | TEXT    | NOT NULL                | 创建时间（ISO 8601）                                             |
+| `updated_at`                | TEXT    | NOT NULL                | 最后修改时间（ISO 8601）                                         |
+
+> 各智能任务的增量选取只看自己那一列（`last_xxx_at IS NULL OR updated_at > last_xxx_at`），
+> 写入须走 `PageDao.recordStage()` / `recordStageBatch()`：`BaseDao.update()` 会连带刷新
+> `updated_at`，而比较的正是它 —— 用 `update()` 写标记等于让该页下一轮被自己重新选中。
 
 **约束：**
 
@@ -812,8 +826,10 @@ CREATE TABLE IF NOT EXISTS semantic_chunks (
     ai_summary TEXT,
     word_count INTEGER DEFAULT 0,
     temporal_score REAL DEFAULT 0.0,
-    last_smart_processed_at TEXT,      -- 智能任务最后处理时间
-    last_vectorized_at TEXT,           -- 向量化专用标记（null=尚未写入向量库）
+    last_smart_processed_at TEXT,      -- 「最后被任一智能任务触碰」的观测值
+    last_vectorized_at TEXT,           -- 向量化阶段标记
+    last_concept_extracted_at TEXT,    -- 概念抽取阶段标记
+    last_linked_at TEXT,               -- 语义链接阶段标记
     status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -1038,6 +1054,10 @@ CREATE TABLE IF NOT EXISTS pages (
     word_count INTEGER DEFAULT 0,
     ai_summary TEXT,
     metadata TEXT DEFAULT '{}',
+    -- 页面级分阶段处理标记（与 semantic_chunks 同构）
+    last_smart_processed_at TEXT,      -- 「最后被任一智能任务触碰」的观测值
+    last_summary_generated_at TEXT,    -- 页级摘要阶段标记
+    last_vectorized_at TEXT,           -- 页级向量化阶段标记
     status TEXT DEFAULT 'active',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,

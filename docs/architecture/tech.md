@@ -1,6 +1,6 @@
 # Wrisp 技术方案（v5）
 
-> 文档版本：v5（适配"文件优先，数据库索引"架构，对齐 PRD v3 + MRD v2 + SQLite v2 + LanceDB v2 + Model v2.2）
+> 文档版本：v5（适配"文件优先，数据库索引"架构，对齐 PRD v3 + MRD v1.1 + SQLite v2 + LanceDB v2 + Model v2.2）
 > 本文档描述 Wrisp 的目标架构，作为后续项目改造的技术蓝图。
 > 最后更新：2026-06-28
 
@@ -516,7 +516,7 @@ Main Process
 │ reflections     │      │                     │
 │ temporal_events │      │                     │
 │ projects        │      │                     │
-│ pages           │      │                     │
+│ pages           │◄────►│ pages_embeddings    │
 │ characters      │      │                     │
 │ creation_sessions│      │                     │
 │ tags            │      │                     │
@@ -527,6 +527,7 @@ Main Process
 
 - SQLite 存结构化元数据 + FTS5 全文索引；LanceDB 仅存检索必要字段（id + embedding）
 - 搜索策略：LanceDB ANN 搜索 → 获取 chunk_id → SQLite 加载数据 → bge-reranker 重排序
+- 两级粒度：页级粗召回（`pages_embeddings`，定位到页）→ chunk 级精排（`chunk_embeddings`，定位到块）
 - 向量搜索优先，FTS5 全文索引兜底
 
 ### 6.3 同步机制
@@ -725,7 +726,7 @@ pnpm rebuild       # 重编译 better-sqlite3（Node.js 升级后）
 | 文档                                  | 说明                                            |
 | :------------------------------------ | :---------------------------------------------- |
 | [prd.md](../features/prd.md)          | 产品功能设计文档                                |
-| [mrd.md](../product/mrd.md)           | 产品战略文档（市场、用户、竞争、需求优先级）    |
+| [mrd.md](../product/mrd.md)           | 市场需求文档（MRD）·产品分析重组版（决策、证据、竞争、路线图） |
 | [model.md](model/model.md)         | AI 模型方案（硬件配置、模型列表、路由设计）     |
 | [storage.md](storage/storage.md)   | 存储方案总览（文件优先架构、三层数据模型）      |
 | [sqlite.md](storage/sqlite.md)     | SQLite 表结构设计（26 张表：21 普通表 + 5 FTS 表）|

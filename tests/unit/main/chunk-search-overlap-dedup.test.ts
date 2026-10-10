@@ -2,12 +2,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const {
-  searchBlockEmbeddingsMock,
+  searchChunkEmbeddingsMock,
   findByIdsMock,
   rerankMock,
   countByMock,
 } = vi.hoisted(() => ({
-  searchBlockEmbeddingsMock: vi.fn(),
+  searchChunkEmbeddingsMock: vi.fn(),
   findByIdsMock: vi.fn(),
   rerankMock: vi.fn(),
   countByMock: vi.fn(() => 0),
@@ -17,12 +17,15 @@ vi.mock("@/main/utils/logger", () => ({
   Logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 vi.mock("@/main/core/services/ai/vector.service", () => ({
-  vectorService: { searchBlockEmbeddings: searchBlockEmbeddingsMock },
+  vectorService: { searchChunkEmbeddings: searchChunkEmbeddingsMock },
 }));
 vi.mock("@/main/core/db", () => ({
   ChunkDao: class {
     findByIds = findByIdsMock;
     searchFts = vi.fn(() => []);
+  },
+  PageDao: class {
+    findByIds = vi.fn(() => []);
   },
   ProjectChunkDao: class {
     findBy = vi.fn(() => []);
@@ -78,8 +81,8 @@ function chunk(
 /** 用给定块驱动一次全库语义检索，返回命中块 id */
 async function searchBlocks(blocks: Chunk[]): Promise<string[]> {
   findByIdsMock.mockReturnValue(blocks);
-  searchBlockEmbeddingsMock.mockResolvedValue(
-    blocks.map((block) => ({ item: { block_id: block.id }, score: 1 })),
+  searchChunkEmbeddingsMock.mockResolvedValue(
+    blocks.map((block) => ({ item: { chunk_id: block.id }, score: 1 })),
   );
   const results = await chunkService.searchAll("重叠", 10, SEARCH_TYPE.SEMANTIC);
   return results.map((result) => result.id);
@@ -156,8 +159,8 @@ describe("语义检索结果的排序", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     findByIdsMock.mockReturnValue(ORDERED_BLOCKS);
-    searchBlockEmbeddingsMock.mockResolvedValue(
-      ORDERED_BLOCKS.map((block) => ({ item: { block_id: block.id }, score: 1 })),
+    searchChunkEmbeddingsMock.mockResolvedValue(
+      ORDERED_BLOCKS.map((block) => ({ item: { chunk_id: block.id }, score: 1 })),
     );
   });
 
@@ -184,8 +187,8 @@ describe("语义检索遵守入参 limit", () => {
   async function search(limit: number, candidateCount: number): Promise<string[]> {
     const blocks = chunkRun(candidateCount);
     findByIdsMock.mockReturnValue(blocks);
-    searchBlockEmbeddingsMock.mockResolvedValue(
-      blocks.map((block) => ({ item: { block_id: block.id }, score: 1 })),
+    searchChunkEmbeddingsMock.mockResolvedValue(
+      blocks.map((block) => ({ item: { chunk_id: block.id }, score: 1 })),
     );
     rerankMock.mockImplementation(
       async (_keyword: string, texts: string[]) =>
@@ -207,17 +210,17 @@ describe("语义检索遵守入参 limit", () => {
 
   it("limit 变大只加深召回，不放大重排输入", async () => {
     await search(25, 30);
-    expect(searchBlockEmbeddingsMock.mock.calls[0][0].topK).toBe(100);
+    expect(searchChunkEmbeddingsMock.mock.calls[0][0].topK).toBe(100);
 
     await search(5, 30);
     // 召回下限沿用历史的固定 50，小 limit 时不因缩放而变薄
-    expect(searchBlockEmbeddingsMock.mock.calls[1][0].topK).toBe(50);
+    expect(searchChunkEmbeddingsMock.mock.calls[1][0].topK).toBe(50);
     expect(rerankMock.mock.calls[1][1]).toHaveLength(30);
   });
 
   it("召回超出重排规模时，只把前 50 条送去重排", async () => {
     await search(50, 200);
-    expect(searchBlockEmbeddingsMock.mock.calls[0][0].topK).toBe(200);
+    expect(searchChunkEmbeddingsMock.mock.calls[0][0].topK).toBe(200);
     expect(rerankMock.mock.calls[0][1]).toHaveLength(50);
   });
 

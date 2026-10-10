@@ -6,6 +6,7 @@ export * from "./useJournal";
 export * from "./useTheme";
 export * from "./useProject";
 export * from "./useModel";
+export * from "./useModelDownloads";
 export * from "./useAIStream";
 export * from "./useSkillStream";
 export * from "./useSearch";

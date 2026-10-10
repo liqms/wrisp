@@ -18,6 +18,16 @@ type UpdateField = 'order_index' | 'status' | 'word_count'
 /** pages_fts 索引的列：仅当这些列变化时才需要重建索引 */
 const FTS_INDEXED_FIELDS = ['title', 'ai_summary'] as const
 
+/**
+ * 页面级智能任务的阶段标记列。
+ * SET 子句里的列名只能取自这个联合类型（字面量联合，编译期即白名单），
+ * 不接受调用方传来的任意字符串，避免 SQL 注入面。
+ */
+export type PageStageColumn =
+  | 'last_smart_processed_at'
+  | 'last_summary_generated_at'
+  | 'last_vectorized_at'
+
 export class PageDao extends BaseDao<Page, PageCreate, PageUpdate> {
   constructor() {
     super('pages')
@@ -131,6 +141,63 @@ export class PageDao extends BaseDao<Page, PageCreate, PageUpdate> {
     const stmt = this.db.prepare(sql)
     const result = stmt.run([value, this.getCurrentTimestamp(), id])
     return result.changes
+  }
+
+  /**
+   * 记录页面级智能任务的阶段完成标记（时间取当前，与 `updated_at` 同为 ISO 格式）。
+   *
+   * 只写标记列，**不刷新 `updated_at`**：各任务的增量选取条件正是
+   * `updated_at > last_xxx_at`，若写标记本身把水位线顶到标记之后，该页会在
+   * 下一轮被自己重新选中，永远收敛不了（同 ChunkDao.recordStage 的理由）。
+   *
+   * @param pageId 页面 id
+   * @param columns 本轮完成的阶段列（重复列只取一次）
+   * @returns 受影响行数
+   */
+  recordStage(pageId: string, columns: readonly PageStageColumn[]): number {
+    if (!pageId) return 0
+    const { sets, values } = this.buildStageSets(columns)
+    if (sets.length === 0) return 0
+
+    return this.execute(
+      `UPDATE ${this.tableName} SET ${sets.join(', ')} WHERE id = ?`,
+      [...values, pageId],
+    ).changes
+  }
+
+  /**
+   * {@link recordStage} 的批量版本：一批页面只发一条 UPDATE。
+   * 页面向量化按批写标记，逐页写即每页一条 SQL。
+   */
+  recordStageBatch(
+    pageIds: readonly string[],
+    columns: readonly PageStageColumn[],
+  ): number {
+    if (pageIds.length === 0) return 0
+    const { sets, values } = this.buildStageSets(columns)
+    if (sets.length === 0) return 0
+
+    const placeholders = pageIds.map(() => '?').join(', ')
+    return this.execute(
+      `UPDATE ${this.tableName} SET ${sets.join(', ')} WHERE id IN (${placeholders})`,
+      [...values, ...pageIds],
+    ).changes
+  }
+
+  /** 拼接阶段标记的 SET 子句；列名只来自 PageStageColumn 联合类型 */
+  private buildStageSets(
+    columns: readonly PageStageColumn[],
+  ): { sets: string[]; values: unknown[] } {
+    const timestamp = this.getCurrentTimestamp()
+    const sets: string[] = []
+    const values: unknown[] = []
+
+    for (const column of new Set(columns)) {
+      sets.push(`${column} = ?`)
+      values.push(timestamp)
+    }
+
+    return { sets, values }
   }
 
   /**

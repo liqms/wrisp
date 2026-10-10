@@ -1,7 +1,7 @@
 import { computed, ref } from "vue";
 import { useModelStore } from "@/renderer/store/model.store";
 import { logger } from "@/renderer/utils/logger.utils";
-import type { AIProvider, DefaultModel, ModelType } from "@/shared/types/model.types";
+import type { AIProvider, DefaultModel, GpuCapability, ModelType, ThreadBudgetInfo } from "@/shared/types/model.types";
 
 interface UseModelOptions {
   /** 是否自动初始化配置 */
@@ -28,9 +28,13 @@ export function useModel(options: UseModelOptions = {}) {
   const providerPriority = computed(() => config.value?.providerPriority ?? ([] as string[]));
   const enableCloudAi = computed(() => config.value?.enableCloudAi ?? false);
   const enableAiMode = computed(() => config.value?.enableAiMode ?? false);
+  const enableGpuAcceleration = computed(
+    () => config.value?.enableGpuAcceleration ?? false,
+  );
 
   // 模型下载状态跟踪
-  const downloadGroupId = ref<string | null>(null);
+  /** 一次「开启本地智能」产生的下载组（base + core），关闭时逐个取消 */
+  const downloadGroupIds = ref<string[]>([]);
   const isDownloadingModels = ref(false);
 
   /**
@@ -121,20 +125,23 @@ export function useModel(options: UseModelOptions = {}) {
         }
       }
 
-      // 模型未下载，启动下载
-      const groupId = await modelStore.downloadModel("base");
-      if (groupId) {
-        downloadGroupId.value = groupId;
-        isDownloadingModels.value = true;
-      }
-      return groupId !== null;
+      // 模型未下载，启动下载（base 与 core 一起：本地 LLM 不走单独入口，否则永远不会被拉取）
+      const groupIds = await Promise.all([
+        modelStore.downloadModel("base"),
+        modelStore.downloadModel("core"),
+      ]);
+      downloadGroupIds.value = groupIds.filter(
+        (id): id is string => id !== null,
+      );
+      isDownloadingModels.value = downloadGroupIds.value.length > 0;
+      return isDownloadingModels.value;
     } else {
       // 关闭：取消下载任务 → 更新配置
-      if (downloadGroupId.value) {
-        await modelStore.cancelDownload(downloadGroupId.value);
-        downloadGroupId.value = null;
-        isDownloadingModels.value = false;
+      for (const groupId of downloadGroupIds.value) {
+        await modelStore.cancelDownload(groupId);
       }
+      downloadGroupIds.value = [];
+      isDownloadingModels.value = false;
       return await setValue("enableAiMode", false);
     }
   }
@@ -144,6 +151,32 @@ export function useModel(options: UseModelOptions = {}) {
    */
   async function updateEnableCloudAi(newEnableCloudAi: boolean): Promise<boolean> {
     return await setValue("enableCloudAi", newEnableCloudAi);
+  }
+
+  /**
+   * 更新是否允许本地 LLM 使用 GPU 加速
+   * 仅写入开关：真正的放行判定在主进程做（显存闸门），UI 不参与决策
+   */
+  async function updateEnableGpuAcceleration(
+    newEnableGpuAcceleration: boolean,
+  ): Promise<boolean> {
+    return await setValue("enableGpuAcceleration", newEnableGpuAcceleration);
+  }
+
+  /**
+   * 获取 GPU 能力快照（开关打开时后端会探测一次显存）
+   */
+  async function getGpuCapability(): Promise<GpuCapability | null> {
+    if (!(await ensureLoaded())) return null;
+    return await modelStore.fetchGpuCapability();
+  }
+
+  /**
+   * 获取当前生效的推理线程预算（设置页展示「实际会用几个线程」）
+   * 与模型配置无关，不做 ensureLoaded 门禁
+   */
+  async function getThreadBudget(): Promise<ThreadBudgetInfo | null> {
+    return await modelStore.fetchThreadBudget();
   }
 
   /**
@@ -188,8 +221,9 @@ export function useModel(options: UseModelOptions = {}) {
     providerPriority,
     enableAiMode,
     enableCloudAi,
+    enableGpuAcceleration,
     // 下载状态
-    downloadGroupId,
+    downloadGroupIds,
     isDownloadingModels,
     // 方法
     init,
@@ -202,6 +236,9 @@ export function useModel(options: UseModelOptions = {}) {
     cancelDownload,
     updateEnableAiMode,
     updateEnableCloudAi,
+    updateEnableGpuAcceleration,
+    getGpuCapability,
+    getThreadBudget,
     addOrUpdateDefaultModel,
     addOrUpdateAIProvider,
     deleteAIProvider,

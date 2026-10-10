@@ -21,11 +21,11 @@ Wiki 模块包含三个核心页面，共享模块级全局功能栏：
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-| 页面 | 视图模式 | 说明 |
-|:-----|:---------|:-----|
-| 概览 | — | 知识统计 + 近期新增概念 Top10 + 近期更新主题 Top10 |
-| 概念 | 卡片视图 / 网络视图 | 概念列表，支持两种视图切换 |
-| 主题 | 卡片视图 | 主题列表，仅卡片视图 |
+| 页面 | 视图模式            | 说明                                               |
+| :--- | :------------------ | :------------------------------------------------- |
+| 概览 | —                   | 知识统计 + 近期新增概念 Top10 + 近期更新主题 Top10 |
+| 概念 | 卡片视图 / 网络视图 | 概念列表，支持两种视图切换                         |
+| 主题 | 卡片视图            | 主题列表，仅卡片视图                               |
 
 ---
 
@@ -45,10 +45,10 @@ Wiki 页面顶部全局栏显示**待整理资源数**和**智能整理按钮**�
 
 **资源数来源**：
 
-| 来源 | 说明 |
-|:-----|:-----|
-| 日志文件 | `journal/*.md` 文件中 `last_smart_processed_at IS NULL` 的语义块 |
-| 作品内文件 | Project 模块下各作品的 `.md` 文件中未处理的语义块 |
+| 来源       | 说明                                                             |
+| :--------- | :--------------------------------------------------------------- |
+| 日志文件   | `journal/*.md` 文件中 `last_smart_processed_at IS NULL` 的语义块 |
+| 作品内文件 | Project 模块下各作品的 `.md` 文件中未处理的语义块                |
 
 **无待整理资源时的显示**：
 
@@ -67,24 +67,28 @@ Wiki 页面顶部全局栏显示**待整理资源数**和**智能整理按钮**�
 
 ```
 Layer 0: chunk-summary                      (无依赖)
-Layer 1: chunk-vectorize                    (依赖 summary，需先有 ai_summary)
-Layer 2: semantic-link + concept-extract    (并行，依赖 vectorize)
+Layer 1: chunk-vectorize + page-summary     (并行，依赖 chunk-summary)
+Layer 2: semantic-link + concept-extract + page-vectorize   (并行)
+         · semantic-link / concept-extract 依赖 chunk-vectorize
+         · page-vectorize 依赖 page-summary
 Layer 3: topic-detection                    (依赖 concept-extract)
 Layer 4: topic-summary                      (依赖 topic-detection)
 ```
 
-| 步骤 | 说明 |
-|:-----|:-----|
-| chunk-summary | 对未处理语义块调用 LLM 生成 1-2 句摘要 |
-| chunk-vectorize | 批量生成 embedding 向量（batchSize=16），写入 LanceDB |
-| semantic-link | ANN 检索 TopK=20 + reranker 精排 TopK=5，写入 semantic_links |
-| concept-extract | LLM 提取 3-5 个核心概念，建立 concept_chunk 关联 |
-| topic-detection | 概念聚类生成主题，建立 topic_concepts + topic_chunks |
-| topic-summary | LLM 为每个主题生成摘要 |
+| 步骤            | 说明                                                            |
+| :-------------- | :-------------------------------------------------------------- |
+| chunk-summary   | 对未处理语义块调用 LLM 生成 1-2 句摘要                          |
+| chunk-vectorize | 批量生成 embedding 向量（batchSize=16），写入 LanceDB           |
+| page-summary    | 聚合本页各块摘要生成整页摘要（`pages.ai_summary`）              |
+| semantic-link   | ANN 检索 TopK=20 + reranker 精排 TopK=5，写入 semantic_links    |
+| concept-extract | LLM 提取 3-5 个核心概念，建立 concept_chunk 关联                |
+| page-vectorize  | 以页摘要为嵌入文本生成页级向量，写入 LanceDB `pages_embeddings` |
+| topic-detection | 概念聚类生成主题，建立 topic_concepts + topic_chunks            |
+| topic-summary   | LLM 为每个主题生成摘要                                          |
 
 **整理过程中**：按钮变为进度条，显示当前步骤和进度百分比，支持取消/暂停/恢复。
 
-> **实现状态**：6 个 executor 均已实现，调度器（scheduler.ts）+ 进度管理器（progress.manager.ts）完整可用。topic-detection 的聚类算法为占位实现（按概念名首字母分组），非真正的语义聚类。
+> **实现状态**：8 个 executor 均已实现，调度器（scheduler.ts）+ 进度管理器（progress.manager.ts）完整可用。topic-detection 的聚类算法为占位实现（按概念名首字母分组），非真正的语义聚类。
 
 ---
 
@@ -103,13 +107,13 @@ Layer 4: topic-summary                      (依赖 topic-detection)
 └──────────────┴──────────────┴──────────────┴──────────────┴────┘
 ```
 
-| 统计项 | 数据来源 | 说明 |
-|:-------|:---------|:-----|
-| 日志数 | `file_index` 表，`file_path LIKE 'journal/%'` | 已创建的日志文件总数 |
-| 语义块数 | `semantic_chunks` 表，`status = 'active'` | 活跃语义块总数 |
-| 概念数 | `concepts` 表 | 概念总数 |
-| 主题数 | `topics` 表，`status = 'active'` | 活跃主题总数 |
-| 作品数 | `projects` 表 | 作品总数 |
+| 统计项   | 数据来源                                      | 说明                 |
+| :------- | :-------------------------------------------- | :------------------- |
+| 日志数   | `file_index` 表，`file_path LIKE 'journal/%'` | 已创建的日志文件总数 |
+| 语义块数 | `semantic_chunks` 表，`status = 'active'`     | 活跃语义块总数       |
+| 概念数   | `concepts` 表                                 | 概念总数             |
+| 主题数   | `topics` 表，`status = 'active'`              | 活跃主题总数         |
+| 作品数   | `projects` 表                                 | 作品总数             |
 
 > **实现状态**：底层 DAO 均有 `countBy` 方法，但无统一的"概览统计"聚合接口，需新增。
 
@@ -170,13 +174,13 @@ Layer 4: topic-summary                      (依赖 topic-detection)
 
 **卡片内容**：
 
-| 元素 | 说明 |
-|:-----|:-----|
+| 元素     | 说明                      |
+| :------- | :------------------------ |
 | 概念名称 | AI 自动提取（用户可编辑） |
-| 语义块数 | 该概念关联的 Block 总数 |
-| 关联度 | `relevance` 字段，0~1 |
-| 更新时间 | `updated_at` |
-| 操作 | [查看详情] [删除] |
+| 语义块数 | 该概念关联的 Block 总数   |
+| 关联度   | `relevance` 字段，0~1     |
+| 更新时间 | `updated_at`              |
+| 操作     | [查看详情] [删除]         |
 
 **排序**：按关联度（默认）、按更新时间、按名称
 **搜索**：输入关键词，FTS5 全文检索 `concepts_fts`（title + evolving_summary）
@@ -187,22 +191,22 @@ Layer 4: topic-summary                      (依赖 topic-detection)
 
 **气泡数据映射**：
 
-| 气泡特性 | 对应的数据含义 |
-|:---------|:---------------|
-| 气泡大小 | 概念关联的语义块数量（Block 越多，气泡越大） |
+| 气泡特性      | 对应的数据含义                                    |
+| :------------ | :------------------------------------------------ |
+| 气泡大小      | 概念关联的语义块数量（Block 越多，气泡越大）      |
 | 气泡位置/距离 | 概念之间的语义相似度（共享 Block 越多，位置越近） |
-| 气泡颜色 | 概念所属的主题（同一主题的概念颜色相近） |
-| 气泡内标签 | 概念名称 |
+| 气泡颜色      | 概念所属的主题（同一主题的概念颜色相近）          |
+| 气泡内标签    | 概念名称                                          |
 
 **交互**：
 
-| 交互 | 行为 |
-|:-----|:-----|
-| 悬停 | 气泡放大，显示概念名称 + Block 数量 + 所属主题 |
-| 点击 | 右侧弹出详情面板，显示该概念的所有关联 Block 列表 |
-| 缩放 | 滚轮缩放画布 |
+| 交互 | 行为                                                 |
+| :--- | :--------------------------------------------------- |
+| 悬停 | 气泡放大，显示概念名称 + Block 数量 + 所属主题       |
+| 点击 | 右侧弹出详情面板，显示该概念的所有关联 Block 列表    |
+| 缩放 | 滚轮缩放画布                                         |
 | 拖动 | 拖动画布平移；拖动气泡调整位置（仅临时，刷新后重置） |
-| 双击 | 跳转到概念详情面板 |
+| 双击 | 跳转到概念详情面板                                   |
 
 > **实现状态**：当前 `ConceptGraph.vue` 仅为 Naive UI `n-tag` 标签网格，无力导向图可视化。需引入图渲染库（如 d3-force / vis-network）实现。
 
@@ -231,32 +235,32 @@ Layer 4: topic-summary                      (依赖 topic-detection)
 └─────────────────────────────────┘
 ```
 
-| 内容 | 数据来源 |
-|:-----|:---------|
-| 概念名称 | `concepts.title` |
-| 演化摘要 | `concepts.evolving_summary`（AI 自动生成并更新） |
-| 时间线 | `concepts.timeline`（JSON 数组）+ `temporal_events` 表 |
+| 内容       | 数据来源                                                                  |
+| :--------- | :------------------------------------------------------------------------ |
+| 概念名称   | `concepts.title`                                                          |
+| 演化摘要   | `concepts.evolving_summary`（AI 自动生成并更新）                          |
+| 时间线     | `concepts.timeline`（JSON 数组）+ `temporal_events` 表                    |
 | 关联语义块 | `concept_chunks` 关联 → `semantic_chunks` 内容，按 `relevance_score` 排序 |
 
 ### 4.4 相似概念合并（Phase 2）
 
 当两个或多个概念语义高度相似（共享 Block 比例超过阈值，如 60%），系统提示建议合并：
 
-| 阶段 | 行为 |
-|:-----|:-----|
-| 检测 | AI 自动检测语义相似度高的概念对，在网络视图上以虚线边框提示 |
-| 预览 | 悬停提示区域，高亮显示将被合并的概念及其共享的 Block 列表 |
-| 确认 | 用户确认合并后，选择保留的概念名称或输入新名称 |
+| 阶段 | 行为                                                                       |
+| :--- | :------------------------------------------------------------------------- |
+| 检测 | AI 自动检测语义相似度高的概念对，在网络视图上以虚线边框提示                |
+| 预览 | 悬停提示区域，高亮显示将被合并的概念及其共享的 Block 列表                  |
+| 确认 | 用户确认合并后，选择保留的概念名称或输入新名称                             |
 | 结果 | 被合并的概念的 Block 和关联关系全部转移到保留概念下，更新 evolving_summary |
 
 ### 4.5 筛选与过滤
 
-| 功能 | 说明 |
-|:-----|:-----|
-| 按主题筛选 | 只显示某个主题下的概念 |
-| 按时间范围筛选 | 只显示近期有更新的概念 |
-| 按 Block 数量筛选 | 只显示关联 Block 数大于 N 的概念 |
-| 搜索概念 | 输入关键词，高亮匹配的气泡，未匹配的淡出 |
+| 功能              | 说明                                     |
+| :---------------- | :--------------------------------------- |
+| 按主题筛选        | 只显示某个主题下的概念                   |
+| 按时间范围筛选    | 只显示近期有更新的概念                   |
+| 按 Block 数量筛选 | 只显示关联 Block 数大于 N 的概念         |
+| 搜索概念          | 输入关键词，高亮匹配的气泡，未匹配的淡出 |
 
 ---
 
@@ -284,14 +288,14 @@ Layer 4: topic-summary                      (依赖 topic-detection)
 
 **卡片内容**：
 
-| 元素 | 说明 |
-|:-----|:-----|
-| 主题名称 | AI 自动生成（用户可编辑） |
-| 语义块数 | `topic_chunks` 关联总数 |
-| 概念数 | `topic_concepts` 关联总数 |
-| 更新时间 | `updated_at` |
+| 元素     | 说明                           |
+| :------- | :----------------------------- |
+| 主题名称 | AI 自动生成（用户可编辑）      |
+| 语义块数 | `topic_chunks` 关联总数        |
+| 概念数   | `topic_concepts` 关联总数      |
+| 更新时间 | `updated_at`                   |
 | 状态标签 | "待确认"（可选，默认自动确认） |
-| 操作 | [查看详情] [删除] [快速创作] |
+| 操作     | [查看详情] [删除] [快速创作]   |
 
 **排序**：按更新时间（默认）、按 Block 数量、按名称
 **搜索**：输入关键词，FTS5 全文检索 `topics_fts`（title + summary）
@@ -353,9 +357,9 @@ AI 聚类检测到高频概念簇
 
 **恢复与彻底删除**：
 
-| 操作 | 说明 |
-|:-----|:-----|
-| 恢复 | 从回收站将主题恢复为 active |
+| 操作     | 说明                                       |
+| :------- | :----------------------------------------- |
+| 恢复     | 从回收站将主题恢复为 active                |
 | 彻底删除 | 永久删除主题及其所有关联关系（需二次确认） |
 
 ### 5.4 基于主题快速创建作品
@@ -415,55 +419,55 @@ AI 聚类检测到高频概念簇
 
 ### 6.2 核心文件
 
-| 层 | 文件 | 职责 |
-|:---|:-----|:-----|
-| 视图 | `src/renderer/views/WikiView.vue` | Wiki 主视图，三栏布局：概念列表 + 主题列表 + 反思时间线 |
-| 组件 | `src/renderer/components/wiki/ConceptGraph.vue` | 概念图组件（当前为 n-tag 标签网格，非图可视化） |
-| 组件 | `src/renderer/components/wiki/TopicList.vue` | 主题列表组件（独立组件，未被 WikiView 直接引用） |
-| Composable | `src/renderer/composables/useWiki.ts` | 封装 store，带日志 |
-| Store | `src/renderer/store/wiki.store.ts` | Pinia store，管理 concepts/topics/reflections 列表 |
-| 路由 | `src/renderer/router/index.ts` | `path: "wiki", name: "Wiki"` |
-| IPC | `src/main/ipcMain/concept.ipc.ts` | 3 个概念 IPC handler |
-| IPC | `src/main/ipcMain/topic.ipc.ts` | 2 个主题 IPC handler |
-| Service | `src/main/core/services/content/concept.service.ts` | 概念服务（只读查询） |
-| Service | `src/main/core/services/content/topic.service.ts` | 主题服务（只读查询） |
-| DAO | `src/main/core/db/concept.dao.ts` | concepts 表 |
-| DAO | `src/main/core/db/conceptChunk.dao.ts` | concept_chunks 关联表 |
-| DAO | `src/main/core/db/topic.dao.ts` | topics 表 |
-| DAO | `src/main/core/db/topicChunk.dao.ts` | topic_chunks 关联表 |
-| DAO | `src/main/core/db/topicConcept.dao.ts` | topic_concepts 关联表 |
+| 层         | 文件                                                | 职责                                                    |
+| :--------- | :-------------------------------------------------- | :------------------------------------------------------ |
+| 视图       | `src/renderer/views/WikiView.vue`                   | Wiki 主视图，三栏布局：概念列表 + 主题列表 + 反思时间线 |
+| 组件       | `src/renderer/components/wiki/ConceptGraph.vue`     | 概念图组件（当前为 n-tag 标签网格，非图可视化）         |
+| 组件       | `src/renderer/components/wiki/TopicList.vue`        | 主题列表组件（独立组件，未被 WikiView 直接引用）        |
+| Composable | `src/renderer/composables/useWiki.ts`               | 封装 store，带日志                                      |
+| Store      | `src/renderer/store/wiki.store.ts`                  | Pinia store，管理 concepts/topics/reflections 列表      |
+| 路由       | `src/renderer/router/index.ts`                      | `path: "wiki", name: "Wiki"`                            |
+| IPC        | `src/main/ipcMain/concept.ipc.ts`                   | 3 个概念 IPC handler                                    |
+| IPC        | `src/main/ipcMain/topic.ipc.ts`                     | 2 个主题 IPC handler                                    |
+| Service    | `src/main/core/services/content/concept.service.ts` | 概念服务（只读查询）                                    |
+| Service    | `src/main/core/services/content/topic.service.ts`   | 主题服务（只读查询）                                    |
+| DAO        | `src/main/core/db/concept.dao.ts`                   | concepts 表                                             |
+| DAO        | `src/main/core/db/conceptChunk.dao.ts`              | concept_chunks 关联表                                   |
+| DAO        | `src/main/core/db/topic.dao.ts`                     | topics 表                                               |
+| DAO        | `src/main/core/db/topicChunk.dao.ts`                | topic_chunks 关联表                                     |
+| DAO        | `src/main/core/db/topicConcept.dao.ts`              | topic_concepts 关联表                                   |
 
 ### 6.3 数据模型
 
 **concepts 表**
 
-| 字段 | 类型 | 说明 |
-|:-----|:-----|:-----|
-| id | TEXT PK | UUID |
-| title | TEXT | 概念名称 |
-| evolving_summary | TEXT | AI 演化摘要 |
-| timeline | TEXT | JSON 数组，时间线 |
-| relevance | REAL | 关联度 0~1 |
-| created_at / updated_at | TEXT | 时间戳 |
+| 字段                    | 类型    | 说明              |
+| :---------------------- | :------ | :---------------- |
+| id                      | TEXT PK | UUID              |
+| title                   | TEXT    | 概念名称          |
+| evolving_summary        | TEXT    | AI 演化摘要       |
+| timeline                | TEXT    | JSON 数组，时间线 |
+| relevance               | REAL    | 关联度 0~1        |
+| created_at / updated_at | TEXT    | 时间戳            |
 
 **concept_chunks 表**（概念-语义块关联）
 
-| 字段 | 类型 | 说明 |
-|:-----|:-----|:-----|
-| concept_id | TEXT FK | → concepts(id) |
-| chunk_id | TEXT FK | → semantic_chunks(id) |
-| relevance_score | REAL | 关联分数 |
-| created_at / updated_at | TEXT | 时间戳 |
+| 字段                    | 类型    | 说明                  |
+| :---------------------- | :------ | :-------------------- |
+| concept_id              | TEXT FK | → concepts(id)        |
+| chunk_id                | TEXT FK | → semantic_chunks(id) |
+| relevance_score         | REAL    | 关联分数              |
+| created_at / updated_at | TEXT    | 时间戳                |
 
 **topics 表**
 
-| 字段 | 类型 | 说明 |
-|:-----|:-----|:-----|
-| id | TEXT PK | UUID |
-| title | TEXT | 主题名称 |
-| summary | TEXT | 主题摘要 |
-| status | TEXT | active / deleted |
-| created_at / updated_at | TEXT | 时间戳 |
+| 字段                    | 类型    | 说明             |
+| :---------------------- | :------ | :--------------- |
+| id                      | TEXT PK | UUID             |
+| title                   | TEXT    | 主题名称         |
+| summary                 | TEXT    | 主题摘要         |
+| status                  | TEXT    | active / deleted |
+| created_at / updated_at | TEXT    | 时间戳           |
 
 **topic_chunks 表**（主题-语义块关联）和 **topic_concepts 表**（主题-概念关联）：结构同 concept_chunks，含 relevance_score。
 
@@ -471,79 +475,79 @@ AI 聚类检测到高频概念簇
 
 ### 6.4 IPC 接口
 
-| 通道 | 参数 | 返回值 | 说明 |
-|:-----|:-----|:-------|:-----|
-| `concept:list` | `{ page?, pageSize?, orderBy?, orderDir?, conditions? }` | `ApiResponse<PaginationResult<Concept>>` | 概念分页查询 |
-| `concept:detail` | `id: string` | `ApiResponse<ConceptWithBlocks>` | 概念详情（含关联 Block） |
-| `concept:temporal:list` | `startDate?, endDate?` | `ApiResponse<TemporalEventWithBlock[]>` | 时间事件查询 |
-| `topic:list` | `{ page?, pageSize?, orderBy?, orderDir?, conditions? }` | `ApiResponse<PaginationResult<Topic>>` | 主题分页查询 |
-| `topic:detail` | `id: string` | `ApiResponse<TopicWithConceptsAndBlocks>` | 主题详情（含概念 + Block） |
+| 通道                    | 参数                                                     | 返回值                                    | 说明                       |
+| :---------------------- | :------------------------------------------------------- | :---------------------------------------- | :------------------------- |
+| `concept:list`          | `{ page?, pageSize?, orderBy?, orderDir?, conditions? }` | `ApiResponse<PaginationResult<Concept>>`  | 概念分页查询               |
+| `concept:detail`        | `id: string`                                             | `ApiResponse<ConceptWithBlocks>`          | 概念详情（含关联 Block）   |
+| `concept:temporal:list` | `startDate?, endDate?`                                   | `ApiResponse<TemporalEventWithBlock[]>`   | 时间事件查询               |
+| `topic:list`            | `{ page?, pageSize?, orderBy?, orderDir?, conditions? }` | `ApiResponse<PaginationResult<Topic>>`    | 主题分页查询               |
+| `topic:detail`          | `id: string`                                             | `ApiResponse<TopicWithConceptsAndBlocks>` | 主题详情（含概念 + Block） |
 
 > **注意**：当前 IPC 仅暴露只读查询，无 create/update/delete 通道。
 
 ### 6.5 智能整理 IPC
 
-| 通道 | 说明 |
-|:-----|:-----|
-| `smart-task:start` | 启动整理流水线 |
-| `smart-task:cancel` | 取消整理 |
-| `smart-task:pause` | 暂停整理 |
-| `smart-task:resume` | 恢复整理 |
-| `smart-task:status` | 查询整理状态 |
-| `smart-task:history` | 查询整理历史 |
+| 通道                  | 说明             |
+| :-------------------- | :--------------- |
+| `smart-task:start`    | 启动整理流水线   |
+| `smart-task:cancel`   | 取消整理         |
+| `smart-task:pause`    | 暂停整理         |
+| `smart-task:resume`   | 恢复整理         |
+| `smart-task:status`   | 查询整理状态     |
+| `smart-task:history`  | 查询整理历史     |
 | `resource:syncStatus` | 查询资源同步状态 |
-| `resource:syncNow` | 立即同步资源 |
+| `resource:syncNow`    | 立即同步资源     |
 
 ### 6.6 状态管理
 
 **Pinia Store（wiki.store.ts）**
 
-| State | 类型 | 说明 |
-|:------|:-----|:-----|
-| concepts | `Concept[]` | 概念列表 |
-| topics | `Topic[]` | 主题列表 |
-| reflections | `Reflection[]` | 反思列表 |
-| currentConcept | `ConceptWithBlocks \| null` | 当前选中概念详情 |
-| currentTopic | `TopicWithConceptsAndBlocks \| null` | 当前选中主题详情 |
-| loading | `boolean` | 加载状态 |
-| errorCode / errorMessage | `string` | 错误信息 |
+| State                    | 类型                                 | 说明             |
+| :----------------------- | :----------------------------------- | :--------------- |
+| concepts                 | `Concept[]`                          | 概念列表         |
+| topics                   | `Topic[]`                            | 主题列表         |
+| reflections              | `Reflection[]`                       | 反思列表         |
+| currentConcept           | `ConceptWithBlocks \| null`          | 当前选中概念详情 |
+| currentTopic             | `TopicWithConceptsAndBlocks \| null` | 当前选中主题详情 |
+| loading                  | `boolean`                            | 加载状态         |
+| errorCode / errorMessage | `string`                             | 错误信息         |
 
 **Actions**：`loadConcepts()` / `loadTopics()` / `loadReflections()` / `selectConcept(id)` / `selectTopic(id)` / `clear()`
 
 ### 6.7 实现状态总览
 
-| 功能 | 实现状态 | 说明 |
-|:-----|:---------|:-----|
-| 概览页 | ❌ 未实现 | 需新增知识统计 API + Top10 查询 |
-| 概念卡片视图 | ⚠️ 部分实现 | WikiView 内联列表渲染，ConceptGraph 组件未被引用 |
-| 概念网络视图 | ❌ 未实现 | ConceptGraph 仅为标签云，无力导向图 |
-| 概念详情面板 | ✅ 已实现 | concept:detail IPC + ConceptWithBlocks 类型 |
-| 主题卡片视图 | ⚠️ 部分实现 | WikiView 内联列表渲染，TopicList 组件未被引用 |
-| 主题详情面板 | ✅ 已实现 | topic:detail IPC + TopicWithConceptsAndBlocks 类型 |
-| 主题生命周期 | ⚠️ 部分实现 | DAO 有 status 字段，IPC 无 create/update/delete 通道 |
-| 快速创建作品 | ❌ 未实现 | — |
-| 相似概念合并 | ❌ 未实现 | — |
-| 智能整理 | ✅ 已实现 | 6 executor DAG 调度完整，topic-detection 聚类为占位 |
-| 待整理资源数 | ⚠️ 部分实现 | last_smart_processed_at 机制已有，无前端 UI 展示 |
-| 概念/主题 CRUD | ❌ 未实现 | IPC 仅暴露只读查询，无写操作通道 |
-| FTS5 全文搜索 | ✅ 已实现 | concepts_fts + topics_fts 已建表 |
+| 功能           | 实现状态    | 说明                                                 |
+| :------------- | :---------- | :--------------------------------------------------- |
+| 概览页         | ❌ 未实现   | 需新增知识统计 API + Top10 查询                      |
+| 概念卡片视图   | ⚠️ 部分实现 | WikiView 内联列表渲染，ConceptGraph 组件未被引用     |
+| 概念网络视图   | ❌ 未实现   | ConceptGraph 仅为标签云，无力导向图                  |
+| 概念详情面板   | ✅ 已实现   | concept:detail IPC + ConceptWithBlocks 类型          |
+| 主题卡片视图   | ⚠️ 部分实现 | WikiView 内联列表渲染，TopicList 组件未被引用        |
+| 主题详情面板   | ✅ 已实现   | topic:detail IPC + TopicWithConceptsAndBlocks 类型   |
+| 主题生命周期   | ⚠️ 部分实现 | DAO 有 status 字段，IPC 无 create/update/delete 通道 |
+| 快速创建作品   | ❌ 未实现   | —                                                    |
+| 相似概念合并   | ❌ 未实现   | —                                                    |
+| 智能整理       | ✅ 已实现   | 8 executor DAG 调度完整，topic-detection 聚类为占位  |
+| 待整理资源数   | ⚠️ 部分实现 | last_smart_processed_at 机制已有，无前端 UI 展示     |
+| 概念/主题 CRUD | ❌ 未实现   | IPC 仅暴露只读查询，无写操作通道                     |
+| FTS5 全文搜索  | ✅ 已实现   | concepts_fts + topics_fts 已建表                     |
 
 ---
 
 ## 七、Phase 1 功能范围
 
-| 功能 | 优先级 | 说明 |
-|:-----|:-------|:-----|
-| 概览页（知识统计 + Top10） | P0 | Wiki 默认着陆页 |
-| 概念卡片列表 | P0 | 分页查询 + 搜索 |
-| 概念详情面板 | P0 | 摘要 + 时间线 + 关联 Block |
-| 主题卡片列表 | P0 | 分页查询 + 搜索 |
-| 主题详情面板 | P0 | 摘要 + 关联概念 + 关联 Block |
-| 智能整理按钮 | P0 | 触发 DAG 流水线 + 进度展示 |
-| 待整理资源数 | P0 | 日志 + 作品未处理文件数 |
-| 主题编辑/删除 | P0 | 软删除 + 回收站 |
-| 概念网络可视化 | P1 | 力导向图，Phase 1 后期 |
-| 基于主题快速创作 | P1 | 从整理到创作的价值闭环 |
+| 功能                       | 优先级 | 说明                         |
+| :------------------------- | :----- | :--------------------------- |
+| 概览页（知识统计 + Top10） | P0     | Wiki 默认着陆页              |
+| 概念卡片列表               | P0     | 分页查询 + 搜索              |
+| 概念详情面板               | P0     | 摘要 + 时间线 + 关联 Block   |
+| 主题卡片列表               | P0     | 分页查询 + 搜索              |
+| 主题详情面板               | P0     | 摘要 + 关联概念 + 关联 Block |
+| 智能整理按钮               | P0     | 触发 DAG 流水线 + 进度展示   |
+| 待整理资源数               | P0     | 日志 + 作品未处理文件数      |
+| 主题编辑/删除              | P0     | 软删除 + 回收站              |
+| 概念网络可视化             | P1     | 力导向图，Phase 1 后期       |
+| 基于主题快速创作           | P1     | 从整理到创作的价值闭环       |
 
 ---
 

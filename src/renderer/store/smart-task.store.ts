@@ -1,9 +1,9 @@
 
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import type { ApiResponse, SmartTaskSnapshot } from "@/shared/types";
+import type { ApiResponse, SmartTaskSnapshot, SmartTaskRunStatus } from "@/shared/types";
 
-/** 完成后保留"整理完成"提示的时长（ms） */
+/** 完成后保留结束提示的时长（ms） */
 const COMPLETED_RETENTION_MS = 5000;
 
 /** 调度器状态返回结构（getStatus 的 data 部分） */
@@ -18,12 +18,24 @@ export const useSmartTaskStore = defineStore("smartTask", () => {
   let disposeSnapshot: (() => void) | null = null;
   let completedTimer: ReturnType<typeof setTimeout> | undefined;
 
+  const status = computed<SmartTaskRunStatus>(() => snapshot.value?.status ?? "idle");
   const isRunning = computed(
-    () => snapshot.value?.status === "running" || snapshot.value?.status === "paused",
+    () => status.value === "running" || status.value === "paused",
   );
+  const isPaused = computed(() => status.value === "paused");
   const percent = computed(() => snapshot.value?.overallPercent ?? 0);
   const steps = computed(() => snapshot.value?.steps ?? []);
   const visible = computed(() => isRunning.value || showCompleted.value);
+
+  /** 本轮失败条目总数（未上报 failedCount 的阶段不计） */
+  const failedCount = computed(() =>
+    steps.value.reduce((sum, step) => sum + (step.failedCount ?? 0), 0),
+  );
+
+  /** 当前正在执行的任务名，用于「当前阶段」一行 */
+  const currentTask = computed(
+    () => steps.value.find((s) => s.kind === "task" && s.state === "running")?.ref ?? null,
+  );
 
   const clearCompletedTimer = (): void => {
     if (completedTimer) {
@@ -42,7 +54,7 @@ export const useSmartTaskStore = defineStore("smartTask", () => {
       return;
     }
 
-    // 运行 → 结束：保留 5 秒完成提示
+    // 运行 → 结束：保留 5 秒结束提示
     if (wasRunning) {
       showCompleted.value = true;
       clearCompletedTimer();
@@ -81,9 +93,13 @@ export const useSmartTaskStore = defineStore("smartTask", () => {
   return {
     snapshot,
     showCompleted,
+    status,
     isRunning,
+    isPaused,
     percent,
     steps,
+    failedCount,
+    currentTask,
     visible,
     init,
     dispose,

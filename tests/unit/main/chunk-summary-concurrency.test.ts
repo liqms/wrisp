@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const queryMock = vi.fn();
 const updateMock = vi.fn();
+const recordStageMock = vi.fn();
 const chatCompletionMock = vi.fn();
 const getLlmConcurrencyMock = vi.fn(() => 2);
 
@@ -13,6 +14,7 @@ vi.mock("@/main/core/db", () => ({
   ChunkDao: class {
     query = queryMock;
     update = updateMock;
+    recordStage = recordStageMock;
   },
 }));
 vi.mock("@/main/core/services/ai/ai.service", () => ({
@@ -33,7 +35,8 @@ import { ChunkSummaryExecutor } from "@/main/core/smart-tasks/executors/chunk-su
 function makeBlocks(count: number) {
   return Array.from({ length: count }, (_, i) => ({
     id: `b${i}`,
-    content: "x".repeat(300),
+    // 必须是「剥掉 Markdown 后仍有正文」的内容，否则会命中跳过分支而不调模型
+    content: "本周整理了向量检索的切分边界问题并复盘了原因。".repeat(12),
     ai_summary: null,
     updated_at: "2026-01-01T00:00:00.000Z",
   }));
@@ -43,6 +46,7 @@ describe("ChunkSummaryExecutor 有界并发", () => {
   beforeEach(() => {
     queryMock.mockReset();
     updateMock.mockReset();
+    recordStageMock.mockReset();
     chatCompletionMock.mockReset();
     getLlmConcurrencyMock.mockReset().mockReturnValue(2);
   });
@@ -62,7 +66,6 @@ describe("ChunkSummaryExecutor 有界并发", () => {
     const executor = new ChunkSummaryExecutor();
     const result = await executor.run({
       executionId: "e1",
-      processedUntil: null,
       cancelSignal: { cancelled: false },
       pauseSignal: { paused: false },
     });
@@ -71,6 +74,26 @@ describe("ChunkSummaryExecutor 有界并发", () => {
     expect(result.processedCount).toBe(5);
     expect(maxObserved).toBe(2);
     expect(updateMock).toHaveBeenCalledTimes(5);
+    expect(recordStageMock).toHaveBeenCalledTimes(5);
+  });
+
+  it("失败条目不写标记、单列 failedCount，下一轮靠选取条件自愈（§3.7）", async () => {
+    queryMock.mockReturnValue(makeBlocks(3));
+    chatCompletionMock
+      .mockRejectedValueOnce(new Error("模型未就绪"))
+      .mockResolvedValue({ content: "summary" });
+
+    const result = await new ChunkSummaryExecutor().run({
+      executionId: "e3",
+      cancelSignal: { cancelled: false },
+      pauseSignal: { paused: false },
+    });
+
+    expect(result.processedCount).toBe(2);
+    expect(result.failedCount).toBe(1);
+    // 失败块既不写摘要也不写标记：下一轮仍会被标记列选中
+    expect(updateMock).toHaveBeenCalledTimes(2);
+    expect(recordStageMock).toHaveBeenCalledTimes(2);
   });
 
   it("AC7：取消后不再启动新项并返回已取消", async () => {
@@ -86,7 +109,6 @@ describe("ChunkSummaryExecutor 有界并发", () => {
     const executor = new ChunkSummaryExecutor();
     const result = await executor.run({
       executionId: "e2",
-      processedUntil: null,
       cancelSignal,
       pauseSignal: { paused: false },
     });

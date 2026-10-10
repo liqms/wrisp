@@ -14,20 +14,23 @@ export class TaskExecutionDao extends BaseDao<
     super("task_execution_log");
   }
 
-  /** 查询最近一次成功执行记录 */
+  /**
+   * 查询最近一次成功执行记录。
+   * `started_at` 只精确到日（TimeUtil.getLocalDateString），同一天多轮时靠 rowid 决定先后。
+   */
   public findLatestSucceeded(): TaskExecutionLog | undefined {
     return this.db
       .prepare(
-        `SELECT * FROM ${this.tableName} WHERE status = 'succeeded' ORDER BY started_at DESC LIMIT 1`,
+        `SELECT * FROM ${this.tableName} WHERE status = 'succeeded' ORDER BY started_at DESC, rowid DESC LIMIT 1`,
       )
       .get() as TaskExecutionLog | undefined;
   }
 
-  /** 查询最近一次执行记录（不限状态） */
+  /** 查询最近一次执行记录（不限状态；同日内靠 rowid 决定先后） */
   public findLatest(): TaskExecutionLog | undefined {
     return this.db
       .prepare(
-        `SELECT * FROM ${this.tableName} ORDER BY started_at DESC LIMIT 1`,
+        `SELECT * FROM ${this.tableName} ORDER BY started_at DESC, rowid DESC LIMIT 1`,
       )
       .get() as TaskExecutionLog | undefined;
   }

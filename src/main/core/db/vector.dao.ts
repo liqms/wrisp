@@ -1,8 +1,8 @@
 import type { Connection, Table } from "@lancedb/lancedb";
 import type {
-  BlockEmbedding,
-  BlockEmbeddingCreate,
-  BlockEmbeddingUpdate,
+  ChunkEmbedding,
+  ChunkEmbeddingCreate,
+  ChunkEmbeddingUpdate,
   PageEmbedding,
   PageEmbeddingCreate,
   PageEmbeddingUpdate,
@@ -35,36 +35,43 @@ export class BaseVectorDao {
 }
 
 /**
- * Block 向量数据访问对象
+ * Chunk 向量数据访问对象
  */
-export class BlockVectorDao extends BaseVectorDao {
+export class ChunkVectorDao extends BaseVectorDao {
   /**
-   * 创建 Block 向量记录
+   * 创建 Chunk 向量记录
    */
-  async create(data: BlockEmbeddingCreate): Promise<void> {
+  async create(data: ChunkEmbeddingCreate): Promise<void> {
     try {
-      const table = await this.getTable("block_embeddings");
-      await table.add([data as BlockEmbedding]);
-      Logger.debug("[BlockVectorDao] 创建向量记录", { block_id: data.block_id });
+      const table = await this.getTable("chunk_embeddings");
+      await table.add([data as ChunkEmbedding]);
+      Logger.debug("[ChunkVectorDao] 创建向量记录", { chunk_id: data.chunk_id });
     } catch (error) {
-      Logger.error("[BlockVectorDao] 创建 Block 向量失败", { error: String(error), data });
+      Logger.error("[ChunkVectorDao] 创建 Chunk 向量失败", { error: String(error), data });
       throw error;
     }
   }
 
   /**
-   * 批量创建 Block 向量记录
+   * 批量创建 Chunk 向量记录
+   *
+   * 一律**先删后加**：LanceDB 的 `add` 是纯追加，同一 chunk_id 重跑会留下多行向量，
+   * 每行各占一个 topK 名额，把召回结果压死（迭代 6 后向量化会因内容变更重跑，
+   * 这条路径不再是「每个块只写一次」）。
    */
-  async createBatch(dataList: BlockEmbeddingCreate[]): Promise<void> {
+  async createBatch(dataList: ChunkEmbeddingCreate[]): Promise<void> {
     if (dataList.length === 0) {
       return;
     }
     try {
-      const table = await this.getTable("block_embeddings");
-      await table.add(dataList as BlockEmbedding[]);
-      Logger.debug("[BlockVectorDao] 批量创建向量记录", { count: dataList.length });
+      const table = await this.getTable("chunk_embeddings");
+      await table.delete(
+        `chunk_id IN (${dataList.map((d) => `'${d.chunk_id}'`).join(", ")})`,
+      );
+      await table.add(dataList as ChunkEmbedding[]);
+      Logger.debug("[ChunkVectorDao] 批量创建向量记录", { count: dataList.length });
     } catch (error) {
-      Logger.error("[BlockVectorDao] 批量创建 Block 向量失败", {
+      Logger.error("[ChunkVectorDao] 批量创建 Chunk 向量失败", {
         error: String(error),
         count: dataList.length,
       });
@@ -73,26 +80,26 @@ export class BlockVectorDao extends BaseVectorDao {
   }
 
   /**
-   * 根据 Block ID 更新向量
+   * 根据 Chunk ID 更新向量
    */
-  async update(blockId: string, data: BlockEmbeddingUpdate): Promise<void> {
+  async update(chunkId: string, data: ChunkEmbeddingUpdate): Promise<void> {
     try {
-      const table = await this.getTable("block_embeddings");
+      const table = await this.getTable("chunk_embeddings");
       const existing = (await table
         .query()
-        .where(`block_id = '${blockId}'`)
+        .where(`chunk_id = '${chunkId}'`)
         .limit(1)
-        .toArray()) as BlockEmbedding[];
+        .toArray()) as ChunkEmbedding[];
       const projectId = data.project_id ?? existing[0]?.project_id ?? null;
-      await table.delete(`block_id = '${blockId}'`);
+      await table.delete(`chunk_id = '${chunkId}'`);
       await table.add([
-        { block_id: blockId, project_id: projectId, ...data } as BlockEmbedding,
+        { chunk_id: chunkId, project_id: projectId, ...data } as ChunkEmbedding,
       ]);
-      Logger.debug("[BlockVectorDao] 更新向量记录", { block_id: blockId });
+      Logger.debug("[ChunkVectorDao] 更新向量记录", { chunk_id: chunkId });
     } catch (error) {
-      Logger.error("[BlockVectorDao] 更新 Block 向量失败", {
+      Logger.error("[ChunkVectorDao] 更新 Chunk 向量失败", {
         error: String(error),
-        blockId,
+        chunkId,
         data,
       });
       throw error;
@@ -100,65 +107,65 @@ export class BlockVectorDao extends BaseVectorDao {
   }
 
   /**
-   * 根据 Block ID 删除向量
+   * 根据 Chunk ID 删除向量
    */
-  async delete(blockId: string): Promise<void> {
+  async delete(chunkId: string): Promise<void> {
     try {
-      const table = await this.getTable("block_embeddings");
-      await table.delete(`block_id = '${blockId}'`);
-      Logger.debug("[BlockVectorDao] 删除向量记录", { block_id: blockId });
+      const table = await this.getTable("chunk_embeddings");
+      await table.delete(`chunk_id = '${chunkId}'`);
+      Logger.debug("[ChunkVectorDao] 删除向量记录", { chunk_id: chunkId });
     } catch (error) {
-      Logger.error("[BlockVectorDao] 删除 Block 向量失败", { error: String(error), blockId });
+      Logger.error("[ChunkVectorDao] 删除 Chunk 向量失败", { error: String(error), chunkId });
       throw error;
     }
   }
 
   /**
-   * 根据 Block ID 批量删除向量
+   * 根据 Chunk ID 批量删除向量
    */
-  async deleteBatch(blockIds: string[]): Promise<void> {
-    if (blockIds.length === 0) {
+  async deleteBatch(chunkIds: string[]): Promise<void> {
+    if (chunkIds.length === 0) {
       return;
     }
     try {
-      const table = await this.getTable("block_embeddings");
-      for (const blockId of blockIds) {
-        await table.delete(`block_id = '${blockId}'`);
+      const table = await this.getTable("chunk_embeddings");
+      for (const chunkId of chunkIds) {
+        await table.delete(`chunk_id = '${chunkId}'`);
       }
-      Logger.debug("[BlockVectorDao] 批量删除向量记录", { count: blockIds.length });
+      Logger.debug("[ChunkVectorDao] 批量删除向量记录", { count: chunkIds.length });
     } catch (error) {
-      Logger.error("[BlockVectorDao] 批量删除 Block 向量失败", {
+      Logger.error("[ChunkVectorDao] 批量删除 Chunk 向量失败", {
         error: String(error),
-        count: blockIds.length,
+        count: chunkIds.length,
       });
       throw error;
     }
   }
 
   /**
-   * 根据 Block ID 查询向量
+   * 根据 Chunk ID 查询向量
    */
-  async findByBlockId(blockId: string): Promise<BlockEmbedding | null> {
+  async findByChunkId(chunkId: string): Promise<ChunkEmbedding | null> {
     try {
-      const table = await this.getTable("block_embeddings");
+      const table = await this.getTable("chunk_embeddings");
       const results = await table
         .query()
-        .where(`block_id = '${blockId}'`)
+        .where(`chunk_id = '${chunkId}'`)
         .limit(1)
         .toArray();
-      return (results[0] as BlockEmbedding) || null;
+      return (results[0] as ChunkEmbedding) || null;
     } catch (error) {
-      Logger.error("[BlockVectorDao] 查询 Block 向量失败", { error: String(error), blockId });
+      Logger.error("[ChunkVectorDao] 查询 Chunk 向量失败", { error: String(error), chunkId });
       throw error;
     }
   }
 
   /**
-   * 语义搜索 Block 向量
+   * 语义搜索 Chunk 向量
    */
-  async search(params: VectorSearchParams): Promise<VectorSearchResult<BlockEmbedding>[]> {
+  async search(params: VectorSearchParams): Promise<VectorSearchResult<ChunkEmbedding>[]> {
     try {
-      const table = await this.getTable("block_embeddings");
+      const table = await this.getTable("chunk_embeddings");
       let query = table.search(params.vector).limit(params.topK || 10);
 
       if (params.projectId) {
@@ -168,7 +175,7 @@ export class BlockVectorDao extends BaseVectorDao {
       const results = await query.toArray();
 
       return results.map((item: unknown) => {
-        const embedding = item as BlockEmbedding;
+        const embedding = item as ChunkEmbedding;
         return {
           item: embedding,
           score: 1 - (embedding._distance || 0),
@@ -176,41 +183,41 @@ export class BlockVectorDao extends BaseVectorDao {
         };
       });
     } catch (error) {
-      Logger.error("[BlockVectorDao] 搜索 Block 向量失败", { error: String(error), params });
+      Logger.error("[ChunkVectorDao] 搜索 Chunk 向量失败", { error: String(error), params });
       throw error;
     }
   }
 
   /**
-   * 检查 Block 向量是否存在
+   * 检查 Chunk 向量是否存在
    */
-  async exists(blockId: string): Promise<boolean> {
+  async exists(chunkId: string): Promise<boolean> {
     try {
-      const result = await this.findByBlockId(blockId);
+      const result = await this.findByChunkId(chunkId);
       return result !== null;
     } catch (error) {
-      Logger.error("[BlockVectorDao] 检查 Block 向量存在性失败", { error: String(error), blockId });
+      Logger.error("[ChunkVectorDao] 检查 Chunk 向量存在性失败", { error: String(error), chunkId });
       return false;
     }
   }
 
   /**
-   * 获取 Block 向量表统计信息
+   * 获取 Chunk 向量表统计信息
    */
   async getStats(): Promise<VectorStats> {
     try {
-      const table = await this.getTable("block_embeddings");
+      const table = await this.getTable("chunk_embeddings");
       const count = await table.countRows();
       const indexes = await table.listIndices();
 
       return {
-        tableName: "block_embeddings",
+        tableName: "chunk_embeddings",
         rowCount: count,
         dimension: EMBEDDING_DIMENSION,
         indexed: indexes.length > 0,
       };
     } catch (error) {
-      Logger.error("[BlockVectorDao] 获取统计信息失败", { error: String(error) });
+      Logger.error("[ChunkVectorDao] 获取统计信息失败", { error: String(error) });
       throw error;
     }
   }
@@ -236,6 +243,10 @@ export class PageVectorDao extends BaseVectorDao {
 
   /**
    * 批量创建页面向量记录
+   *
+   * 与 ChunkVectorDao.createBatch 同形，一律**先删后加**：
+   * LanceDB 的 `add` 是纯追加，同一 page_id 重跑会留下多行向量，
+   * 每行各占一个 topK 名额，把召回结果压死（页面内容变更后重跑会走到这条路径）。
    */
   async createBatch(dataList: PageEmbeddingCreate[]): Promise<void> {
     if (dataList.length === 0) {
@@ -243,6 +254,9 @@ export class PageVectorDao extends BaseVectorDao {
     }
     try {
       const table = await this.getTable("pages_embeddings");
+      await table.delete(
+        `page_id IN (${dataList.map((d) => `'${d.page_id}'`).join(", ")})`,
+      );
       await table.add(dataList as PageEmbedding[]);
       Logger.debug("[PageVectorDao] 批量创建向量记录", { count: dataList.length });
     } catch (error) {
@@ -354,7 +368,7 @@ export class PageVectorDao extends BaseVectorDao {
       let query = table.search(params.vector).limit(params.topK || 10);
 
       if (params.projectId) {
-        query = query.where(`project_id = '${params.projectId}'`);
+        query = query.where(buildProjectFilter(params.projectId));
       }
 
       const results = await query.toArray();

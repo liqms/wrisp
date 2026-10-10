@@ -5,10 +5,14 @@
 import { Worker } from "worker_threads";
 import { join } from "path";
 import { ModelState, EmbeddingConfig, RerankConfig, LlmConfig, LlmGenerateOptions, LocalAiConfig, TransformersModelPaths, DEFAULT_EMBEDDING_CONFIG, DEFAULT_RERANK_CONFIG, DEFAULT_LLM_CONFIG } from "./types";
-import { recommendLlmConcurrency } from "./hardware";
-import { getModelSpec, getFamilyModelId, getTransformersArtifacts } from "./model-registry";
+import { recommendLlmConcurrency, getLogicalCores } from "./hardware";
+import { getModelSpec, getFamilyModelId, getFamilyMinVramGB, getTransformersArtifacts } from "./model-registry";
 import type { ModelFamily } from "./model-registry";
 import { modelManager } from "./model-manager";
+import { resolveLlmGpuPolicy, resolveThreadBudget, THREAD_BUDGET_MIN } from "./device.resolver";
+import type { GpuProbeResult, LlmGpuPolicy } from "./device.resolver";
+import { UNMEASURED_GPU } from "./device.resolver";
+import type { GpuCapability, ThreadBudgetInfo } from "@/shared/types/model.types";
 import { Logger } from "@/main/utils/logger";
 
 // 消息 ID 生成器
@@ -216,6 +220,36 @@ class LocalAiManager {
   /** 本地 LLM 在途请求数（生成中）；供空闲卸载判定使用，避免腰斩在途生成 */
   private llmInFlight = 0;
 
+  /**
+   * 用户是否允许本地 LLM 使用 GPU（配置项 enableGpuAcceleration）。
+   * 由上层在启动与配置变更时推入，manager 不反向依赖配置服务，保持可独立测试。
+   */
+  private gpuAccelerationEnabled = false;
+
+  /**
+   * 最近一次显存探测结果；null = 本会话从未探测（开关关闭时恒为 null）。
+   * 仅作 UI 快照，加载闸门不使用缓存值——空闲显存会变，每次加载重新读取。
+   */
+  private gpuProbe: GpuProbeResult | null = null;
+
+  /** 进行中的探测请求：并发触发时共用一次，避免重复初始化原生 GPU 后端 */
+  private gpuProbePending: Promise<GpuProbeResult> | null = null;
+
+  /**
+   * GPU 通路本会话已判定不可用（探测未能建立 GPU 构建，或上卡后加载失败）。
+   * 置位后不再尝试 GPU：Worker 崩溃会触发自动重启循环，反复重试等于反复起崩。
+   */
+  private llmGpuUnusable = false;
+
+  /**
+   * 用户配置的推理线程数（null = 按核数与同批会话数分摊）。
+   * 由上层推入（同 GPU 开关），与模型加载一样**非热切换**：改动在下一次加载生效。
+   */
+  private configuredThreads: { onnx: number | null; llm: number | null } = {
+    onnx: null,
+    llm: null,
+  };
+
   /** 私有构造函数，防止外部实例化 */
   private constructor() { }
 
@@ -266,6 +300,7 @@ class LocalAiManager {
     const mergedConfig = {
       ...this.embeddingConfig,
       ...config,
+      intraOpNumThreads: this.resolveThreads(this.configuredThreads.onnx, "embedding"),
       transformers: this.resolveTransformersPaths("embedding"),
     };
     const result = await this.channels.embedding.send<{ modelName: string }>("load-embedding", mergedConfig);
@@ -280,6 +315,7 @@ class LocalAiManager {
     const mergedConfig = {
       ...this.rerankConfig,
       ...config,
+      intraOpNumThreads: this.resolveThreads(this.configuredThreads.onnx, "reranker"),
       transformers: this.resolveTransformersPaths("reranker"),
     };
     const result = await this.channels.reranker.send<{ modelName: string }>("load-rerank", mergedConfig);
@@ -337,6 +373,179 @@ class LocalAiManager {
   }
 
   /**
+   * 注入 GPU 加速开关（配置项 enableGpuAcceleration）。
+   * 打开时清空上一轮的探测结论与「GPU 不可用」钉值：那是上一次意愿下的结果，
+   * 用户重新授权应当获得一次全新判定（探测由用户显式触发，次数有界，不会形成重试循环）。
+   */
+  public setGpuAccelerationEnabled(enabled: boolean): void {
+    if (this.gpuAccelerationEnabled === enabled) return;
+    this.gpuAccelerationEnabled = enabled;
+    if (enabled) {
+      this.llmGpuUnusable = false;
+      this.gpuProbe = null;
+    }
+  }
+
+  /** 用户是否允许本地 LLM 使用 GPU（缺省关闭） */
+  private isGpuEnabled(): boolean {
+    return this.gpuAccelerationEnabled;
+  }
+
+  /**
+   * 推入推理线程配置（智能整理的 onnxIntraOpThreads / llmMaxThreads）。
+   * 与 GPU 开关同构：manager 不反向依赖配置服务，且同样是加载期生效、非热切换。
+   */
+  public setThreadBudget(budget: { onnx?: number | null; llm?: number | null }): void {
+    this.configuredThreads = {
+      onnx: budget.onnx ?? null,
+      llm: budget.llm ?? null,
+    };
+  }
+
+  /**
+   * 当前会生效的线程预算（设置页展示用）。
+   * 与加载时走同一个 `resolveThreadBudget`，避免 UI 显示一个值、Worker 实际用另一个值；
+   * 不经过 `resolveThreads`，以免每次打开设置页都往日志里刷一条预算记录。
+   */
+  public getThreadBudget(): ThreadBudgetInfo {
+    const logicalCores = getLogicalCores();
+    const resolve = (configured: number | null): number =>
+      resolveThreadBudget({ logicalCores, configured });
+    const isConfigured = (configured: number | null): boolean =>
+      configured !== null &&
+      Number.isFinite(configured) &&
+      Math.floor(configured) >= THREAD_BUDGET_MIN;
+
+    return {
+      logicalCores,
+      onnx: resolve(this.configuredThreads.onnx),
+      llm: resolve(this.configuredThreads.llm),
+      onnxConfigured: isConfigured(this.configuredThreads.onnx),
+      llmConfigured: isConfigured(this.configuredThreads.llm),
+    };
+  }
+
+  /**
+   * 计算一个推理会话可用的线程数，并把「实际生效值 + 来源」打进日志。
+   * 拼错/漏传字段时 ONNX 会静默按全核跑，日志是唯一的可观测出口（AC5）。
+   */
+  private resolveThreads(configured: number | null, family: ModelFamily): number {
+    const logicalCores = getLogicalCores();
+    const threads = resolveThreadBudget({ logicalCores, configured });
+    Logger.info("[LocalAiManager] 推理线程预算", {
+      family,
+      intraOpNumThreads: threads,
+      source: configured !== null && configured >= 1 ? "configured" : "formula",
+      logicalCores,
+    });
+    return threads;
+  }
+
+  /** GPU 通路是否仍然可选：开关打开，且未被本会话钉为不可用 */
+  private isGpuPathAllowed(): boolean {
+    return this.gpuAccelerationEnabled && !this.llmGpuUnusable;
+  }
+
+  /**
+   * llama 实例的线程上限。
+   * 探测与加载共用同一个原生实例（谁先跑谁创建），所以两侧都要带上同一个预算值，
+   * 否则「先开设置页探测过 GPU」会让随后的加载拿不到线程上限。
+   */
+  private llmThreadBudget(): number {
+    return this.resolveThreads(this.configuredThreads.llm, "llm");
+  }
+
+  /**
+   * 向 LLM Worker 发起显存探测。
+   * Worker 侧会复用 llama 原生实例，因此首次之后的探测只是一次显存读数。
+   * 探测任何环节失败都按「未知」处理并钉为不可用，宁可慢也不反复起崩 Worker。
+   */
+  private runGpuProbe(): Promise<GpuProbeResult> {
+    if (this.gpuProbePending) return this.gpuProbePending;
+
+    this.gpuProbePending = this.channels.llm
+      .send<GpuProbeResult>("probe-gpu", { maxThreads: this.llmThreadBudget() })
+      .then((probe) => probe ?? UNMEASURED_GPU)
+      .catch((error: unknown) => {
+        Logger.warn("[LocalAiManager] GPU 探测请求失败", { error: String(error) });
+        return UNMEASURED_GPU;
+      })
+      .then((probe) => {
+        this.gpuProbe = probe;
+        if (!probe.measured) {
+          this.llmGpuUnusable = true;
+          Logger.info("[LocalAiManager] 未取得 GPU 构建，本次会话本地 LLM 固定走 CPU");
+        }
+        return probe;
+      })
+      .finally(() => {
+        this.gpuProbePending = null;
+      });
+
+    return this.gpuProbePending;
+  }
+
+  /**
+   * 当前生效的 GPU 判定。加载闸门与设置页共用这一个口径，
+   * 避免 UI 显示「会用 GPU」而实际走 CPU。
+   * 已钉为不可用时并入 enabled=false，结论稳定为「不用 GPU」，也不再发起探测。
+   */
+  private evaluateGpuPolicy(probe: GpuProbeResult | null): LlmGpuPolicy {
+    return resolveLlmGpuPolicy({
+      enabled: this.isGpuPathAllowed(),
+      probe,
+      requiredVramGB: getFamilyMinVramGB("llm"),
+    });
+  }
+
+  /**
+   * 按「用户开关 + 显存闸门」决定本次 LLM 加载的 GPU 参数，写回 llmConfig。
+   * 开关关闭时不发起探测、不初始化任何 GPU 后端。
+   */
+  private async applyLlmDevicePolicy(): Promise<void> {
+    const allowed = this.isGpuPathAllowed();
+
+    // 空闲显存随时间变化，加载时重新读取，不用会话早期的快照放行。
+    // 探测与加载复用 Worker 内同一个 llama 实例，因此这里只多一次显存读数，不会二次初始化。
+    const probe = allowed ? await this.runGpuProbe() : null;
+    const policy = this.evaluateGpuPolicy(probe);
+
+    this.llmConfig.gpu = policy.initGpu === "auto" ? "auto" : "cpu";
+    this.llmConfig.gpuLayers = policy.gpuLayers;
+
+    if (policy.reason !== "enabled") {
+      Logger.info("[LocalAiManager] 本地 LLM 走 CPU 推理", {
+        reason: policy.reason,
+        requiredVramGB: policy.requiredVramGB,
+        freeVramGB: probe?.freeVramGB ?? 0,
+      });
+    }
+  }
+
+  /**
+   * GPU 能力快照，供设置页展示。
+   * 仅在开关已打开且从未探测过时才探测一次；关闭时不产生任何 GPU 初始化。
+   */
+  public async getGpuCapability(): Promise<GpuCapability> {
+    const allowed = this.isGpuPathAllowed();
+
+    if (allowed && !this.gpuProbe) await this.runGpuProbe();
+
+    const policy = this.evaluateGpuPolicy(allowed ? this.gpuProbe : null);
+
+    return {
+      enabled: this.isGpuEnabled(),
+      probed: this.gpuProbe !== null,
+      deviceNames: this.gpuProbe?.deviceNames ?? [],
+      totalVramGB: this.gpuProbe?.totalVramGB ?? 0,
+      freeVramGB: this.gpuProbe?.freeVramGB ?? 0,
+      requiredVramGB: policy.requiredVramGB,
+      usable: policy.reason === "enabled",
+      reason: policy.reason,
+    };
+  }
+
+  /**
    * 加载本地 LLM
    */
   public async loadLlmModel(config?: Partial<LlmConfig>): Promise<void> {
@@ -359,11 +568,36 @@ class LocalAiManager {
       });
     }
 
-    const result = await this.channels.llm.send<{ modelName?: string }>("load-llm", this.llmConfig);
+    // 主进程统一决定推理设备（开关 + 显存闸门）与线程上限，Worker 只执行不判断
+    this.llmConfig.maxThreads = this.llmThreadBudget();
+    await this.applyLlmDevicePolicy();
+
+    const result = await this.sendLlmLoad();
     this.llmState = {
       status: "loaded",
       modelName: result?.modelName ?? this.llmConfig.modelId ?? DEFAULT_LLM_CONFIG.modelId,
     };
+  }
+
+  /**
+   * 下发 load-llm；请求了 GPU 且失败时，降级为纯 CPU 重试一次。
+   * 只重试一次并钉住 GPU：显存分配失败是稳定复现的问题，反复重试只会反复触发 Worker 重启。
+   */
+  private async sendLlmLoad(): Promise<{ modelName?: string }> {
+    const wantsGpu = this.llmConfig.gpu === "auto" && this.llmConfig.gpuLayers === "auto";
+    if (!wantsGpu) {
+      return await this.channels.llm.send<{ modelName?: string }>("load-llm", this.llmConfig);
+    }
+
+    try {
+      return await this.channels.llm.send<{ modelName?: string }>("load-llm", this.llmConfig);
+    } catch (error) {
+      Logger.warn("[LocalAiManager] GPU 加载失败，降级 CPU 重试", { error: String(error) });
+      this.llmGpuUnusable = true;
+      this.llmConfig.gpu = "cpu";
+      this.llmConfig.gpuLayers = 0;
+      return await this.channels.llm.send<{ modelName?: string }>("load-llm", this.llmConfig);
+    }
   }
 
   /**
@@ -398,6 +632,16 @@ class LocalAiManager {
   public getLlmConcurrency(): number {
     const configured = this.llmConfig.concurrency ?? DEFAULT_LLM_CONFIG.concurrency ?? 1;
     return Math.max(1, Math.floor(configured));
+  }
+
+  /**
+   * 本地 LLM 当前是否实际走 CPU 推理。
+   * 只认显存闸门下发过的 `gpuLayers === "auto"`：未加载或降级时都返回 true，
+   * 因为 GPU 开关默认关闭 —— 判据取「本轮实际的下发结果」而非配置值，
+   * 否则配置开了但显存不足退回 CPU 时，调度器会误以为 LLM 不占 CPU 而放行并行。
+   */
+  public isLlmCpuBound(): boolean {
+    return this.llmConfig.gpuLayers !== "auto";
   }
 
   /**

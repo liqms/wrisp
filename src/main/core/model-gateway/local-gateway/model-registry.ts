@@ -3,9 +3,11 @@
  * 以结构化数据定义所有支持的模型，支持国内外镜像下载地址
  */
 import { ZH_REMOTE_HOST, EN_REMOTE_HOST } from "@/main/constants/model.constants";
+import type { LocalModelFamily, ModelManifestEntry } from "@/shared/types/model.types";
+import type { TransformersDtype } from "./types";
 
-/** 模型类型 */
-export type ModelFamily = "embedding" | "reranker" | "llm";
+/** 模型类型（字面量定义在 shared，主进程沿用既有别名，避免两处漂移） */
+export type ModelFamily = LocalModelFamily;
 
 /** 后端类型 */
 export type ModelBackend = "transformers.js" | "node-llama-cpp";
@@ -144,6 +146,25 @@ export function getModelsByFamily(family: ModelFamily): ModelSpec[] {
 }
 
 /**
+ * 导出内置模型清单（默认变体的文件集与体积）供渲染进程聚合下载状态。
+ * 渲染端不再手抄模型清单：清单一旦与注册表漂移，状态显示就会与磁盘实况脱节。
+ */
+export function getModelManifest(): ModelManifestEntry[] {
+  return BUILTIN_MODELS.map((spec) => {
+    const variant = spec.variants.find((v) => v.variantId === spec.defaultVariant);
+    return {
+      modelId: spec.modelId,
+      family: spec.family,
+      sizeGB: variant?.sizeGB ?? 0,
+      files: (variant?.requiredFiles ?? []).map((f) => ({
+        remotePath: f.remotePath,
+        localPath: f.localPath,
+      })),
+    };
+  });
+}
+
+/**
  * 获取某个 family 当前使用的默认模型 ID（family→modelId 的唯一映射来源，
  * 供按 family 加载/卸载时集中引用，避免魔数散落）。
  */
@@ -164,14 +185,55 @@ export function getFamilyMinMemoryGB(family: ModelFamily): number {
 }
 
 /**
+ * 获取某 family 默认变体的最低显存要求（GB）。
+ * 用于 GPU 加速前的显存校验：未注册或缺少默认变体时返回 0（= 不满足也不阻塞，交由内存闸门兜底）。
+ */
+export function getFamilyMinVramGB(family: ModelFamily): number {
+  const modelId = getFamilyModelId(family);
+  if (!modelId) return 0;
+  const spec = getModelSpec(modelId);
+  if (!spec) return 0;
+  return spec.variants.find((v) => v.variantId === spec.defaultVariant)?.minVRAMGB ?? 0;
+}
+
+/** transformers.js 单会话模型的权重基名（拼接规则：`<基名><dtype 后缀>.onnx`） */
+const SESSION_FILE_STEM = "model";
+
+/**
+ * dtype → ONNX 文件名后缀，与库内 `DEFAULT_DTYPE_SUFFIX_MAPPING` 对齐。
+ * fp32 后缀为空串，故不出现在此表：它对应「基名即完整文件名」那一支。
+ */
+const DTYPE_SUFFIX: Record<Exclude<TransformersDtype, "fp32">, string> = {
+  fp16: "_fp16",
+  int8: "_int8",
+  uint8: "_uint8",
+  q8: "_quantized",
+};
+
+/**
+ * 从已下载的 ONNX 文件名反解 dtype。
+ * 只认 `<基名>` 与 `<基名><已知后缀>` 两种形态，其余（含 `_bnb4` 等未收录精度、
+ * 以及误拼出的 `_fp16_fp16`）一律返回 null，交由调用方中止加载。
+ */
+export function parseTransformersDtype(fileName: string): TransformersDtype | null {
+  if (!fileName.endsWith(".onnx")) return null;
+  const base = fileName.slice(0, -".onnx".length);
+  if (base === SESSION_FILE_STEM) return "fp32";
+  for (const [dtype, suffix] of Object.entries(DTYPE_SUFFIX)) {
+    if (base === SESSION_FILE_STEM + suffix) return dtype as TransformersDtype;
+  }
+  return null;
+}
+
+/**
  * 解析 transformers.js 定位本地模型文件所需的信息。
  * 下载产物布局为 `<模型根目录>/<modelId>/<localPath>`（见 model.service 下载逻辑），
- * 与 transformers.js 的 `localModelPath + 模型目录 + 文件名` 解析规则对齐，
+ * 与 transformers.js 的 `localModelPath + 模型目录 + onnx/model<dtype后缀>.onnx` 解析规则对齐，
  * 使 worker 直接从下载目录读取（而非回退到远程或模块内缓存）。
  */
 export function getTransformersArtifacts(
   modelId: string,
-): { modelDir: string; modelFileName: string } | null {
+): { modelDir: string; dtype: TransformersDtype } | null {
   const spec = getModelSpec(modelId);
   if (!spec) return null;
   const variant = spec.variants.find((v) => v.variantId === spec.defaultVariant);
@@ -180,11 +242,10 @@ export function getTransformersArtifacts(
     (f) => f.localPath.startsWith("onnx/") && f.localPath.endsWith(".onnx"),
   );
   if (!onnxFile) return null;
-  return {
-    modelDir: modelId,
-    // transformers.js 自行拼接 `onnx/<name>.onnx`，此处只取基名
-    modelFileName: onnxFile.localPath.slice("onnx/".length, -".onnx".length),
-  };
+  // 推导失败时宁可返回 null（调用方报错并跳过加载），也不要猜一个精度去加载错的权重
+  const dtype = parseTransformersDtype(onnxFile.localPath.slice("onnx/".length));
+  if (!dtype) return null;
+  return { modelDir: modelId, dtype };
 }
 
 /**

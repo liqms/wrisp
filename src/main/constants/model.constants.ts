@@ -9,6 +9,7 @@ export const DEFAULT_MODEL_CONFIG: ModelConfig = {
     providerPriority: [],
     enableAiMode: false,
     enableCloudAi: false,
+    enableGpuAcceleration: false,
     localLlmTasks: [],
     version: "0.2.0",
     updatedAt: TimeUtil.toISOString(Date.now()),

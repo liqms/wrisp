@@ -1,5 +1,6 @@
 
 import { BaseDao } from './base.dao'
+import { generateId, normalizeConceptTitle } from '@/shared/utils'
 import {
   Concept,
   ConceptCreate,
@@ -14,6 +15,19 @@ import {
 /** concepts_fts 索引的列：仅当这些列变化时才需要重建索引 */
 const FTS_INDEXED_FIELDS = ['title', 'evolving_summary'] as const
 
+/** 概念幂等合并的入参（§3.1.3 阶段 2 串行落库使用） */
+export interface ConceptUpsertInput {
+  /** normalizeConceptTitle 的结果，唯一索引列 */
+  titleKey: string
+  title: string
+  /** 本轮新增别名，落库前与既有 aliases 求并集 */
+  aliases: string[]
+  /** 本轮新增提及次数 */
+  mentionDelta: number
+  /** 概念级关联度（本轮提及的平均把握度） */
+  relevance: number
+}
+
 export class ConceptDao extends BaseDao<Concept, ConceptCreate, ConceptUpdate> {
   constructor() {
     super('concepts')
@@ -22,6 +36,109 @@ export class ConceptDao extends BaseDao<Concept, ConceptCreate, ConceptUpdate> {
   /** 参与概念全文索引的列 */
   protected get ftsIndexedFields(): readonly string[] {
     return FTS_INDEXED_FIELDS
+  }
+
+  /** 供迁移等表级批量写入后显式重建 external-content FTS 索引 */
+  public rebuildFtsIndex(): void {
+    this.rebuildFts()
+  }
+
+  /**
+   * 按归一化键查询概念（幂等合并依据）
+   */
+  findByTitleKey(titleKey: string): Concept | null {
+    const sql = `SELECT * FROM ${this.tableName} WHERE title_key = ?`
+    return this.queryOne(sql, [titleKey])
+  }
+
+  /**
+   * 取最近更新的概念标题，作为抽取 prompt 的「已有概念」候选池。
+   * 首轮没有向量召回可用时，靠这份列表让模型复用既有写法。
+   */
+  recentTitles(limit: number): string[] {
+    const sql = `SELECT title FROM ${this.tableName} ORDER BY updated_at DESC LIMIT ?`
+    const rows = this.query(sql, [limit]) as unknown as { title: string }[]
+    return rows.map((row) => row.title)
+  }
+
+  /**
+   * 按 title_key 创建或合并概念。
+   *
+   * 调用方是块级抽取结束后的**串行**落库阶段，读-改-写之间无并发；
+   * 仍写成单条 upsert 是为了让 UNIQUE(title_key) 在任何意外并发下
+   * 表现为合并而非重复行。
+   * @returns 概念 id 与是否命中既有概念
+   */
+  upsertByTitleKey(input: ConceptUpsertInput): { id: string; merged: boolean } {
+    const timestamp = this.getCurrentTimestamp()
+    const existing = this.findByTitleKey(input.titleKey)
+    const aliases = JSON.stringify(existing ? this.mergeAliases(existing.aliases, input.aliases) : input.aliases)
+
+    const sql = `
+      INSERT INTO ${this.tableName}
+        (id, title, title_key, aliases, mention_count, relevance, evolving_summary, timeline, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, NULL, '[]', ?, ?)
+      ON CONFLICT(title_key) DO UPDATE SET
+        aliases = excluded.aliases,
+        relevance = excluded.relevance,
+        updated_at = excluded.updated_at
+    `
+    // mention_count 故意不参与累加：它是 concept_chunks 的行数（派生值），
+    // 由 syncMentionCount 在关联写完后重算。累加式在重抽轮里会翻倍。
+    this.db.prepare(sql).run([
+      existing?.id ?? generateId(),
+      input.title,
+      input.titleKey,
+      aliases,
+      input.mentionDelta,
+      input.relevance,
+      timestamp,
+      timestamp,
+    ])
+
+    const saved = this.findByTitleKey(input.titleKey)
+    return { id: saved?.id ?? existing?.id ?? '', merged: !!existing }
+  }
+
+  /**
+   * 用关联表实际行数校准 mention_count。
+   *
+   * 概念会被重复抽取（0.5.0 去重后的一次全量重抽、失败条目重试），
+   * `concept_chunks` 靠 ON CONFLICT 幂等，而累加的计数会一轮翻一倍。
+   * 以关联表为准重算，「跑 N 轮」与「跑 1 轮」得到同一个数。
+   * 不刷新 updated_at：它已被本轮 upsert 顶过，重算只是对齐派生列。
+   */
+  syncMentionCount(conceptId: string): number {
+    if (!conceptId) return 0
+    const sql = `
+      UPDATE ${this.tableName}
+      SET mention_count = (SELECT COUNT(*) FROM concept_chunks WHERE concept_id = ${this.tableName}.id)
+      WHERE id = ?
+    `
+    return this.execute(sql, [conceptId]).changes
+  }
+
+  /** 别名并集：按归一化键去重，保留首次出现的写法 */
+  private mergeAliases(existingRaw: string | null, incoming: string[]): string[] {
+    const merged: string[] = []
+    const seen = new Set<string>()
+    for (const alias of [...this.parseAliases(existingRaw), ...incoming]) {
+      const key = normalizeConceptTitle(alias)
+      if (!key || seen.has(key)) continue
+      seen.add(key)
+      merged.push(alias)
+    }
+    return merged
+  }
+
+  private parseAliases(raw: string | null): string[] {
+    if (!raw) return []
+    try {
+      const value: unknown = JSON.parse(raw)
+      return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+    } catch {
+      return []
+    }
   }
 
   /**

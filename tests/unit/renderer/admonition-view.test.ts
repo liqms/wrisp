@@ -93,19 +93,22 @@ describe("提示块 NodeView（可点击标题切换类型）", () => {
     await flushPromises();
 
     expect(wrapper.find(".admonition-title").exists()).toBe(true);
-    expect(wrapper.find(".admonition-title__trigger").exists()).toBe(true);
-    // 标题显示当前类型文案（note → 笔记）
-    expect(wrapper.text()).toContain("笔记");
+    const trigger = wrapper.find(".admonition-title__trigger");
+    expect(trigger.exists()).toBe(true);
+    // 标题行是纯图标触发器：类型文案只在下拉菜单 / 阅读态 ::before 中出现
+    expect(trigger.attributes("title")).toBe("切换提示块类型");
+    expect(trigger.find("svg").exists()).toBe(true);
     // 容器携带类型标识（供 CSS 色调映射）
     expect(wrapper.find(".admonition-edit").attributes("data-type")).toBe("note");
     // 内容渲染在 contentDOM 包裹层内
     expect(wrapper.find(".admonition-content p").text()).toContain("提示内容");
   });
 
-  it("onSelectType 切换类型：节点属性与标题文案联动更新", async () => {
+  it("onSelectType 切换类型：节点属性与图标联动更新", async () => {
     wrapper = mount(Host, { global: { plugins: [i18n, naive, createPinia()] } });
     await flushPromises();
 
+    const iconBefore = wrapper.find(".admonition-title__trigger").html();
     getViewSetupState(wrapper.element).onSelectType("warning");
     await flushPromises();
 
@@ -113,9 +116,9 @@ describe("提示块 NodeView（可点击标题切换类型）", () => {
     const admonitions = collectAdmonitions(getEditor());
     expect(admonitions).toHaveLength(1);
     expect(admonitions[0]?.attrs.type).toBe("warning");
-    // DOM：容器 data-type 与标题文案随之切换
+    // DOM：容器 data-type 与标题图标随之切换（note 便签 → warning 警告）
     expect(wrapper.find(".admonition-edit").attributes("data-type")).toBe("warning");
-    expect(wrapper.text()).toContain("警告");
+    expect(wrapper.find(".admonition-title__trigger").html()).not.toBe(iconBefore);
   });
 
   it("标题行是纯编辑态 UI：getHTML 不包含标题元素", async () => {

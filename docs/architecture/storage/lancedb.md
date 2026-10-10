@@ -52,6 +52,20 @@
 
 ---
 
+### 4. 页面向量表 (pages_embeddings)
+
+存储整页级向量，用于「定位到哪一页」的粗召回（细粒度定位仍由 chunk_embeddings 承担）。
+
+| 字段名       | 类型                         | 说明                                                           |
+| :----------- | :--------------------------- | :------------------------------------------------------------- |
+| `page_id`    | TEXT                         | 页面唯一标识（UUID），与 SQLite pages.id 关联                  |
+| `project_id` | TEXT                         | 作品 ID，**可空**（对齐 `pages.project_id`，页面可无归属）     |
+| `embedding`  | fixed_size_list[float, 1536] | 1536 维向量（嵌入文本取 `pages.ai_summary`，缺摘要时回退标题） |
+
+> 由智能任务 `page-summary`（生成 `pages.ai_summary`）→ `page-vectorize`（写入本表）两级产出。
+
+---
+
 ## 索引配置
 
 ### IVF-PQ 索引参数
@@ -61,26 +75,32 @@ LanceDB 默认使用 HNSW 索引，对于大规模数据可配置 IVF-PQ 索引�
 ```typescript
 import { Index, IvfPqOptions } from "@lancedb/lancedb";
 
-// IVF-PQ 索引配置
-const ivfPqOptions: IvfPqOptions = {
-  numPartitions: 1024, // IVF 聚类数量 (nlist)
+// IVF-PQ 索引配置（不写死 numPartitions：随行数自适应）
+const ivfPqOptions: Omit<IvfPqOptions, "numPartitions"> = {
   numSubVectors: 8, // PQ 子向量维度 (m)
   numBits: 8, // 每个子向量的量化比特数 (nbits)
   distanceType: "cosine", // 相似度度量：cosine / l2 / dot
 };
 
-// 创建索引配置对象
-const indexConfig = Index.ivfPq(ivfPqOptions);
+// 创建索引：numPartitions 由行数决定
+const indexConfig = Index.ivfPq({
+  ...ivfPqOptions,
+  numPartitions: Math.floor(Math.sqrt(rowCount)),
+});
 ```
 
 **索引参数说明：**
 
-| 参数            | 值     | 说明                                           |
-| :-------------- | :----- | :--------------------------------------------- |
-| `numPartitions` | 1024   | IVF 倒排索引的聚类中心数量，影响搜索速度和精度 |
-| `numSubVectors` | 8      | PQ 量化的子向量数量，1536/8=192 维每子向量     |
-| `numBits`       | 8      | 每个子向量的量化精度，8 bits = 256 种可能值    |
-| `distanceType`  | cosine | 余弦相似度，适合文本语义匹配                   |
+| 参数            | 值     | 说明                                                                                        |
+| :-------------- | :----- | :------------------------------------------------------------------------------------------ |
+| `numPartitions` | 自适应 | IVF 倒排索引的聚类中心数量，取 `floor(sqrt(行数))`；不传则用 LanceDB 默认（同为 sqrt 量级） |
+| `numSubVectors` | 8      | PQ 量化的子向量数量，1536/8=192 维每子向量                                                  |
+| `numBits`       | 8      | 每个子向量的量化精度，8 bits = 256 种可能值                                                 |
+| `distanceType`  | cosine | 余弦相似度，适合文本语义匹配                                                                |
+
+**建索引门槛（`MIN_ROWS_FOR_INDEX = 256`）：**
+
+PQ 码本训练**硬性要求至少 256 行**，低于该值直接跳过建索引（检索走全表扫描），等数据长起来后在下次启动时补建。历史上把 `numPartitions` 写死为 1024，导致任何向量数 < 1024 的工作区在 k-means 训练阶段报 `KMeans cannot train 1024 centroids with N vectors`，索引永远建不出来。
 
 ---
 
@@ -322,9 +342,14 @@ async function exampleBatchInsert(db: Connection): Promise<void> {
 
 ### 1. 索引优化
 
-- **数据量 < 10k**：使用默认 HNSW 索引
-- **数据量 10k-100k**：使用 IVF-PQ 索引，numPartitions=1024
-- **数据量 > 100k**：使用 IVF-PQ 索引，numPartitions=4096
+索引统一采用 IVF-PQ，`numPartitions` 按当前行数自适应（`floor(sqrt(行数))`），不再按档位写死：
+
+| 行数  | 索引策略                                        |
+| :---- | :---------------------------------------------- |
+| < 256 | **不建索引**（PQ 训练硬性下限），检索走全表扫描 |
+| ≥ 256 | IVF-PQ，`numPartitions = floor(sqrt(行数))`     |
+
+> 索引在应用启动时补建（已存在则跳过），因此数据从 < 256 长到 ≥ 256 后，下次启动自动建索引。
 
 ### 2. 查询优化
 
@@ -394,13 +419,15 @@ async function openTableWithMemoryMap(
 ### 数据写入流程
 
 ```
-创建语义块 → SQLite 写入 → 生成向量 → LanceDB 插入
+chunk 级：创建语义块 → SQLite 写入 → chunk-summary → chunk-vectorize → LanceDB chunk_embeddings
+页级：  创建页面   → 页面切块(chunk_type='page') → page-summary(aggregate chunks) → page-vectorize → LanceDB pages_embeddings
 ```
 
 ### 数据删除流程
 
 ```
 删除语义块 → SQLite 删除 → LanceDB 删除对应向量
+删除页面   → SQLite 删除 → LanceDB 删除对应页面向量
 ```
 
 ---

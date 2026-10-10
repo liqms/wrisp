@@ -28,7 +28,7 @@ interface WorkerResponse {
 
 // 消息路由表（三类模型处理器的并集，实际可用项由 FAMILY_MESSAGE_TYPES 过滤）
 const handlers: Record<string, (payload?: unknown) => Promise<unknown>> = {
-  "load-embedding": (payload) => embeddingHandler.load(payload as { modelName?: string; transformers?: TransformersModelPaths }),
+  "load-embedding": (payload) => embeddingHandler.load(payload as { modelName?: string; transformers?: TransformersModelPaths; intraOpNumThreads?: number }),
   "embed": (payload) => {
     const { text, pooling, normalize } = payload as { text: string; pooling?: "mean" | "cls" | "none"; normalize?: boolean };
     return embeddingHandler.embed(text, pooling, normalize);
@@ -39,7 +39,7 @@ const handlers: Record<string, (payload?: unknown) => Promise<unknown>> = {
   },
   "unload-embedding": () => embeddingHandler.unload(),
 
-  "load-rerank": (payload) => rerankHandler.load(payload as { modelName?: string; transformers?: TransformersModelPaths }),
+  "load-rerank": (payload) => rerankHandler.load(payload as { modelName?: string; transformers?: TransformersModelPaths; intraOpNumThreads?: number }),
   "rerank": (payload) => {
     const { query, documents } = payload as { query: string; documents: string[] };
     return rerankHandler.rerank(query, documents);
@@ -52,8 +52,11 @@ const handlers: Record<string, (payload?: unknown) => Promise<unknown>> = {
     maxTokens?: number;
     temperature?: number;
     gpu?: "auto" | "cpu";
+    gpuLayers?: 0 | "auto";
     concurrency?: number;
+    maxThreads?: number;
   }),
+  "probe-gpu": (payload) => llmHandler.probeGpu(payload as { maxThreads?: number } | undefined),
   "generate": (payload) => {
     const { prompt, options } = payload as {
       prompt: string;
@@ -68,7 +71,7 @@ const handlers: Record<string, (payload?: unknown) => Promise<unknown>> = {
 const FAMILY_MESSAGE_TYPES: Record<WorkerFamily, readonly string[]> = {
   embedding: ["load-embedding", "embed", "embed-batch", "unload-embedding"],
   reranker: ["load-rerank", "rerank", "unload-rerank"],
-  llm: ["load-llm", "generate", "generate-stream", "unload-llm"],
+  llm: ["load-llm", "generate", "generate-stream", "probe-gpu", "unload-llm"],
 };
 
 // 响应类型映射
@@ -83,6 +86,7 @@ const responseTypeMap: Record<string, string> = {
   "load-llm": "llm-loaded",
   "generate": "llm-result",
   "generate-stream": "llm-result",
+  "probe-gpu": "gpu-probe-result",
   "unload-llm": "llm-unloaded",
 };
 
@@ -111,7 +115,9 @@ parentPort?.on("message", async (event: WorkerMessage) => {
       const text = await llmHandler.generateStream(prompt, options, (token) => {
         parentPort?.postMessage({ id, type: "llm-token", payload: { token } } satisfies WorkerResponse);
       });
-      parentPort?.postMessage({ id, type: "llm-result", payload: { text } } satisfies WorkerResponse);
+      // 最终文本按裸字符串回传：manager 侧是 dispatch<string>，
+      // 包一层 { text } 会让声明的 string 实际收到对象（与非流式分支保持一致）
+      parentPort?.postMessage({ id, type: "llm-result", payload: text } satisfies WorkerResponse);
       return;
     }
 

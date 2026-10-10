@@ -17,6 +17,10 @@
         <n-flex v-else align="center" :size="8">
           <n-spin size="small" />
           <n-text depth="3">{{ t("TIPS.WIKI.ORGANIZING") }}</n-text>
+          <!-- 暂停/恢复主进程早就实现了，渲染层一直没入口：长跑任务只能取消不能暂停 -->
+          <n-button size="small" @click="organizePaused ? handleResumeOrganize() : handlePauseOrganize()">
+            {{ organizePaused ? t("TIPS.WIKI.ORGANIZE_RESUME") : t("TIPS.WIKI.ORGANIZE_PAUSE") }}
+          </n-button>
           <n-button size="small" @click="handleCancelOrganize">
             {{ t("TIPS.WIKI.ORGANIZE_CANCEL") }}
           </n-button>
@@ -63,12 +67,15 @@ const { t } = useI18n();
 const {
   pendingCount,
   organizing,
+  organizePaused,
   loadOverview,
   loadPendingCount,
   loadConceptCards,
   loadTopicCards,
   startOrganize,
   cancelOrganize,
+  pauseOrganize,
+  resumeOrganize,
 } = useWiki();
 
 const activeTab = ref("overview");
@@ -79,6 +86,14 @@ const handleOrganize = async () => {
 
 const handleCancelOrganize = async () => {
   await cancelOrganize();
+};
+
+const handlePauseOrganize = async () => {
+  await pauseOrganize();
+};
+
+const handleResumeOrganize = async () => {
+  await resumeOrganize();
 };
 
 const loadWikiData = async () => {

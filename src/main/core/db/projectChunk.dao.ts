@@ -43,6 +43,25 @@ export class ProjectChunkDao extends BaseDao<ProjectChunk, ProjectChunkCreate, P
   }
 
   /**
+   * 批量查询块所属的项目关联（一次查询替代逐块 findBy）。
+   * 同一块可能挂在多个项目下，调用方按「首条命中」取项目作用域时需注意顺序。
+   * @param chunkIds 块 ID 列表
+   */
+  findByChunkIds(chunkIds: Id[]): ProjectChunk[] {
+    if (chunkIds.length === 0) return []
+    // 分批：单条 IN 的参数个数受 SQLite 变量上限约束，全库整理时块数可达上万
+    const batchSize = 500
+    const rows: ProjectChunk[] = []
+    for (let i = 0; i < chunkIds.length; i += batchSize) {
+      const batch = chunkIds.slice(i, i + batchSize)
+      const placeholders = batch.map(() => '?').join(', ')
+      const sql = `SELECT * FROM ${this.tableName} WHERE chunk_id IN (${placeholders}) ORDER BY relevance_score DESC`
+      rows.push(...this.query(sql, batch))
+    }
+    return rows
+  }
+
+  /**
    * 根据相关度分数范围查询项目块列表
    * @param projectId 项目 ID
    * @param minScore 最低分数

@@ -274,17 +274,19 @@ LanceDB 作为独立的嵌入式向量数据库，与 SQLite 协同工作：
 
 **协同工作模式：**
 
-| 数据类型   | 存储位置         | 用途                  |
-| :--------- | :--------------- | :-------------------- |
-| 语义块向量 | LanceDB          | 语义搜索、相似性匹配  |
-| 概念       | SQLite + LanceDB | AI 概念提取和向量索引 |
-| 主题       | SQLite + LanceDB | AI 主题聚类和向量索引 |
+| 数据类型     | 存储位置         | 用途                  |
+| :----------- | :--------------- | :-------------------- |
+| 语义块向量   | LanceDB          | 语义搜索、相似性匹配  |
+| 页面摘要向量 | LanceDB          | 页级粗召回（定位到页） |
+| 概念         | SQLite + LanceDB | AI 概念提取和向量索引 |
+| 主题         | SQLite + LanceDB | AI 主题聚类和向量索引 |
 
 LanceDB 向量表一览（详见 `lancedb.md`）：
 
 | 向量表               | 关联 SQLite 表  | 用途                 |
 | :------------------- | :-------------- | :------------------- |
 | `chunk_embeddings`   | semantic_chunks | 语义块级语义搜索     |
+| `pages_embeddings`   | pages           | 页面级粗召回         |
 | `concept_embeddings` | concepts        | 概念聚类与检索       |
 | `topic_embeddings`   | topics          | 主题相似性搜索与推荐 |
 

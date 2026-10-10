@@ -63,11 +63,11 @@ export function getVectorDbPath(): string {
 }
 
 /**
- * Block 向量表 Schema 类型
+ * Chunk 向量表 Schema 类型
  */
-export interface BlockEmbedding {
+export interface ChunkEmbedding {
   [key: string]: unknown;
-  block_id: Id;
+  chunk_id: Id;
   project_id?: Id | null;
   embedding: number[];
 }
@@ -78,19 +78,76 @@ export interface BlockEmbedding {
 export interface PageEmbedding {
   [key: string]: unknown;
   page_id: Id;
-  project_id: Id;
+  /** 与 pages.project_id 一致，可为空（页面可无归属作品） */
+  project_id: Id | null;
   embedding: number[];
 }
 
+/** 当前 Chunk 向量表名 */
+const CHUNK_TABLE = "chunk_embeddings";
+/** 面向量表名 */
+const PAGE_TABLE = "pages_embeddings";
+/** v1 遗留的 Chunk 向量表名（存量工作区需改名） */
+const LEGACY_CHUNK_TABLE = "block_embeddings";
+
 /**
- * 索引配置参数（LanceDB IVF-PQ 配置）
+ * 索引配置参数（LanceDB IVF-PQ 配置）。
+ *
+ * 不写死 `numPartitions`：该值随行数缩放（LanceDB 默认取 sqrt(行数)）。
+ * 历史上写死 1024，导致任何向量数 < 1024 的工作区在 k-means 训练阶段直接报
+ * "KMeans cannot train 1024 centroids with N vectors"，索引永远建不出来。
  */
-const ivfPqOptions: IvfPqOptions = {
-  numPartitions: 1024,
+const ivfPqOptions: Omit<IvfPqOptions, "numPartitions"> = {
   numSubVectors: 8,
   numBits: 8,
   distanceType: "cosine",
 };
+
+/**
+ * 建 ANN 索引的最小行数。
+ * 该值是 LanceDB IVF-PQ 的硬性下限（训练 PQ 码本至少需要 256 行，
+ * 否则报 "Not enough rows to train PQ. Requires 256 rows"）；
+ * 低于它时全表扫描也更快，因此直接跳过，等数据长起来后在下次启动时补建。
+ */
+const MIN_ROWS_FOR_INDEX = 256;
+
+/**
+ * 存量工作区迁移（第一步）：把 v1 的 `block_embeddings.lance` 目录改名为 `chunk_embeddings.lance`。
+ *
+ * LanceDB JS SDK 无 `renameTable`，只能在 `connect()` **之前**直接改目录名，
+ * 否则连接已缓存旧表名。幂等：目标目录已存在则跳过。
+ */
+function migrateChunkTableDirectory(): void {
+  const vectorPath = getVectorDbPath();
+  const legacyDir = join(vectorPath, `${LEGACY_CHUNK_TABLE}.lance`);
+  const targetDir = join(vectorPath, `${CHUNK_TABLE}.lance`);
+
+  if (fs.existsSync(legacyDir) && !fs.existsSync(targetDir)) {
+    fs.renameSync(legacyDir, targetDir);
+    console.log(`[LanceDB] 向量表目录改名: ${LEGACY_CHUNK_TABLE} → ${CHUNK_TABLE}`);
+  }
+}
+
+/**
+ * 存量工作区迁移（第二步）：把表内主键列 `block_id` 改名为 `chunk_id`。
+ *
+ * `Table.alterColumns([{ path, rename }])` 原地无损改列名，向量数据不动。
+ * 幂等：目标列已存在或源列不存在则跳过。
+ */
+async function migrateChunkIdColumn(db: Connection): Promise<void> {
+  if (!(await tableExists(db, CHUNK_TABLE))) {
+    return;
+  }
+  const table = await db.openTable(CHUNK_TABLE);
+  const schema = await table.schema();
+  const hasChunkId = schema.fields.some((f) => f.name === "chunk_id");
+  const hasBlockId = schema.fields.some((f) => f.name === "block_id");
+
+  if (hasBlockId && !hasChunkId) {
+    await table.alterColumns([{ path: "block_id", rename: "chunk_id" }]);
+    console.log("[LanceDB] 向量表列改名: block_id → chunk_id");
+  }
+}
 
 /**
  * 初始化 LanceDB 连接
@@ -98,6 +155,9 @@ const ivfPqOptions: IvfPqOptions = {
 export async function initLanceDB(): Promise<Connection> {
   const dbPath = getVectorDbPath();
   console.log(`[LanceDB] 向量数据库路径: ${dbPath}`);
+
+  // 目录改名必须在 connect 之前完成（连接会缓存表名）
+  migrateChunkTableDirectory();
 
   const db = await connect(dbPath);
   console.log("[LanceDB] 连接成功");
@@ -122,16 +182,11 @@ async function tableExists(
 async function indexExists(table: Table, columnName: string): Promise<boolean> {
   try {
     const indexes = await table.listIndices();
-    if (Array.isArray(indexes)) {
-      return indexes.some(
-        (idx: unknown) =>
-          typeof idx === "object" &&
-          idx !== null &&
-          "column" in idx &&
-          idx.column === columnName,
-      );
-    }
-    return false;
+    // IndexConfig 的列字段是 `columns: string[]`（不是 `column`）；
+    // 用错字段会让这里恒为 false，导致每次启动都重复训练并重建索引。
+    return indexes.some(
+      (idx) => Array.isArray(idx.columns) && idx.columns.includes(columnName),
+    );
   } catch {
     return false;
   }
@@ -161,7 +216,7 @@ function buildEmbeddingField(): Field {
  */
 async function ensureEmbeddingTable(
   db: Connection,
-  tableName: "block_embeddings" | "pages_embeddings",
+  tableName: "chunk_embeddings" | "pages_embeddings",
   buildSchema: () => Schema,
 ): Promise<Table | null> {
   if (!(await tableExists(db, tableName))) {
@@ -171,11 +226,26 @@ async function ensureEmbeddingTable(
   }
 
   const table = await db.openTable(tableName);
-  const listSize = getEmbeddingListSize(await table.schema());
+  const schema = await table.schema();
+  const listSize = getEmbeddingListSize(schema);
   if (listSize !== undefined && listSize !== EMBEDDING_DIMENSION) {
     console.warn(
       `[LanceDB] 向量表 ${tableName} 维度不符（现有 ${listSize}，期望 ${EMBEDDING_DIMENSION}），删除并重建`,
     );
+    await db.dropTable(tableName);
+    await db.createEmptyTable(tableName, buildSchema());
+    return null;
+  }
+
+  // 列可空性比对：pages_embeddings 曾把 project_id 声明为非空，与 pages.project_id 不符。
+  // 该表历史上无写入方（恒空），drop+recreate 无损；比对只针对两侧同名的列，不影响其他字段。
+  const expected = buildSchema();
+  const nullabilityMismatch = expected.fields.some((expectedField) => {
+    const actualField = schema.fields.find((f) => f.name === expectedField.name);
+    return actualField !== undefined && actualField.nullable !== expectedField.nullable;
+  });
+  if (nullabilityMismatch) {
+    console.warn(`[LanceDB] 向量表 ${tableName} 列可空性与当前 schema 不符，删除并重建`);
     await db.dropTable(tableName);
     await db.createEmptyTable(tableName, buildSchema());
     return null;
@@ -190,32 +260,36 @@ async function ensureEmbeddingTable(
 export async function initVectorTables(db: Connection): Promise<void> {
   console.log("[LanceDB] 开始初始化向量表...");
 
-  // ==================== Block 向量表 ====================
-  const blockTable = await ensureEmbeddingTable(db, "block_embeddings", () =>
+  // 存量工作区迁移（第二步）：block_id → chunk_id（目录改名已在 connect 前完成）
+  await migrateChunkIdColumn(db);
+
+  // ==================== Chunk 向量表 ====================
+  const chunkTable = await ensureEmbeddingTable(db, CHUNK_TABLE, () =>
     new Schema([
-      new Field("block_id", new Utf8(), false),
+      new Field("chunk_id", new Utf8(), false),
       new Field("project_id", new Utf8(), true),
       buildEmbeddingField(),
     ]),
   );
-  if (blockTable) {
-    console.log("[LanceDB] Block 向量表已存在");
-    const fields = await blockTable.schema();
+  if (chunkTable) {
+    console.log("[LanceDB] Chunk 向量表已存在");
+    const fields = await chunkTable.schema();
     const hasProjectId = fields.fields.some((f) => f.name === "project_id");
     if (!hasProjectId) {
-      console.log("[LanceDB] 为 Block 向量表补充 project_id 列...");
-      await blockTable.addColumns(new Field("project_id", new Utf8(), true));
+      console.log("[LanceDB] 为 Chunk 向量表补充 project_id 列...");
+      await chunkTable.addColumns(new Field("project_id", new Utf8(), true));
       console.log("[LanceDB] project_id 列补充完成（存量行为 null）");
     }
   } else {
-    console.log("[LanceDB] Block 向量表创建完成");
+    console.log("[LanceDB] Chunk 向量表创建完成");
   }
 
   // ==================== 页面向量表 ====================
-  const pageTable = await ensureEmbeddingTable(db, "pages_embeddings", () =>
+  const pageTable = await ensureEmbeddingTable(db, PAGE_TABLE, () =>
     new Schema([
       new Field("page_id", new Utf8(), false),
-      new Field("project_id", new Utf8(), false),
+      // 与 pages.project_id 对齐：页面可以没有归属作品
+      new Field("project_id", new Utf8(), true),
       buildEmbeddingField(),
     ]),
   );
@@ -227,104 +301,115 @@ export async function initVectorTables(db: Connection): Promise<void> {
 }
 
 /**
+ * 为向量表的 embedding 列补齐 ANN 索引。
+ * 已存在则跳过；行数不足则跳过——空表 / 小表训练 k-means 必然失败，跳过可避免噪音日志。
+ */
+async function ensureEmbeddingIndex(
+  db: Connection,
+  tableName: "chunk_embeddings" | "pages_embeddings",
+): Promise<void> {
+  const table = await db.openTable(tableName);
+
+  if (await indexExists(table, "embedding")) {
+    console.log(`[LanceDB] ${tableName} 向量索引已存在`);
+    return;
+  }
+
+  const rowCount = await table.countRows();
+  if (rowCount < MIN_ROWS_FOR_INDEX) {
+    console.log(
+      `[LanceDB] ${tableName} 当前 ${rowCount} 条向量（< ${MIN_ROWS_FOR_INDEX}），暂不建索引，检索走全表扫描`,
+    );
+    return;
+  }
+
+  const numPartitions = Math.floor(Math.sqrt(rowCount));
+  try {
+    await table.createIndex("embedding", {
+      config: Index.ivfPq({ ...ivfPqOptions, numPartitions }),
+    });
+    console.log(
+      `[LanceDB] ${tableName} 向量索引创建完成（${rowCount} 条，${numPartitions} 个分区）`,
+    );
+  } catch (error) {
+    console.warn(`[LanceDB] ${tableName} 向量索引创建失败:`, error);
+  }
+}
+
+/**
  * 创建向量索引
  */
 export async function createIndexes(db: Connection): Promise<void> {
   console.log("[LanceDB] 开始创建向量索引...");
 
-  // Block 向量表索引
-  const blockTable = await db.openTable("block_embeddings");
-  if (!(await indexExists(blockTable, "embedding"))) {
-    console.log("[LanceDB] 为 Block 向量表创建索引...");
-    try {
-      await blockTable.createIndex("embedding", { config: Index.ivfPq(ivfPqOptions) });
-      console.log("[LanceDB] Block 向量表索引创建完成");
-    } catch (error) {
-      console.warn("[LanceDB] Block 向量表索引创建失败（表可能为空，数据写入后会自动创建）:", error);
-    }
-  } else {
-    console.log("[LanceDB] Block 向量表索引已存在");
-  }
-
-  // 页面向量表索引
-  const pageTable = await db.openTable("pages_embeddings");
-  if (!(await indexExists(pageTable, "embedding"))) {
-    console.log("[LanceDB] 为页面向量表创建索引...");
-    try {
-      await pageTable.createIndex("embedding", { config: Index.ivfPq(ivfPqOptions) });
-      console.log("[LanceDB] 页面向量表索引创建完成");
-    } catch (error) {
-      console.warn("[LanceDB] 页面向量表索引创建失败（表可能为空，数据写入后会自动创建）:", error);
-    }
-  } else {
-    console.log("[LanceDB] 页面向量表索引已存在");
-  }
+  await ensureEmbeddingIndex(db, CHUNK_TABLE);
+  await ensureEmbeddingIndex(db, PAGE_TABLE);
 }
 
 /**
- * 获取 Block 向量表
+ * 获取 Chunk 向量表
  */
-export async function getBlockEmbeddingTable(db: Connection): Promise<Table> {
-  return await db.openTable("block_embeddings");
+export async function getChunkEmbeddingTable(db: Connection): Promise<Table> {
+  return await db.openTable(CHUNK_TABLE);
 }
 
 /**
  * 获取页面向量表
  */
 export async function getPageEmbeddingTable(db: Connection): Promise<Table> {
-  return await db.openTable("pages_embeddings");
+  return await db.openTable(PAGE_TABLE);
 }
 
 // ==================== 数据操作方法 ====================
 
 /**
- * 插入单个 Block 向量
+ * 插入单个 Chunk 向量
  */
-export async function insertBlockEmbedding(
+export async function insertChunkEmbedding(
   table: Table,
-  data: BlockEmbedding,
+  data: ChunkEmbedding,
 ): Promise<void> {
   await table.add([data]);
 }
 
 /**
- * 批量插入 Block 向量
+ * 批量插入 Chunk 向量
  */
-export async function insertBlockEmbeddings(
+export async function insertChunkEmbeddings(
   table: Table,
-  data: BlockEmbedding[],
+  data: ChunkEmbedding[],
 ): Promise<void> {
   await table.add(data);
 }
 
 /**
- * 更新 Block 向量
+ * 更新 Chunk 向量
  */
-export async function updateBlockEmbedding(
+export async function updateChunkEmbedding(
   table: Table,
-  blockId: Id,
-  data: Partial<BlockEmbedding>,
+  chunkId: Id,
+  data: Partial<ChunkEmbedding>,
 ): Promise<void> {
-  await table.delete(`block_id = '${blockId}'`);
+  await table.delete(`chunk_id = '${chunkId}'`);
   if (data) {
-    await table.add([{ block_id: blockId, ...data } as BlockEmbedding]);
+    await table.add([{ chunk_id: chunkId, ...data } as ChunkEmbedding]);
   }
 }
 
 /**
- * 删除 Block 向量
+ * 删除 Chunk 向量
  */
-export async function deleteBlockEmbedding(
+export async function deleteChunkEmbedding(
   table: Table,
-  blockId: string,
+  chunkId: string,
 ): Promise<void> {
-  await table.delete(`block_id = '${blockId}'`);
+  await table.delete(`chunk_id = '${chunkId}'`);
 }
 
 /**
- * 语义搜索 Block（实现移至 ./block-search，此处仅再导出以保持既有调用方不变）
+ * 语义搜索 Chunk（实现移至 ./chunk-embedding-search，此处仅再导出以保持既有调用方不变）
  */
-export { searchBlockEmbeddings } from "./block-search";
+export { searchChunkEmbeddings } from "./chunk-embedding-search";
 
 /**
  * 插入单个页面向量

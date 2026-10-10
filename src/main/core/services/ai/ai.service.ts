@@ -6,8 +6,18 @@ import { modelService } from "@/main/core/services/ai/model.service";
 import { configService } from "@/main/core/services/system/config.service";
 import { modelMetaService } from "@/main/core/services/ai/model-meta.service";
 import { LLMRequest, LLMResponse, LLMStreamChunk, CostSummary, CostRecord, Model } from "@/main/core/model-gateway/llm-gateway/types";
+import type { LlmGenerateOptions } from "@/main/core/model-gateway/local-gateway/types";
 import { AIProvider } from "@/shared/types/model.types";
 import { Logger } from "@/main/utils/logger";
+
+/**
+ * 本地模型「跑完了但没有主回复」的统一错误。
+ *
+ * 思考型模型会把预算全花在 `<think>` 段上，而 node-llama-cpp 的返回值只含主回复，
+ * 于是拿到空串。此前它被当成功返回：摘要任务把空值写进库、概念任务抛一个语义不明的
+ * 解析错误。空产出就是推理失败，必须在源头抛出，让调用方按失败重试（设计 §3.7）。
+ */
+const LOCAL_EMPTY_OUTPUT = "本地模型未返回内容";
 
 class AIService {
   private static instance: AIService | null = null;
@@ -32,8 +42,16 @@ class AIService {
     return this.gateway;
   }
 
+  /**
+   * 并发槽位优先级：按「是否用户在等」判定，而非「有没有 taskType」。
+   * 智能整理的任务同样携带 taskType，把它们判成 high 会让抢占反过来拖慢交互请求。
+   */
+  private resolvePriority(request: LLMRequest): "high" | "low" {
+    return request.background ? "low" : "high";
+  }
+
   async chatCompletion(request: LLMRequest): Promise<LLMResponse> {
-    const priority = request.taskType ? "high" : "low";
+    const priority = this.resolvePriority(request);
     return this.concurrencyController.acquire(
       async () => {
         // 如果请求携带 taskType 且无 tools（L2 不走本地路由），使用路由器决策
@@ -51,7 +69,7 @@ class AIService {
   }
 
   async *chatCompletionStream(request: LLMRequest): AsyncIterable<LLMStreamChunk> {
-    const priority = request.taskType ? "high" : "low";
+    const priority = this.resolvePriority(request);
     const release = await this.concurrencyController.acquireSlotManual(priority);
     try {
       // 如果请求携带 taskType 且无 tools（L2 不走本地路由），使用路由器决策
@@ -163,17 +181,26 @@ class AIService {
     return prompt;
   }
 
+  /** 本地推理采样参数：请求缺省时留空，由 worker 侧回退 DEFAULT_LLM_CONFIG 的值 */
+  private buildLocalOptions(request: LLMRequest): LlmGenerateOptions {
+    return { temperature: request.temperature, maxTokens: request.maxTokens };
+  }
+
   /** 本地模型推理（调用 local-gateway） */
   private async localChatCompletion(request: LLMRequest): Promise<LLMResponse> {
     Logger.info("[AIService] 使用本地模型推理", { taskType: request.taskType });
     const prompt = this.buildLocalPrompt(request);
     let result: string;
     try {
-      result = await localGateway.generate(prompt);
+      result = await localGateway.generate(prompt, this.buildLocalOptions(request));
     } catch (error) {
       // 保留底层清晰错误（如「本地 LLM 加载失败：缺少模型文件路径」/「本地 LLM 未加载」）
       Logger.error("[AIService] 本地 LLM 未就绪或推理失败", { error: String(error) });
       throw error;
+    }
+    if (!result.trim()) {
+      Logger.error("[AIService] 本地 LLM 返回空内容", { taskType: request.taskType });
+      throw new Error(LOCAL_EMPTY_OUTPUT);
     }
     return {
       id: `local-${Date.now()}`,
@@ -198,6 +225,8 @@ class AIService {
     let notify: (() => void) | null = null;
     let done = false;
     let error: unknown = null;
+    // 累计已下发内容：结束时据此判断这一轮到底有没有产出
+    let produced = "";
 
     // 唤醒正在等待的消费者（若有）
     const wake = (): void => {
@@ -208,10 +237,14 @@ class AIService {
       }
     };
 
-    const generation = localGateway.generateStream(prompt, undefined, (token) => {
-      queue.push(token);
-      wake();
-    });
+    const generation = localGateway.generateStream(
+      prompt,
+      this.buildLocalOptions(request),
+      (token) => {
+        queue.push(token);
+        wake();
+      },
+    );
     generation.then(
       () => {
         done = true;
@@ -226,7 +259,9 @@ class AIService {
 
     while (true) {
       if (queue.length > 0) {
-        yield { content: queue.shift() as string, finishReason: null, usage: null };
+        const token = queue.shift() as string;
+        produced += token;
+        yield { content: token, finishReason: null, usage: null };
         continue;
       }
       if (error) throw error;
@@ -235,6 +270,12 @@ class AIService {
         notify = resolve;
       });
       // await 返回后回到循环顶部，重新检查 queue / error / done，避免漏 token 或竞态
+    }
+
+    // 一个 token 也没产出：与思考型模型的「主回复为空」同源，不能当成正常结束
+    if (!produced.trim()) {
+      Logger.error("[AIService] 本地 LLM 流式推理无产出", { taskType: request.taskType });
+      throw new Error(LOCAL_EMPTY_OUTPUT);
     }
 
     // 结束标记（与 openai 适配器一致：最后一个 chunk 携带 stop）

@@ -55,6 +55,7 @@ Thumbs.db
 # documentation
 .wrisp
 .tmp-shots
+docs/product
 
 # Dev runtime artifacts（开发/测试运行时在项目根产生的临时数据）
 # config/：测试环境下 electron-store 回退到 cwd 生成的配置；真实运行路径是 <userData>/config

@@ -23,3 +23,13 @@ export const CHUNK_SEMANTIC_THRESHOLD_LOG = 0.75;
 export const CHUNK_SEMANTIC_THRESHOLD_NARRATIVE = 0.55;
 /** L4 延迟分块的文档编码 Token 上限（接口占位，当前未实现） */
 export const CHUNK_LATE_CHUNKING_MAX_TOKENS = 8192;
+
+/**
+ * 摘要阶段判定「有正文可摘要」的最低字数（口径：剥掉 Markdown 后的正文，见 countProseWords）。
+ *
+ * 低于 12 字的块只剩标题、图注、一行清单之类的内容，模型要么复述原文、
+ * 要么编造；这些块直接打阶段标记跳过，既省推理也免得一整轮都在空转。
+ * 取值参考：一句最短的完整中文陈述约 8~15 字，12 字以下的块基本不构成论述。
+ */
+export const CHUNK_SUMMARY_MIN_PROSE_WORDS = 12;
+

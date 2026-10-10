@@ -1,8 +1,9 @@
 /**
  * Worker 嵌入模型推理 handler
  */
-import type { FeatureExtractionPipeline, Tensor } from "@xenova/transformers";
+import type { FeatureExtractionPipeline, Tensor } from "@huggingface/transformers";
 import type { TransformersModelPaths } from "../types";
+import { Logger } from "@/main/utils/logger";
 
 let embeddingPipeline: FeatureExtractionPipeline | null = null;
 let embeddingModelName = "Xenova/bge-m3";
@@ -10,23 +11,37 @@ let embeddingModelName = "Xenova/bge-m3";
 export async function load(config?: {
   modelName?: string;
   transformers?: TransformersModelPaths;
+  intraOpNumThreads?: number;
 }): Promise<{ modelName: string }> {
   if (config?.modelName) embeddingModelName = config.modelName;
-  const { pipeline, env } = await import("@xenova/transformers");
+  const { pipeline, env } = await import("@huggingface/transformers");
 
   const paths = config?.transformers;
   if (paths) {
     // 强制从本地下载目录读取：关闭远程回退并指定本地模型根目录
     env.allowRemoteModels = false;
+    env.allowLocalModels = true;
     env.localModelPath = paths.modelRoot;
   }
 
+  const intraOpNumThreads = config?.intraOpNumThreads;
   embeddingPipeline = await pipeline(
     "feature-extraction",
     paths?.modelDir ?? embeddingModelName,
-    paths ? { quantized: false, model_file_name: paths.modelFileName } : undefined,
+    // 只给 dtype：库按 `onnx/model<后缀>.onnx` 拼文件名，再给 model_file_name 会拼成双后缀
+    paths
+      ? {
+          dtype: paths.dtype,
+          // 线程只能在建会话时定：v4 的会话对象没有 options，事后改不了。
+          // 不传则 ORT 按全部逻辑核建线程池（智能整理期间就是 CPU 飙高的主因之一）。
+          ...(intraOpNumThreads
+            ? { session_options: { intraOpNumThreads } }
+            : {}),
+        }
+      : undefined,
   ) as FeatureExtractionPipeline;
 
+  Logger.info("[EmbeddingHandler] 嵌入模型已加载", { intraOpNumThreads: intraOpNumThreads ?? "default" });
   return { modelName: paths?.modelDir ?? embeddingModelName };
 }
 

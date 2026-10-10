@@ -7,6 +7,7 @@ import {
 } from "@/shared/enums";
 import { PROFESSION } from "@/shared/enums/profession.enums";
 import { TimeUtil } from "@/shared/utils";
+import { DEFAULT_SMART_TASK_CONFIG } from "@/shared/constants/smart-task.constants";
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
   general: {
@@ -53,5 +54,6 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     remoteUpdateEnabled: false,
     remoteUpdateUrl: "",
   },
+  smartTask: DEFAULT_SMART_TASK_CONFIG,
   shortcuts: [],
 };

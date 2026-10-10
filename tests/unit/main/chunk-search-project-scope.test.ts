@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@/main/core/services/ai/vector.service", () => ({
   vectorService: {
-    searchBlockEmbeddings: vi.fn(async () => []),
+    searchChunkEmbeddings: vi.fn(async () => []),
   },
 }));
 
@@ -11,6 +11,9 @@ vi.mock("@/main/core/services/ai/vector.service", () => ({
 vi.mock("@/main/core/db", () => ({
   ChunkDao: class {
     searchFts = vi.fn(() => []);
+    findByIds = vi.fn(() => []);
+  },
+  PageDao: class {
     findByIds = vi.fn(() => []);
   },
   ProjectChunkDao: class {
@@ -42,7 +45,7 @@ import { SEARCH_TYPE } from "@/shared/enums";
 describe("chunkService.search 作品隔离", () => {
   it("把 projectId 透传给向量检索", async () => {
     await chunkService.search("关键词", 5, SEARCH_TYPE.SEMANTIC, "p1");
-    expect(vectorService.searchBlockEmbeddings).toHaveBeenCalledWith(
+    expect(vectorService.searchChunkEmbeddings).toHaveBeenCalledWith(
       expect.objectContaining({ projectId: "p1" }),
     );
   });

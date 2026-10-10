@@ -127,7 +127,7 @@ export default defineConfig({
                 '@lancedb/lancedb',
                 /@lancedb\/.*/,
                 'apache-arrow',
-                '@xenova/transformers',
+                '@huggingface/transformers',
                 'electron-updater',
               ],
               output: {
@@ -170,7 +170,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron', '@xenova/transformers', 'node-llama-cpp'],
+              external: ['electron', '@huggingface/transformers', 'node-llama-cpp'],
               output: {
                 format: 'cjs',
                 // node-llama-cpp 为 ESM 包，CJS worker 必须保留真正的 import() 动态加载

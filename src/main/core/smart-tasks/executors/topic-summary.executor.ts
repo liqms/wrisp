@@ -46,6 +46,7 @@ export class TopicSummaryExecutor implements TaskExecutor {
     const result = await aiService.chatCompletion({
       messages: [{ role: "user", content: prompt }],
       taskType: TASK_TYPE.TOPIC_SUMMARY,
+      background: true,
     });
     return result.content;
   }

@@ -1,7 +1,7 @@
 /**
  * 智能任务执行器类型定义
  */
-import { Timestamp, type SmartTaskRunStatus } from "@/shared/types";
+import type { SmartTaskRunStatus } from "@/shared/types";
 
 export type {
   SmartTaskStep,
@@ -16,8 +16,6 @@ export type {
 export interface TaskContext {
   /** 执行 ID */
   executionId: string;
-  /** 增量范围：仅处理 updated_at > 此值的实体 */
-  processedUntil: Timestamp | null;
   /** 取消信号 */
   cancelSignal: { cancelled: boolean };
   /** 暂停信号 */
@@ -30,8 +28,13 @@ export interface TaskResult {
   taskName: string;
   /** 是否成功 */
   success: boolean;
-  /** 处理的实体数量 */
+  /** 处理的实体数量（不含失败条目；失败条目不写阶段标记，下一轮重试） */
   processedCount: number;
+  /**
+   * 本轮失败的条目数。未报告的阶段（主题类任务）为 undefined，
+   * 消费方按「未统计」处理，不要当成 0。
+   */
+  failedCount?: number;
   /** 错误信息（失败时） */
   error?: string;
   /** 额外的执行摘要 */

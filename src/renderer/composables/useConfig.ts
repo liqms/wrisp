@@ -1,6 +1,7 @@
 import { computed, watch } from "vue";
 import { useConfigStore } from "@/renderer/store/config.store";
-import type { AppConfig, KeymapItem } from "@/shared/types";
+import type { AppConfig, KeymapItem, SmartTaskConfig } from "@/shared/types";
+import { DEFAULT_SMART_TASK_CONFIG } from "@/shared/constants/smart-task.constants";
 import {
   THEME_MODE,
   LOCALE,
@@ -47,6 +48,13 @@ export function useConfig(options: UseConfigOptions = {}) {
   const currentProjectId = computed(() => config.value?.currentProjectId ?? "");
   const workspace = computed(() => config.value?.workspace ?? "");
 
+  /**
+   * 智能整理调参。历史配置里可能整块缺失（可选键），此处兜底默认值，
+   * 设置页因此不必逐字段判空。
+   */
+  const smartTask = computed<SmartTaskConfig>(
+    () => ({ ...DEFAULT_SMART_TASK_CONFIG, ...(config.value?.smartTask ?? {}) }),
+  );
 
 
   // 主题相关
@@ -58,8 +66,7 @@ export function useConfig(options: UseConfigOptions = {}) {
   );
 
   // 用户信息
-  const userInfo = computed(() => config.value?.userInfo ?? null);
-  const isAuthenticated = computed(() => {
+  const userInfo = computed(() => config.value?.userInfo ?? null);  const isAuthenticated = computed(() => {
     return !!(userInfo.value?.token && userInfo.value?.token.length > 0);
   });
 
@@ -161,6 +168,19 @@ export function useConfig(options: UseConfigOptions = {}) {
       logger.error(`设置配置项 ${keyPath} 失败`, { keyPath, value, error });
       return false;
     }
+  }
+
+  /**
+   * 更新单个智能整理调参项。
+   * 线程/并发类参数是**加载期生效**：主进程在写入后同步给执行器与本地网关，
+   * 但已加载的模型会话要等下一次重载才换上新值（设置页需提示）。
+   */
+  async function updateSmartTaskValue<K extends keyof SmartTaskConfig>(
+    key: K,
+    value: SmartTaskConfig[K],
+  ): Promise<boolean> {
+    if (smartTask.value[key] === value) return true;
+    return await setValue(`smartTask.${key}`, value);
   }
 
   /**
@@ -382,6 +402,7 @@ export function useConfig(options: UseConfigOptions = {}) {
     registrationDays,
     workspace,
     currentProjectId,
+    smartTask,
     themeMode,
     themeColor,
     locale,
@@ -395,6 +416,7 @@ export function useConfig(options: UseConfigOptions = {}) {
     ensureLoaded,
     getValue,
     setValue,
+    updateSmartTaskValue,
     updateThemeMode,
     updateThemeColor,
     updateJournalDateFormat,

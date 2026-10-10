@@ -8,9 +8,14 @@ import {
   checkModelExist,
   reDownloadModel,
   cancelDownload,
+  getGpuCapability,
+  getThreadBudget,
+  getModelManifest,
+  getDownloadTasks,
 } from "@/main/core/apis/model.api";
 import type { ApiResponse } from "@/shared/types";
-import type { ModelConfig, ModelType } from "@/shared/types/model.types";
+import type { DownloadProgress } from "@/main/types/download.types";
+import type { GpuCapability, ModelConfig, ModelManifestEntry, ModelType, ThreadBudgetInfo } from "@/shared/types/model.types";
 
 export function registerModelHandlers() {
   ipcMain.handle("model:getConfig", async (): Promise<ApiResponse<ModelConfig>> => {
@@ -62,4 +67,20 @@ export function registerModelHandlers() {
       return cancelDownload(groupId);
     },
   );
+
+  ipcMain.handle("model:getGpuCapability", async (): Promise<ApiResponse<GpuCapability>> => {
+    return getGpuCapability();
+  });
+
+  ipcMain.handle("model:getThreadBudget", async (): Promise<ApiResponse<ThreadBudgetInfo>> => {
+    return getThreadBudget();
+  });
+
+  ipcMain.handle("model:getModelManifest", async (): Promise<ApiResponse<ModelManifestEntry[]>> => {
+    return getModelManifest();
+  });
+
+  ipcMain.handle("model:getDownloadTasks", async (): Promise<ApiResponse<DownloadProgress[]>> => {
+    return getDownloadTasks();
+  });
 }

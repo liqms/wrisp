@@ -11,6 +11,9 @@ vi.mock("@/main/core/db", () => ({
     searchFts = m.searchFts;
     findByIds = vi.fn(() => []);
   },
+  PageDao: class {
+    findByIds = vi.fn(() => []);
+  },
   ProjectChunkDao: class {
     findBy = m.findBy;
   },
@@ -27,7 +30,7 @@ vi.mock("@/main/core/db", () => ({
 }));
 
 vi.mock("@/main/core/services/ai/vector.service", () => ({
-  vectorService: { searchBlockEmbeddings: vi.fn(async () => []) },
+  vectorService: { searchChunkEmbeddings: vi.fn(async () => []) },
 }));
 
 // 关键：本地向量模型不可用 → 走全文检索降级路径

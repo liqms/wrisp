@@ -1,96 +1,55 @@
 /**
  * 进度管理器
- * 负责计算和推送任务执行进度
+ * 汇总各任务上报的条数，写入步骤明细并推送快照。
+ *
+ * 整体百分比一律来自 stepManager（唯一加权口径）；本类不再自行换算，
+ * 也不另发 `smart-task:progress` 通道 —— 渲染层只订阅 `smart-task:snapshot`，
+ * 两套口径并存正是「进度条跳变」的来源。
  */
-import { BrowserWindow } from "electron";
 import { ProgressUpdate, TaskResult } from "./types";
 import { stepManager } from "./step.manager";
-import { Logger } from "@/main/utils/logger";
 
 class ProgressManager {
   private taskProgress = new Map<string, { current: number; total: number }>();
   private taskResults: TaskResult[] = [];
-  private totalTaskCount = 0;
-  /** 上次推送时间戳（节流用） */
-  private lastPushTime = 0;
-  /** 推送节流间隔（毫秒） */
-  private readonly PUSH_THROTTLE_MS = 200;
 
-  /** 注册所有任务的预计总数 */
+  /** 注册本轮要执行的任务 */
   public registerTasks(taskNames: string[]): void {
-    this.totalTaskCount = taskNames.length;
     this.taskProgress.clear();
     this.taskResults = [];
-    this.lastPushTime = 0;
     for (const name of taskNames) {
       this.taskProgress.set(name, { current: 0, total: 1 });
     }
   }
 
-  /** 更新某个任务的进度（节流推送，避免并行时高频 IPC） */
+  /** 更新某个任务的进度（推送到渲染层由 stepManager 统一节流） */
   public update(taskName: string, current: number, total: number): void {
     this.taskProgress.set(taskName, { current, total });
     // 同步到步骤明细：填充"执行任务"节点的数据量与已处理条数
     stepManager.updateTaskProgress(taskName, current, total);
-    const now = Date.now();
-    if (now - this.lastPushTime >= this.PUSH_THROTTLE_MS) {
-      this.lastPushTime = now;
-      this.pushProgress();
-    }
   }
 
-  /** 记录任务完成（强制推送，不受节流限制） */
+  /** 记录任务完成 */
   public completeTask(result: TaskResult): void {
     this.taskResults.push(result);
-    const p = this.taskProgress.get(result.taskName);
-    if (p) {
-      p.current = p.total;
-    }
     // 同步到步骤明细：写入任务终态与处理结果
     stepManager.completeTask(result);
-    this.lastPushTime = Date.now();
-    this.pushProgress();
   }
 
   /** 获取当前进度 */
   public getProgress(): ProgressUpdate | null {
     if (this.taskProgress.size === 0) return null;
 
-    let totalWeight = 0;
-    let completedWeight = 0;
-
-    for (const [, p] of this.taskProgress) {
-      totalWeight += p.total;
-      completedWeight += p.current;
-    }
-
-    const overallPercent = totalWeight > 0
-      ? Math.round((completedWeight / totalWeight) * 100)
-      : 0;
-
-    // 按已完成任务数计算整体百分比（更直观）
-    const taskBasedPercent = this.totalTaskCount > 0
-      ? Math.round((this.taskResults.length / this.totalTaskCount) * 100)
-      : overallPercent;
+    const { done, total } = stepManager.getWeightedProgress();
 
     return {
       taskName: this.taskResults.length > 0
         ? this.taskResults[this.taskResults.length - 1].taskName
         : "准备中",
-      current: completedWeight,
-      total: totalWeight,
-      overallPercent: taskBasedPercent,
+      current: done,
+      total,
+      overallPercent: stepManager.getSnapshot().overallPercent,
     };
-  }
-
-  /** 获取已完成任务数 */
-  public getCompletedCount(): number {
-    return this.taskResults.length;
-  }
-
-  /** 获取总任务数 */
-  public getTotalCount(): number {
-    return this.totalTaskCount;
   }
 
   /** 获取任务结果列表 */
@@ -102,22 +61,6 @@ class ProgressManager {
   public reset(): void {
     this.taskProgress.clear();
     this.taskResults = [];
-    this.totalTaskCount = 0;
-  }
-
-  /** 推送进度到渲染进程 */
-  private pushProgress(): void {
-    const progress = this.getProgress();
-    if (!progress) return;
-
-    const windows = BrowserWindow.getAllWindows();
-    for (const win of windows) {
-      try {
-        win.webContents.send("smart-task:progress", progress);
-      } catch (error) {
-        Logger.error("[ProgressManager] 推送进度失败", { error: String(error) });
-      }
-    }
   }
 }
 

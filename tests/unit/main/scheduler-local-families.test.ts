@@ -42,10 +42,11 @@ describe("resolveLocalFamilies", () => {
     expect(families.size).toBe(0);
   });
 
-  it("映射表仅覆盖 3 个 LLM 任务", () => {
+  it("映射表仅覆盖 4 个 LLM 任务", () => {
     expect(Object.keys(TASK_LLM_TASK_TYPE).sort()).toEqual([
       "chunk-summary",
       "concept-extract",
+      "page-summary",
       "topic-summary",
     ]);
   });

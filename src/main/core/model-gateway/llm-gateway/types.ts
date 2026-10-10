@@ -28,6 +28,12 @@ export interface LLMRequest {
   topP?: number;
   stop?: string[];
   stream?: boolean;
+  /**
+   * 后台批量任务（智能整理等）发起的请求。
+   * 并发槽位优先级按「是否用户交互」判定：携带 taskType 不等于用户在等，
+   * 智能整理的摘要/概念/主题任务都带 taskType，若按 taskType 判优先级会与用户请求抢槽。
+   */
+  background?: boolean;
   tools?: Array<{
     type: "function";
     function: {

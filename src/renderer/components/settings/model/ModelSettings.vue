@@ -13,8 +13,8 @@
         <n-switch :value="enableAiMode" class="setting-switch" @update:value="updateEnableAiMode" />
       </n-flex>
       <n-flex v-if="enableAiMode" class="models-item">
-        <DownloadButton v-for="model in modelList" :key="model.id" :title="model.label" :desc="model.desc"
-          :progress="model.progress" :localpath="model.localpath" @click="handleDownload(model)" />
+        <DownloadButton v-for="model in modelRows" :key="model.modelId" :title="model.label" :desc="model.desc"
+          :status="model.status" :progress="model.progress" @click="downloadModelFiles(model.family)" />
       </n-flex>
     </n-card>
     <n-card size="medium" :bordered="false" class="setting-card">
@@ -28,6 +28,21 @@
           }}</n-text>
         </n-flex>
         <n-switch :value="enableCloudAi" class="setting-switch" @update:value="updateEnableCloudAi" />
+      </n-flex>
+    </n-card>
+    <!-- GPU 加速：仅作用于本地 LLM；开关只是授权，实际是否上卡由主进程显存闸门判定 -->
+    <n-card v-if="enableAiMode" size="medium" :bordered="false" class="setting-card">
+      <n-flex class="setting-row">
+        <n-flex align="center" class="setting-content">
+          <n-text class="setting-label">{{
+            t("SETTINGS.AI_SETTINGS.ENABLE_GPU_ACCELERATION")
+          }}</n-text>
+          <n-text class="setting-desc">{{
+            t("SETTINGS.AI_SETTINGS.ENABLE_GPU_ACCELERATION_DESC")
+          }}</n-text>
+          <n-text v-if="gpuStatusText" class="setting-desc gpu-status">{{ gpuStatusText }}</n-text>
+        </n-flex>
+        <n-switch :value="enableGpuAcceleration" class="setting-switch" @update:value="handleGpuToggle" />
       </n-flex>
     </n-card>
     <!-- 云端增强下的本地模型使用范围：默认云端优先，可逐个指定走本地 -->
@@ -82,10 +97,11 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useModel } from "@/renderer/composables";
+import { useModelDownloads } from "@/renderer/composables/useModelDownloads";
 import { ChevronForward } from "@vicons/ionicons5";
-import { useDownloadStore } from "@/renderer/store/download.store";
 import DownloadButton from "../../base/DownloadButton.vue";
 import { toggleLocalLlmTask } from "@/renderer/utils/local-llm-tasks";
+import type { GpuCapability } from "@/shared/types/model.types";
 
 const PAGE_PROVIDERS = "model.providers";
 const PAGE_DEFAULTS = "model.defaults";
@@ -94,8 +110,6 @@ const emit = defineEmits<{
   (e: "navigate", pageKey: string): void;
 }>();
 
-const downloadStore = useDownloadStore();
-
 const { t } = useI18n();
 const {
   config,
@@ -103,10 +117,68 @@ const {
   enableCloudAi,
   updateEnableAiMode,
   updateEnableCloudAi,
-  checkModelExist,
-  downloadModel,
   setValue,
+  enableGpuAcceleration,
+  updateEnableGpuAcceleration,
+  getGpuCapability,
 } = useModel();
+
+// 本地模型清单与下载状态（清单来自主进程，状态由磁盘检查 + 下载事件流合并）
+const {
+  rows: modelRows,
+  refresh: refreshModelStatus,
+  download: downloadModelFiles,
+} = useModelDownloads();
+
+/** GPU 能力快照；null = 尚未探测（开关关闭时恒为 null） */
+const gpuCapability = ref<GpuCapability | null>(null);
+const gpuChecking = ref(false);
+
+/** 切换 GPU 开关：关闭时清空快照，开启时才向后端要一次探测结果 */
+async function handleGpuToggle(enable: boolean): Promise<void> {
+  const updated = await updateEnableGpuAcceleration(enable);
+  if (!updated) return;
+  if (!enable) {
+    gpuCapability.value = null;
+    return;
+  }
+  await refreshGpuCapability();
+}
+
+/** 拉取 GPU 能力快照（首次会触发主进程显存探测，可能耗时） */
+async function refreshGpuCapability(): Promise<void> {
+  gpuChecking.value = true;
+  try {
+    gpuCapability.value = await getGpuCapability();
+  } finally {
+    gpuChecking.value = false;
+  }
+}
+
+/** 开关下方的提示行：告诉用户「开了也不一定用上」的原因 */
+const gpuStatusText = computed(() => {
+  if (!enableGpuAcceleration.value) return "";
+  if (gpuChecking.value) return t("SETTINGS.AI_SETTINGS.GPU_CHECKING");
+
+  const cap = gpuCapability.value;
+  if (!cap || !cap.probed) return t("SETTINGS.AI_SETTINGS.GPU_UNKNOWN");
+  if (cap.usable) {
+    return t("SETTINGS.AI_SETTINGS.GPU_DETECTED", {
+      devices: cap.deviceNames.join(" / "),
+      total: cap.totalVramGB,
+      free: cap.freeVramGB,
+    });
+  }
+  if (cap.deviceNames.length === 0) return t("SETTINGS.AI_SETTINGS.GPU_NONE");
+  if (cap.reason === "insufficient-vram") {
+    return t("SETTINGS.AI_SETTINGS.GPU_VRAM_SHORT", {
+      devices: cap.deviceNames.join(" / "),
+      free: cap.freeVramGB,
+      need: cap.requiredVramGB,
+    });
+  }
+  return t("SETTINGS.AI_SETTINGS.GPU_CPU_FALLBACK");
+});
 
 /** 可指定「走本地」的 3 个 LLM 任务（与后端 TASK_LLM_TASK_TYPE 对应） */
 const LLM_TASK_DEFS = [
@@ -139,75 +211,14 @@ async function toggleLocalTask(
   );
 }
 
-// 模型定义（与后端 model-registry.ts 保持一致）
-const MODEL_DEFS = [
-  { id: "bge-m3", family: "embedding", labelKey: "MODELS.EMBEDDINGS", descKey: "MODELS.EMBEDDINGS_DESC" },
-  { id: "bge-reranker-v2-m3", family: "reranker", labelKey: "MODELS.RERANKER", descKey: "MODELS.RERANKER_DESC" },
-  { id: "qwen3.5-4b", family: "llm", labelKey: "MODELS.LANGUAGE", descKey: "MODELS.LANGUAGE_DESC" },
-] as const;
-
-type ModelDef = (typeof MODEL_DEFS)[number];
-
-// 模型下载状态（从后端查询）
-const modelExistStatus = ref<Record<string, boolean>>({});
-const loadingModelStatus = ref(false);
-
-// 刷新模型下载状态
-async function refreshModelStatus() {
-  loadingModelStatus.value = true;
-  try {
-    const result = await checkModelExist();
-    if (result) {
-      modelExistStatus.value = result;
-    }
-  } finally {
-    loadingModelStatus.value = false;
-  }
-}
-
-// 触发模型下载：llm 走 core，其余走 base
-async function handleDownload(model: { family: ModelDef["family"] }) {
-  await downloadModel(model.family === "llm" ? "core" : "base");
-  await refreshModelStatus();
-}
-
-// 模型列表（合并后端状态和下载进度）
-const modelList = computed(() => {
-  return MODEL_DEFS.map((def) => {
-    const exists = modelExistStatus.value[def.id];
-    // 从 downloadStore 查找该模型的下载进度
-    let progress = 0;
-    let localpath = exists ? "downloaded" : "";
-
-    // 遍历所有下载组，查找匹配的文件
-    for (const group of downloadStore.allGroupsProgress) {
-      if (!group) continue;
-      for (const file of group.files) {
-        if (file.url.toLowerCase().includes(def.id.toLowerCase())) {
-          progress = file.progress;
-          if (file.status === "completed") {
-            localpath = file.localPath || "downloaded";
-          }
-          break;
-        }
-      }
-    }
-
-    return {
-      id: def.id,
-      family: def.family,
-      label: t(def.labelKey),
-      desc: t(def.descKey),
-      progress,
-      localpath,
-    };
-  });
-});
-
 // 初始化：加载模型状态
 onMounted(async () => {
   if (enableAiMode.value) {
     await refreshModelStatus();
+    // 开关此前已打开：取回能力快照展示（快照在后端缓存，不会重复探测）
+    if (enableGpuAcceleration.value) {
+      await refreshGpuCapability();
+    }
   }
 });
 
@@ -282,6 +293,10 @@ watch(enableAiMode, (val) => {
 
 .local-task-list {
   gap: 8px;
+  margin-top: $spacing-xs;
+}
+
+.gpu-status {
   margin-top: $spacing-xs;
 }
 </style>

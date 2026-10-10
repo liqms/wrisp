@@ -1,8 +1,24 @@
 import { configService } from "@/main/core/services/system/config.service";
+import { localAiManager } from "@/main/core/model-gateway/local-gateway";
+import { setSmartTaskConfig } from "@/main/core/smart-tasks/smart-task.config";
 import { response } from "@/main/utils/response";
 import { ErrorCode } from "@/shared/enums";
 import type { AppConfig, ApiResponse } from "@/shared/types";
 import { Logger } from "@/main/utils/logger";
+
+/**
+ * 把配置中的智能整理调参推给执行器侧的进程内快照，并把线程预算推给本地网关。
+ * 执行器与 manager 都不反向依赖配置服务（保持 node 环境可单测），因此变化由 API 层负责同步。
+ * 线程数与 GPU 开关一样是**加载期生效**：改动在下一次模型加载时才起作用。
+ */
+function syncSmartTaskConfig(): void {
+  const { smartTask } = configService.getConfig();
+  setSmartTaskConfig(smartTask);
+  localAiManager.setThreadBudget({
+    onnx: smartTask?.onnxIntraOpThreads ?? null,
+    llm: smartTask?.llmMaxThreads ?? null,
+  });
+}
 
 /**
  * 获取完整配置
@@ -50,6 +66,7 @@ async function setValue(
 ): Promise<ApiResponse<void>> {
   try {
     configService.setValue(keyPath, value);
+    syncSmartTaskConfig();
     return response.empty();
   } catch (error) {
     Logger.error("设置配置值失败", { error: JSON.stringify(error) });
@@ -64,6 +81,7 @@ async function setValue(
 async function resetConfig(): Promise<ApiResponse<void>> {
   try {
     configService.resetConfig();
+    syncSmartTaskConfig();
     return response.empty();
   } catch (error) {
     Logger.error("重置配置失败", { error: JSON.stringify(error) });

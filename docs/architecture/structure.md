@@ -105,65 +105,65 @@ src/main/
 
 > 作为 IPC Handler 与 Service/DAO 之间的适配层，统一返回 `ResponseWrapper` 格式。
 
-| API              | 文件                  | 职责                                                |
-| :--------------- | :-------------------- | :-------------------------------------------------- |
-| `ai.api`         | `ai.api.ts`           | AI 任务触发与状态查询，调用 AI Skills，智能任务调度 |
-| `attachment.api` | `attachment.api.ts`   | 附件管理                                            |
-| `character.api`  | `character.api.ts`    | 角色管理                                            |
-| `concept.api`    | `concept.api.ts`      | 概念查询                                            |
-| `config.api`     | `config.api.ts`       | 配置读写                                            |
-| `journal.api`    | `journal.api.ts`      | Journal 块 CRUD                                     |
-| `logger.api`     | `logger.api.ts`       | 日志记录                                            |
-| `model.api`      | `model.api.ts`        | 模型配置、下载管理                                  |
-| `page.api`       | `page.api.ts`         | 页面 CRUD、排序                                     |
-| `project.api`    | `project.api.ts`      | 项目与页面管理                                      |
-| `reflection.api` | `reflection.api.ts`   | 反思查询                                            |
-| `resource.api`   | `resource.api.ts`     | 资源管理                                            |
-| `search.api`     | `search.api.ts`       | 搜索功能                                            |
-| `skill.api`      | `skill.api.ts`        | Skill 管理                                          |
-| `smart-task.api` | `smart-task.api.ts`   | 智能任务管理                                        |
-| `system.api`     | `system.api.ts`       | 系统信息、系统通知、窗口管理、升级                  |
-| `tag.api`        | `tag.api.ts`          | 标签管理                                            |
-| `task.api`       | `task.api.ts`         | 后台任务管理                                        |
-| `template.api`   | `template.api.ts`     | 模板管理                                            |
-| `topic.api`      | `topic.api.ts`        | 主题查询                                            |
-| `update.api`     | `update.api.ts`       | 应用更新检查                                        |
-| `webview.api`    | `webview.api.ts`      | WebView 生命周期                                    |
-| —                | `index.ts`            | 聚合导出所有 API 模块                               |
+| API              | 文件                | 职责                                                |
+| :--------------- | :------------------ | :-------------------------------------------------- |
+| `ai.api`         | `ai.api.ts`         | AI 任务触发与状态查询，调用 AI Skills，智能任务调度 |
+| `attachment.api` | `attachment.api.ts` | 附件管理                                            |
+| `character.api`  | `character.api.ts`  | 角色管理                                            |
+| `concept.api`    | `concept.api.ts`    | 概念查询                                            |
+| `config.api`     | `config.api.ts`     | 配置读写                                            |
+| `journal.api`    | `journal.api.ts`    | Journal 块 CRUD                                     |
+| `logger.api`     | `logger.api.ts`     | 日志记录                                            |
+| `model.api`      | `model.api.ts`      | 模型配置、下载管理                                  |
+| `page.api`       | `page.api.ts`       | 页面 CRUD、排序                                     |
+| `project.api`    | `project.api.ts`    | 项目与页面管理                                      |
+| `reflection.api` | `reflection.api.ts` | 反思查询                                            |
+| `resource.api`   | `resource.api.ts`   | 资源管理                                            |
+| `search.api`     | `search.api.ts`     | 搜索功能                                            |
+| `skill.api`      | `skill.api.ts`      | Skill 管理                                          |
+| `smart-task.api` | `smart-task.api.ts` | 智能任务管理                                        |
+| `system.api`     | `system.api.ts`     | 系统信息、系统通知、窗口管理、升级                  |
+| `tag.api`        | `tag.api.ts`        | 标签管理                                            |
+| `task.api`       | `task.api.ts`       | 后台任务管理                                        |
+| `template.api`   | `template.api.ts`   | 模板管理                                            |
+| `topic.api`      | `topic.api.ts`      | 主题查询                                            |
+| `update.api`     | `update.api.ts`     | 应用更新检查                                        |
+| `webview.api`    | `webview.api.ts`    | WebView 生命周期                                    |
+| —                | `index.ts`          | 聚合导出所有 API 模块                               |
 
 ### 3.4 `core/db/` — 数据访问层（DAO）
 
 > 所有 DAO 继承 `BaseDao<T, C, U>`，使用 better-sqlite3 + WAL 模式 + 外键约束。
 > 共 23 个 DAO 文件（不含 `base.dao`）。
 
-| DAO                        | 对应表              | 职责                                               |
-| :------------------------- | :------------------ | :------------------------------------------------- |
-| `base.dao.ts`              | —                   | 泛型基类 DAO，封装 CRUD + 分页 + 条件查询          |
-| `connection.ts`            | —                   | 数据库连接管理（单例，WAL 模式）                   |
-| `character.dao.ts`         | `characters`        | 角色实体 CRUD                                      |
-| `chunk.dao.ts`             | `semantic_chunks`   | 语义块 CRUD、搜索                                  |
-| `tag.dao.ts`               | `tags`              | 标签定义 CRUD                                      |
-| `taggedItem.dao.ts`        | `tagged_items`      | 标签-实体多态关联                                  |
-| `semanticLink.dao.ts`      | `semantic_links`    | 语义链接 CRUD、相似度查询                          |
-| `concept.dao.ts`           | `concepts`          | 概念实体 CRUD、搜索、演化摘要更新                  |
-| `conceptChunk.dao.ts`      | `concept_chunks`    | 概念-语义块关联（多对多）                          |
-| `topic.dao.ts`             | `topics`            | 主题 CRUD                                          |
-| `topicChunk.dao.ts`        | `topic_chunks`      | 主题-语义块关联                                    |
-| `topicConcept.dao.ts`      | `topic_concepts`    | 主题-概念关联                                      |
-| `temporalEvent.dao.ts`     | `temporal_events`   | 时间事件记录                                       |
-| `reflection.dao.ts`        | `reflections`       | 反思记录 CRUD                                      |
-| `reflectionChunk.dao.ts`   | `reflection_chunks` | 反思-语义块关联                                    |
-| `project.dao.ts`           | `projects`          | 创作项目 CRUD                                      |
-| `projectChunk.dao.ts`      | `project_chunks`    | 项目-语义块关联                                    |
-| `page.dao.ts`              | `pages`             | 项目页面 CRUD、排序                                |
-| `creationSession.dao.ts`   | `creation_sessions` | 创作会话 CRUD                                      |
-| `fileIndex.dao.ts`         | `file_index`        | 文件索引 CRUD                                      |
-| `migrationDb.dao.ts`       | `migrations_db`     | 数据库迁移版本记录                                 |
-| `vector.dao.ts`            | LanceDB             | 向量存储访问                                       |
-| `task.dao.ts`              | `tasks`             | 后台任务定义 CRUD                                  |
-| `taskExecution.dao.ts`     | `task_executions`   | 任务执行记录                                       |
-| `skillExecution.dao.ts`    | `skill_executions`  | AI Skills 执行记录                                 |
-| —                          | `index.ts`          | 聚合导出所有 DAO                                   |
+| DAO                      | 对应表              | 职责                                      |
+| :----------------------- | :------------------ | :---------------------------------------- |
+| `base.dao.ts`            | —                   | 泛型基类 DAO，封装 CRUD + 分页 + 条件查询 |
+| `connection.ts`          | —                   | 数据库连接管理（单例，WAL 模式）          |
+| `character.dao.ts`       | `characters`        | 角色实体 CRUD                             |
+| `chunk.dao.ts`           | `semantic_chunks`   | 语义块 CRUD、搜索                         |
+| `tag.dao.ts`             | `tags`              | 标签定义 CRUD                             |
+| `taggedItem.dao.ts`      | `tagged_items`      | 标签-实体多态关联                         |
+| `semanticLink.dao.ts`    | `semantic_links`    | 语义链接 CRUD、相似度查询                 |
+| `concept.dao.ts`         | `concepts`          | 概念实体 CRUD、搜索、演化摘要更新         |
+| `conceptChunk.dao.ts`    | `concept_chunks`    | 概念-语义块关联（多对多）                 |
+| `topic.dao.ts`           | `topics`            | 主题 CRUD                                 |
+| `topicChunk.dao.ts`      | `topic_chunks`      | 主题-语义块关联                           |
+| `topicConcept.dao.ts`    | `topic_concepts`    | 主题-概念关联                             |
+| `temporalEvent.dao.ts`   | `temporal_events`   | 时间事件记录                              |
+| `reflection.dao.ts`      | `reflections`       | 反思记录 CRUD                             |
+| `reflectionChunk.dao.ts` | `reflection_chunks` | 反思-语义块关联                           |
+| `project.dao.ts`         | `projects`          | 创作项目 CRUD                             |
+| `projectChunk.dao.ts`    | `project_chunks`    | 项目-语义块关联                           |
+| `page.dao.ts`            | `pages`             | 项目页面 CRUD、排序                       |
+| `creationSession.dao.ts` | `creation_sessions` | 创作会话 CRUD                             |
+| `fileIndex.dao.ts`       | `file_index`        | 文件索引 CRUD                             |
+| `migrationDb.dao.ts`     | `migrations_db`     | 数据库迁移版本记录                        |
+| `vector.dao.ts`          | LanceDB             | 向量存储访问                              |
+| `task.dao.ts`            | `tasks`             | 后台任务定义 CRUD                         |
+| `taskExecution.dao.ts`   | `task_executions`   | 任务执行记录                              |
+| `skillExecution.dao.ts`  | `skill_executions`  | AI Skills 执行记录                        |
+| —                        | `index.ts`          | 聚合导出所有 DAO                          |
 
 ### 3.5 `core/migration/` — 迁移管理
 
@@ -237,67 +237,67 @@ src/main/
 
 **Main Services（51 个）：**
 
-| Service                        | 文件                              | 职责                                         |
-| :----------------------------- | :-------------------------------- | :------------------------------------------- |
-| `ai.service`                   | `ai.service.ts`                   | AI 任务编排、模型调度                        |
-| `attachment.service`           | `attachment.service.ts`           | 附件管理                                     |
-| `character.service`            | `character.service.ts`            | 角色管理                                     |
-| `chunk.service`                | `chunk.service.ts`                | 语义块管理                                   |
-| `cleanup.service`              | `cleanup.service.ts`              | 定时清理任务                                 |
-| `concept.service`              | `concept.service.ts`              | 概念查询逻辑                                 |
-| `config.service`               | `config.service.ts`               | 配置管理                                     |
-| `creation-session.service`     | `creation-session.service.ts`     | 创作会话管理                                 |
-| `download.service`             | `download.service.ts`             | 通用下载管理（模型文件下载）                 |
-| `gate-calibration.service`     | `gate-calibration.service.ts`     | 门控校准                                     |
-| `hard-constraint.service`      | `hard-constraint.service.ts`      | 硬约束检查                                   |
-| `inline-token-sync.service`    | `inline-token-sync.service.ts`    | 行内 Token 同步                              |
-| `journal.service`              | `journal.service.ts`              | Journal 块管理、CRUD                         |
-| `material-search.service`      | `material-search.service.ts`      | 素材搜索                                     |
-| `model.service`                | `model.service.ts`                | 模型下载/加载/卸载                           |
-| `model-meta.service`           | `model-meta.service.ts`           | 模型元信息管理                               |
-| `notification.service`         | `notification.service.ts`         | 系统通知管理                                 |
-| `outline-parser.service`       | `outline-parser.service.ts`       | 大纲解析                                     |
-| `outline-material-prefetch`    | `outline-material-prefetch.service.ts` | 大纲素材预取                            |
-| `page.service`                 | `page.service.ts`                 | 页面 CRUD 逻辑                               |
-| `page-creation.service`        | `page-creation.service.ts`        | 页面创建                                     |
-| `page-write-context.service`   | `page-write-context.service.ts`   | 页面写入上下文                               |
-| `preference-fragment.service`  | `preference-fragment.service.ts`  | 偏好片段管理                                 |
-| `preference-signals.service`   | `preference-signals.service.ts`   | 偏好信号管理                                 |
-| `project.service`              | `project.service.ts`              | 项目生命周期管理                             |
-| `reflection.service`           | `reflection.service.ts`           | 反思查询逻辑                                 |
-| `resource-http-client.service` | `resource-http-client.service.ts` | 资源 HTTP 客户端                             |
-| `resource-manifest.service`    | `resource-manifest.service.ts`    | 资源清单管理                                 |
-| `resource-sync.service`        | `resource-sync.service.ts`        | 资源同步                                     |
-| `review.service`               | `review.service.ts`               | 审查管理                                     |
-| `review-criteria.service`      | `review-criteria.service.ts`      | 审查标准管理                                 |
-| `review-outcome.service`       | `review-outcome.service.ts`       | 审查结果管理                                 |
-| `revision-instruction.service` | `revision-instruction.service.ts` | 修订指令管理                                 |
-| `search.service`               | `search.service.ts`               | 搜索功能                                     |
-| `system.service`               | `system.service.ts`               | 系统信息查询、系统通知、窗口管理、升级       |
-| `tag.service`                  | `tag.service.ts`                  | 标签 CRUD 逻辑                               |
-| `template-schema-validator`    | `template-schema-validator.service.ts` | 模板 Schema 校验                        |
-| `template.service`             | `template.service.ts`             | 模板管理                                     |
-| `template-installed.service`   | `template-installed.service.ts`   | 已安装模板管理                               |
-| `template-market.service`      | `template-market.service.ts`      | 模板市场管理                                 |
-| `template-resource-parser`     | `template-resource-parser.service.ts` | 模板资源解析                            |
-| `topic.service`                | `topic.service.ts`                | 主题查询逻辑                                 |
-| `tray.service`                 | `tray.service.ts`                 | 系统托盘管理                                 |
-| `update.service`               | `update.service.ts`               | 应用更新检查、下载、安装（electron-updater） |
-| `vector.service`               | `vector.service.ts`               | LanceDB 向量操作封装                         |
-| `webview.service`              | `webview.service.ts`              | WebView 生命周期管理                         |
-| `window.service`               | `window.service.ts`               | 窗口管理                                     |
-| `work-creation.service`        | `work-creation.service.ts`        | 作品创作管理                                 |
-| `work-intake.service`          | `work-intake.service.ts`          | 作品录入管理                                 |
-| `work-profile-store.service`   | `work-profile-store.service.ts`   | 作品档案存储                                 |
-| `writing-preference.service`   | `writing-preference.service.ts`   | 写作偏好管理                                 |
+| Service                        | 文件                                   | 职责                                         |
+| :----------------------------- | :------------------------------------- | :------------------------------------------- |
+| `ai.service`                   | `ai.service.ts`                        | AI 任务编排、模型调度                        |
+| `attachment.service`           | `attachment.service.ts`                | 附件管理                                     |
+| `character.service`            | `character.service.ts`                 | 角色管理                                     |
+| `chunk.service`                | `chunk.service.ts`                     | 语义块管理                                   |
+| `cleanup.service`              | `cleanup.service.ts`                   | 定时清理任务                                 |
+| `concept.service`              | `concept.service.ts`                   | 概念查询逻辑                                 |
+| `config.service`               | `config.service.ts`                    | 配置管理                                     |
+| `creation-session.service`     | `creation-session.service.ts`          | 创作会话管理                                 |
+| `download.service`             | `download.service.ts`                  | 通用下载管理（模型文件下载）                 |
+| `gate-calibration.service`     | `gate-calibration.service.ts`          | 门控校准                                     |
+| `hard-constraint.service`      | `hard-constraint.service.ts`           | 硬约束检查                                   |
+| `inline-token-sync.service`    | `inline-token-sync.service.ts`         | 行内 Token 同步                              |
+| `journal.service`              | `journal.service.ts`                   | Journal 块管理、CRUD                         |
+| `material-search.service`      | `material-search.service.ts`           | 素材搜索                                     |
+| `model.service`                | `model.service.ts`                     | 模型下载/加载/卸载                           |
+| `model-meta.service`           | `model-meta.service.ts`                | 模型元信息管理                               |
+| `notification.service`         | `notification.service.ts`              | 系统通知管理                                 |
+| `outline-parser.service`       | `outline-parser.service.ts`            | 大纲解析                                     |
+| `outline-material-prefetch`    | `outline-material-prefetch.service.ts` | 大纲素材预取                                 |
+| `page.service`                 | `page.service.ts`                      | 页面 CRUD 逻辑                               |
+| `page-creation.service`        | `page-creation.service.ts`             | 页面创建                                     |
+| `page-write-context.service`   | `page-write-context.service.ts`        | 页面写入上下文                               |
+| `preference-fragment.service`  | `preference-fragment.service.ts`       | 偏好片段管理                                 |
+| `preference-signals.service`   | `preference-signals.service.ts`        | 偏好信号管理                                 |
+| `project.service`              | `project.service.ts`                   | 项目生命周期管理                             |
+| `reflection.service`           | `reflection.service.ts`                | 反思查询逻辑                                 |
+| `resource-http-client.service` | `resource-http-client.service.ts`      | 资源 HTTP 客户端                             |
+| `resource-manifest.service`    | `resource-manifest.service.ts`         | 资源清单管理                                 |
+| `resource-sync.service`        | `resource-sync.service.ts`             | 资源同步                                     |
+| `review.service`               | `review.service.ts`                    | 审查管理                                     |
+| `review-criteria.service`      | `review-criteria.service.ts`           | 审查标准管理                                 |
+| `review-outcome.service`       | `review-outcome.service.ts`            | 审查结果管理                                 |
+| `revision-instruction.service` | `revision-instruction.service.ts`      | 修订指令管理                                 |
+| `search.service`               | `search.service.ts`                    | 搜索功能                                     |
+| `system.service`               | `system.service.ts`                    | 系统信息查询、系统通知、窗口管理、升级       |
+| `tag.service`                  | `tag.service.ts`                       | 标签 CRUD 逻辑                               |
+| `template-schema-validator`    | `template-schema-validator.service.ts` | 模板 Schema 校验                             |
+| `template.service`             | `template.service.ts`                  | 模板管理                                     |
+| `template-installed.service`   | `template-installed.service.ts`        | 已安装模板管理                               |
+| `template-market.service`      | `template-market.service.ts`           | 模板市场管理                                 |
+| `template-resource-parser`     | `template-resource-parser.service.ts`  | 模板资源解析                                 |
+| `topic.service`                | `topic.service.ts`                     | 主题查询逻辑                                 |
+| `tray.service`                 | `tray.service.ts`                      | 系统托盘管理                                 |
+| `update.service`               | `update.service.ts`                    | 应用更新检查、下载、安装（electron-updater） |
+| `vector.service`               | `vector.service.ts`                    | LanceDB 向量操作封装                         |
+| `webview.service`              | `webview.service.ts`                   | WebView 生命周期管理                         |
+| `window.service`               | `window.service.ts`                    | 窗口管理                                     |
+| `work-creation.service`        | `work-creation.service.ts`             | 作品创作管理                                 |
+| `work-intake.service`          | `work-intake.service.ts`               | 作品录入管理                                 |
+| `work-profile-store.service`   | `work-profile-store.service.ts`        | 作品档案存储                                 |
+| `writing-preference.service`   | `writing-preference.service.ts`        | 写作偏好管理                                 |
 
 **Base Services（3 个，`services/base/`）：**
 
-| Service                  | 文件                          | 职责                                  |
-| :----------------------- | :---------------------------- | :------------------------------------ |
-| `auto.service`           | `auto.service.ts`             | 自动任务管理（空闲检测、后台处理）    |
-| `file.service`           | `file.service.ts`             | 文件管理（同步、hash 比对）           |
-| `workspace-init.service` | `workspace-init.service.ts`   | 首次启动工作空间扫描、file_index 构建 |
+| Service                  | 文件                        | 职责                                  |
+| :----------------------- | :-------------------------- | :------------------------------------ |
+| `auto.service`           | `auto.service.ts`           | 自动任务管理（空闲检测、后台处理）    |
+| `file.service`           | `file.service.ts`           | 文件管理（同步、hash 比对）           |
+| `workspace-init.service` | `workspace-init.service.ts` | 首次启动工作空间扫描、file_index 构建 |
 
 ### 3.9 `core/skills/` — AI Skills 引擎
 
@@ -317,21 +317,23 @@ src/main/
 
 ### 3.10 `core/smart-tasks/` — 智能任务编排
 
-> AI 后台处理流水线定义（语义拆分 → 摘要 → 概念提取 → 语义链接 → 主题检测）。
+> AI 后台处理流水线定义（chunk 级 6 步：语义拆分 → 摘要 → 向量化 → 概念提取 → 语义链接 → 主题检测 → 主题摘要；页级 2 步：页级摘要 → 页级向量化）。
 
-| 文件/目录                                 | 职责                           |
-| :---------------------------------------- | :----------------------------- |
-| `executors/chunk-summary.executor.ts`     | 语义块摘要生成                 |
-| `executors/chunk-vectorize.executor.ts`   | 语义块向量化                   |
-| `executors/concept-extract.executor.ts`   | 概念提取                       |
-| `executors/semantic-link.executor.ts`     | 语义链接建立                   |
-| `executors/topic-detection.executor.ts`   | 主题聚类检测                   |
-| `executors/topic-summary.executor.ts`     | 主题摘要生成                   |
-| `scheduler.ts`                            | 智能任务调度器                 |
-| `task-dag.ts`                             | 任务有向无环图定义（执行顺序） |
-| `progress.manager.ts`                     | 进度管理                       |
-| `types.ts`                                | 智能任务类型定义               |
-| `index.ts`                                | 智能任务入口                   |
+| 文件/目录                               | 职责                           |
+| :-------------------------------------- | :----------------------------- |
+| `executors/chunk-summary.executor.ts`   | 语义块摘要生成                 |
+| `executors/chunk-vectorize.executor.ts` | 语义块向量化                   |
+| `executors/concept-extract.executor.ts` | 概念提取                       |
+| `executors/semantic-link.executor.ts`   | 语义链接建立                   |
+| `executors/topic-detection.executor.ts` | 主题聚类检测                   |
+| `executors/topic-summary.executor.ts`   | 主题摘要生成                   |
+| `executors/page-summary.executor.ts`    | 页面级摘要生成（聚合块摘要）   |
+| `executors/page-vectorize.executor.ts`  | 页面级向量化（页级粗召回）     |
+| `scheduler.ts`                          | 智能任务调度器                 |
+| `task-dag.ts`                           | 任务有向无环图定义（执行顺序） |
+| `progress.manager.ts`                   | 进度管理                       |
+| `types.ts`                              | 智能任务类型定义               |
+| `index.ts`                              | 智能任务入口                   |
 
 ### 3.11 `core/task-queue/` — 后台任务队列
 
@@ -345,44 +347,44 @@ src/main/
 
 ### 3.12 `core/vector/` — 向量数据库
 
-| 文件                | 职责                                        |
-| :------------------ | :------------------------------------------ |
-| `block-search.ts`   | 语义块搜索                                  |
-| `lancedb.ts`        | LanceDB 连接管理 + CRUD 封装（IVF-PQ 索引） |
-| `project-filter.ts` | 项目过滤                                    |
-| `vector-payload.ts` | 向量负载                                    |
+| 文件                        | 职责                                        |
+| :-------------------------- | :------------------------------------------ |
+| `chunk-embedding-search.ts` | Chunk 向量搜索                              |
+| `lancedb.ts`                | LanceDB 连接管理 + CRUD 封装（IVF-PQ 索引） |
+| `project-filter.ts`         | 项目过滤                                    |
+| `vector-payload.ts`         | 向量负载                                    |
 
 ### 3.13 `ipcMain/` — IPC 通道处理（23 个）
 
 > 采用 4 层 IPC 模式：`preload module → API → ipcMain handler → Service/DAO`。
 > 每个文件通过 `ipcMain.handle` / `ipcMain.on` 注册对应 IPC 域。
 
-| IPC 域     | 文件                  | 职责                                                |
-| :--------- | :-------------------- | :-------------------------------------------------- |
-| ai         | `ai.ipc.ts`           | AI 任务触发与状态查询，调用 AI Skills，智能任务调度 |
-| attachment | `attachment.ipc.ts`   | 附件管理                                            |
-| character  | `character.ipc.ts`    | 角色管理                                            |
-| concept    | `concept.ipc.ts`      | 概念查询                                            |
-| config     | `config.ipc.ts`       | 配置读写                                            |
-| journal    | `journal.ipc.ts`      | Journal 块 CRUD                                     |
-| logger     | `logger.ipc.ts`       | 日志记录                                            |
-| model      | `model.ipc.ts`        | 模型配置、下载管理                                  |
-| page       | `page.ipc.ts`         | 页面 CRUD、排序                                     |
-| project    | `project.ipc.ts`      | 项目与页面管理                                      |
-| reflection | `reflection.ipc.ts`   | 反思查询                                            |
-| resource   | `resource.ipc.ts`     | 资源管理                                            |
-| search     | `search.ipc.ts`       | 搜索功能                                            |
-| skill      | `skill.ipc.ts`        | Skill 管理                                          |
-| smart-task | `smart-task.ipc.ts`   | 智能任务管理                                        |
-| system     | `system.ipc.ts`       | 系统信息、系统通知、窗口管理、升级                  |
-| tag        | `tag.ipc.ts`          | 标签管理                                            |
-| task       | `task.ipc.ts`         | 后台任务管理                                        |
-| template   | `template.ipc.ts`     | 模板管理                                            |
-| topic      | `topic.ipc.ts`        | 主题查询                                            |
-| update     | `update.ipc.ts`       | 应用更新检查                                        |
-| webview    | `webview.ipc.ts`      | WebView 生命周期                                    |
-| window     | `window.ipc.ts`       | 窗口管理                                            |
-| —          | `index.ts`            | 聚合注册所有 IPC 通道                               |
+| IPC 域     | 文件                | 职责                                                |
+| :--------- | :------------------ | :-------------------------------------------------- |
+| ai         | `ai.ipc.ts`         | AI 任务触发与状态查询，调用 AI Skills，智能任务调度 |
+| attachment | `attachment.ipc.ts` | 附件管理                                            |
+| character  | `character.ipc.ts`  | 角色管理                                            |
+| concept    | `concept.ipc.ts`    | 概念查询                                            |
+| config     | `config.ipc.ts`     | 配置读写                                            |
+| journal    | `journal.ipc.ts`    | Journal 块 CRUD                                     |
+| logger     | `logger.ipc.ts`     | 日志记录                                            |
+| model      | `model.ipc.ts`      | 模型配置、下载管理                                  |
+| page       | `page.ipc.ts`       | 页面 CRUD、排序                                     |
+| project    | `project.ipc.ts`    | 项目与页面管理                                      |
+| reflection | `reflection.ipc.ts` | 反思查询                                            |
+| resource   | `resource.ipc.ts`   | 资源管理                                            |
+| search     | `search.ipc.ts`     | 搜索功能                                            |
+| skill      | `skill.ipc.ts`      | Skill 管理                                          |
+| smart-task | `smart-task.ipc.ts` | 智能任务管理                                        |
+| system     | `system.ipc.ts`     | 系统信息、系统通知、窗口管理、升级                  |
+| tag        | `tag.ipc.ts`        | 标签管理                                            |
+| task       | `task.ipc.ts`       | 后台任务管理                                        |
+| template   | `template.ipc.ts`   | 模板管理                                            |
+| topic      | `topic.ipc.ts`      | 主题查询                                            |
+| update     | `update.ipc.ts`     | 应用更新检查                                        |
+| webview    | `webview.ipc.ts`    | WebView 生命周期                                    |
+| window     | `window.ipc.ts`     | 窗口管理                                            |
+| —          | `index.ts`          | 聚合注册所有 IPC 通道                               |
 
 ### 3.14 `preload/` — Preload 脚本
 
@@ -390,32 +392,32 @@ src/main/
 
 **`modules/` — 预加载模块（23 个，对应 IPC 域）：**
 
-| 模块文件          | 暴露命名空间              | 职责                           |
-| :---------------- | :------------------------ | :----------------------------- |
-| `ai.ts`           | `window.Wrisp.ai`         | AI 任务、Skills                |
-| `attachment.ts`   | `window.Wrisp.attachment` | 附件管理                       |
-| `character.ts`    | `window.Wrisp.character`  | 角色管理                       |
-| `concept.ts`      | `window.Wrisp.concept`    | 概念查询                       |
-| `config.ts`       | `window.Wrisp.config`     | 配置读写                       |
-| `journal.ts`      | `window.Wrisp.journal`    | Journal CRUD                   |
-| `logger.ts`       | `window.Wrisp.logger`     | 日志记录                       |
-| `model.ts`        | `window.Wrisp.model`      | 模型管理                       |
-| `page.ts`         | `window.Wrisp.page`       | 页面管理                       |
-| `project.ts`      | `window.Wrisp.project`    | 项目管理                       |
-| `reflection.ts`   | `window.Wrisp.reflection` | 反思查询                       |
-| `resource.ts`     | `window.Wrisp.resource`   | 资源管理                       |
-| `search.ts`       | `window.Wrisp.search`     | 搜索功能                       |
-| `skill.ts`        | `window.Wrisp.skill`      | Skill 管理                     |
-| `smart-task.ts`   | `window.Wrisp.smartTask`  | 智能任务管理                   |
-| `system.ts`       | `window.Wrisp.system`     | 系统信息                       |
-| `tag.ts`          | `window.Wrisp.tag`        | 标签管理                       |
-| `task.ts`         | `window.Wrisp.task`       | 任务管理                       |
-| `template.ts`     | `window.Wrisp.template`   | 模板管理                       |
-| `topic.ts`        | `window.Wrisp.topic`      | 主题查询                       |
-| `update.ts`       | `window.Wrisp.update`     | 应用更新                       |
-| `webview.ts`      | `window.Wrisp.webview`    | WebView 管理                   |
-| `window.ts`       | `window.Wrisp.window`     | 窗口管理                       |
-| `index.ts`        | 聚合导出                  | 统一注册所有模块               |
+| 模块文件        | 暴露命名空间              | 职责             |
+| :-------------- | :------------------------ | :--------------- |
+| `ai.ts`         | `window.Wrisp.ai`         | AI 任务、Skills  |
+| `attachment.ts` | `window.Wrisp.attachment` | 附件管理         |
+| `character.ts`  | `window.Wrisp.character`  | 角色管理         |
+| `concept.ts`    | `window.Wrisp.concept`    | 概念查询         |
+| `config.ts`     | `window.Wrisp.config`     | 配置读写         |
+| `journal.ts`    | `window.Wrisp.journal`    | Journal CRUD     |
+| `logger.ts`     | `window.Wrisp.logger`     | 日志记录         |
+| `model.ts`      | `window.Wrisp.model`      | 模型管理         |
+| `page.ts`       | `window.Wrisp.page`       | 页面管理         |
+| `project.ts`    | `window.Wrisp.project`    | 项目管理         |
+| `reflection.ts` | `window.Wrisp.reflection` | 反思查询         |
+| `resource.ts`   | `window.Wrisp.resource`   | 资源管理         |
+| `search.ts`     | `window.Wrisp.search`     | 搜索功能         |
+| `skill.ts`      | `window.Wrisp.skill`      | Skill 管理       |
+| `smart-task.ts` | `window.Wrisp.smartTask`  | 智能任务管理     |
+| `system.ts`     | `window.Wrisp.system`     | 系统信息         |
+| `tag.ts`        | `window.Wrisp.tag`        | 标签管理         |
+| `task.ts`       | `window.Wrisp.task`       | 任务管理         |
+| `template.ts`   | `window.Wrisp.template`   | 模板管理         |
+| `topic.ts`      | `window.Wrisp.topic`      | 主题查询         |
+| `update.ts`     | `window.Wrisp.update`     | 应用更新         |
+| `webview.ts`    | `window.Wrisp.webview`    | WebView 管理     |
+| `window.ts`     | `window.Wrisp.window`     | 窗口管理         |
+| `index.ts`      | 聚合导出                  | 统一注册所有模块 |
 
 **`types/` — Preload 类型定义：**
 
@@ -442,7 +444,7 @@ src/main/
 
 | 文件/目录                                     | 职责                                                               |
 | :-------------------------------------------- | :----------------------------------------------------------------- |
-| `init.sql`                                    | 数据库初始建表 SQL（26 张表：21 张普通表 + 5 张 FTS 虚拟表）        |
+| `init.sql`                                    | 数据库初始建表 SQL（26 张表：21 张普通表 + 5 张 FTS 虚拟表）       |
 | `migrations/`                                 | Schema 迁移 SQL 文件（所有迁移统一存放于此）                       |
 | `migrations/1.0.1_add_smart_task_tables.sql`  | 新增 smart task 表（从 `core/migration/schemas/migrations/` 移入） |
 | `migrations/1.1.1_add_blocks_is_memo.sql`     | blocks 表新增 `is_memo` 列                                         |
@@ -675,8 +677,8 @@ src/renderer/
 | `JournalView.vue`     | Journal 每日日志页，内含 BlockEditor 行内编辑 + SemanticBlock 语义分区 + 标签/双链自动补全                                                                      |
 | `WikiView.vue`        | Wiki 知识体系：内含 ConceptGraph 概念气泡图（concept 数据源）+ TopicList 主题聚类（topic 数据源）+ 反思时间线（reflection 数据源）                              |
 | `ProjectView.vue`     | 创作工作台：内含 ProjectList 项目列表 + OutlineTree 页面大纲树 + AiAssistantPanel AI 助手面板                                                                   |
-| `PageView.vue`        | 项目页面编辑视图                                                                                                                                               |
-| `MarketplaceView.vue` | 模板市场视图                                                                                                                                                   |
+| `PageView.vue`        | 项目页面编辑视图                                                                                                                                                |
+| `MarketplaceView.vue` | 模板市场视图                                                                                                                                                    |
 
 ### 4.12 渲染进程入口
 
@@ -733,32 +735,32 @@ src/shared/
 
 ### 5.4 `types/` — 共享类型
 
-| 文件                       | 职责                                          |
-| :------------------------- | :-------------------------------------------- |
-| `api.types.ts`             | API 请求/响应通用类型                         |
-| `attachment.types.ts`      | 附件相关类型                                  |
-| `base.types.ts`            | 基础类型（分页、排序等）                      |
-| `character.types.ts`       | 角色相关类型                                  |
-| `chunk.types.ts`           | 语义块相关类型                                |
-| `config.types.ts`          | 配置相关类型                                  |
-| `creation-session.types.ts`| 创作会话相关类型                              |
-| `journal.types.ts`         | Journal 相关类型（块、语义块）                |
-| `llm.types.ts`             | LLM 调用相关类型                              |
-| `menu.types.ts`            | 菜单相关类型                                  |
-| `model.types.ts`           | 模型相关类型                                  |
-| `notification.types.ts`    | 通知相关类型                                  |
-| `outline.types.ts`         | 大纲相关类型                                  |
-| `page.types.ts`            | 页面相关类型                                  |
-| `resource.types.ts`        | 资源相关类型                                  |
-| `skill.types.ts`           | Skill 相关类型                                |
-| `system.types.ts`          | 系统信息类型                                  |
-| `tag.types.ts`             | 标签相关类型（从 `@/main/types/db/` 移入）    |
-| `task.types.ts`            | 任务相关类型                                  |
-| `template.types.ts`        | 模板相关类型                                  |
-| `webview.types.ts`         | WebView 相关类型                              |
-| `work-profile.types.ts`    | 作品档案相关类型                              |
-| `writing-preference.types.ts` | 写作偏好相关类型                          |
-| `index.ts`                 | 聚合导出                                      |
+| 文件                          | 职责                                       |
+| :---------------------------- | :----------------------------------------- |
+| `api.types.ts`                | API 请求/响应通用类型                      |
+| `attachment.types.ts`         | 附件相关类型                               |
+| `base.types.ts`               | 基础类型（分页、排序等）                   |
+| `character.types.ts`          | 角色相关类型                               |
+| `chunk.types.ts`              | 语义块相关类型                             |
+| `config.types.ts`             | 配置相关类型                               |
+| `creation-session.types.ts`   | 创作会话相关类型                           |
+| `journal.types.ts`            | Journal 相关类型（块、语义块）             |
+| `llm.types.ts`                | LLM 调用相关类型                           |
+| `menu.types.ts`               | 菜单相关类型                               |
+| `model.types.ts`              | 模型相关类型                               |
+| `notification.types.ts`       | 通知相关类型                               |
+| `outline.types.ts`            | 大纲相关类型                               |
+| `page.types.ts`               | 页面相关类型                               |
+| `resource.types.ts`           | 资源相关类型                               |
+| `skill.types.ts`              | Skill 相关类型                             |
+| `system.types.ts`             | 系统信息类型                               |
+| `tag.types.ts`                | 标签相关类型（从 `@/main/types/db/` 移入） |
+| `task.types.ts`               | 任务相关类型                               |
+| `template.types.ts`           | 模板相关类型                               |
+| `webview.types.ts`            | WebView 相关类型                           |
+| `work-profile.types.ts`       | 作品档案相关类型                           |
+| `writing-preference.types.ts` | 写作偏好相关类型                           |
+| `index.ts`                    | 聚合导出                                   |
 
 ### 5.5 `utils/` — 共享工具函数
 

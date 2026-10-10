@@ -2,12 +2,14 @@ import { TaskExecutor, TaskContext, TaskResult, TaskStatus, SmartTaskSnapshot } 
 import { progressManager } from "./progress.manager";
 import { stepManager, taskStepId, STEP_DONE_ID } from "./step.manager";
 import { getResourceSnapshot } from "./resource-snapshot";
+import { parseEstimatedAmounts } from "./estimate";
 import {
   getTaskLayers,
   groupTasksByModelFamily,
   collectLayerFamilies,
   selectReleasableFamilies,
   resolveLocalFamilies,
+  countCpuBoundFamilies,
 } from "./task-dag";
 import {
   localAiManager,
@@ -18,14 +20,17 @@ import {
 import type { ModelFamily } from "@/main/core/model-gateway/local-gateway";
 import { TaskExecutionDao } from "@/main/core/db/task-execution.dao";
 import { ChunkDao } from "@/main/core/db";
-import { TaskExecutionCreate, TaskExecutionUpdate, Chunk } from "@/main/types/db";
+import { TaskExecutionCreate, TaskExecutionUpdate } from "@/main/types/db";
 import { ChunkVectorizeExecutor } from "./executors/chunk-vectorize.executor";
 import { ChunkSummaryExecutor } from "./executors/chunk-summary.executor";
+import { PageVectorizeExecutor } from "./executors/page-vectorize.executor";
+import { PageSummaryExecutor } from "./executors/page-summary.executor";
 import { SemanticLinkExecutor } from "./executors/semantic-link.executor";
 import { ConceptExtractExecutor } from "./executors/concept-extract.executor";
 import { TopicDetectionExecutor } from "./executors/topic-detection.executor";
 import { TopicSummaryExecutor } from "./executors/topic-summary.executor";
 import { notifyWikiUpdated } from "@/main/core/services/content/wiki-events";
+import { getSmartTaskConfig } from "./smart-task.config";
 import { Logger } from "@/main/utils/logger";
 import { modelRouter } from "@/main/core/model-gateway/router";
 import { generateId } from "@/shared/utils";
@@ -55,6 +60,8 @@ class SmartTaskScheduler {
   private constructor() {
     this.registerExecutor(new ChunkSummaryExecutor());
     this.registerExecutor(new ChunkVectorizeExecutor());
+    this.registerExecutor(new PageSummaryExecutor());
+    this.registerExecutor(new PageVectorizeExecutor());
     this.registerExecutor(new SemanticLinkExecutor());
     this.registerExecutor(new ConceptExtractExecutor());
     this.registerExecutor(new TopicDetectionExecutor());
@@ -100,10 +107,6 @@ class SmartTaskScheduler {
     let stepsStarted = false;
 
     try {
-      // 计算增量范围
-      const latestLog = this.taskExecutionDao.findLatestSucceeded();
-      const processedUntil = latestLog?.processed_until || null;
-
       // 创建执行记录
       const executionId = generateId();
       this.currentExecutionId = executionId;
@@ -125,13 +128,13 @@ class SmartTaskScheduler {
       const orderedTasks = layers.flatMap((layer) =>
         groupTasksByModelFamily(layer).flatMap((group) => group.tasks),
       );
-      stepManager.beginExecution(executionId, orderedTasks);
+      stepManager.beginExecution(executionId, orderedTasks, this.readEstimatedAmounts());
       stepsStarted = true;
 
       // 按 DAG 层级分组并行执行
+      // 增量范围不再由调度器下发：各任务按自己的阶段标记列选取（§3.7）
       const context: TaskContext = {
         executionId,
-        processedUntil,
         cancelSignal: this.cancelSignal,
         pauseSignal: this.pauseSignal,
       };
@@ -169,11 +172,22 @@ class SmartTaskScheduler {
 
           // 阶段二：同层不同 family 组在内存允许时真并行（Step 0 后为独立线程）；
           // 内存不足则回退组间串行（D3），行为与改造前一致。
+          // CPU 侧再叠一道闸：同层的 CPU-bound 组（reranker / 走 CPU 的 llm）>1 时
+          // 并行只是互相抢核心，发热而不提速；限线程后可由配置放开。
+          const cpuBoundCount = countCpuBoundFamilies(
+            layerFamilies,
+            localAiManager.isLlmCpuBound(),
+          );
+          const { allowCpuBoundParallel } = getSmartTaskConfig();
           const canRunParallel =
-            layerFamilies.length > 1 && canLoadModelFamilies(layerFamilies);
+            layerFamilies.length > 1 &&
+            canLoadModelFamilies(layerFamilies) &&
+            (allowCpuBoundParallel || cpuBoundCount <= 1);
           Logger.info("[SmartTaskScheduler] 层内执行模式", {
             layer,
             layerFamilies,
+            cpuBoundCount,
+            allowCpuBoundParallel,
             canRunParallel,
             snapshotBefore,
           });
@@ -221,6 +235,10 @@ class SmartTaskScheduler {
             );
           }
 
+          // 层结束即通知渲染层刷新 Wiki：整轮才通知一次时，用户盯着跑完的概念/主题
+          // 要到最后才可见（§3.8）。通知自带 800ms 去抖，层间隔远大于它，不会被合并掉。
+          notifyWikiUpdated();
+
           if (canRunParallel) {
             Logger.info("[SmartTaskScheduler] 层并行完成", {
               layer,
@@ -237,8 +255,8 @@ class SmartTaskScheduler {
         }
       }
 
-      // 计算最大 updated_at
-      const maxUpdatedAt = this.computeProcessedUntil();
+      // 观测字段：本轮结束时全库的最大 updated_at（不再作选取依据，
+      // 各任务改按自己的阶段标记增量选取，见 §3.7）
       const finalStatus = this.cancelSignal.cancelled ? "cancelled" : "succeeded";
 
       // 更新执行记录
@@ -250,10 +268,14 @@ class SmartTaskScheduler {
             name: r.taskName,
             success: r.success,
             processedCount: r.processedCount,
+            // 失败条目没写阶段标记，下一轮会自动重试；这里如实报数供 UI 明细使用
+            failedCount: r.failedCount ?? 0,
             error: r.error,
           })),
         ),
-        processed_until: maxUpdatedAt,
+        // 取消/失败轮不写水位：它记的是「整库跑到哪」，半途取消写入的值不可信
+        processed_until:
+          finalStatus === "succeeded" ? this.computeProcessedUntil() : null,
       };
       this.taskExecutionDao.update(executionId, update);
 
@@ -495,12 +517,28 @@ class SmartTaskScheduler {
     }
   }
 
-  /** 计算本次处理的 updated_at 最大值 */
+  /**
+   * 全库最大的 `updated_at`，写入执行记录作观测值。
+   *
+   * 用聚合而不是 findAll 再 reduce：后者会把整库语义块读进内存，
+   * 而这里只关心一个时间戳。
+   */
   private computeProcessedUntil(): string | null {
-    const blocks = this.chunkDao.findAll() as Chunk[];
-    if (blocks.length === 0) return null;
-    const max = blocks.reduce((max, b) => (b.updated_at > max ? b.updated_at : max), blocks[0].updated_at);
-    return max;
+    const rows = this.chunkDao.query(
+      "SELECT MAX(updated_at) AS max_updated_at FROM semantic_chunks",
+    ) as unknown as Array<{ max_updated_at: string | null }>;
+    return rows[0]?.max_updated_at ?? null;
+  }
+
+  /**
+   * 上一轮各任务的实际条数，作为本轮尚未开始步骤的加权预估（§3.8）。
+   *
+   * `tasks_summary` 正常轮存 `[{ name, processedCount, failedCount }]`，
+   * 整轮异常时存 `{ error }` 对象——非数组直接当无历史处理，不预估。
+   * 首轮无历史记录时返回空对象，此时 stepManager 回退按步骤数给粗粒度百分比。
+   */
+  private readEstimatedAmounts(): Record<string, number> {
+    return parseEstimatedAmounts(this.taskExecutionDao.findLatest()?.tasks_summary);
   }
 
   private sleep(ms: number): Promise<void> {

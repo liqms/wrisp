@@ -85,7 +85,7 @@ export class TemporalEventDao extends BaseDao<TemporalEvent, TemporalEventCreate
 
   /**
    * 根据指定字段统计时间事件数量
-   * @param field 统计字段 (block_id | event_type)
+   * @param field 统计字段 (chunk_id | event_type)
    * @param value 字段值
    */
   countBy(field: CountByField, value: string | EventType): number {

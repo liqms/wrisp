@@ -27,6 +27,26 @@ export class ConceptChunkDao extends BaseDao<ConceptChunk, ConceptChunkCreate, C
   }
 
   /**
+   * 建立/更新概念-块关联的相关度。
+   *
+   * 同一轮内重复抽取同一概念时，旧实现靠 try/catch 吞掉主键冲突，
+   * relevance_score 便永远停在首次写入值（实为 0）。这里改为 upsert，
+   * 让概念时间线每次重算都能读到最新相关度。
+   * 保留较大值：新一轮把握度更低时不应覆盖既有证据。
+   */
+  upsertAssociation(conceptId: Id, chunkId: Id, relevanceScore: number): void {
+    const timestamp = this.getCurrentTimestamp()
+    const sql = `
+      INSERT INTO ${this.tableName} (concept_id, chunk_id, relevance_score, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(concept_id, chunk_id) DO UPDATE SET
+        relevance_score = MAX(concept_chunks.relevance_score, excluded.relevance_score),
+        updated_at = excluded.updated_at
+    `
+    this.db.prepare(sql).run([conceptId, chunkId, relevanceScore, timestamp, timestamp])
+  }
+
+  /**
    * 检查概念块关联是否存在
    * @param conceptId 概念 ID
    * @param chunkId 块 ID

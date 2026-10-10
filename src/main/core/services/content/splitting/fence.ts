@@ -1,5 +1,5 @@
-/** 围栏开启行：`:::blockType` */
-const FENCE_OPEN_RE = /^\s*:::\s*([a-zA-Z][\w-]*)[ \t]*$/;
+/** 围栏开启行：`:::blockType`（L1 粗块与正文字数统计共用同一判定） */
+export const FENCE_OPEN_RE = /^\s*:::\s*([a-zA-Z][\w-]*)[ \t]*$/;
 /** 围栏闭合行：`:::`（多冒号同样接受，与渲染层 md-codec 一致） */
 const FENCE_CLOSE_RE = /^\s*:::+[ \t]*$/;
 /** 字段行：`key: value` */

@@ -1,119 +1,94 @@
 <template>
-  <n-flex class="download-button" :class="statusClass" @click="handleClick">
+  <n-flex class="download-button" :class="`status-${status}`" @click="emit('click')">
     <n-flex class="download-button-content" align="center">
       <!-- 文字区域 -->
       <n-flex class="text-wrapper">
-        <n-text class="title-text" :depth="isCompleted ? 3 : undefined">
+        <n-text class="title-text" :depth="status === 'completed' ? 3 : undefined">
           {{ title }}
         </n-text>
-        <n-text v-if="desc" class="desc-text" depth="3">
-          {{ desc }}
+        <n-text v-if="statusText || desc" class="desc-text"
+          :class="{ 'desc-text--failed': status === 'failed' }" depth="3">
+          {{ statusText || desc }}
         </n-text>
       </n-flex>
       <!-- 图标区域 -->
       <n-flex class="icon-wrapper" align="center" justify="center">
         <!-- 未下载：下载图标 -->
-        <n-icon v-if="isPending" :size="20" color="var(--primary-color)">
+        <n-icon v-if="status === 'pending'" :size="20" color="var(--primary-color)">
           <CloudDownloadOutline />
         </n-icon>
         <!-- 下载中：进度百分比 -->
-        <n-text v-else-if="isDownloading" class="progress-text">
+        <n-text v-else-if="status === 'downloading'" class="progress-text">
           {{ Math.round(progress) }}%
         </n-text>
         <!-- 下载完成：完成图标 -->
-        <n-icon v-else-if="isCompleted" :size="20" color="var(--primary-color)">
+        <n-icon v-else-if="status === 'completed'" :size="20" color="var(--primary-color)">
           <CheckmarkCircle />
         </n-icon>
+        <!-- 下载失败 -->
+        <n-icon v-else-if="status === 'failed'" :size="20" color="var(--error-color)">
+          <AlertCircleOutline />
+        </n-icon>
+        <!-- 已取消 -->
+        <n-icon v-else :size="20" color="var(--text-third)">
+          <CloseCircleOutline />
+        </n-icon>
       </n-flex>
-
-
     </n-flex>
   </n-flex>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { CloudDownloadOutline, CheckmarkCircle } from "@vicons/ionicons5";
+import { useI18n } from "vue-i18n";
+import {
+  AlertCircleOutline,
+  CheckmarkCircle,
+  CloseCircleOutline,
+  CloudDownloadOutline,
+} from "@vicons/ionicons5";
+import type { ModelDownloadStatus } from "@/renderer/utils/model-download-status";
 
 const props = withDefaults(defineProps<{
   title: string;
   desc?: string;
+  /** 由调用方聚合出的状态；组件不再从 progress/localpath 猜测 */
+  status?: ModelDownloadStatus;
   progress?: number;
-  url?: string;
-  localpath?: string;
 }>(), {
   desc: "",
+  status: "pending",
   progress: 0,
-  url: "",
-  localpath: "",
 });
 
 const emit = defineEmits<{
-  click: [url?: string];
+  click: [];
 }>();
 
-const isPending = computed(() => {
-  return !props.localpath && (props.progress === 0 || props.progress === undefined);
-});
+const { t } = useI18n();
 
-const isDownloading = computed(() => {
-  return props.progress > 0 && props.progress < 100 && !props.localpath;
+/** 失败/取消时描述行改为可操作的提示，此时体积信息没有意义 */
+const statusText = computed(() => {
+  if (props.status === "failed") return t("MODELS.DOWNLOAD_FAILED");
+  if (props.status === "cancelled") return t("MODELS.DOWNLOAD_CANCELLED");
+  return "";
 });
-
-const isCompleted = computed(() => {
-  return !!props.localpath || props.progress >= 100;
-});
-
-const statusClass = computed(() => {
-  if (isCompleted.value) return "status-completed";
-  if (isDownloading.value) return "status-downloading";
-  return "status-pending";
-});
-
-const handleClick = () => {
-  emit("click", props.url);
-};
 </script>
 
 <style scoped lang="scss">
 @use "@/renderer/styles/_variables" as *;
 
 .download-button {
-  // height: 40px !important;
-  // width: 300px !important;
   padding: $spacing-xs $spacing-sm !important;
   border-radius: $radius-sm;
   background-color: var(--bg-primary);
-  // cursor: pointer;
-
-  // &.status-pending {
-  // border: 1px solid var(--bg-primary);
-
-  // &:hover {
-  //   border-color: var(--primary-color);
-  //   transition: all 0.25s ease-in-out;
-  //   box-shadow: 0 0 0 1px var(--primary-color);
-  // }
-  // }
 
   &.status-downloading {
-
-    // border: 1px solid var(--primary-color);
-    // &:hover {
-    //   border-color: var(--primary-color);
-    //   transition: all 0.25s ease-in-out;
-    //   box-shadow: 0 0 0 1px var(--primary-color);
-    // }
-
     .progress-text {
       font-size: $font-xs;
       color: var(--primary-color);
     }
   }
-
-  // &.status-completed {
-  //   border: 1px solid var(--primary-color);
-  // }
 }
 
 .download-button-content {
@@ -127,7 +102,6 @@ const handleClick = () => {
   flex-shrink: 0;
   border-radius: $radius-md;
   margin-left: $spacing-sm;
-  // background-color: var(--bg-secondary);
 }
 
 .text-wrapper {
@@ -143,7 +117,6 @@ const handleClick = () => {
   font-size: $font-xs;
   color: var(--text-third);
   font-weight: $font-medium;
-  // line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -151,10 +124,13 @@ const handleClick = () => {
 
 .desc-text {
   font-size: $font-xs;
-  // line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-left: $spacing-xs;
+
+  &--failed {
+    color: var(--error-color);
+  }
 }
 </style>

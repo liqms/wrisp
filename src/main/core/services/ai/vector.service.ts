@@ -1,8 +1,8 @@
 import type { Connection } from "@lancedb/lancedb";
 import type {
-  BlockEmbedding,
-  BlockEmbeddingCreate,
-  BlockEmbeddingUpdate,
+  ChunkEmbedding,
+  ChunkEmbeddingCreate,
+  ChunkEmbeddingUpdate,
   PageEmbeddingCreate,
   PageEmbeddingUpdate,
   VectorSearchParams,
@@ -10,7 +10,7 @@ import type {
   VectorStats,
 } from "@/main/types/db/vector.types";
 import {
-  BlockVectorDao,
+  ChunkVectorDao,
   PageVectorDao,
 } from "@/main/core/db/vector.dao";
 import { Logger } from "@/main/utils/logger";
@@ -23,7 +23,7 @@ import { initializeLanceDB } from "@/main/core/vector/lancedb";
 class VectorService {
   private static instance: VectorService | null = null;
   private db: Connection | null = null;
-  private blockVectorDao: BlockVectorDao | null = null;
+  private chunkVectorDao: ChunkVectorDao | null = null;
   private pageVectorDao: PageVectorDao | null = null;
   private initialized: boolean = false;
 
@@ -49,7 +49,7 @@ class VectorService {
 
     try {
       this.db = await initializeLanceDB();
-      this.blockVectorDao = new BlockVectorDao(this.db);
+      this.chunkVectorDao = new ChunkVectorDao(this.db);
       this.pageVectorDao = new PageVectorDao(this.db);
       this.initialized = true;
       Logger.info("[VectorService] 向量数据库服务初始化成功");
@@ -65,37 +65,37 @@ class VectorService {
    * 确保服务已初始化
    */
   private ensureInitialized(): void {
-    if (!this.initialized || !this.db || !this.blockVectorDao || !this.pageVectorDao) {
+    if (!this.initialized || !this.db || !this.chunkVectorDao || !this.pageVectorDao) {
       throw new Error("[VectorService] 服务未初始化，请先调用 initialize()");
     }
   }
 
-  // ==================== Block 向量操作 ====================
+  // ==================== Chunk 向量操作 ====================
 
   /**
-   * 创建 Block 向量
+   * 创建 Chunk 向量
    */
-  public async createBlockEmbedding(data: BlockEmbeddingCreate): Promise<void> {
+  public async createChunkEmbedding(data: ChunkEmbeddingCreate): Promise<void> {
     this.ensureInitialized();
     try {
-      await this.blockVectorDao!.create(data);
-      Logger.info("[VectorService] 创建 Block 向量成功", { block_id: data.block_id });
+      await this.chunkVectorDao!.create(data);
+      Logger.info("[VectorService] 创建 Chunk 向量成功", { chunk_id: data.chunk_id });
     } catch (error) {
-      Logger.error("[VectorService] 创建 Block 向量失败", { error: String(error), data });
+      Logger.error("[VectorService] 创建 Chunk 向量失败", { error: String(error), data });
       throw error;
     }
   }
 
   /**
-   * 批量创建 Block 向量
+   * 批量创建 Chunk 向量
    */
-  public async createBlockEmbeddings(dataList: BlockEmbeddingCreate[]): Promise<void> {
+  public async createChunkEmbeddings(dataList: ChunkEmbeddingCreate[]): Promise<void> {
     this.ensureInitialized();
     try {
-      await this.blockVectorDao!.createBatch(dataList);
-      Logger.info("[VectorService] 批量创建 Block 向量成功", { count: dataList.length });
+      await this.chunkVectorDao!.createBatch(dataList);
+      Logger.info("[VectorService] 批量创建 Chunk 向量成功", { count: dataList.length });
     } catch (error) {
-      Logger.error("[VectorService] 批量创建 Block 向量失败", {
+      Logger.error("[VectorService] 批量创建 Chunk 向量失败", {
         error: String(error),
         count: dataList.length,
       });
@@ -104,77 +104,77 @@ class VectorService {
   }
 
   /**
-   * 更新 Block 向量
+   * 更新 Chunk 向量
    */
-  public async updateBlockEmbedding(blockId: string, data: BlockEmbeddingUpdate): Promise<void> {
+  public async updateChunkEmbedding(chunkId: string, data: ChunkEmbeddingUpdate): Promise<void> {
     this.ensureInitialized();
     try {
-      await this.blockVectorDao!.update(blockId, data);
-      Logger.info("[VectorService] 更新 Block 向量成功", { block_id: blockId });
+      await this.chunkVectorDao!.update(chunkId, data);
+      Logger.info("[VectorService] 更新 Chunk 向量成功", { chunk_id: chunkId });
     } catch (error) {
-      Logger.error("[VectorService] 更新 Block 向量失败", { error: String(error), blockId, data });
+      Logger.error("[VectorService] 更新 Chunk 向量失败", { error: String(error), chunkId, data });
       throw error;
     }
   }
 
   /**
-   * 删除 Block 向量
+   * 删除 Chunk 向量
    */
-  public async deleteBlockEmbedding(blockId: string): Promise<void> {
+  public async deleteChunkEmbedding(chunkId: string): Promise<void> {
     this.ensureInitialized();
     try {
-      await this.blockVectorDao!.delete(blockId);
-      Logger.info("[VectorService] 删除 Block 向量成功", { block_id: blockId });
+      await this.chunkVectorDao!.delete(chunkId);
+      Logger.info("[VectorService] 删除 Chunk 向量成功", { chunk_id: chunkId });
     } catch (error) {
-      Logger.error("[VectorService] 删除 Block 向量失败", { error: String(error), blockId });
+      Logger.error("[VectorService] 删除 Chunk 向量失败", { error: String(error), chunkId });
       throw error;
     }
   }
 
   /**
-   * 批量删除 Block 向量
+   * 批量删除 Chunk 向量
    */
-  public async deleteBlockEmbeddings(blockIds: string[]): Promise<void> {
+  public async deleteChunkEmbeddings(chunkIds: string[]): Promise<void> {
     this.ensureInitialized();
     try {
-      await this.blockVectorDao!.deleteBatch(blockIds);
-      Logger.info("[VectorService] 批量删除 Block 向量成功", { count: blockIds.length });
+      await this.chunkVectorDao!.deleteBatch(chunkIds);
+      Logger.info("[VectorService] 批量删除 Chunk 向量成功", { count: chunkIds.length });
     } catch (error) {
-      Logger.error("[VectorService] 批量删除 Block 向量失败", {
+      Logger.error("[VectorService] 批量删除 Chunk 向量失败", {
         error: String(error),
-        count: blockIds.length,
+        count: chunkIds.length,
       });
       throw error;
     }
   }
 
   /**
-   * 根据 Block ID 查询向量（返回数组，便于统一处理）
+   * 根据 Chunk ID 查询向量（返回数组，便于统一处理）
    */
-  public async findBlockEmbeddingByBlockId(blockId: string): Promise<BlockEmbedding[]> {
+  public async findChunkEmbeddingByChunkId(chunkId: string): Promise<ChunkEmbedding[]> {
     this.ensureInitialized();
     try {
-      const result = await this.blockVectorDao!.findByBlockId(blockId);
+      const result = await this.chunkVectorDao!.findByChunkId(chunkId);
       return result ? [result] : [];
     } catch (error) {
-      Logger.error("[VectorService] 查询 Block 向量失败", { error: String(error), blockId });
+      Logger.error("[VectorService] 查询 Chunk 向量失败", { error: String(error), chunkId });
       return [];
     }
   }
 
   /**
-   * 搜索相似 Block 向量
+   * 搜索相似 Chunk 向量
    */
-  public async searchBlockEmbeddings(
+  public async searchChunkEmbeddings(
     params: VectorSearchParams,
-  ): Promise<VectorSearchResult<import("@/main/types/db/vector.types").BlockEmbedding>[]> {
+  ): Promise<VectorSearchResult<import("@/main/types/db/vector.types").ChunkEmbedding>[]> {
     this.ensureInitialized();
     try {
-      const results = await this.blockVectorDao!.search(params);
-      Logger.debug("[VectorService] 搜索 Block 向量成功", { topK: params.topK, count: results.length });
+      const results = await this.chunkVectorDao!.search(params);
+      Logger.debug("[VectorService] 搜索 Chunk 向量成功", { topK: params.topK, count: results.length });
       return results;
     } catch (error) {
-      Logger.error("[VectorService] 搜索 Block 向量失败", { error: String(error), params });
+      Logger.error("[VectorService] 搜索 Chunk 向量失败", { error: String(error), params });
       throw error;
     }
   }
@@ -282,11 +282,11 @@ class VectorService {
   public async getAllStats(): Promise<VectorStats[]> {
     this.ensureInitialized();
     try {
-      const [blockStats, pageStats] = await Promise.all([
-        this.blockVectorDao!.getStats(),
+      const [chunkStats, pageStats] = await Promise.all([
+        this.chunkVectorDao!.getStats(),
         this.pageVectorDao!.getStats(),
       ]);
-      return [blockStats, pageStats];
+      return [chunkStats, pageStats];
     } catch (error) {
       Logger.error("[VectorService] 获取统计信息失败", { error: String(error) });
       throw error;
