@@ -168,10 +168,12 @@ async function submit() {
     draft.value = "";
     projectCandidates.value = [];
     resolved.value = new Map();
-    // 同族缺口：条目已写入，但 appendEntry 内部的整窗刷新失败（loadRecentDays 写 errorCode，
-    // appendEntry 仍返回 id）此前无人提示。挂在成功分支内 ⇒ 与下面的失败分支互斥，不会双弹
-    if (hasError.value && errorMessage.value) {
-      notify.error(t("TIPS.JOURNAL.APPEND_FAILED"), errorMessage.value);
+    // 分级：条目已落库（appendEntry 返回 id），errorCode 只可能来自成功后的整窗刷新（loadRecentDays）。
+    // 此刻草稿已被清空，若报「追加失败」用户会重新输入 ⇒ 写出重复条目，故只报 warn + 中性文案。
+    // 挂在成功分支内 ⇒ 与下面的真失败分支天然互斥，不会双弹
+    const content = errorMessage.value;
+    if (hasError.value && content) {
+      notify.warn(t("TIPS.JOURNAL.SAVED_REFRESH_FAILED"), content);
       clearError();
     }
   } else {

@@ -239,6 +239,7 @@ export default {
       ENTRY_SAVE: "保存",
       ENTRY_CANCEL: "取消",
       ENTRY_UPDATE_FAILED: "更新条目失败",
+      SAVED_REFRESH_FAILED: "内容已写入，但时间线刷新失败，请稍后重新打开或翻页重试",
       ENTRY_DELETE: "删除",
       ENTRY_DELETE_CONFIRM: "删除该条日志？删除后不可恢复。",
       ENTRY_DELETE_FAILED: "删除条目失败",

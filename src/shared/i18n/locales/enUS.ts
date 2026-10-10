@@ -241,6 +241,7 @@ export default {
       ENTRY_SAVE: "Save",
       ENTRY_CANCEL: "Cancel",
       ENTRY_UPDATE_FAILED: "Failed to update entry",
+      SAVED_REFRESH_FAILED: "Saved, but the timeline could not refresh. Reopen or scroll later to retry.",
       ENTRY_DELETE: "Delete",
       ENTRY_DELETE_CONFIRM: "Delete this journal entry? This cannot be undone.",
       ENTRY_DELETE_FAILED: "Failed to delete entry",

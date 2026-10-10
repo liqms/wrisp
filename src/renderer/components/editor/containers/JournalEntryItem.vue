@@ -69,24 +69,42 @@ function cancelEdit() {
 }
 /**
  * 动作失败提示。判据只能是 hasError（store.errorCode !== null），不能用动作返回值：
- * updateEntry / requestDeleteEntry 返回 false 有两种含义 ——
+ * updateEntry 返回 false 有两种含义 ——
  * 1) success:true + data:false ⇒ 条目已被并发删除，store 走 deleteEntryLocal 本地自愈且
  *    故意不写 errorCode（journal.store.ts 契约），此时弹「失败」是在对用户撒谎；
  * 2) success:false 或 IPC reject ⇒ 真失败，errorCode 已写。
+ * 在「是否弹」之上再分一级「弹成什么」（判据仍是 hasError，返回值只决定标题/级别）：
+ * updateEntry 成功后 store 会整窗重拉（loadRecentDays），重拉失败同样写 errorCode，
+ * 但条目**已落库** —— 此时报「更新条目失败」是在把已保存误报成失败，
+ * 用户会重填草稿（编辑态已退出）进而写出重复条目，故只报 warn + 中性文案。
  * errorMessage 已由 handleApiError 按 ErrorCode 本地化，直接作正文，不再造 _CONTENT 文案。
  */
-function reportFailure(titleKey: string) {
+function reportWriteResult(ok: boolean) {
   const content = errorMessage.value; // 取局部量只为满足 string | null 收窄，两者在 store 里成对写入
-  if (hasError.value && content) {
-    notify.error(t(titleKey), content);
-    clearError();
+  if (!hasError.value || !content) return;
+  if (ok) {
+    notify.warn(t("TIPS.JOURNAL.SAVED_REFRESH_FAILED"), content);
+  } else {
+    notify.error(t("TIPS.JOURNAL.ENTRY_UPDATE_FAILED"), content);
   }
+  clearError();
+}
+
+/**
+ * 删除路径不分级：requestDeleteEntry 成功后只做 deleteEntryLocal、不重拉时间线
+ * （journal.store.ts 契约），不存在「写库成功但刷新失败」；errorCode 已置即真失败，只走 error。
+ */
+function reportDeleteFailure() {
+  const content = errorMessage.value;
+  if (!hasError.value || !content) return;
+  notify.error(t("TIPS.JOURNAL.ENTRY_DELETE_FAILED"), content);
+  clearError();
 }
 
 async function saveEdit() {
   const ok = await updateEntry({ id: props.entry.id, content: draft.value });
   if (ok) editing.value = false;
-  reportFailure("TIPS.JOURNAL.ENTRY_UPDATE_FAILED");
+  reportWriteResult(ok);
 }
 function confirmDelete() {
   dialog.warning({
@@ -94,10 +112,12 @@ function confirmDelete() {
     content: t("TIPS.JOURNAL.ENTRY_DELETE_CONFIRM"),
     positiveText: t("ACTION.COMMON.CONFIRM"),
     negativeText: t("ACTION.COMMON.CANCEL"),
-    // 提示与 dialog 关闭互不干涉：不返回 false（沿用「点击即关」体验），失败提示由 reportFailure 兜底
+    // 提示与 dialog 关闭互不干涉：回调从不返回 false，点击即关闭 dialog；
+    // 但 naive-ui 对 async onPositiveClick 会让确认按钮在请求期间呈 loading，
+    // 直至返回的 promise 落定（行为可接受，仅如实记录）。失败提示由 reportDeleteFailure 兜底
     onPositiveClick: async () => {
       await requestDeleteEntry(props.entry.id);
-      reportFailure("TIPS.JOURNAL.ENTRY_DELETE_FAILED");
+      reportDeleteFailure();
     },
   });
 }

@@ -79,6 +79,13 @@ async function doImport() {
       t("TIPS.JOURNAL.IMPORT_TITLE"),
       t("TIPS.JOURNAL.IMPORT_RESULT", { imported: res.imported, updated: res.updated, skipped: res.skipped }),
     );
+    // 分级：导入已落库（res 为计数对象），errorCode 只可能来自成功后的整窗刷新（loadRecentDays）。
+    // 与成功 toast 先后各弹一条、不合并 —— 两条说的是两件事（导入了多少条 / 时间线没刷新）
+    const refreshFailure = errorMessage.value;
+    if (hasError.value && refreshFailure) {
+      notify.warn(t("TIPS.JOURNAL.SAVED_REFRESH_FAILED"), refreshFailure);
+      clearError();
+    }
   } else {
     // 导入失败此前完全静默。判据与条目编辑/删除同源（hasError 而非返回值）：
     // importDayFile 的 success:true 必带 data 对象，res===null 即真失败，

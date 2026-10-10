@@ -153,6 +153,9 @@ export class JournalEntryDao extends BaseDao<
     // 待导入日一旦超过 1000 个，窗口外的老日期会被误判 has_legacy_file=false，
     // 该日的「导入此文件」入口就此永久消失
     const legacy = this.selectLegacyDatesWithin(dates);
+    // 参数上界留痕：本方法与 selectLegacyDatesWithin 各下发一条 `date IN (...)`，占位符个数 = dates.length，
+    // 受 journal.api.ts 的 MAX_JOURNAL_TIMELINE_DAYS(10_000) 与 listRecentDays 的 limit = days + 1 双重约束，
+    // 远低于 SQLite 的 32766 变量上限；若提高该阈值，需同步复核这里的参数个数上界。
     const placeholders = dates.map(() => "?").join(",");
     const rows = this.query(
       `SELECT * FROM journal_entries
